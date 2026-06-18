@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# build outputs
+dist
+build
+.next
+out
+
+# turborepo
+.turbo
+
+# env (never commit secrets)
+.env
+.env*.local
+
+# misc
+*.tsbuildinfo
+.DS_Store
+*.log
+coverage

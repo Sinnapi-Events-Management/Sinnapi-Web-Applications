@@ -1,0 +1,38 @@
+{
+  "name": "sinnapi",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Sinnapi — event marketplace monorepo (public site + client/vendor/admin portals).",
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": ">=18"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:all": "turbo run dev",
+    "dev": "turbo run dev",
+    "dev:web": "yarn workspace @sinnapi/web-public dev",
+    "dev:client": "yarn workspace @sinnapi/client-portal dev",
+    "dev:vendor": "yarn workspace @sinnapi/vendor-portal dev",
+    "dev:admin": "yarn workspace @sinnapi/admin-portal dev",
+    "dev:portals": "turbo run dev --filter=@sinnapi/client-portal --filter=@sinnapi/vendor-portal --filter=@sinnapi/admin-portal",
+    "build": "turbo run build",
+    "build:all": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "start:web": "yarn workspace @sinnapi/web-public start",
+    "setup:env": "for d in apps/*/; do if [ -f \"$d.env.example\" ] && [ ! -f \"$d.env.local\" ]; then cp \"$d.env.example\" \"$d.env.local\" && echo \"created ${d}.env.local\"; fi; done; echo 'env ready (fill in your Supabase keys)'",
+    "clean": "find apps -type d \\( -name dist -o -name .next -o -name .turbo \\) -prune -exec rm -rf {} + ; rm -rf .turbo",
+    "clean:deps": "rm -rf node_modules apps/*/node_modules",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff",
+    "functions:serve": "supabase functions serve"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.3"
+  }
+}
