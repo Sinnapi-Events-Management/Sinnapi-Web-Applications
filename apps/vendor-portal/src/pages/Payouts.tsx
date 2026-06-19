@@ -1,11 +1,11 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
-import PageTitle from "@/components/ui/PageTitle";
-import EmptyState from "@/components/ui/EmptyState";
-import StatusChip from "@/components/ui/StatusChip";
-import QueryState from "@/components/ui/QueryState";
-import VendorGate from "@/vendor/VendorGate";
-import { useVendorPayouts } from "@/hooks/queries";
-import { formatMoney, formatDate } from "@/lib/config";
+import { Card, Table, TableHead, TableRow, TableCell, TableBody } from '@sinnapi/ui';
+import PageTitle from '@/components/ui/PageTitle';
+import EmptyState from '@/components/ui/EmptyState';
+import StatusChip from '@/components/ui/StatusChip';
+import QueryState from '@/components/ui/QueryState';
+import VendorGate from '@/vendor/VendorGate';
+import { useVendorPayouts } from '@/hooks/queries';
+import { formatMoney, formatDate } from '@/lib/config';
 
 function PayoutsTable({ vendorId }: { vendorId: string }) {
   const { data, isLoading, error } = useVendorPayouts(vendorId);
@@ -13,24 +13,34 @@ function PayoutsTable({ vendorId }: { vendorId: string }) {
   return (
     <QueryState isLoading={isLoading} error={error}>
       {rows.length === 0 ? (
-        <EmptyState title="No payouts yet" description="Once escrow is released and approved, your payouts appear here." />
+        <EmptyState
+          title="No payouts yet"
+          description="Once escrow is released and approved, your payouts appear here."
+        />
       ) : (
         <Card variant="outlined">
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Requested</TableCell><TableCell align="right">Amount</TableCell>
-                <TableCell>Approved</TableCell><TableCell>Completed</TableCell><TableCell>Status</TableCell>
+                <TableCell>Requested</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell>Approved</TableCell>
+                <TableCell>Completed</TableCell>
+                <TableCell>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((p: any) => (
+              {rows.map((p) => (
                 <TableRow key={p.id} hover>
                   <TableCell>{formatDate(p.created_at)}</TableCell>
-                  <TableCell align="right"><strong>{formatMoney(p.amount, p.currency)}</strong></TableCell>
+                  <TableCell align="right">
+                    <strong>{formatMoney(p.amount, p.currency)}</strong>
+                  </TableCell>
                   <TableCell>{formatDate(p.approved_at)}</TableCell>
                   <TableCell>{formatDate(p.completed_at)}</TableCell>
-                  <TableCell><StatusChip status={p.status} /></TableCell>
+                  <TableCell>
+                    <StatusChip status={p.status} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

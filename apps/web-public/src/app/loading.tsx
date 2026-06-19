@@ -1,4 +1,4 @@
-import { Container, Grid, Skeleton, Box } from "@mui/material";
+import { Container, Grid, Skeleton, Box } from '@sinnapi/ui';
 
 export default function Loading() {
   return (

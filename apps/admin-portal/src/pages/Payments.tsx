@@ -1,30 +1,47 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
-import PageTitle from "@/components/ui/PageTitle";
-import EmptyState from "@/components/ui/EmptyState";
-import StatusChip from "@/components/ui/StatusChip";
-import QueryState from "@/components/ui/QueryState";
-import { usePaymentsAdmin } from "@/hooks/queries";
-import { formatDate, formatMoney, titleize } from "@/lib/config";
+import { Card, Table, TableHead, TableRow, TableCell, TableBody } from '@sinnapi/ui';
+import PageTitle from '@/components/ui/PageTitle';
+import EmptyState from '@/components/ui/EmptyState';
+import StatusChip from '@/components/ui/StatusChip';
+import QueryState from '@/components/ui/QueryState';
+import { usePaymentsAdmin } from '@/hooks/queries';
+import { formatDate, formatMoney, titleize } from '@/lib/config';
 
 export default function Payments() {
   const { data, isLoading, error } = usePaymentsAdmin();
   const rows = data ?? [];
   return (
     <>
-      <PageTitle title="Payments" subtitle="Payment oversight (PSP charges, escrow funding, subscriptions)." />
+      <PageTitle
+        title="Payments"
+        subtitle="Payment oversight (PSP charges, escrow funding, subscriptions)."
+      />
       <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? <EmptyState title="No payments" /> : (
+        {rows.length === 0 ? (
+          <EmptyState title="No payments" />
+        ) : (
           <Card variant="outlined">
             <Table>
-              <TableHead><TableRow><TableCell>Date</TableCell><TableCell>Purpose</TableCell><TableCell>Provider</TableCell><TableCell align="right">Amount</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Purpose</TableCell>
+                  <TableCell>Provider</TableCell>
+                  <TableCell align="right">Amount</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
               <TableBody>
-                {rows.map((p: any) => (
+                {rows.map((p) => (
                   <TableRow key={p.id} hover>
                     <TableCell>{formatDate(p.created_at)}</TableCell>
                     <TableCell>{titleize(p.purpose)}</TableCell>
-                    <TableCell>{titleize(p.provider)} · {titleize(p.provider_method)}</TableCell>
+                    <TableCell>
+                      {titleize(p.provider)} · {titleize(p.provider_method)}
+                    </TableCell>
                     <TableCell align="right">{formatMoney(p.amount, p.currency)}</TableCell>
-                    <TableCell><StatusChip status={p.status} /></TableCell>
+                    <TableCell>
+                      <StatusChip status={p.status} />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

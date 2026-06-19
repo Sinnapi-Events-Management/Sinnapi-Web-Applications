@@ -1,36 +1,36 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "@/auth/ProtectedRoute";
-import { VendorProvider } from "@/vendor/VendorProvider";
-import AppShell from "@/components/shell/AppShell";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from '@/auth/ProtectedRoute';
+import { VendorProvider } from '@/vendor/VendorProvider';
+import AppShell from '@/components/shell/AppShell';
 
-import SignIn from "@/pages/auth/SignIn";
-import SignUp from "@/pages/auth/SignUp";
-import AuthCallback from "@/pages/auth/AuthCallback";
+import SignIn from '@/pages/auth/SignIn';
+import SignUp from '@/pages/auth/SignUp';
+import AuthCallback from '@/pages/auth/AuthCallback';
 
-import Dashboard from "@/pages/Dashboard";
-import Onboarding from "@/pages/Onboarding";
-import Subscription from "@/pages/Subscription";
-import Profile from "@/pages/Profile";
-import Services from "@/pages/Services";
-import Portfolio from "@/pages/Portfolio";
-import Calendar from "@/pages/Calendar";
-import Bookings from "@/pages/Bookings";
-import BookingDetail from "@/pages/BookingDetail";
-import Quotations from "@/pages/Quotations";
-import QuotationDetail from "@/pages/QuotationDetail";
-import Templates from "@/pages/Templates";
-import PublicEvents from "@/pages/PublicEvents";
-import Escrow from "@/pages/Escrow";
-import Payouts from "@/pages/Payouts";
-import Promotions from "@/pages/Promotions";
-import Discounts from "@/pages/Discounts";
-import Reviews from "@/pages/Reviews";
-import Analytics from "@/pages/Analytics";
-import Messages from "@/pages/Messages";
-import Conversation from "@/pages/Conversation";
-import Notifications from "@/pages/Notifications";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
+import Dashboard from '@/pages/Dashboard';
+import Onboarding from '@/pages/Onboarding';
+import Subscription from '@/pages/Subscription';
+import Profile from '@/pages/Profile';
+import Services from '@/pages/Services';
+import Portfolio from '@/pages/Portfolio';
+import Calendar from '@/pages/Calendar';
+import Bookings from '@/pages/Bookings';
+import BookingDetail from '@/pages/BookingDetail';
+import Quotations from '@/pages/Quotations';
+import QuotationDetail from '@/pages/QuotationDetail';
+import Templates from '@/pages/Templates';
+import PublicEvents from '@/pages/PublicEvents';
+import Escrow from '@/pages/Escrow';
+import Payouts from '@/pages/Payouts';
+import Promotions from '@/pages/Promotions';
+import Discounts from '@/pages/Discounts';
+import Reviews from '@/pages/Reviews';
+import Analytics from '@/pages/Analytics';
+import Messages from '@/pages/Messages';
+import Conversation from '@/pages/Conversation';
+import Notifications from '@/pages/Notifications';
+import Settings from '@/pages/Settings';
+import NotFound from '@/pages/NotFound';
 
 export default function App() {
   return (

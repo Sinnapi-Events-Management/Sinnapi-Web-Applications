@@ -1,0 +1,69 @@
+name: ✨ Feature request
+description: Suggest a new capability or improvement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Describe the problem first, then the proposed solution.
+        If a Jira ticket already exists, link it below.
+
+  - type: input
+    id: jira
+    attributes:
+      label: Jira ticket
+      description: Link if one exists (e.g. https://sinnapi.atlassian.net/browse/SNP-123).
+      placeholder: SNP-XXX
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which app or package would this affect?
+      multiple: true
+      options:
+        - apps/web-public
+        - apps/client-portal
+        - apps/vendor-portal
+        - apps/admin-portal
+        - packages/ui
+        - supabase (functions / migrations)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this solve? Who is affected and why does it matter?
+      placeholder: As a [vendor], I want [...] so that [...]
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or features you've considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links, or any other context.
+    validations:
+      required: false

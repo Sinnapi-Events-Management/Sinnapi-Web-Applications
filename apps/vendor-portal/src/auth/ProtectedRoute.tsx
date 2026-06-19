@@ -1,6 +1,6 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { Box, CircularProgress } from "@mui/material";
-import { useAuth } from "./AuthProvider";
+import { Navigate, useLocation } from 'react-router-dom';
+import { Box, CircularProgress } from '@sinnapi/ui';
+import { useAuth } from './AuthProvider';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: "100dvh", display: "grid", placeItems: "center" }}>
+      <Box sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}>
         <CircularProgress />
       </Box>
     );

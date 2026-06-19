@@ -1,0 +1,380 @@
+// Admin-portal read models. The Supabase client is untyped, so these describe
+// the shapes returned by the queries in src/hooks/queries.ts. Each query asserts
+// one of these at the data boundary so components stay fully typed.
+//
+// PostgREST returns embedded relations as an object OR an array depending on the
+// inferred cardinality; such fields are typed as `T | T[] | null` and normalized
+// at the call site with `one<T>()` from src/lib/rel.ts.
+
+// --- shared relation shapes -------------------------------------------------
+
+export type ProfileRef = {
+  full_name: string | null;
+  email: string | null;
+};
+
+export type ProfileContactRef = ProfileRef & {
+  phone: string | null;
+};
+
+export type VendorRef = {
+  business_name: string | null;
+};
+
+export type BookingRef = {
+  reference_no: string | null;
+};
+
+export type PricingPlanRef = {
+  name: string | null;
+};
+
+// --- profile / auth ---------------------------------------------------------
+
+export type ProfileModel = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+};
+
+// --- dashboard --------------------------------------------------------------
+
+export type AdminDashboardModel = {
+  pendingApplications: number;
+  pendingPayouts: number;
+  openDisputes: number;
+  escrowHeld: number;
+  activeVendors: number;
+};
+
+// --- vendor applications ----------------------------------------------------
+
+export type ApplicationListModel = {
+  id: string;
+  business_name: string;
+  status: string;
+  is_reapplication: boolean | null;
+  submitted_at: string | null;
+  created_at: string | null;
+  profiles: ProfileRef | ProfileRef[] | null;
+};
+
+export type ApplicationDetailModel = {
+  id: string;
+  business_name: string;
+  status: string;
+  base_city: string | null;
+  years_in_operation: string | null;
+  pricing_model: string | null;
+  business_reg_number: string | null;
+  tax_id: string | null;
+  icandy_alumni: boolean | null;
+  submitted_at: string | null;
+  biography: string | null;
+  review_notes: string | null;
+  profiles: ProfileContactRef | ProfileContactRef[] | null;
+};
+
+// --- vendors ----------------------------------------------------------------
+
+export type VendorAdminModel = {
+  id: string;
+  business_name: string | null;
+  slug: string;
+  status: string;
+  visibility: string;
+  avg_rating: number | null;
+  review_count: number | null;
+  created_at: string | null;
+};
+
+// --- users / RBAC -----------------------------------------------------------
+
+export type RoleKeyRef = {
+  key: string;
+  name: string;
+};
+
+export type UserRoleRow = {
+  roles: RoleKeyRef | RoleKeyRef[] | null;
+};
+
+export type UserModel = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  status: string;
+  created_at: string | null;
+  user_roles: UserRoleRow[] | null;
+};
+
+export type RolePermissionRef = {
+  permission_id: string;
+};
+
+export type RoleModel = {
+  id: string;
+  key: string;
+  name: string;
+  is_admin: boolean | null;
+  role_permissions: RolePermissionRef[] | null;
+};
+
+export type PermissionModel = {
+  id: string;
+  key: string;
+  category: string | null;
+  description: string | null;
+};
+
+// Shape consumed by AdminProvider's permission resolution query.
+export type PermissionKeyRef = {
+  key: string;
+};
+
+export type RolePermissionsNested = {
+  permissions: PermissionKeyRef | PermissionKeyRef[] | null;
+};
+
+export type AdminRoleNested = {
+  key: string;
+  is_admin: boolean | null;
+  role_permissions: RolePermissionsNested[] | null;
+};
+
+export type AdminUserRoleRow = {
+  roles: AdminRoleNested | AdminRoleNested[] | null;
+};
+
+// --- escrow / payouts / refunds / payments / ledger -------------------------
+
+export type EscrowModel = {
+  id: string;
+  status: string;
+  gross_amount: number | null;
+  commission_amount: number | null;
+  net_payout_amount: number | null;
+  currency: string | null;
+  client_confirmed_at: string | null;
+  vendors: VendorRef | VendorRef[] | null;
+  bookings: BookingRef | BookingRef[] | null;
+};
+
+export type PayoutModel = {
+  id: string;
+  amount: number | null;
+  currency: string | null;
+  status: string;
+  requested_by: string | null;
+  approved_by: string | null;
+  created_at: string | null;
+  vendors: VendorRef | VendorRef[] | null;
+};
+
+export type RefundModel = {
+  id: string;
+  amount: number | null;
+  currency: string | null;
+  type: string;
+  status: string;
+  reason: string | null;
+  requested_by: string | null;
+  created_at: string | null;
+};
+
+export type PaymentModel = {
+  id: string;
+  purpose: string;
+  amount: number | null;
+  currency: string | null;
+  status: string;
+  provider: string;
+  provider_method: string;
+  created_at: string | null;
+};
+
+export type LedgerEntryModel = {
+  id: string;
+  entry_group_id: string | null;
+  account: string;
+  direction: string;
+  amount: number | null;
+  currency: string | null;
+  description: string | null;
+  occurred_at: string | null;
+};
+
+// --- disputes ---------------------------------------------------------------
+
+export type DisputeModel = {
+  id: string;
+  reason: string;
+  status: string;
+  sla_due_at: string | null;
+  created_at: string | null;
+  escrow_id: string | null;
+  bookings: BookingRef | BookingRef[] | null;
+};
+
+// --- subscriptions / plans --------------------------------------------------
+
+export type SubscriptionModel = {
+  id: string;
+  status: string;
+  current_period_end: string | null;
+  grace_until: string | null;
+  trial_ends_at: string | null;
+  vendors: VendorRef | VendorRef[] | null;
+  pricing_plans: PricingPlanRef | PricingPlanRef[] | null;
+};
+
+export type PlanModel = {
+  id: string;
+  key: string;
+  name: string;
+  price: number | null;
+  currency: string | null;
+  billing_cycle: string;
+  is_active: boolean;
+  trial_days: number | null;
+};
+
+// --- bookings / quotations / events -----------------------------------------
+
+export type BookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  amount: number | null;
+  currency: string | null;
+  vendors: VendorRef | VendorRef[] | null;
+};
+
+export type QuotationModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  total: number | null;
+  currency: string | null;
+  created_at: string | null;
+  vendors: VendorRef | VendorRef[] | null;
+};
+
+export type EventModel = {
+  id: string;
+  title: string;
+  source: string;
+  status: string;
+  event_date: string | null;
+  is_public: boolean | null;
+  created_at: string | null;
+};
+
+// --- moderation -------------------------------------------------------------
+
+export type ReviewRef = {
+  id: string;
+  rating: number | null;
+  body: string | null;
+  vendor_id: string | null;
+};
+
+export type ReviewReportModel = {
+  id: string;
+  reason: string;
+  status: string;
+  created_at: string | null;
+  reviews: ReviewRef | ReviewRef[] | null;
+};
+
+export type MessageRef = {
+  id: string;
+  body: string | null;
+  conversation_id: string | null;
+};
+
+export type MessageFlagModel = {
+  id: string;
+  reason: string;
+  status: string;
+  created_at: string | null;
+  messages: MessageRef | MessageRef[] | null;
+};
+
+// --- notifications / templates / settings -----------------------------------
+
+export type NotificationTemplateModel = {
+  id: string;
+  trigger_key: string;
+  channel: string;
+  subject: string | null;
+  locale: string;
+  is_active: boolean;
+};
+
+export type SettingModel = {
+  id: string;
+  key: string;
+  value: unknown;
+  description: string | null;
+};
+
+export type NotificationModel = {
+  id: string;
+  trigger_key: string;
+  title: string | null;
+  body: string | null;
+  read_at: string | null;
+  created_at: string | null;
+};
+
+// --- compliance: audit / retention / erasure --------------------------------
+
+export type AuditLogModel = {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  actor_id: string | null;
+  occurred_at: string | null;
+};
+
+export type RetentionPolicyModel = {
+  id: string;
+  data_category: string;
+  retention_period: string | null;
+  action_on_expiry: string;
+  legal_hold: boolean | null;
+  description: string | null;
+};
+
+export type ErasureRequestModel = {
+  id: string;
+  status: string;
+  notes: string | null;
+  created_at: string | null;
+  profiles: ProfileRef | ProfileRef[] | null;
+};
+
+// --- inbox ------------------------------------------------------------------
+
+export type ConversationModel = {
+  id: string;
+  type: string;
+  subject: string | null;
+  last_message_at: string | null;
+  status: string;
+  // Not part of the current select; kept optional so the inbox list can fall
+  // back to subject/type without a runtime change if a vendor join is added.
+  vendors?: VendorRef | VendorRef[] | null;
+};
+
+export type MessageModel = {
+  id: string;
+  sender_id: string | null;
+  body: string | null;
+  created_at: string | null;
+  moderation_status: string;
+};

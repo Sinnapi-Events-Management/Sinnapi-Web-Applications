@@ -1,9 +1,11 @@
-import { Container, Typography, Box } from "@mui/material";
-import { PageHeader } from "./SectionHeading";
+import { Container, Typography, Box } from '@sinnapi/ui';
+import { PageHeader } from './SectionHeading';
 
 // Lightweight prose layout for static marketing / legal pages.
 export default function Prose({
-  title, subtitle, children,
+  title,
+  subtitle,
+  children,
 }: {
   title: string;
   subtitle?: string;
@@ -13,7 +15,12 @@ export default function Prose({
     <>
       <PageHeader title={title} subtitle={subtitle} />
       <Container sx={{ py: { xs: 4, md: 6 }, maxWidth: 820 }}>
-        <Box sx={{ "& p": { color: "text.secondary", lineHeight: 1.7, mb: 2 }, "& h2": { mt: 4, mb: 1.5 } }}>
+        <Box
+          sx={{
+            '& p': { color: 'text.secondary', lineHeight: 1.7, mb: 2 },
+            '& h2': { mt: 4, mb: 1.5 },
+          }}
+        >
           {children}
         </Box>
       </Container>

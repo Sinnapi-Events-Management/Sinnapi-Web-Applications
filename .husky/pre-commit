@@ -1,0 +1,5 @@
+echo "🔍 Running lint-staged on staged files..."
+yarn lint-staged || exit 1
+
+echo "🧠 Type-checking workspaces..."
+yarn typecheck || exit 1

@@ -26,6 +26,12 @@
     },
     "typecheck": {
       "outputs": []
+    },
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "outputs": []
     }
   }
 }

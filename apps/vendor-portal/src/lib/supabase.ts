@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
 
 // Browser Supabase client. PKCE flow + auto-refresh; session persisted in
 // localStorage (the SPA tradeoff — mitigated by the strict CSP in index.html).
@@ -8,7 +8,7 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY,
   {
     auth: {
-      flowType: "pkce",
+      flowType: 'pkce',
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,

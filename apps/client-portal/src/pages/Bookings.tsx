@@ -1,12 +1,13 @@
-import { useNavigate } from "react-router-dom";
-import { Card, Table, TableHead, TableRow, TableCell, TableBody, Typography } from "@mui/material";
-import PageTitle from "@/components/ui/PageTitle";
-import EmptyState from "@/components/ui/EmptyState";
-import StatusChip from "@/components/ui/StatusChip";
-import QueryState from "@/components/ui/QueryState";
-import { useBookings } from "@/hooks/queries";
-import { formatDate, formatMoney } from "@/lib/config";
-import { one } from "@/lib/rel";
+import { useNavigate } from 'react-router-dom';
+import { Card, Table, TableHead, TableRow, TableCell, TableBody, Typography } from '@sinnapi/ui';
+import PageTitle from '@/components/ui/PageTitle';
+import EmptyState from '@/components/ui/EmptyState';
+import StatusChip from '@/components/ui/StatusChip';
+import QueryState from '@/components/ui/QueryState';
+import { useBookings } from '@/hooks/queries';
+import { formatDate, formatMoney } from '@/lib/config';
+import { one } from '@/lib/rel';
+import type { VendorRefModel } from '@/lib/types';
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -18,24 +19,41 @@ export default function Bookings() {
       <PageTitle title="Bookings" subtitle="Track and manage all your vendor bookings." />
       <QueryState isLoading={isLoading} error={error}>
         {rows.length === 0 ? (
-          <EmptyState title="No bookings yet" description="Find a vendor and request your first booking." ctaLabel="Discover vendors" ctaHref="/discover" />
+          <EmptyState
+            title="No bookings yet"
+            description="Find a vendor and request your first booking."
+            ctaLabel="Discover vendors"
+            ctaHref="/discover"
+          />
         ) : (
           <Card variant="outlined">
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Reference</TableCell><TableCell>Vendor</TableCell><TableCell>Date</TableCell>
-                  <TableCell align="right">Amount</TableCell><TableCell>Status</TableCell>
+                  <TableCell>Reference</TableCell>
+                  <TableCell>Vendor</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell align="right">Amount</TableCell>
+                  <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((b: any) => (
-                  <TableRow key={b.id} hover sx={{ cursor: "pointer" }} onClick={() => navigate(`/bookings/${b.id}`)}>
-                    <TableCell><Typography variant="body2">{b.reference_no}</Typography></TableCell>
-                    <TableCell>{one<any>(b.vendors)?.business_name ?? "—"}</TableCell>
+                {rows.map((b) => (
+                  <TableRow
+                    key={b.id}
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/bookings/${b.id}`)}
+                  >
+                    <TableCell>
+                      <Typography variant="body2">{b.reference_no}</Typography>
+                    </TableCell>
+                    <TableCell>{one<VendorRefModel>(b.vendors)?.business_name ?? '—'}</TableCell>
                     <TableCell>{formatDate(b.event_date)}</TableCell>
                     <TableCell align="right">{formatMoney(b.amount, b.currency)}</TableCell>
-                    <TableCell><StatusChip status={b.status} /></TableCell>
+                    <TableCell>
+                      <StatusChip status={b.status} />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -1,29 +1,29 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "@/auth/ProtectedRoute";
-import AppShell from "@/components/shell/AppShell";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from '@/auth/ProtectedRoute';
+import AppShell from '@/components/shell/AppShell';
 
-import SignIn from "@/pages/auth/SignIn";
-import SignUp from "@/pages/auth/SignUp";
-import AuthCallback from "@/pages/auth/AuthCallback";
+import SignIn from '@/pages/auth/SignIn';
+import SignUp from '@/pages/auth/SignUp';
+import AuthCallback from '@/pages/auth/AuthCallback';
 
-import Dashboard from "@/pages/Dashboard";
-import Discover from "@/pages/Discover";
-import VendorDetail from "@/pages/VendorDetail";
-import Bookings from "@/pages/Bookings";
-import BookingDetail from "@/pages/BookingDetail";
-import Quotations from "@/pages/Quotations";
-import CompareQuotes from "@/pages/CompareQuotes";
-import MyEvents from "@/pages/MyEvents";
-import NewEvent from "@/pages/NewEvent";
-import Messages from "@/pages/Messages";
-import Conversation from "@/pages/Conversation";
-import Payments from "@/pages/Payments";
-import Escrow from "@/pages/Escrow";
-import Reviews from "@/pages/Reviews";
-import Notifications from "@/pages/Notifications";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
+import Dashboard from '@/pages/Dashboard';
+import Discover from '@/pages/Discover';
+import VendorDetail from '@/pages/VendorDetail';
+import Bookings from '@/pages/Bookings';
+import BookingDetail from '@/pages/BookingDetail';
+import Quotations from '@/pages/Quotations';
+import CompareQuotes from '@/pages/CompareQuotes';
+import MyEvents from '@/pages/MyEvents';
+import NewEvent from '@/pages/NewEvent';
+import Messages from '@/pages/Messages';
+import Conversation from '@/pages/Conversation';
+import Payments from '@/pages/Payments';
+import Escrow from '@/pages/Escrow';
+import Reviews from '@/pages/Reviews';
+import Notifications from '@/pages/Notifications';
+import Profile from '@/pages/Profile';
+import Settings from '@/pages/Settings';
+import NotFound from '@/pages/NotFound';
 
 export default function App() {
   return (

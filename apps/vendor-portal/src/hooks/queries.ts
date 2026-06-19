@@ -1,261 +1,366 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import type {
+  ProfileModel,
+  MyApplicationModel,
+  VendorBookingModel,
+  VendorBookingDetailModel,
+  VendorQuotationModel,
+  QuotationDetailModel,
+  TemplateModel,
+  ServiceModel,
+  MediaModel,
+  AvailabilityModel,
+  BlockedDateModel,
+  PublicEventModel,
+  EventInterestModel,
+  EscrowModel,
+  PayoutModel,
+  PromotionModel,
+  DiscountModel,
+  ReviewModel,
+  PlanModel,
+  ConversationModel,
+  MessageModel,
+  NotificationModel,
+} from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
 
 export function useProfile() {
   return useQuery({
-    queryKey: ["profile"],
+    queryKey: ['profile'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await supabase.from("profiles")
-        .select("id,full_name,email,phone,avatar_url,preferred_currency").eq("id", user.id).maybeSingle();
-      return data;
+      const { data } = await supabase
+        .from('profiles')
+        .select('id,full_name,email,phone,avatar_url,preferred_currency')
+        .eq('id', user.id)
+        .maybeSingle();
+      return (data as ProfileModel) ?? null;
     },
   });
 }
 
 export function useMyApplication() {
   return useQuery({
-    queryKey: ["my-application"],
+    queryKey: ['my-application'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await supabase.from("vendor_applications")
-        .select("id,status,business_name,is_reapplication,rejection_reason,submitted_at,created_at")
-        .eq("applicant_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return data;
+      const { data } = await supabase
+        .from('vendor_applications')
+        .select('id,status,business_name,is_reapplication,rejection_reason,submitted_at,created_at')
+        .eq('applicant_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data as MyApplicationModel) ?? null;
     },
   });
 }
 
 export function useVendorBookings(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-bookings", vendorId],
+    queryKey: ['v-bookings', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("bookings")
-        .select("id,reference_no,status,event_date,amount,currency,client_id,profiles:client_id(full_name)")
-        .eq("vendor_id", vendorId!).order("event_date", { ascending: false });
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(
+          'id,reference_no,status,event_date,amount,currency,client_id,profiles:client_id(full_name)',
+        )
+        .eq('vendor_id', vendorId!)
+        .order('event_date', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as VendorBookingModel[];
     },
   });
 }
 
 export function useVendorBooking(id: string) {
   return useQuery({
-    queryKey: ["v-booking", id],
+    queryKey: ['v-booking', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("bookings")
-        .select("*,profiles:client_id(full_name,email)").eq("id", id).maybeSingle();
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*,profiles:client_id(full_name,email)')
+        .eq('id', id)
+        .maybeSingle();
       if (error) throw error;
-      return data;
+      return (data as VendorBookingDetailModel) ?? null;
     },
   });
 }
 
 export function useVendorQuotations(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-quotations", vendorId],
+    queryKey: ['v-quotations', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("quotations")
-        .select("id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,profiles:client_id(full_name)")
-        .eq("vendor_id", vendorId!).order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from('quotations')
+        .select(
+          'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,profiles:client_id(full_name)',
+        )
+        .eq('vendor_id', vendorId!)
+        .order('created_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as VendorQuotationModel[];
     },
   });
 }
 
 export function useQuotation(id: string) {
   return useQuery({
-    queryKey: ["v-quotation", id],
+    queryKey: ['v-quotation', id],
     queryFn: async () => {
-      const { data } = await supabase.from("quotations")
-        .select("*,quotation_items(*),profiles:client_id(full_name)").eq("id", id).maybeSingle();
-      return data;
+      const { data } = await supabase
+        .from('quotations')
+        .select('*,quotation_items(*),profiles:client_id(full_name)')
+        .eq('id', id)
+        .maybeSingle();
+      return (data as QuotationDetailModel) ?? null;
     },
   });
 }
 
 export function useTemplates(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-templates", vendorId],
+    queryKey: ['v-templates', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("quote_templates")
-        .select("id,name,currency,notes,is_active,quote_template_items(id)").eq("vendor_id", vendorId!)
-        .is("deleted_at", null).order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('quote_templates')
+        .select('id,name,currency,notes,is_active,quote_template_items(id)')
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as TemplateModel[];
     },
   });
 }
 
 export function useServices(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-services", vendorId],
+    queryKey: ['v-services', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("vendor_services")
-        .select("id,title,description,base_price,currency,is_active,category_id").eq("vendor_id", vendorId!)
-        .is("deleted_at", null).order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('vendor_services')
+        .select('id,title,description,base_price,currency,is_active,category_id')
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as ServiceModel[];
     },
   });
 }
 
 export function useMedia(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-media", vendorId],
+    queryKey: ['v-media', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("vendor_media")
-        .select("id,media_type,url,caption,is_primary,sort_order").eq("vendor_id", vendorId!)
-        .is("deleted_at", null).order("sort_order", { ascending: true });
-      return data ?? [];
+      const { data } = await supabase
+        .from('vendor_media')
+        .select('id,media_type,url,caption,is_primary,sort_order')
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('sort_order', { ascending: true });
+      return (data ?? []) as MediaModel[];
     },
   });
 }
 
 export function useAvailability(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-availability", vendorId],
+    queryKey: ['v-availability', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("vendor_availability")
-        .select("id,day_of_week,specific_date,start_time,end_time,is_available").eq("vendor_id", vendorId!);
-      return data ?? [];
+      const { data } = await supabase
+        .from('vendor_availability')
+        .select('id,day_of_week,specific_date,start_time,end_time,is_available')
+        .eq('vendor_id', vendorId!);
+      return (data ?? []) as AvailabilityModel[];
     },
   });
 }
 
 export function useBlockedDates(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-blocked", vendorId],
+    queryKey: ['v-blocked', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("vendor_blocked_dates")
-        .select("id,blocked_date,reason,source").eq("vendor_id", vendorId!)
-        .order("blocked_date", { ascending: true });
-      return data ?? [];
+      const { data } = await supabase
+        .from('vendor_blocked_dates')
+        .select('id,blocked_date,reason,source')
+        .eq('vendor_id', vendorId!)
+        .order('blocked_date', { ascending: true });
+      return (data ?? []) as BlockedDateModel[];
     },
   });
 }
 
 export function usePublicEvents() {
   return useQuery({
-    queryKey: ["public-events"],
+    queryKey: ['public-events'],
     queryFn: async () => {
-      const { data } = await supabase.from("events")
-        .select("id,title,event_type,event_date,location,source,description")
-        .eq("status", "published").eq("is_public", true).is("deleted_at", null)
-        .order("event_date", { ascending: false }).limit(50);
-      return data ?? [];
+      const { data } = await supabase
+        .from('events')
+        .select('id,title,event_type,event_date,location,source,description')
+        .eq('status', 'published')
+        .eq('is_public', true)
+        .is('deleted_at', null)
+        .order('event_date', { ascending: false })
+        .limit(50);
+      return (data ?? []) as PublicEventModel[];
     },
   });
 }
 
 export function useMyInterests(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-interests", vendorId],
+    queryKey: ['v-interests', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("event_interests").select("event_id,status").eq("vendor_id", vendorId!);
-      return data ?? [];
+      const { data } = await supabase
+        .from('event_interests')
+        .select('event_id,status')
+        .eq('vendor_id', vendorId!);
+      return (data ?? []) as EventInterestModel[];
     },
   });
 }
 
 export function useVendorEscrow(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-escrow", vendorId],
+    queryKey: ['v-escrow', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("escrow_transactions")
-        .select("id,status,gross_amount,commission_amount,net_payout_amount,currency,bookings(reference_no)")
-        .eq("vendor_id", vendorId!).order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('escrow_transactions')
+        .select(
+          'id,status,gross_amount,commission_amount,net_payout_amount,currency,bookings(reference_no)',
+        )
+        .eq('vendor_id', vendorId!)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as EscrowModel[];
     },
   });
 }
 
 export function useVendorPayouts(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-payouts", vendorId],
+    queryKey: ['v-payouts', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("payouts")
-        .select("id,amount,currency,status,provider,approved_at,completed_at,created_at").eq("vendor_id", vendorId!)
-        .order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('payouts')
+        .select('id,amount,currency,status,provider,approved_at,completed_at,created_at')
+        .eq('vendor_id', vendorId!)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as PayoutModel[];
     },
   });
 }
 
 export function usePromotions(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-promotions", vendorId],
+    queryKey: ['v-promotions', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("promotions")
-        .select("id,title,description,starts_at,ends_at,is_active").eq("vendor_id", vendorId!)
-        .is("deleted_at", null).order("starts_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('promotions')
+        .select('id,title,description,starts_at,ends_at,is_active')
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('starts_at', { ascending: false });
+      return (data ?? []) as PromotionModel[];
     },
   });
 }
 
 export function useDiscounts(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-discounts", vendorId],
+    queryKey: ['v-discounts', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("discounts")
-        .select("id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active")
-        .eq("vendor_id", vendorId!).is("deleted_at", null).order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('discounts')
+        .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active')
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as DiscountModel[];
     },
   });
 }
 
 export function useVendorReviews(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-reviews", vendorId],
+    queryKey: ['v-reviews', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase.from("reviews")
-        .select("id,rating,title,body,status,created_at,review_responses(id,body),profiles:client_id(full_name)")
-        .eq("vendor_id", vendorId!).order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('reviews')
+        .select(
+          'id,rating,title,body,status,created_at,review_responses(id,body),profiles:client_id(full_name)',
+        )
+        .eq('vendor_id', vendorId!)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as ReviewModel[];
     },
   });
 }
 
 export function usePlans() {
   return useQuery({
-    queryKey: ["plans"],
+    queryKey: ['plans'],
     queryFn: async () => {
-      const { data } = await supabase.from("pricing_plans")
-        .select("id,key,name,description,price,currency,billing_cycle,sort_order,plan_features(feature_key,value)")
-        .eq("is_active", true).order("sort_order", { ascending: true });
-      return data ?? [];
+      const { data } = await supabase
+        .from('pricing_plans')
+        .select(
+          'id,key,name,description,price,currency,billing_cycle,sort_order,plan_features(feature_key,value)',
+        )
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      return (data ?? []) as PlanModel[];
     },
   });
 }
 
 export function useVendorDashboard(vendorId?: string) {
   return useQuery({
-    queryKey: ["v-dashboard", vendorId],
+    queryKey: ['v-dashboard', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
       const [requests, quoteReqs, escrowHeld, reviews] = await Promise.all([
-        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("vendor_id", vendorId!).eq("status", "requested"),
-        supabase.from("quotations").select("id", { count: "exact", head: true }).eq("vendor_id", vendorId!).eq("status", "requested"),
-        supabase.from("escrow_transactions").select("id", { count: "exact", head: true }).eq("vendor_id", vendorId!).in("status", ["held", "release_requested", "payout_approved"]),
-        supabase.from("reviews").select("id", { count: "exact", head: true }).eq("vendor_id", vendorId!).eq("status", "published"),
+        supabase
+          .from('bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId!)
+          .eq('status', 'requested'),
+        supabase
+          .from('quotations')
+          .select('id', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId!)
+          .eq('status', 'requested'),
+        supabase
+          .from('escrow_transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId!)
+          .in('status', ['held', 'release_requested', 'payout_approved']),
+        supabase
+          .from('reviews')
+          .select('id', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId!)
+          .eq('status', 'published'),
       ]);
       return {
         bookingRequests: requests.count ?? 0,
@@ -270,43 +375,54 @@ export function useVendorDashboard(vendorId?: string) {
 // shared with client portal pattern
 export function useConversations() {
   return useQuery({
-    queryKey: ["conversations"],
+    queryKey: ['conversations'],
     queryFn: async () => {
-      const { data } = await supabase.from("conversations")
-        .select("id,type,subject,last_message_at,status").order("last_message_at", { ascending: false, nullsFirst: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from('conversations')
+        .select('id,type,subject,last_message_at,status')
+        .order('last_message_at', { ascending: false, nullsFirst: false });
+      return (data ?? []) as ConversationModel[];
     },
   });
 }
 
 export function useMessages(conversationId: string) {
   return useQuery({
-    queryKey: ["messages", conversationId],
+    queryKey: ['messages', conversationId],
     queryFn: async () => {
-      const { data } = await supabase.from("messages")
-        .select("id,sender_id,body,created_at").eq("conversation_id", conversationId).is("deleted_at", null)
-        .order("created_at", { ascending: true });
-      return data ?? [];
+      const { data } = await supabase
+        .from('messages')
+        .select('id,sender_id,body,created_at')
+        .eq('conversation_id', conversationId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true });
+      return (data ?? []) as MessageModel[];
     },
   });
 }
 
 export function useNotifications() {
   return useQuery({
-    queryKey: ["notifications"],
+    queryKey: ['notifications'],
     queryFn: async () => {
-      const { data } = await supabase.from("notifications")
-        .select("id,trigger_key,title,body,read_at,created_at").order("created_at", { ascending: false }).limit(50);
-      return data ?? [];
+      const { data } = await supabase
+        .from('notifications')
+        .select('id,trigger_key,title,body,read_at,created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      return (data ?? []) as NotificationModel[];
     },
   });
 }
 
 export function useUnreadCount() {
   return useQuery({
-    queryKey: ["unread"],
+    queryKey: ['unread'],
     queryFn: async () => {
-      const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null);
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .is('read_at', null);
       return count ?? 0;
     },
   });

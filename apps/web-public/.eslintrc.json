@@ -1,3 +1,33 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": ["next/core-web-vitals", "prettier"],
+  "plugins": ["check-file", "@typescript-eslint"],
+  "parser": "@typescript-eslint/parser",
+  "rules": {
+    "no-console": ["error", { "allow": ["warn", "error", "info"] }],
+    "@typescript-eslint/naming-convention": [
+      "warn",
+      {
+        "selector": "variable",
+        "format": ["camelCase", "PascalCase", "UPPER_CASE"],
+        "leadingUnderscore": "allow"
+      },
+      { "selector": "variable", "modifiers": ["destructured"], "format": null },
+      {
+        "selector": "parameter",
+        "format": ["camelCase", "PascalCase"],
+        "leadingUnderscore": "allow"
+      },
+      { "selector": "function", "format": ["camelCase", "PascalCase"] },
+      { "selector": "typeLike", "format": ["PascalCase"] }
+    ],
+    "check-file/folder-naming-convention": [
+      "error",
+      { "src/components/**/": "CAMEL_CASE", "src/lib/**/": "CAMEL_CASE" }
+    ],
+    "check-file/filename-naming-convention": [
+      "error",
+      { "src/components/**/*.tsx": "PASCAL_CASE" },
+      { "ignoreMiddleExtensions": true }
+    ]
+  }
 }

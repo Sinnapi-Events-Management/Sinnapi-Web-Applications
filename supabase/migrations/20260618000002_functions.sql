@@ -8,6 +8,14 @@
 -- ---------------------------------------------------------------------
 -- AUTHORIZATION HELPERS  (stable, SECURITY DEFINER, fixed search_path)
 -- These are the single source of truth referenced by every RLS policy.
+--
+-- NOTE: every helper below references tables that are created in LATER
+-- migrations (user_roles, roles, vendors, subscriptions, …). They are written
+-- in LANGUAGE plpgsql on purpose: plpgsql function bodies are NOT parsed or
+-- validated at CREATE time (name resolution is deferred to first execution),
+-- so this migration runs cleanly even though those tables do not exist yet.
+-- A LANGUAGE sql body would be validated immediately and fail with
+-- "relation public.user_roles does not exist".
 -- ---------------------------------------------------------------------
 
 create or replace function public.current_user_id()
@@ -18,9 +26,10 @@ as $$ select auth.uid(); $$;
 -- Does the current user hold the given permission via any of their roles?
 create or replace function public.has_permission(p_permission text)
 returns boolean
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select exists (
+begin
+  return exists (
     select 1
     from public.user_roles ur
     join public.role_permissions rp on rp.role_id = ur.role_id
@@ -28,62 +37,72 @@ as $$
     where ur.profile_id = auth.uid()
       and p.key = p_permission
   );
+end;
 $$;
 
 -- Does the current user hold a role flagged as an admin role?
 create or replace function public.is_admin()
 returns boolean
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select exists (
+begin
+  return exists (
     select 1
     from public.user_roles ur
     join public.roles r on r.id = ur.role_id
     where ur.profile_id = auth.uid()
       and r.is_admin = true
   );
+end;
 $$;
 
 create or replace function public.has_role(p_role_key text)
 returns boolean
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select exists (
+begin
+  return exists (
     select 1
     from public.user_roles ur
     join public.roles r on r.id = ur.role_id
     where ur.profile_id = auth.uid()
       and r.key = p_role_key
   );
+end;
 $$;
 
 create or replace function public.is_vendor_owner(p_vendor_id uuid)
 returns boolean
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select exists (
+begin
+  return exists (
     select 1 from public.vendors v
     where v.id = p_vendor_id and v.owner_id = auth.uid()
   );
+end;
 $$;
 
 create or replace function public.is_conversation_participant(p_conversation_id uuid)
 returns boolean
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select exists (
+begin
+  return exists (
     select 1 from public.conversation_participants cp
     where cp.conversation_id = p_conversation_id
       and cp.profile_id = auth.uid()
   );
+end;
 $$;
 
 -- Vendor is approved AND currently entitled to be visible / transact.
 create or replace function public.is_approved_active_vendor(p_vendor_id uuid)
 returns boolean
-language sql stable security definer set search_path = public
+language plpgsql stable security definer set search_path = public
 as $$
-  select exists (
+begin
+  return exists (
     select 1
     from public.vendors v
     join public.subscriptions s on s.vendor_id = v.id
@@ -93,6 +112,7 @@ as $$
       and v.status = 'active'
       and s.status in ('trialing','active','grace')
   );
+end;
 $$;
 
 -- ---------------------------------------------------------------------

@@ -1,16 +1,17 @@
-import { useParams, Link as RouterLink } from "react-router-dom";
-import { Grid, Card, CardContent, Typography, Stack, Button, Divider, Box } from "@mui/material";
-import PageTitle from "@/components/ui/PageTitle";
-import StatusChip from "@/components/ui/StatusChip";
-import QueryState from "@/components/ui/QueryState";
-import EmptyState from "@/components/ui/EmptyState";
-import { useBooking } from "@/hooks/queries";
-import { formatDate, formatMoney, titleize } from "@/lib/config";
-import { one } from "@/lib/rel";
+import { useParams, Link as RouterLink } from 'react-router-dom';
+import { Grid, Card, CardContent, Typography, Stack, Button, Divider, Box } from '@sinnapi/ui';
+import PageTitle from '@/components/ui/PageTitle';
+import StatusChip from '@/components/ui/StatusChip';
+import QueryState from '@/components/ui/QueryState';
+import EmptyState from '@/components/ui/EmptyState';
+import { useBooking } from '@/hooks/queries';
+import { formatDate, formatMoney, titleize } from '@/lib/config';
+import { one } from '@/lib/rel';
+import type { VendorRefModel } from '@/lib/types';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
       <Typography color="text.secondary">{label}</Typography>
       <Typography fontWeight={600}>{value}</Typography>
     </Box>
@@ -18,7 +19,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export default function BookingDetail() {
-  const { id = "" } = useParams();
+  const { id = '' } = useParams();
   const { data: b, isLoading, error } = useBooking(id);
 
   return (
@@ -27,17 +28,26 @@ export default function BookingDetail() {
         <EmptyState title="Booking not found" ctaLabel="Back to bookings" ctaHref="/bookings" />
       ) : (
         <>
-          <PageTitle title={`Booking ${b.reference_no}`} subtitle={one<any>(b.vendors)?.business_name} action={<StatusChip status={b.status} size="medium" />} />
+          <PageTitle
+            title={`Booking ${b.reference_no}`}
+            subtitle={one<VendorRefModel>(b.vendors)?.business_name}
+            action={<StatusChip status={b.status} size="medium" />}
+          />
           <Grid container spacing={3}>
             <Grid item xs={12} md={8}>
               <Card variant="outlined">
                 <CardContent>
-                  <Typography variant="h5" sx={{ mb: 2 }}>Details</Typography>
+                  <Typography variant="h5" sx={{ mb: 2 }}>
+                    Details
+                  </Typography>
                   <Stack spacing={1.5}>
                     <Row label="Event date" value={formatDate(b.event_date)} />
-                    <Row label="Location" value={b.location ?? "—"} />
+                    <Row label="Location" value={b.location ?? '—'} />
                     <Row label="Amount" value={formatMoney(b.amount, b.currency)} />
-                    <Row label="Payment type" value={b.payment_type ? titleize(b.payment_type) : "Not selected"} />
+                    <Row
+                      label="Payment type"
+                      value={b.payment_type ? titleize(b.payment_type) : 'Not selected'}
+                    />
                   </Stack>
                 </CardContent>
               </Card>
@@ -45,12 +55,22 @@ export default function BookingDetail() {
             <Grid item xs={12} md={4}>
               <Card variant="outlined">
                 <CardContent>
-                  <Typography variant="h6" sx={{ mb: 1 }}>Next steps</Typography>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    Next steps
+                  </Typography>
                   <Divider sx={{ mb: 2 }} />
                   <Stack spacing={1.5}>
-                    {b.status === "completed" && <Button component={RouterLink} to="/reviews" variant="contained">Leave a review</Button>}
-                    <Button component={RouterLink} to="/messages" variant="outlined">Message vendor</Button>
-                    <Button component={RouterLink} to="/escrow" variant="text">View escrow</Button>
+                    {b.status === 'completed' && (
+                      <Button component={RouterLink} to="/reviews" variant="contained">
+                        Leave a review
+                      </Button>
+                    )}
+                    <Button component={RouterLink} to="/messages" variant="outlined">
+                      Message vendor
+                    </Button>
+                    <Button component={RouterLink} to="/escrow" variant="text">
+                      View escrow
+                    </Button>
                   </Stack>
                 </CardContent>
               </Card>

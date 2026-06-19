@@ -25,7 +25,7 @@ export type VendorDetailModel = VendorCardModel & {
 
 export type VendorMediaModel = {
   id: string;
-  media_type: "image" | "video";
+  media_type: 'image' | 'video';
   url: string | null;
   caption: string | null;
 };
@@ -38,7 +38,7 @@ export type EventCardModel = {
   event_date: string | null;
   location: string | null;
   cover_image_url: string | null;
-  source: "admin" | "client";
+  source: 'admin' | 'client';
 };
 
 export type PublicReview = {

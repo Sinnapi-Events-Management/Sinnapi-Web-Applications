@@ -1,6 +1,8 @@
-import { createContext, useContext } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { createContext, useContext } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { one } from '@/lib/rel';
+import type { AdminUserRoleRow } from '@/lib/types';
 
 type Ctx = {
   isAdmin: boolean;
@@ -14,26 +16,28 @@ const AdminContext = createContext<Ctx | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-permissions"],
+    queryKey: ['admin-permissions'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return { isAdmin: false, permissions: new Set<string>(), roles: [] as string[] };
       // user_roles -> roles -> role_permissions -> permissions
       const { data: rows } = await supabase
-        .from("user_roles")
-        .select("roles(key,is_admin,role_permissions(permissions(key)))")
-        .eq("profile_id", user.id);
+        .from('user_roles')
+        .select('roles(key,is_admin,role_permissions(permissions(key)))')
+        .eq('profile_id', user.id);
 
       const permissions = new Set<string>();
       const roles: string[] = [];
       let isAdmin = false;
-      for (const ur of (rows ?? []) as any[]) {
-        const role = Array.isArray(ur.roles) ? ur.roles[0] : ur.roles;
+      for (const ur of (rows ?? []) as AdminUserRoleRow[]) {
+        const role = one(ur.roles);
         if (!role) continue;
         roles.push(role.key);
         if (role.is_admin) isAdmin = true;
         for (const rp of role.role_permissions ?? []) {
-          const perm = Array.isArray(rp.permissions) ? rp.permissions[0] : rp.permissions;
+          const perm = one(rp.permissions);
           if (perm?.key) permissions.add(perm.key);
         }
       }
@@ -54,6 +58,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
 export function useAdmin(): Ctx {
   const ctx = useContext(AdminContext);
-  if (!ctx) throw new Error("useAdmin must be used within AdminProvider");
+  if (!ctx) throw new Error('useAdmin must be used within AdminProvider');
   return ctx;
 }

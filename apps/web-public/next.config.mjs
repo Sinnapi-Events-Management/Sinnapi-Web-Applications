@@ -6,6 +6,7 @@ const supabaseHost = (() => {
 
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["@sinnapi/ui"],
   modularizeImports: {
     "@mui/icons-material": { transform: "@mui/icons-material/{{member}}" },
   },
