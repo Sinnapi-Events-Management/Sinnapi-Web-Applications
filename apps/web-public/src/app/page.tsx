@@ -43,7 +43,7 @@ export default async function HomePage() {
       {/* Hero */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #4E1B5E 0%, #7A2E97 60%, #A95EC4 100%)',
+          background: 'linear-gradient(135deg, #042E2C 0%, #07504D 60%, #3F9BA3 100%)',
           color: 'common.white',
           py: { xs: 8, md: 12 },
         }}

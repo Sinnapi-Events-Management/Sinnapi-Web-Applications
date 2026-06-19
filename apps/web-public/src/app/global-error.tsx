@@ -19,14 +19,14 @@ export default function GlobalError({
         }}
       >
         <main style={{ textAlign: 'center', padding: 24 }}>
-          <h1 style={{ color: '#7A2E97' }}>Something went wrong</h1>
+          <h1 style={{ color: '#07504D' }}>Something went wrong</h1>
           <p style={{ color: '#5C5468' }}>A critical error occurred. Please reload the page.</p>
           <button
             onClick={() => reset()}
             style={{
               marginTop: 16,
               padding: '10px 20px',
-              background: '#7A2E97',
+              background: '#07504D',
               color: '#fff',
               border: 0,
               borderRadius: 8,

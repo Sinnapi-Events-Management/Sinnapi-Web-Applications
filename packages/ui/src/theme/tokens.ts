@@ -7,7 +7,7 @@
 export const palette = {
   light: {
     mode: 'light',
-    primary: { light: '#BE80D1', main: '#7A2E97', dark: '#642478', contrastText: '#FFFFFF' },
+    primary: { light: '#3F9BA3', main: '#07504D', dark: '#053837', contrastText: '#FFFFFF' },
     secondary: { light: '#F6D064', main: '#B9890F', dark: '#946D0B', contrastText: '#1A1320' },
     success: { light: '#5FB868', main: '#2E7D32', dark: '#1B5E20', contrastText: '#FFFFFF' },
     warning: { light: '#FFB547', main: '#ED6C02', dark: '#B53D00', contrastText: '#1A1320' },
@@ -19,7 +19,7 @@ export const palette = {
   },
   dark: {
     mode: 'dark',
-    primary: { light: '#D4ABE0', main: '#BE80D1', dark: '#8E3CAE', contrastText: '#1A1320' },
+    primary: { light: '#7FC4C1', main: '#3F9BA3', dark: '#07504D', contrastText: '#1A1320' },
     secondary: { light: '#FADF92', main: '#F6D064', dark: '#D4A017', contrastText: '#1A1320' },
     success: { main: '#5FB868' },
     warning: { main: '#FFB547' },

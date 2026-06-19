@@ -1,6 +1,7 @@
-import { createTheme, type ThemeOptions } from '@sinnapi/ui/theme';
+import { createTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
 
-// Sinnapi design tokens (Step 4) — Amethyst primary + Gold secondary.
+// Portal design language — denser typography & controls than the marketing site.
+// Colors come from the shared design tokens (single source of truth in @sinnapi/ui/tokens).
 const shared: ThemeOptions = {
   shape: { borderRadius: 8 },
   breakpoints: { values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 } },
@@ -32,18 +33,4 @@ const shared: ThemeOptions = {
   },
 };
 
-export const lightTheme = createTheme({
-  ...shared,
-  palette: {
-    mode: 'light',
-    primary: { light: '#BE80D1', main: '#7A2E97', dark: '#642478', contrastText: '#FFFFFF' },
-    secondary: { light: '#F6D064', main: '#B9890F', dark: '#946D0B', contrastText: '#1A1320' },
-    success: { light: '#5FB868', main: '#2E7D32', dark: '#1B5E20', contrastText: '#FFFFFF' },
-    warning: { light: '#FFB547', main: '#ED6C02', dark: '#B53D00', contrastText: '#1A1320' },
-    error: { light: '#EF5350', main: '#D32F2F', dark: '#9A1B1B', contrastText: '#FFFFFF' },
-    info: { light: '#4FC3F7', main: '#0288D1', dark: '#01579B', contrastText: '#FFFFFF' },
-    background: { default: '#FAF9FB', paper: '#FFFFFF' },
-    text: { primary: '#1A1320', secondary: '#5C5468', disabled: '#A8A0B5' },
-    divider: 'rgba(26,19,32,0.12)',
-  },
-});
+export const lightTheme = createTheme({ ...shared, palette: palette.light });
