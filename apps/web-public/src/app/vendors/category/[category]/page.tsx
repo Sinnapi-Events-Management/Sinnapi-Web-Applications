@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Container, Grid } from '@sinnapi/ui';
 import { PageHeader } from '@/components/common/SectionHeading';
-import VendorCard from '@/components/vendor/VendorCard';
-import VendorFilterBar from '@/components/vendor/VendorFilterBar';
+import VendorCard from '@/components/vendor/vendorCard';
+import VendorFilterBar from '@/components/vendor/vendorFilterBar';
 import EmptyState from '@/components/common/EmptyState';
 import { getVendors } from '@/lib/queries';
 import { VENDOR_CATEGORIES, titleize } from '@/lib/config/site';

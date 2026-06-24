@@ -6,6 +6,10 @@ import AppShell from '@/components/shell/AppShell';
 import SignIn from '@/pages/auth/signIn';
 import SignUp from '@/pages/auth/signUp';
 import AuthCallback from '@/pages/auth/authCallback';
+import Terms from '@/pages/terms';
+import VendorTerms from '@/pages/vendorTerms';
+import EscrowPolicy from '@/pages/escrowPolicy';
+import Privacy from '@/pages/privacy';
 
 import Dashboard from '@/pages/dashboard';
 import Onboarding from '@/pages/onboarding';
@@ -38,6 +42,10 @@ export default function App() {
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/sign-up" element={<SignUp />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/vendor-terms" element={<VendorTerms />} />
+      <Route path="/escrow-policy" element={<EscrowPolicy />} />
+      <Route path="/privacy" element={<Privacy />} />
 
       <Route
         element={

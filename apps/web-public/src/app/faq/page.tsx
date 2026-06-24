@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Container, Accordion, AccordionSummary, AccordionDetails, Typography } from '@sinnapi/ui';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { ExpandMore as ExpandMoreIcon } from '@sinnapi/ui/icons';
 import { PageHeader } from '@/components/common/SectionHeading';
 
 export const metadata: Metadata = {

@@ -9,6 +9,7 @@ import {
   TextField,
   Snackbar,
 } from '@sinnapi/ui';
+import { Link as RouterLink } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
@@ -98,6 +99,15 @@ export default function Settings() {
                 Request data deletion
               </Button>
             </Stack>
+            <Button
+              component={RouterLink}
+              to="/privacy"
+              variant="text"
+              size="small"
+              sx={{ mt: 1.5, alignSelf: 'flex-start' }}
+            >
+              View Privacy Policy
+            </Button>
           </CardContent>
         </Card>
       </Stack>

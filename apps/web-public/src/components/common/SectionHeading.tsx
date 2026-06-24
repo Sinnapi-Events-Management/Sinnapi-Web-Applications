@@ -1,4 +1,5 @@
 import { Box, Container, Typography } from '@sinnapi/ui';
+import { mutedSurface } from '@/lib/sx';
 
 export default function SectionHeading({
   overline,
@@ -39,7 +40,7 @@ export default function SectionHeading({
 
 export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <Box sx={{ bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider', py: { xs: 5, md: 7 } }}>
+    <Box sx={{ ...mutedSurface, borderBottom: 1, borderColor: 'divider', py: { xs: 5, md: 7 } }}>
       <Container>
         <Typography variant="h1">{title}</Typography>
         {subtitle && (

@@ -1,5 +1,8 @@
 'use client';
+import { palette, radius } from '@sinnapi/ui/tokens';
+
 // Root-level fallback that replaces the whole document on a render crash.
+// Renders outside the ThemeProvider, so it reads the raw token values directly.
 export default function GlobalError({
   error,
   reset,
@@ -19,17 +22,19 @@ export default function GlobalError({
         }}
       >
         <main style={{ textAlign: 'center', padding: 24 }}>
-          <h1 style={{ color: '#07504D' }}>Something went wrong</h1>
-          <p style={{ color: '#5C5468' }}>A critical error occurred. Please reload the page.</p>
+          <h1 style={{ color: palette.light.primary.main }}>Something went wrong</h1>
+          <p style={{ color: palette.light.text.secondary }}>
+            A critical error occurred. Please reload the page.
+          </p>
           <button
             onClick={() => reset()}
             style={{
               marginTop: 16,
               padding: '10px 20px',
-              background: '#07504D',
-              color: '#fff',
+              background: palette.light.primary.main,
+              color: palette.light.primary.contrastText,
               border: 0,
-              borderRadius: 8,
+              borderRadius: radius.sm,
               cursor: 'pointer',
             }}
           >

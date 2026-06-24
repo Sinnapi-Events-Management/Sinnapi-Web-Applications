@@ -35,9 +35,10 @@ export const FOOTER_NAV = {
   ],
   Legal: [
     { label: 'Terms', href: '/terms' },
-    { label: 'Privacy', href: '/privacy' },
-    { label: 'Escrow Policy', href: '/escrow-policy' },
+    { label: 'Client Terms', href: '/client-event-planner-terms' },
     { label: 'Vendor Terms', href: '/vendor-terms' },
+    { label: 'Escrow Policy', href: '/escrow-policy' },
+    { label: 'Privacy', href: '/privacy' },
   ],
 };
 

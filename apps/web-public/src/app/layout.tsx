@@ -1,25 +1,19 @@
 import type { Metadata } from 'next';
-import { Inter, Fraunces } from 'next/font/google';
-import { Box } from '@sinnapi/ui';
+import { Box, ColorSchemeScript } from '@sinnapi/ui';
 import Providers from './providers';
 import PublicNavbar from '@/components/layout/PublicNavbar';
 import PublicFooter from '@/components/layout/PublicFooter';
+import WhatsAppFab from '@/components/layout/WhatsAppFab';
 import { SITE } from '@/lib/config/site';
+import { fontVariables } from '@/lib/fonts';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-fraunces',
-  display: 'swap',
-  weight: ['400', '600'],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: { default: `${SITE.name} — ${SITE.tagline}`, template: `%s · ${SITE.name}` },
   description: SITE.description,
   applicationName: SITE.name,
+  icons: { icon: '/favicon.ico' },
   openGraph: {
     type: 'website',
     siteName: SITE.name,
@@ -33,8 +27,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en" className={fontVariables}>
       <body>
+        {/* Applies the persisted color scheme before paint — must stay first in <body>. */}
+        <ColorSchemeScript />
         <Providers>
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
             <PublicNavbar />
@@ -43,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Box>
             <PublicFooter />
           </Box>
+          <WhatsAppFab />
         </Providers>
       </body>
     </html>

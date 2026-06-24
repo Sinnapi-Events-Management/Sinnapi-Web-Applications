@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import { Container, Box, Typography, Paper, Button, Stack, Grid } from '@sinnapi/ui';
-import PersonIcon from '@mui/icons-material/Person';
-import StorefrontIcon from '@mui/icons-material/Storefront';
+import { Person as PersonIcon, Storefront as StorefrontIcon } from '@sinnapi/ui/icons';
 import { SITE } from '@/lib/config/site';
 
 export const metadata: Metadata = { title: 'Sign in', robots: { index: false, follow: true } };

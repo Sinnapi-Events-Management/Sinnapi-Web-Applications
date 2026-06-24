@@ -13,7 +13,7 @@ import {
   Chip,
   Box,
 } from '@sinnapi/ui';
-import CheckIcon from '@mui/icons-material/Check';
+import { Check as CheckIcon } from '@sinnapi/ui/icons';
 import { PageHeader } from '@/components/common/SectionHeading';
 
 export const revalidate = 21600;
