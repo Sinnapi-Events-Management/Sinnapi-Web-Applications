@@ -12,7 +12,7 @@ export const VALUE_PROPS: ValueProp[] = [
   {
     Icon: Lock,
     title: 'Secure escrow',
-    body: 'Pay safely — funds are held in escrow and released when you confirm.',
+    body: 'Pay safely, funds are held in escrow and released when you confirm.',
   },
   {
     Icon: Chat,

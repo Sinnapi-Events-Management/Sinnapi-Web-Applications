@@ -1,15 +1,16 @@
 import { getFeaturedVendors, getEvents } from '@/lib/queries';
 import HeroSection from '@/components/home/heroSection';
+import OurClients from '@/components/home/ourClients';
 import ValueProps from '@/components/home/valueProps';
 import CategoryGrid from '@/components/home/categoryGrid';
 import FeaturedVendors from '@/components/home/featuredVendors';
+import GalleryShowcase from '@/components/home/galleryShowcase';
 import HowItWorks from '@/components/home/howItWorks';
-import EventsInspiration from '@/components/home/eventsInspiration';
 import Testimonials from '@/components/home/testimonials';
-import OurClients from '@/components/home/ourClients';
 import DualCta from '@/components/home/dualCta';
-import FaqSection from '@/components/home/faqSection';
+import EventsInspiration from '@/components/home/eventsInspiration';
 import OurPartners from '@/components/home/ourPartners';
+import FaqSection from '@/components/home/faqSection';
 import FinalCta from '@/components/home/finalCta';
 
 // Home is revalidated periodically (ISR) for fresh featured vendors & events.
@@ -20,17 +21,20 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Funnel: hook → instant credibility → why → what → proof → inspiration →
+          how → social proof → choose-your-path CTA → events → partners → FAQ → close. */}
       <HeroSection />
       <ValueProps />
-      <FeaturedVendors vendors={featured} />
       <CategoryGrid />
+      <FeaturedVendors vendors={featured} />
+      <GalleryShowcase />
       <HowItWorks />
-      <EventsInspiration events={events} />
-      <Testimonials />
       <OurClients />
+      <Testimonials />
       <DualCta />
-      <FaqSection />
+      <EventsInspiration events={events} />
       <OurPartners />
+      <FaqSection />
       <FinalCta />
     </>
   );

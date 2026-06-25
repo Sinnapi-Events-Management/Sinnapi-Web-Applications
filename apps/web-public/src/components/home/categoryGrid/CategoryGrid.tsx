@@ -1,4 +1,5 @@
 import NextLink from 'next/link';
+import Image from 'next/image';
 import { Box, Container, Grid, Typography, Button } from '@sinnapi/ui';
 import { ArrowForward } from '@sinnapi/ui/icons';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
@@ -14,7 +15,7 @@ export default function CategoryGrid() {
         <SectionHeading
           overline="Explore"
           title="Browse by category"
-          subtitle="From photographers to venues — discover trusted providers for every part of your event."
+          subtitle="From photographers to venues, discover trusted providers for every part of your event."
         />
         <Grid container spacing={2.5}>
           {CATEGORIES.map(({ key, Icon, img }) => (
@@ -34,17 +35,41 @@ export default function CategoryGrid() {
                   textDecoration: 'none',
                   color: 'common.white',
                   bgcolor: 'primary.dark',
-                  backgroundImage: `linear-gradient(to top, ${withAlpha(palette.light.primary.dark, 0.92)} 0%, ${withAlpha(palette.light.primary.dark, 0.35)} 60%, ${withAlpha(palette.light.primary.dark, 0.15)} 100%), url(${img})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
                   transition: 'transform .2s, box-shadow .2s',
+                  '& .category-img': { transition: 'transform .4s ease' },
                   '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 },
+                  '&:hover .category-img': { transform: 'scale(1.08)' },
+                  '&:focus-visible': {
+                    outline: `3px solid ${palette.light.secondary.main}`,
+                    outlineOffset: 2,
+                  },
                 }}
               >
-                <Box sx={{ '& svg': { fontSize: 28 } }}>
+                <Image
+                  className="category-img"
+                  src={img}
+                  alt=""
+                  aria-hidden
+                  fill
+                  sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 25vw"
+                  style={{ objectFit: 'cover' }}
+                />
+                {/* Brand scrim keeps the icon + label legible over any photo. */}
+                <Box
+                  aria-hidden
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: `linear-gradient(to top, ${withAlpha(palette.light.primary.dark, 0.92)} 0%, ${withAlpha(palette.light.primary.dark, 0.35)} 60%, ${withAlpha(palette.light.primary.dark, 0.15)} 100%)`,
+                  }}
+                />
+                <Box sx={{ position: 'relative', '& svg': { fontSize: 28 } }}>
                   <Icon />
                 </Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ position: 'relative', fontWeight: 600, mt: 0.5 }}
+                >
                   {titleize(key)}
                 </Typography>
               </Box>

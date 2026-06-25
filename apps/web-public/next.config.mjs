@@ -15,9 +15,14 @@ const nextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: supabaseHost
-      ? [{ protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' }]
-      : [],
+    remotePatterns: [
+      // Decorative category-tile photography is still sourced from Unsplash; run it
+      // through next/image so those tiles also get AVIF/WebP + responsive sizing.
+      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
+      ...(supabaseHost
+        ? [{ protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' }]
+        : []),
+    ],
   },
   async headers() {
     return [

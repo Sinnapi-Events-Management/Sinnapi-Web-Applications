@@ -1,25 +1,41 @@
 import NextLink from 'next/link';
+import Image from 'next/image';
 import { Box, Container, Stack, Typography, SecondaryButton } from '@sinnapi/ui';
-import { common, withAlpha } from '@sinnapi/ui/tokens';
+import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { IMAGES } from '@/lib/assets';
 
 export default function FinalCta() {
   return (
     <Box
       sx={{
+        position: 'relative',
+        overflow: 'hidden',
         color: 'common.white',
-        // Brand teal ramp, sourced from the primary palette tokens (CSS variables).
-        background:
-          'linear-gradient(135deg, var(--mui-palette-primary-dark) 0%, var(--mui-palette-primary-main) 60%, var(--mui-palette-primary-light) 100%)',
-        py: { xs: 7, md: 9 },
-        // In dark mode drop the bright brand gradient for the near-black background
-        // tokens. Selector set on <html> by ColorModeProvider.
-        '[data-mui-color-scheme="dark"] &': {
-          background:
-            'linear-gradient(135deg, var(--mui-palette-background-default) 0%, var(--mui-palette-background-paper) 100%)',
-        },
+        py: { xs: 8, md: 11 },
       }}
     >
-      <Container>
+      <Image
+        src={IMAGES.ceremonyAisle.src}
+        alt=""
+        aria-hidden
+        fill
+        placeholder="blur"
+        sizes="100vw"
+        style={{ objectFit: 'cover', objectPosition: 'center 35%' }}
+      />
+      {/* Brand teal ramp keeps the closing CTA legible over the photo. */}
+      <Box
+        aria-hidden
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: `linear-gradient(135deg, ${withAlpha(gradientStops.tealDeep, 0.95)} 0%, ${withAlpha(palette.light.primary.dark, 0.9)} 55%, ${withAlpha(palette.light.primary.main, 0.82)} 100%)`,
+          '[data-mui-color-scheme="dark"] &': {
+            background: `linear-gradient(135deg, ${withAlpha(gradientStops.neutralDeep, 0.96)} 0%, ${withAlpha(palette.light.primary.dark, 0.92)} 100%)`,
+          },
+        }}
+      />
+      <Container sx={{ position: 'relative' }}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={3}
@@ -30,7 +46,7 @@ export default function FinalCta() {
             <Typography variant="h3" sx={{ color: 'common.white' }}>
               Ready to plan your event?
             </Typography>
-            <Typography sx={{ mt: 1, color: withAlpha(common.white, 0.85) }}>
+            <Typography sx={{ mt: 1, color: withAlpha(common.white, 0.88), maxWidth: 560 }}>
               Create a free account to chat, request quotes, and book with confidence.
             </Typography>
           </Box>
@@ -39,7 +55,7 @@ export default function FinalCta() {
             href="/sign-up"
             size="large"
             sx={{
-              // Gold CTA in light mode; switch to the primary teal in dark mode.
+              flexShrink: 0,
               '[data-mui-color-scheme="dark"] &': {
                 backgroundColor: 'primary.main',
                 color: 'primary.contrastText',

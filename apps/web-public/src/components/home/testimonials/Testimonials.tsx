@@ -16,7 +16,15 @@ export default function Testimonials() {
         <Grid container spacing={3}>
           {TESTIMONIALS.map((t) => (
             <Grid item xs={12} md={4} key={t.name}>
-              <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 3,
+                  height: '100%',
+                  transition: 'box-shadow .2s, transform .2s',
+                  '&:hover': { boxShadow: 4, transform: 'translateY(-4px)' },
+                }}
+              >
                 <FormatQuote sx={{ color: 'secondary.main', fontSize: 36 }} />
                 <Typography variant="body1" sx={{ mt: 1, mb: 3 }}>
                   {t.quote}
