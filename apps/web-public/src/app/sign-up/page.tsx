@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import { Container, Typography, Paper, Button, Grid } from '@sinnapi/ui';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import StorefrontIcon from '@mui/icons-material/Storefront';
+import { PersonAdd as PersonAddIcon, Storefront as StorefrontIcon } from '@sinnapi/ui/icons';
 import { SITE } from '@/lib/config/site';
 
 export const metadata: Metadata = {

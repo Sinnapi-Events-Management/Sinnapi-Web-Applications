@@ -12,7 +12,7 @@ import {
   Paper,
   Box,
 } from '@sinnapi/ui';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { CheckCircle as CheckCircleIcon } from '@sinnapi/ui/icons';
 import { SITE } from '@/lib/config/site';
 
 export const metadata: Metadata = {

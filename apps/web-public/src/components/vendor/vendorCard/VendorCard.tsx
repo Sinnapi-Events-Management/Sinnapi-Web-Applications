@@ -10,14 +10,17 @@ import {
   Rating,
   Stack,
 } from '@sinnapi/ui';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import PlaceIcon from '@mui/icons-material/Place';
-import { formatMoney } from '@/lib/config/site';
+import { Verified as VerifiedIcon, Place as PlaceIcon } from '@sinnapi/ui/icons';
 import type { VendorCardModel } from '@/lib/types';
+import { useVendorCard } from './hooks/useVendorCard';
 
+/**
+ * Presentational Server Component for a single vendor in a listing grid.
+ * Display values are derived by useVendorCard so this stays purely declarative.
+ */
 export default function VendorCard({ vendor }: { vendor: VendorCardModel }) {
-  const price = formatMoney(vendor.starting_price, vendor.starting_price_currency);
-  const image = vendor.primary_image_url ?? vendor.profile_image_url ?? '/placeholder-vendor.svg';
+  const { price, image } = useVendorCard(vendor);
+
   return (
     <Card
       variant="outlined"

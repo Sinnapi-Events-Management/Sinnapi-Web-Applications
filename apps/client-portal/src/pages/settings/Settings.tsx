@@ -1,3 +1,4 @@
+import { Link as RouterLink } from 'react-router-dom';
 import { Card, CardContent, Typography, Stack, Divider, Button, Box } from '@sinnapi/ui';
 import SecurityIcon from '@mui/icons-material/Security';
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
@@ -41,6 +42,15 @@ export default function Settings() {
                 Request data deletion
               </Button>
             </Stack>
+            <Button
+              component={RouterLink}
+              to="/privacy"
+              variant="text"
+              size="small"
+              sx={{ mt: 1.5, alignSelf: 'flex-start' }}
+            >
+              View Privacy Policy
+            </Button>
           </CardContent>
         </Card>
       </Stack>

@@ -1,6 +1,5 @@
-:root {
-  color-scheme: light;
-}
+/* color-scheme is driven by the active MUI color scheme (CssBaseline
+   `enableColorScheme`), so native UI (scrollbars, form controls) tracks dark/light. */
 
 * {
   box-sizing: border-box;

@@ -1,6 +1,6 @@
 import { Box, Typography, Button } from '@sinnapi/ui';
 import NextLink from 'next/link';
-import SearchOffIcon from '@mui/icons-material/SearchOff';
+import { SearchOff as SearchOffIcon } from '@sinnapi/ui/icons';
 
 export default function EmptyState({
   title = 'Nothing here yet',

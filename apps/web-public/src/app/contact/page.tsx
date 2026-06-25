@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Container } from '@sinnapi/ui';
 import { PageHeader } from '@/components/common/SectionHeading';
-import ContactForm from '@/components/contact/ContactForm';
+import ContactForm from '@/components/contact/contactForm';
 
 export const metadata: Metadata = {
   title: 'Contact',

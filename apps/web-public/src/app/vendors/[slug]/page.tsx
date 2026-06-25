@@ -16,9 +16,7 @@ import {
   ImageList,
   ImageListItem,
 } from '@sinnapi/ui';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import PlaceIcon from '@mui/icons-material/Place';
-import LockIcon from '@mui/icons-material/Lock';
+import { Verified as VerifiedIcon, Place as PlaceIcon, Lock as LockIcon } from '@sinnapi/ui/icons';
 import {
   getVendorBySlug,
   getVendorMedia,

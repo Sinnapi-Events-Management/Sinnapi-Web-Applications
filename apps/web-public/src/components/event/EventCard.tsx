@@ -1,6 +1,6 @@
 import NextLink from 'next/link';
 import { Card, CardActionArea, CardContent, CardMedia, Typography, Chip, Stack } from '@sinnapi/ui';
-import EventIcon from '@mui/icons-material/Event';
+import { Event as EventIcon } from '@sinnapi/ui/icons';
 import { titleize } from '@/lib/config/site';
 import type { EventCardModel } from '@/lib/types';
 

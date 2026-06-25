@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import NextLink from 'next/link';
 import { Container, Box, Typography, Chip, Stack, Button, Alert, Paper } from '@sinnapi/ui';
-import EventIcon from '@mui/icons-material/Event';
-import PlaceIcon from '@mui/icons-material/Place';
+import { Event as EventIcon, Place as PlaceIcon } from '@sinnapi/ui/icons';
 import { getEventById } from '@/lib/queries';
 import { titleize, SITE } from '@/lib/config/site';
 

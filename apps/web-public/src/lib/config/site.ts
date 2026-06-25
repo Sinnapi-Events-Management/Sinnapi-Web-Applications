@@ -4,7 +4,7 @@ export const SITE = {
   name: 'Sinnapi',
   tagline: 'Plan your event with trusted, verified vendors',
   description:
-    'Sinnapi is a trusted marketplace connecting you with authentic, verified event service providers across Uganda and beyond — discover, compare, and book with confidence.',
+    'Sinnapi is a trusted marketplace connecting you with authentic, verified event service providers across Uganda and beyond. Discover, compare, and book with confidence.',
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   // The authenticated portal lives in a separate app; public CTAs deep-link to it.
   portalUrl: process.env.NEXT_PUBLIC_PORTAL_URL ?? '/sign-in',
@@ -35,9 +35,10 @@ export const FOOTER_NAV = {
   ],
   Legal: [
     { label: 'Terms', href: '/terms' },
-    { label: 'Privacy', href: '/privacy' },
-    { label: 'Escrow Policy', href: '/escrow-policy' },
+    { label: 'Client Terms', href: '/client-event-planner-terms' },
     { label: 'Vendor Terms', href: '/vendor-terms' },
+    { label: 'Escrow Policy', href: '/escrow-policy' },
+    { label: 'Privacy', href: '/privacy' },
   ],
 };
 

@@ -1,5 +1,6 @@
 'use client';
-import { createTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
+import { extendTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
+import { fontStacks } from './fonts';
 
 // Marketing-site design language. Colors come from the shared design tokens
 // (single source of truth in @sinnapi/ui/tokens).
@@ -7,9 +8,9 @@ const shared: ThemeOptions = {
   shape: { borderRadius: 8 },
   breakpoints: { values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 } },
   typography: {
-    fontFamily: 'var(--font-inter), Helvetica, Arial, sans-serif',
+    fontFamily: fontStacks.body,
     h1: {
-      fontFamily: 'var(--font-fraunces), Georgia, serif',
+      fontFamily: fontStacks.display,
       fontWeight: 600,
       fontSize: '2.8rem',
       lineHeight: 1.15,
@@ -37,5 +38,13 @@ const shared: ThemeOptions = {
   },
 };
 
-export const lightTheme = createTheme({ ...shared, palette: palette.light });
-export const darkTheme = createTheme({ ...shared, palette: palette.dark });
+// Single CSS-variables theme carrying both schemes. The active scheme is chosen
+// at runtime by ColorModeProvider/useColorScheme and applied via CSS variables,
+// so toggling re-colors every page instantly with no flash on reload.
+export const theme = extendTheme({
+  ...shared,
+  colorSchemes: {
+    light: { palette: palette.light },
+    dark: { palette: palette.dark },
+  },
+});

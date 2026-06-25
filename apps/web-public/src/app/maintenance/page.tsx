@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Container, Typography, Box } from '@sinnapi/ui';
-import BuildIcon from '@mui/icons-material/Build';
+import { Build as BuildIcon } from '@sinnapi/ui/icons';
 
 export const metadata: Metadata = {
   title: 'Down for maintenance',
