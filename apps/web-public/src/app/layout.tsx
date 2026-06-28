@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Box, ColorSchemeScript } from '@sinnapi/ui';
 import Providers from './providers';
-import PublicNavbar from '@/components/layout/PublicNavbar';
-import PublicFooter from '@/components/layout/PublicFooter';
-import WhatsAppFab from '@/components/layout/WhatsAppFab';
+import PublicNavbar from '@/components/organisms/publicNavbar';
+import PublicFooter from '@/components/organisms/publicFooter';
+import WhatsAppFab from '@/components/atoms/whatsAppFab';
 import { SITE } from '@/lib/config/site';
 import { fontVariables } from '@/lib/fonts';
 import './globals.css';
