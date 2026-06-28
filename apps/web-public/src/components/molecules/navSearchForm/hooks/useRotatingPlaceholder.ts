@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 
 /** How long each phrase rests before sliding to the next. */
-export const ROTATE_MS = 2800;
+export const ROTATE_MS = 3200;
 /** Slide duration — kept in sync with the CSS transition on the track. */
-export const TRANSITION_MS = 900;
+export const TRANSITION_MS = 600;
 
 /**
  * Drives an infinite, upward-sliding placeholder rotation.
