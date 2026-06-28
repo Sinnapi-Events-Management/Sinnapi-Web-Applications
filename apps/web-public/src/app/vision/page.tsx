@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import { Typography } from '@sinnapi/ui';
-import Prose from '@/components/common/Prose';
 
 export const metadata: Metadata = {
   title: 'Vision',
@@ -8,12 +6,4 @@ export const metadata: Metadata = {
   alternates: { canonical: '/vision' },
 };
 
-export default function VisionPage() {
-  return (
-    <Prose title="Our Vision">
-      <Typography component="p">
-        Empowering everyone to plan their events seamlessly, wherever they are.
-      </Typography>
-    </Prose>
-  );
-}
+export { default } from '@/containers/vision';
