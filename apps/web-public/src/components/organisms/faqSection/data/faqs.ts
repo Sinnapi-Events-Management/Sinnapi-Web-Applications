@@ -1,29 +1,48 @@
 import type { Faq } from '../FaqSection';
 
+// How-it-works-specific questions, grounded in the product spec (free browsing,
+// vendor vetting, escrow, direct vs escrow payment, multi-event planners, and the
+// vendor trial + subscriptions). Surfaced on the How It Works page directly, and
+// spread into the shared FAQS below so the answers never drift between pages.
+export const HOW_IT_WORKS_FAQS: Faq[] = [
+  {
+    question: 'Does it cost anything to browse and search vendors?',
+    answer:
+      'No. Browsing vendors, viewing portfolios, and searching by category or region is completely free. You only need an account when you want to chat, request a quotation, or make a booking.',
+  },
+  {
+    question: 'How does Sinnapi make sure vendors are genuine?',
+    answer:
+      'Every vendor goes through an approval workflow before they appear publicly — application review, due-diligence checks, and a signed MOU. Providers who do not pass are never listed.',
+  },
+  {
+    question: 'What is Sinnapi Escrow and why would I use it?',
+    answer:
+      'Escrow lets you pay Sinnapi instead of the vendor up front. We hold the full amount securely and only release it once you confirm the service was delivered as promised — protecting you from no-shows and disputes.',
+  },
+  {
+    question: 'Can I pay the vendor directly instead?',
+    answer:
+      'Yes. You can always choose to pay a vendor directly. Escrow is simply there for extra peace of mind, especially with vendors you are working with for the first time.',
+  },
+  {
+    question: 'I am a vendor — how long does approval take and what does it cost?',
+    answer:
+      'After you apply, we review your details and complete due diligence before you sign the vendor MOU. Once approved, you get a 30-day free trial, after which you choose a Starter, Professional, or Elite subscription.',
+  },
+  {
+    question: 'Can I manage more than one event at a time?',
+    answer:
+      'Absolutely. Clients and professional event planners can run multiple events at once, tracking bookings, messages, and payments for each from a single dashboard.',
+  },
+];
+
 // Shared FAQ content, surfaced across the site (home, contact, pricing) via the
-// shared FaqSection. Single source of truth so the answers never drift between
-// pages — including the pricing/billing questions below.
+// shared FaqSection. Leads with the how-it-works questions, then the coverage and
+// pricing/billing answers. Single source of truth so the answers never drift
+// between pages.
 export const FAQS: Faq[] = [
-  {
-    question: 'How are vendors verified?',
-    answer:
-      'Every vendor completes an application, passes our due-diligence review, and signs an MOU before they can be listed publicly. Look for the verified badge on each profile.',
-  },
-  {
-    question: 'How does Sinnapi Escrow protect me?',
-    answer:
-      'When you choose escrow, your payment is held securely by Sinnapi and only released to the vendor once you confirm the service was delivered as agreed.',
-  },
-  {
-    question: 'Does it cost anything to join as a client?',
-    answer:
-      'No. Creating a client or event-planner account is free. You only pay vendors for the services you book.',
-  },
-  {
-    question: 'I am a service provider — how do I get listed?',
-    answer:
-      'Apply to become a vendor, pass verification, and sign the MOU. Approved vendors get a 30-day free trial before choosing a subscription plan.',
-  },
+  ...HOW_IT_WORKS_FAQS,
   {
     question: 'Which areas does Sinnapi cover?',
     answer:
