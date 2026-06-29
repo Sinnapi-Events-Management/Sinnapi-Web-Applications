@@ -1,5 +1,7 @@
-export type Faq = { question: string; answer: string };
+import type { Faq } from '../FaqSection';
 
+// Shared FAQ content, surfaced on both the home and contact pages via the shared
+// FaqSection. Single source of truth so the answers never drift between pages.
 export const FAQS: Faq[] = [
   {
     question: 'How are vendors verified?',

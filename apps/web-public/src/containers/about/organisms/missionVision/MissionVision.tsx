@@ -1,6 +1,7 @@
 import { Box, Container, Grid, Paper, Typography } from '@sinnapi/ui';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
+import { scrollAnchor } from '@/lib/sx';
 import { PILLARS } from './data/pillars';
 
 /**
@@ -17,8 +18,8 @@ export default function MissionVision() {
         subtitle="Why we exist, and the future we are building toward for clients and vendors alike."
       />
       <Grid container spacing={3}>
-        {PILLARS.map(({ Icon, overline, title, body }) => (
-          <Grid item xs={12} md={6} key={overline}>
+        {PILLARS.map(({ anchor, Icon, overline, title, body }) => (
+          <Grid item xs={12} md={6} key={overline} id={anchor} sx={scrollAnchor}>
             <Paper
               variant="outlined"
               sx={{
