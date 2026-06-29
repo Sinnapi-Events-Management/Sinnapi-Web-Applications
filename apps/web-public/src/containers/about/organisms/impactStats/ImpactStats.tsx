@@ -61,9 +61,9 @@ export default function ImpactStats() {
                   />
                   <Typography
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 600,
                       lineHeight: 1.1,
-                      fontSize: { xs: '1.4rem', md: '1.9rem' },
+                      fontSize: { xs: '1.4rem', md: '1.6rem' },
                     }}
                   >
                     {value}

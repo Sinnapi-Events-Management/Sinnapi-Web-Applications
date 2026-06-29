@@ -22,9 +22,12 @@ export const PRIMARY_NAV = [
 export const FOOTER_NAV = {
   Company: [
     { label: 'About', href: '/about' },
-    { label: 'Mission', href: '/mission' },
-    { label: 'Vision', href: '/vision' },
-    { label: 'Our Story', href: '/story' },
+    // Mission / Vision / Story now live as sections on the About page; these
+    // deep-link there. The legacy /mission, /vision, /story routes 308-redirect
+    // to the same anchors (see next.config.mjs) so old URLs keep working.
+    { label: 'Mission', href: '/about#mission' },
+    { label: 'Vision', href: '/about#vision' },
+    { label: 'Our Story', href: '/about#story' },
     { label: 'Contact', href: '/contact' },
   ],
   Marketplace: [

@@ -15,3 +15,13 @@ export const mutedSurface = {
   bgcolor: 'grey.50',
   '[data-mui-color-scheme="dark"] &': { bgcolor: 'background.paper' },
 } satisfies SxProps<Theme>;
+
+/**
+ * Scroll offset for in-page anchor targets (e.g. `/about#story`). The public
+ * navbar is `sticky` on inner pages — utility top bar + toolbar — so a raw hash
+ * jump would land the section underneath it. Spread this into the anchored
+ * element's `sx` so the browser leaves room for the sticky header on scroll.
+ */
+export const scrollAnchor = {
+  scrollMarginTop: { xs: 112, md: 132 },
+} satisfies SxProps<Theme>;

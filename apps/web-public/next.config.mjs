@@ -24,6 +24,16 @@ const nextConfig = {
         : []),
     ],
   },
+  async redirects() {
+    // Mission, Vision and Our Story were consolidated into sections on /about.
+    // Permanently redirect the legacy standalone routes to the matching anchors
+    // so existing links and search-engine results keep resolving.
+    return [
+      { source: '/mission', destination: '/about#mission', permanent: true },
+      { source: '/vision', destination: '/about#vision', permanent: true },
+      { source: '/story', destination: '/about#story', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
