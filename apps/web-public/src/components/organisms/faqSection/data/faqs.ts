@@ -1,7 +1,8 @@
 import type { Faq } from '../FaqSection';
 
-// Shared FAQ content, surfaced on both the home and contact pages via the shared
-// FaqSection. Single source of truth so the answers never drift between pages.
+// Shared FAQ content, surfaced across the site (home, contact, pricing) via the
+// shared FaqSection. Single source of truth so the answers never drift between
+// pages — including the pricing/billing questions below.
 export const FAQS: Faq[] = [
   {
     question: 'How are vendors verified?',
@@ -27,5 +28,30 @@ export const FAQS: Faq[] = [
     question: 'Which areas does Sinnapi cover?',
     answer:
       'We serve Kampala and all regions of Uganda, with growing coverage across East Africa and beyond.',
+  },
+  {
+    question: 'How does the 30-day free trial work?',
+    answer:
+      'Once your vendor application is approved, you get 30 days to use your chosen plan free. We do not take payment upfront — you only start paying if you decide to continue after the trial.',
+  },
+  {
+    question: 'What is the difference between monthly and annual billing?',
+    answer:
+      'Both give you the exact same features. Annual billing is charged once a year at a discounted monthly rate, so you save compared with paying month to month. You can switch billing cycle at any time.',
+  },
+  {
+    question: 'Can I change or cancel my plan later?',
+    answer:
+      'Yes. You can upgrade, downgrade, or cancel whenever you like from your vendor dashboard. Changes take effect from your next billing cycle, and there are no cancellation fees.',
+  },
+  {
+    question: 'What happens if my subscription becomes inactive?',
+    answer:
+      'If a subscription lapses, your public listing is hidden so clients only see active, available vendors. Your profile and data are kept safe — renew any time to go live again.',
+  },
+  {
+    question: 'Are the prices shown final?',
+    answer:
+      'The prices on this page are indicative list prices. Your exact rate is confirmed during onboarding and may vary by billing cycle or any promotion you qualify for.',
   },
 ];
