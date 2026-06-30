@@ -37,6 +37,9 @@ export type EventCardModel = {
   event_type: string | null;
   event_date: string | null;
   location: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string | null;
   cover_image_url: string | null;
   source: 'admin' | 'client';
 };

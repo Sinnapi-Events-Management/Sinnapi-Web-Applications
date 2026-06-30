@@ -1,32 +1,35 @@
-import { Container, Grid } from '@sinnapi/ui';
-import { PageHeader } from '@/components/molecules/sectionHeading';
-import EventCard from '@/components/molecules/eventCard';
-import EmptyState from '@/components/molecules/emptyState';
-import { getEventsData } from './hooks/getEventsData';
+import { Container } from '@sinnapi/ui';
+import EventsHero from './organisms/eventsHero';
+import EventsToolbar from './organisms/eventsToolbar';
+import EventsResults from './organisms/eventsResults';
+import type { EventsSearchParams } from './data/filterEvents';
+import { getEventsData } from './utils/getEventsData';
 
-export default async function EventsContainer() {
-  const { events } = await getEventsData();
+/**
+ * Events page. Composes the experience as: a search-led hero → a refinement
+ * toolbar → the reveal-on-scroll grid. Search & filtering are URL-driven and
+ * resolved server-side in `getEventsData` (with a mock fallback while the table
+ * is empty); presentation lives in the organisms, so this file only sequences
+ * them and threads the current query through.
+ */
+export default async function EventsContainer({
+  searchParams,
+}: {
+  searchParams: EventsSearchParams;
+}) {
+  const { events, total, activeFilters } = await getEventsData(searchParams);
+
   return (
     <>
-      <PageHeader
-        title="Events & inspiration"
-        subtitle="Browse curated inspiration and open events. Vendors can express interest after signing in."
-      />
-      <Container sx={{ py: 4 }}>
-        {events.length === 0 ? (
-          <EmptyState
-            title="No events published yet"
-            description="Check back soon for event inspiration and open opportunities."
-          />
-        ) : (
-          <Grid container spacing={3}>
-            {events.map((e) => (
-              <Grid item xs={12} sm={6} md={4} key={e.id}>
-                <EventCard event={e} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
+      <EventsHero defaults={searchParams} />
+      <Container sx={{ py: { xs: 4, md: 6 } }}>
+        <EventsToolbar
+          defaults={searchParams}
+          resultCount={events.length}
+          total={total}
+          activeFilters={activeFilters}
+        />
+        <EventsResults events={events} activeFilters={activeFilters} />
       </Container>
     </>
   );
