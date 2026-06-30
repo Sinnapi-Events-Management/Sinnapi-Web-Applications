@@ -1,12 +1,22 @@
 import { notFound } from 'next/navigation';
-import NextLink from 'next/link';
-import { Container, Box, Typography, Chip, Stack, Button, Alert, Paper } from '@sinnapi/ui';
-import { Event as EventIcon, Place as PlaceIcon } from '@sinnapi/ui/icons';
-import { titleize, SITE } from '@/lib/config/site';
+import { Container, Grid } from '@sinnapi/ui';
+import { SITE } from '@/lib/config/site';
+import EventDetailHero from './organisms/eventDetailHero';
+import EventDetailHighlights from './organisms/eventDetailHighlights';
+import EventDetailOverview from './organisms/eventDetailOverview';
+import EventDetailServices from './organisms/eventDetailServices';
+import EventDetailSidebar from './organisms/eventDetailSidebar';
+import RelatedEvents from './organisms/relatedEvents';
 import { getEventDetailData } from './hooks/getEventDetailData';
 
+/**
+ * Event detail page. Composes the experience as: an immersive cover hero →
+ * a two-column body (story on the left, a sticky key-details + CTA card on the
+ * right) → a related-events rail. Data (live with a mock fallback) and SEO
+ * structured data are resolved here; presentation lives in the organisms.
+ */
 export default async function EventDetailContainer({ params }: { params: { id: string } }) {
-  const { event } = await getEventDetailData(params.id);
+  const { event, related } = await getEventDetailData(params.id);
   if (!event) notFound();
 
   const jsonLd = {
@@ -15,70 +25,35 @@ export default async function EventDetailContainer({ params }: { params: { id: s
     name: event.title,
     description: event.description ?? undefined,
     startDate: event.event_date ?? undefined,
+    image: event.cover_image_url ?? undefined,
     location: event.location ? { '@type': 'Place', name: event.location } : undefined,
     url: `${SITE.url}/events/${event.id}`,
   };
 
   return (
-    <Container sx={{ py: { xs: 4, md: 6 }, maxWidth: 880 }}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {event.cover_image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={event.cover_image_url}
-          alt={event.title}
-          style={{ width: '100%', borderRadius: 12, marginBottom: 24 }}
-        />
-      )}
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-        {event.event_type && <Chip label={titleize(event.event_type)} />}
-        <Chip variant="outlined" label={event.source === 'admin' ? 'Inspiration' : 'Open event'} />
-      </Stack>
-      <Typography variant="h1" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
-        {event.title}
-      </Typography>
-      <Stack direction="row" spacing={2} sx={{ mt: 2, color: 'text.secondary' }}>
-        {event.event_date && (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <EventIcon fontSize="small" />
-            <Typography>{new Date(event.event_date).toLocaleDateString()}</Typography>
-          </Stack>
-        )}
-        {event.location && (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <PlaceIcon fontSize="small" />
-            <Typography>{event.location}</Typography>
-          </Stack>
-        )}
-      </Stack>
-      {event.description && (
-        <Typography sx={{ mt: 3 }} color="text.secondary">
-          {event.description}
-        </Typography>
-      )}
 
-      {event.source === 'client' && (
-        <Paper variant="outlined" sx={{ p: 3, mt: 4 }}>
-          <Typography variant="h5">Are you a vendor?</Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
-            Sign in to express interest in this event.
-          </Typography>
-          <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
-            <Button component={NextLink} href="/sign-in" variant="contained">
-              Express interest
-            </Button>
-            <Button component={NextLink} href="/apply" variant="outlined">
-              Become a vendor
-            </Button>
-          </Stack>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Only approved vendors with an active subscription can express interest.
-          </Alert>
-        </Paper>
-      )}
-    </Container>
+      <EventDetailHero event={event} />
+
+      <Container sx={{ py: { xs: 4, md: 6 } }}>
+        <EventDetailHighlights event={event} />
+
+        <Grid container spacing={{ xs: 4, md: 5 }} sx={{ mt: { xs: 1, md: 2 } }}>
+          <Grid item xs={12} md={7} lg={8}>
+            <EventDetailOverview event={event} />
+            <EventDetailServices event={event} />
+          </Grid>
+          <Grid item xs={12} md={5} lg={4}>
+            <EventDetailSidebar event={event} />
+          </Grid>
+        </Grid>
+      </Container>
+
+      <RelatedEvents events={related} />
+    </>
   );
 }

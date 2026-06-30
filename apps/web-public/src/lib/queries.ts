@@ -116,7 +116,9 @@ export async function getEvents(limit = 24): Promise<EventCardModel[]> {
   if (!supa) return [];
   const { data } = await supa
     .from('events')
-    .select('id,title,description,event_type,event_date,location,cover_image_url,source')
+    .select(
+      'id,title,description,event_type,event_date,location,budget_min,budget_max,currency,cover_image_url,source',
+    )
     .eq('status', 'published')
     .eq('is_public', true)
     .is('deleted_at', null)
@@ -130,7 +132,9 @@ export async function getEventById(id: string): Promise<EventCardModel | null> {
   if (!supa) return null;
   const { data } = await supa
     .from('events')
-    .select('id,title,description,event_type,event_date,location,cover_image_url,source')
+    .select(
+      'id,title,description,event_type,event_date,location,budget_min,budget_max,currency,cover_image_url,source',
+    )
     .eq('id', id)
     .eq('status', 'published')
     .eq('is_public', true)
