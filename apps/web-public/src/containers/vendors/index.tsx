@@ -1,39 +1,49 @@
-import { Container, Grid } from '@sinnapi/ui';
-import { PageHeader } from '@/components/molecules/sectionHeading';
-import VendorCard from '@/components/molecules/vendorCard';
-import VendorFilterBar from '@/components/organisms/vendorFilterBar';
-import EmptyState from '@/components/molecules/emptyState';
-import { getVendorsData } from './hooks/getVendorsData';
+import { Container } from '@sinnapi/ui';
+import SectionHeading from '@/components/molecules/sectionHeading';
+import MarketplaceCta from '@/components/organisms/marketplaceCta';
+import VendorsHero from './organisms/vendorsHero';
+import VendorsFeatured from './organisms/vendorsFeatured';
+import VendorsToolbar from './organisms/vendorsToolbar';
+import VendorsResults from './organisms/vendorsResults';
+import type { VendorsSearchParams } from './utils/filterVendors';
+import { getVendorsData } from './utils/getVendorsData';
 
-type SearchParams = { q?: string; category?: string; region?: string };
+/**
+ * Vendors page. Composes the experience as: a search-led hero → a featured
+ * (paid placement) spotlight on the default view → a refinement toolbar → the
+ * results grid. Search & filtering are URL-driven and resolved server-side in
+ * `getVendorsData` (with a mock fallback while the table is empty); presentation
+ * lives in the organisms, so this file only sequences them and threads the
+ * current query through.
+ */
+export default async function VendorsContainer({
+  searchParams,
+}: {
+  searchParams: VendorsSearchParams;
+}) {
+  const { featured, vendors, total, activeFilters } = await getVendorsData(searchParams);
+  const hasFeatured = featured.length > 0;
 
-export default async function VendorsContainer({ searchParams }: { searchParams: SearchParams }) {
-  const vendors = await getVendorsData(searchParams);
   return (
     <>
-      <PageHeader
-        title="Find your perfect vendor"
-        subtitle="Verified, vetted providers across Uganda and beyond. Sign in to chat, request quotes, and book."
-      />
-      <Container sx={{ py: 4 }}>
-        <VendorFilterBar defaults={searchParams} />
-        {vendors.length === 0 ? (
-          <EmptyState
-            title="No vendors match your search"
-            description="Try broadening your filters or browse all categories."
-            ctaLabel="Clear filters"
-            ctaHref="/vendors"
-          />
-        ) : (
-          <Grid container spacing={3}>
-            {vendors.map((v) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={v.id}>
-                <VendorCard vendor={v} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
+      <VendorsHero defaults={searchParams} />
+      {hasFeatured && <VendorsFeatured vendors={featured} />}
+      <Container sx={{ py: { xs: 4, md: 6 } }}>
+        {hasFeatured && <SectionHeading overline="Browse" title="All vendors" />}
+        <VendorsToolbar
+          defaults={searchParams}
+          resultCount={vendors.length}
+          total={total}
+          activeFilters={activeFilters}
+        />
+        <VendorsResults vendors={vendors} activeFilters={activeFilters} />
       </Container>
+      <MarketplaceCta
+        title="Bring your whole event together"
+        subtitle="You've found the vendors — now explore real events and inspiration to picture how it all comes together. Or, if you're a provider, join Sinnapi and get booked by clients searching right now."
+        primary={{ label: 'Explore events', href: '/events' }}
+        secondary={{ label: 'Become a vendor', href: '/apply' }}
+      />
     </>
   );
 }

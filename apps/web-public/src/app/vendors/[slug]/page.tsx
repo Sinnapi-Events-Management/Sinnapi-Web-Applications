@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import {
   getVendorBySlugData,
   getAllVendorSlugsData,
-} from '@/containers/vendorDetail/hooks/getVendorDetailData';
+} from '@/containers/vendorDetail/utils/getVendorDetailData';
 
 export const revalidate = 600; // ISR + on-demand revalidation on profile changes
 

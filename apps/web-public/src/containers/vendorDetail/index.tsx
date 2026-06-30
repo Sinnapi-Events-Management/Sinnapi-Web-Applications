@@ -1,28 +1,24 @@
-import NextLink from 'next/link';
-import {
-  Container,
-  Grid,
-  Box,
-  Typography,
-  Button,
-  Chip,
-  Stack,
-  Rating,
-  Divider,
-  Paper,
-  Alert,
-  ImageList,
-  ImageListItem,
-} from '@sinnapi/ui';
-import { Verified as VerifiedIcon, Place as PlaceIcon, Lock as LockIcon } from '@sinnapi/ui/icons';
-import { formatMoney, titleize, SITE } from '@/lib/config/site';
-import { getVendorDetailData } from './hooks/getVendorDetailData';
+import { Container, Grid } from '@sinnapi/ui';
+import { SITE } from '@/lib/config/site';
+import VendorDetailHero from './organisms/vendorDetailHero';
+import VendorDetailHighlights from './organisms/vendorDetailHighlights';
+import VendorDetailOverview from './organisms/vendorDetailOverview';
+import VendorDetailGallery from './organisms/vendorDetailGallery';
+import VendorDetailReviews from './organisms/vendorDetailReviews';
+import VendorDetailSidebar from './organisms/vendorDetailSidebar';
+import RelatedVendors from './organisms/relatedVendors';
+import MarketplaceCta from '@/components/organisms/marketplaceCta';
+import { getVendorDetailData } from './utils/getVendorDetailData';
 
+/**
+ * Vendor detail page. Composes the experience as: an immersive cover hero →
+ * a key-facts highlights strip → a two-column body (about + portfolio + reviews
+ * on the left, a sticky quote/contact card on the right) → a related-vendors
+ * rail. Data (live with a mock fallback) and SEO structured data are resolved
+ * here; presentation lives in the organisms.
+ */
 export default async function VendorDetailContainer({ params }: { params: { slug: string } }) {
-  const { vendor, media, reviews } = await getVendorDetailData(params.slug);
-
-  const images = media.filter((m) => m.media_type === 'image' && m.url);
-  const price = formatMoney(vendor.starting_price, vendor.starting_price_currency);
+  const { vendor, media, reviews, related } = await getVendorDetailData(params.slug);
 
   // Structured data for SEO (LocalBusiness + AggregateRating).
   const jsonLd = {
@@ -46,131 +42,37 @@ export default async function VendorDetailContainer({ params }: { params: { slug
   };
 
   return (
-    <Container sx={{ py: { xs: 4, md: 6 } }}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <Grid container spacing={4}>
-        {/* Main */}
-        <Grid item xs={12} md={8}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h1" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
-              {vendor.business_name}
-            </Typography>
-            <VerifiedIcon color="primary" titleAccess="Verified vendor" />
-          </Stack>
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ mt: 1, color: 'text.secondary' }}
-          >
-            {vendor.base_city && (
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <PlaceIcon fontSize="small" />
-                <Typography>{vendor.base_city}</Typography>
-              </Stack>
-            )}
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Rating value={vendor.avg_rating} precision={0.5} size="small" readOnly />
-              <Typography variant="body2">
-                {vendor.avg_rating.toFixed(1)} ({vendor.review_count})
-              </Typography>
-            </Stack>
-          </Stack>
+      <VendorDetailHero vendor={vendor} />
 
-          <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
-            {vendor.pricing_model && <Chip label={titleize(vendor.pricing_model)} />}
-            {vendor.lead_time && (
-              <Chip variant="outlined" label={`Lead time: ${titleize(vendor.lead_time)}`} />
-            )}
-            {vendor.years_in_operation && (
-              <Chip variant="outlined" label={titleize(vendor.years_in_operation)} />
-            )}
-          </Stack>
+      <Container sx={{ py: { xs: 4, md: 6 } }}>
+        <VendorDetailHighlights vendor={vendor} />
 
-          {vendor.biography && (
-            <Typography sx={{ mt: 3 }} color="text.secondary">
-              {vendor.biography}
-            </Typography>
-          )}
-
-          {images.length > 0 && (
-            <Box sx={{ mt: 4 }}>
-              <Typography variant="h4" sx={{ mb: 2 }}>
-                Portfolio
-              </Typography>
-              <ImageList variant="masonry" cols={3} gap={8}>
-                {images.map((m) => (
-                  <ImageListItem key={m.id}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={m.url!}
-                      alt={m.caption ?? vendor.business_name}
-                      loading="lazy"
-                      style={{ borderRadius: 8 }}
-                    />
-                  </ImageListItem>
-                ))}
-              </ImageList>
-            </Box>
-          )}
-
-          <Divider sx={{ my: 4 }} />
-
-          <Typography variant="h4" sx={{ mb: 2 }}>
-            Reviews
-          </Typography>
-          {reviews.length === 0 ? (
-            <Typography color="text.secondary">No reviews yet.</Typography>
-          ) : (
-            <Stack spacing={2}>
-              {reviews.map((r) => (
-                <Paper key={r.id} variant="outlined" sx={{ p: 2 }}>
-                  <Rating value={r.rating} size="small" readOnly />
-                  {r.title && (
-                    <Typography variant="subtitle2" sx={{ mt: 0.5 }}>
-                      {r.title}
-                    </Typography>
-                  )}
-                  {r.body && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {r.body}
-                    </Typography>
-                  )}
-                </Paper>
-              ))}
-            </Stack>
-          )}
+        <Grid container spacing={{ xs: 4, md: 5 }} sx={{ mt: { xs: 1, md: 2 } }}>
+          <Grid item xs={12} md={7} lg={8}>
+            <VendorDetailOverview vendor={vendor} />
+            <VendorDetailGallery media={media} vendorName={vendor.business_name} />
+            <VendorDetailReviews vendor={vendor} reviews={reviews} />
+          </Grid>
+          <Grid item xs={12} md={5} lg={4}>
+            <VendorDetailSidebar vendor={vendor} />
+          </Grid>
         </Grid>
+      </Container>
 
-        {/* Sticky action panel — contacts hidden; CTAs require sign-in */}
-        <Grid item xs={12} md={4}>
-          <Paper variant="outlined" sx={{ p: 3, position: { md: 'sticky' }, top: { md: 88 } }}>
-            {price && (
-              <>
-                <Typography variant="overline" color="text.secondary">
-                  Starting from
-                </Typography>
-                <Typography variant="h4">{price}</Typography>
-              </>
-            )}
-            <Stack spacing={1.5} sx={{ mt: 2 }}>
-              <Button component={NextLink} href="/sign-in" variant="contained" size="large">
-                Request a quote
-              </Button>
-              <Button component={NextLink} href="/sign-in" variant="outlined" size="large">
-                Message vendor
-              </Button>
-            </Stack>
-            <Alert icon={<LockIcon fontSize="inherit" />} severity="info" sx={{ mt: 2 }}>
-              Sign in to chat and request quotations. Vendor contact details are protected.
-            </Alert>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Container>
+      <RelatedVendors vendors={related} />
+
+      <MarketplaceCta
+        title="Planning an event of your own?"
+        subtitle="Browse real events and inspiration for ideas — or list your business and start getting booked by clients across the region."
+        primary={{ label: 'Explore events', href: '/events' }}
+        secondary={{ label: 'Become a vendor', href: '/apply' }}
+      />
+    </>
   );
 }
