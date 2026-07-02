@@ -7,6 +7,8 @@ import EventDetailOverview from './organisms/eventDetailOverview';
 import EventDetailServices from './organisms/eventDetailServices';
 import EventDetailSidebar from './organisms/eventDetailSidebar';
 import RelatedEvents from './organisms/relatedEvents';
+import MarketplaceCta from '@/components/organisms/marketplaceCta';
+import EventTips from '@/components/organisms/eventTips';
 import { getEventDetailData } from './hooks/getEventDetailData';
 
 /**
@@ -54,6 +56,20 @@ export default async function EventDetailContainer({ params }: { params: { id: s
       </Container>
 
       <RelatedEvents events={related} />
+
+      <EventTips
+        eventType={event.event_type}
+        surface="plain"
+        title="Tips for a flawless event"
+        subtitle="Advice tailored to this occasion — for hosts in Uganda, the diaspora planning from abroad, and beyond."
+      />
+
+      <MarketplaceCta
+        title="Find the right vendors for your event"
+        subtitle="Browse verified, vetted providers for every part of your event — or join Sinnapi as a vendor and reach clients planning theirs."
+        primary={{ label: 'Browse vendors', href: '/vendors' }}
+        secondary={{ label: 'Become a vendor', href: '/apply' }}
+      />
     </>
   );
 }
