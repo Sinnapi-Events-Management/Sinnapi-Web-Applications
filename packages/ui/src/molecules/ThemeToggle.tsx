@@ -34,6 +34,7 @@ export const ThemeToggle = forwardRef<HTMLButtonElement, ThemeToggleProps>(funct
 
   const isDark = mode === 'dark';
   const label = `Switch to ${isDark ? 'light' : 'dark'} mode`;
+  const { sx, ...rest } = props;
 
   return (
     <Tooltip title={label}>
@@ -42,7 +43,8 @@ export const ThemeToggle = forwardRef<HTMLButtonElement, ThemeToggleProps>(funct
         color={color}
         aria-label={label}
         onClick={() => setMode(isDark ? 'light' : 'dark')}
-        {...props}
+        {...rest}
+        sx={[...(Array.isArray(sx) ? sx : [sx]), mode === 'light' && { color: 'primary.main' }]}
       >
         {isDark ? <LightMode /> : <DarkMode />}
       </IconButton>

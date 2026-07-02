@@ -1,4 +1,6 @@
 import { Container } from '@sinnapi/ui';
+import MarketplaceCta from '@/components/organisms/marketplaceCta';
+import EventTips from '@/components/organisms/eventTips';
 import EventsHero from './organisms/eventsHero';
 import EventsToolbar from './organisms/eventsToolbar';
 import EventsResults from './organisms/eventsResults';
@@ -31,6 +33,13 @@ export default async function EventsContainer({
         />
         <EventsResults events={events} activeFilters={activeFilters} />
       </Container>
+      <EventTips />
+      <MarketplaceCta
+        title="Find the right vendors for your event"
+        subtitle="Browse verified, vetted providers for every part of your event — or join Sinnapi as a vendor and reach clients planning theirs."
+        primary={{ label: 'Browse vendors', href: '/vendors' }}
+        secondary={{ label: 'Become a vendor', href: '/apply' }}
+      />
     </>
   );
 }
