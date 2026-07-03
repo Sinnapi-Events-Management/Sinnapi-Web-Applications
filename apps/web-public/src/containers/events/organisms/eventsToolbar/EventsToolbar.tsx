@@ -1,6 +1,6 @@
 import NextLink from 'next/link';
-import { Box, Paper, Grid, Stack, Typography, Button, Link } from '@sinnapi/ui';
-import { Tune, Close } from '@sinnapi/ui/icons';
+import { Box, Paper, Grid, Stack, Typography, Button, Link } from '@sinnapi/ui/atoms';
+import { Tune, Close } from '@mui/icons-material';
 import FilterSelect from '@/components/molecules/filterSelect';
 import type { EventsSearchParams } from '../../data/filterEvents';
 import {

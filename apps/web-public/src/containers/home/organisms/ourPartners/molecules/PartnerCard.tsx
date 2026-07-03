@@ -1,4 +1,4 @@
-import { Avatar, Box, Paper, Stack, Typography } from '@sinnapi/ui';
+import { Avatar, Box, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
 import type { Partner } from '../data/partners';
 
 export default function PartnerCard({ partner }: { partner: Partner }) {

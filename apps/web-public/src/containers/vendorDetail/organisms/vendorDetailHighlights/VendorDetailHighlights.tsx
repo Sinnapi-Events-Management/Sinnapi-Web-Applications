@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Grid, Paper } from '@sinnapi/ui';
-import { Payments, RequestQuote, Schedule, WorkspacePremium } from '@sinnapi/ui/icons';
+import { Grid, Paper } from '@sinnapi/ui/atoms';
+import { Payments, RequestQuote, Schedule, WorkspacePremium } from '@mui/icons-material';
 import { formatMoney } from '@/lib/config/site';
 import type { VendorDetailModel } from '@/lib/types';
 import DetailRow from './molecules/DetailRow';

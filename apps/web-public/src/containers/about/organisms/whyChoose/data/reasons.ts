@@ -7,7 +7,7 @@ import {
   WorkspacePremium,
   Lock,
   Hub,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 
 export type Reason = { Icon: ElementType; title: string; body: string };
 

@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { HelpOutline, SupportAgent, Storefront, Handshake } from '@sinnapi/ui/icons';
+import { HelpOutline, SupportAgent, Storefront, Handshake } from '@mui/icons-material';
 import { CONTACT } from '@sinnapi/utils/constants';
 
 export type ContactMethod = {

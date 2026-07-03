@@ -1,4 +1,4 @@
-import { Grid } from '@sinnapi/ui';
+import { Grid } from '@sinnapi/ui/atoms';
 import EventCard from '@/components/molecules/eventCard';
 import EmptyState from '@/components/molecules/emptyState';
 import type { EventCardModel } from '@/lib/types';

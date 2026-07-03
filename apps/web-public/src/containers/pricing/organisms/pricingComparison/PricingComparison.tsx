@@ -1,4 +1,4 @@
-import { Box, Container, Typography } from '@sinnapi/ui';
+import { Box, Container, Typography } from '@sinnapi/ui/atoms';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 import { mutedSurface } from '@/lib/sx';
 import SectionHeading from '@/components/molecules/sectionHeading';

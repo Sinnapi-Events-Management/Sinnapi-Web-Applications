@@ -1,4 +1,4 @@
-import { Grid } from '@sinnapi/ui';
+import { Grid } from '@sinnapi/ui/atoms';
 import VendorCard from '@/components/molecules/vendorCard';
 import EmptyState from '@/components/molecules/emptyState';
 import type { VendorListItem } from '../../utils/filterVendors';

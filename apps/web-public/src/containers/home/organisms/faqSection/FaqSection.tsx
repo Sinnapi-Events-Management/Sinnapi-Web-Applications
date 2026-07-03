@@ -1,5 +1,5 @@
-import { Stack } from '@sinnapi/ui';
-import { VerifiedUser, Handshake, Lock } from '@sinnapi/ui/icons';
+import { Stack } from '@sinnapi/ui/atoms';
+import { VerifiedUser, Handshake, Lock } from '@mui/icons-material';
 import SharedFaqSection, { FAQS } from '@/components/organisms/faqSection';
 
 /**

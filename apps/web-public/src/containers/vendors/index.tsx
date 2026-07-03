@@ -1,4 +1,4 @@
-import { Container } from '@sinnapi/ui';
+import { Container } from '@sinnapi/ui/atoms';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import MarketplaceCta from '@/components/organisms/marketplaceCta';
 import VendorsHero from './organisms/vendorsHero';

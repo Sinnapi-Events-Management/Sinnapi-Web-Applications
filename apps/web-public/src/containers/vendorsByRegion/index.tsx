@@ -1,4 +1,4 @@
-import { Container, Grid } from '@sinnapi/ui';
+import { Container, Grid } from '@sinnapi/ui/atoms';
 import { PageHeader } from '@/components/molecules/sectionHeading';
 import VendorCard from '@/components/molecules/vendorCard';
 import VendorFilterBar from '@/components/organisms/vendorFilterBar';

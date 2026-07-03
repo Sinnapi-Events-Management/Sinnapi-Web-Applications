@@ -1,14 +1,7 @@
 import type { ReactNode } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@sinnapi/ui';
-import { ExpandMore } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
+import { Accordion, AccordionSummary, AccordionDetails } from '@sinnapi/ui/molecules';
+import { ExpandMore } from '@mui/icons-material';
 import { mutedSurface } from '@/lib/sx';
 
 export type Faq = { question: string; answer: string };

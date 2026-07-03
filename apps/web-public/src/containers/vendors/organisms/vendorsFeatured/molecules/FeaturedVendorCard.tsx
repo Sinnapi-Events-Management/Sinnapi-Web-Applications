@@ -1,16 +1,7 @@
 import NextLink from 'next/link';
-import {
-  Card,
-  CardActionArea,
-  CardContent,
-  CardMedia,
-  Box,
-  Typography,
-  Chip,
-  Rating,
-  Stack,
-} from '@sinnapi/ui';
-import { Verified as VerifiedIcon, Place as PlaceIcon, Star } from '@sinnapi/ui/icons';
+import { Box, Typography, Chip, Rating, Stack } from '@sinnapi/ui/atoms';
+import { Card, CardActionArea, CardContent, CardMedia } from '@sinnapi/ui/molecules';
+import { Verified as VerifiedIcon, Place as PlaceIcon, Star } from '@mui/icons-material';
 import { common, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { titleize } from '@/lib/config/site';
 import { useVendorCard } from '@/components/molecules/vendorCard/hooks/useVendorCard';

@@ -1,4 +1,4 @@
-import { Box, Chip, Paper, Stack, Typography } from '@sinnapi/ui';
+import { Box, Chip, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { Journey } from '../data/journeys';

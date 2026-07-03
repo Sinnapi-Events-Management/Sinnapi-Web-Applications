@@ -1,6 +1,6 @@
 import Image from 'next/image';
-import { Box, Container, Grid, Stack, Typography } from '@sinnapi/ui';
-import { CheckCircle } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Stack, Typography } from '@sinnapi/ui/atoms';
+import { CheckCircle } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { mutedSurface } from '@/lib/sx';

@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { WorkHistory, Payments, RocketLaunch, VerifiedUser } from '@sinnapi/ui/icons';
+import { WorkHistory, Payments, RocketLaunch, VerifiedUser } from '@mui/icons-material';
 
 export type ImpactStat = { Icon: ElementType; value: string; label: string };
 

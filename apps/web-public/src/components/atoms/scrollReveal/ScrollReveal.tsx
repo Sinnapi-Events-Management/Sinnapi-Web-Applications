@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Box } from '@sinnapi/ui';
-import type { SxProps, Theme } from '@sinnapi/ui';
+import { Box } from '@sinnapi/ui/atoms';
+import type { Theme } from '@sinnapi/ui/theme';
+import type { SxProps } from '@sinnapi/ui/system';
 
 type ScrollRevealProps = {
   children: ReactNode;

@@ -1,4 +1,4 @@
-import { Container } from '@sinnapi/ui';
+import { Container } from '@sinnapi/ui/atoms';
 import MarketplaceCta from '@/components/organisms/marketplaceCta';
 import EventTips from '@/components/organisms/eventTips';
 import EventsHero from './organisms/eventsHero';

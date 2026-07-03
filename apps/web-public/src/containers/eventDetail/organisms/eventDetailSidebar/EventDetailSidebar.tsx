@@ -1,6 +1,7 @@
 import NextLink from 'next/link';
-import { Box, Paper, Stack, Typography, Button, Alert } from '@sinnapi/ui';
-import { Storefront, Lock as LockIcon } from '@sinnapi/ui/icons';
+import { Box, Paper, Stack, Typography, Button } from '@sinnapi/ui/atoms';
+import { Alert } from '@sinnapi/ui/molecules';
+import { Storefront, Lock as LockIcon } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import type { EventCardModel } from '@/lib/types';
 

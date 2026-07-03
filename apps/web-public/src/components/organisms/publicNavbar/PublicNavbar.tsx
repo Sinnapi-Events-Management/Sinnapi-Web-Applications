@@ -3,25 +3,18 @@ import { useState } from 'react';
 import NextLink from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { Container, Box, Button, IconButton, Stack, Divider } from '@sinnapi/ui/atoms';
 import {
-  AppBar,
-  Toolbar,
-  Container,
-  Box,
-  Button,
   PrimaryButton,
-  IconButton,
-  Drawer,
   List,
   ListItemButton,
   ListItemText,
-  Stack,
-  Divider,
   ThemeToggle,
-  useColorScheme,
-  useScrollTrigger,
-} from '@sinnapi/ui';
-import { Menu as MenuIcon } from '@sinnapi/ui/icons';
+} from '@sinnapi/ui/molecules';
+import { AppBar, Toolbar, Drawer } from '@sinnapi/ui/organisms';
+import { useColorScheme } from '@sinnapi/ui/theme';
+import { useScrollTrigger } from '@sinnapi/ui/system';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { PRIMARY_NAV, SITE } from '@/lib/config/site';
 import NavTopBar from './atoms/NavTopBar';
@@ -60,6 +53,12 @@ export default function PublicNavbar() {
         color: transparent ? 'common.white' : 'text.primary',
         borderBottom: 1,
         borderColor: transparent ? 'transparent' : 'divider',
+        // Dark mode pairs a pure-black NavTopBar with a lighter "light black" nav
+        // row (elevated paper surface) for a two-tier header. Light mode keeps the
+        // standard off-white surface above. Selector resolves CSS vars at paint time.
+        ...(transparent
+          ? null
+          : { '[data-mui-color-scheme="dark"] &': { backgroundColor: 'background.paper' } }),
       }}
     >
       {/* Utility bar — discovery search (left) + contact & socials (right). Sits

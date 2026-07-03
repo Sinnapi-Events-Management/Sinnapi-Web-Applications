@@ -1,6 +1,7 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Stack, Typography, SecondaryButton } from '@sinnapi/ui';
+import { Box, Container, Stack, Typography } from '@sinnapi/ui/atoms';
+import { SecondaryButton } from '@sinnapi/ui/molecules';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
 

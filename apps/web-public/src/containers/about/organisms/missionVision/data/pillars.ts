@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Flag, Visibility } from '@sinnapi/ui/icons';
+import { Flag, Visibility } from '@mui/icons-material';
 
 // `anchor` doubles as the element id so footer links can deep-link to a pillar
 // (e.g. `/about#mission`, `/about#vision`).

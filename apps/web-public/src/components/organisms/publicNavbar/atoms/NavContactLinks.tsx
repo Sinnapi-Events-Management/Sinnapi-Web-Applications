@@ -1,5 +1,5 @@
-import { Stack, Link, Typography } from '@sinnapi/ui';
-import { EmailOutlined, PhoneOutlined } from '@sinnapi/ui/icons';
+import { Stack, Link, Typography } from '@sinnapi/ui/atoms';
+import { EmailOutlined, PhoneOutlined } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { CONTACT } from '@sinnapi/utils/constants';
 

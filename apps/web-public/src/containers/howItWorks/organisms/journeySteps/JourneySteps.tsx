@@ -1,4 +1,4 @@
-import { Container, Grid } from '@sinnapi/ui';
+import { Container, Grid } from '@sinnapi/ui/atoms';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import StepTimeline from './molecules/StepTimeline';
 import { CLIENT_JOURNEY, VENDOR_JOURNEY } from './data/journeys';

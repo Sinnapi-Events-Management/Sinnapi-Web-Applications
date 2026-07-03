@@ -1,5 +1,5 @@
 import NextLink from 'next/link';
-import { Box, Paper, Stack, Typography, Chip } from '@sinnapi/ui';
+import { Box, Paper, Stack, Typography, Chip } from '@sinnapi/ui/atoms';
 import { titleize } from '@/lib/config/site';
 import type { EventCardModel } from '@/lib/types';
 import { suggestedServices } from '../../utils/serviceSuggestions';

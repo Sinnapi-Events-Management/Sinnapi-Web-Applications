@@ -1,4 +1,4 @@
-import { Stack, Box, Typography, Divider } from '@sinnapi/ui';
+import { Stack, Box, Typography, Divider } from '@sinnapi/ui/atoms';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { HERO_STATS } from '../data/heroStats';
 

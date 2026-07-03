@@ -1,4 +1,4 @@
-import { Box, Chip, Paper, Stack, Typography } from '@sinnapi/ui';
+import { Box, Chip, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
 import {
   Savings,
   CalendarMonth,
@@ -14,7 +14,7 @@ import {
   Handshake,
   Shield,
   TravelExplore,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 import type { TipIcon } from '../data/tips';
 

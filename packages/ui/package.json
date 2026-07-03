@@ -11,6 +11,7 @@
     "./atoms": "./src/atoms/index.ts",
     "./molecules": "./src/molecules/index.ts",
     "./organisms": "./src/organisms/index.ts",
+    "./system": "./src/system.ts",
     "./icons": "./src/icons.ts"
   },
   "scripts": {

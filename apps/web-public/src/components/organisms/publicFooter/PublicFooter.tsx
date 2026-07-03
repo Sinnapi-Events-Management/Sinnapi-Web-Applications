@@ -1,7 +1,7 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Grid, Typography, Link, Stack, Divider } from '@sinnapi/ui';
-import { WhatsApp, EmailOutlined, PhoneOutlined, LocationOnOutlined } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Typography, Link, Stack, Divider } from '@sinnapi/ui/atoms';
+import { WhatsApp, EmailOutlined, PhoneOutlined, LocationOnOutlined } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { CONTACT } from '@sinnapi/utils/constants';
 import SocialLinks from '@/components/molecules/socialLinks';

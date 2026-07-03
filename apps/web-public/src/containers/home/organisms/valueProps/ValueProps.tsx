@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Paper, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Paper, Typography } from '@sinnapi/ui/atoms';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { VALUE_PROPS } from './data/valueProps';

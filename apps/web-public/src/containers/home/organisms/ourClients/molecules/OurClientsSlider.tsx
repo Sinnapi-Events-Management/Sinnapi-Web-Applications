@@ -1,6 +1,6 @@
 'use client';
-import { Box, IconButton } from '@sinnapi/ui';
-import { ChevronLeft, ChevronRight } from '@sinnapi/ui/icons';
+import { Box, IconButton } from '@sinnapi/ui/atoms';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { common } from '@sinnapi/ui/tokens';
 import type { Client } from '../data/clients';
 import { useClientsCarousel } from '../hooks/useClientsCarousel';

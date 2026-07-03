@@ -1,5 +1,6 @@
-import { Container, Accordion, AccordionSummary, AccordionDetails, Typography } from '@sinnapi/ui';
-import { ExpandMore as ExpandMoreIcon } from '@sinnapi/ui/icons';
+import { Container, Typography } from '@sinnapi/ui/atoms';
+import { Accordion, AccordionSummary, AccordionDetails } from '@sinnapi/ui/molecules';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { PageHeader } from '@/components/molecules/sectionHeading';
 
 const FAQS = [

@@ -1,5 +1,6 @@
 'use client';
-import { Stack, Button, Alert, CircularProgress } from '@sinnapi/ui';
+import { Stack, Button, CircularProgress } from '@sinnapi/ui/atoms';
+import { Alert } from '@sinnapi/ui/molecules';
 import { useContactForm } from './hooks/useContactForm';
 import ContactFields from './molecules/ContactFields';
 import ContactSuccess from './molecules/ContactSuccess';

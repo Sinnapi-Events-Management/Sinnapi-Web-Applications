@@ -1,17 +1,7 @@
 import NextLink from 'next/link';
-import {
-  Box,
-  Button,
-  Chip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Paper,
-  Stack,
-  Typography,
-} from '@sinnapi/ui';
-import { Check as CheckIcon } from '@sinnapi/ui/icons';
+import { Box, Button, Chip, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
+import { List, ListItem, ListItemIcon, ListItemText } from '@sinnapi/ui/molecules';
+import { Check as CheckIcon } from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 import { formatPrice, type BillingCycle, type Plan } from '../data/plans';
 

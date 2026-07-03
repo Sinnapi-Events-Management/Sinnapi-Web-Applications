@@ -1,5 +1,5 @@
-import { Box, Stack, Typography } from '@sinnapi/ui';
-import { EventAvailable, Cancel, MoneyOff } from '@sinnapi/ui/icons';
+import { Box, Stack, Typography } from '@sinnapi/ui/atoms';
+import { EventAvailable, Cancel, MoneyOff } from '@mui/icons-material';
 
 // Low-commitment reassurances shown directly under the plan cards — the small
 // print buyers scan before they click. Icon-led so it reads at a glance.

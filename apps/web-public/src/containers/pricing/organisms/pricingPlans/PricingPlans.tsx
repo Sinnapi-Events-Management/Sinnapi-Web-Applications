@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Box, Container, Grid, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
 import { scrollAnchor } from '@/lib/sx';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { PLANS, type BillingCycle } from './data/plans';

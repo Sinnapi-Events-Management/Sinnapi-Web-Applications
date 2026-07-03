@@ -1,4 +1,4 @@
-import { Box, Container } from '@sinnapi/ui';
+import { Box, Container } from '@sinnapi/ui/atoms';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import type { VendorListItem } from '../../utils/filterVendors';

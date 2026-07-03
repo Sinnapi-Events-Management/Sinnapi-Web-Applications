@@ -1,4 +1,4 @@
-import { Container, Grid, Skeleton, Box } from '@sinnapi/ui';
+import { Container, Grid, Skeleton, Box } from '@sinnapi/ui/atoms';
 
 export default function Loading() {
   return (

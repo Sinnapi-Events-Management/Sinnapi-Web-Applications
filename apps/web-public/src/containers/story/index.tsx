@@ -1,4 +1,4 @@
-import { Typography } from '@sinnapi/ui';
+import { Typography } from '@sinnapi/ui/atoms';
 import Prose from '@/components/molecules/prose';
 
 // Story page: narrates how Sinnapi began and the problems it set out to solve.

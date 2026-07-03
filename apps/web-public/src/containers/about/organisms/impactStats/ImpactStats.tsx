@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Stack, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Stack, Typography } from '@sinnapi/ui/atoms';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMPACT_STATS } from './data/stats';
 

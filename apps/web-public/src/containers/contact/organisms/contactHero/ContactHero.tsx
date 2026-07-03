@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import { Box, Container, Typography, Chip, Stack, SecondaryButton, Button } from '@sinnapi/ui';
-import { SupportAgent, EmailOutlined, WhatsApp } from '@sinnapi/ui/icons';
+import { Box, Container, Typography, Chip, Stack, Button } from '@sinnapi/ui/atoms';
+import { SecondaryButton } from '@sinnapi/ui/molecules';
+import { SupportAgent, EmailOutlined, WhatsApp } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { CONTACT } from '@sinnapi/utils/constants';
 import { IMAGES } from '@/lib/assets';

@@ -1,5 +1,5 @@
 import NextLink from 'next/link';
-import { Container, Typography, Button, Stack } from '@sinnapi/ui';
+import { Container, Typography, Button, Stack } from '@sinnapi/ui/atoms';
 
 export default function NotFound() {
   return (

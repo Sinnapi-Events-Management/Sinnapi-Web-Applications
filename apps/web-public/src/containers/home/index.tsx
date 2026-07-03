@@ -26,14 +26,14 @@ export default async function HomeContainer() {
           how → social proof → choose-your-path CTA → events → partners → FAQ → close. */}
       <HeroSection />
       <ValueProps />
-      <CategoryGrid />
       <FeaturedVendors vendors={featured} />
       <GalleryShowcase />
       <HowItWorks />
+      <EventsInspiration events={events} />
+      <DualCta />
+      <CategoryGrid />
       <OurClients />
       <Testimonials />
-      <DualCta />
-      <EventsInspiration events={events} />
       <OurPartners />
       <FaqSection />
       <FinalCta />

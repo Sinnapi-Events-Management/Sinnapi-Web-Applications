@@ -153,3 +153,28 @@ export async function getPricingPlans() {
     .order('sort_order', { ascending: true });
   return data ?? [];
 }
+
+/** {key,name} pairs for a reference lookup (categories/regions). */
+export type ReferenceOption = { key: string; name: string };
+
+/** Service categories (public read) — powers the vendor application form. */
+export async function getServiceCategories(): Promise<ReferenceOption[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa
+    .from('service_categories')
+    .select('key,name')
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as ReferenceOption[];
+}
+
+/** Service regions (public read) — powers the vendor application form. */
+export async function getServiceRegions(): Promise<ReferenceOption[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa
+    .from('service_regions')
+    .select('key,name')
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as ReferenceOption[];
+}

@@ -1,4 +1,4 @@
-import { TextField, MenuItem } from '@sinnapi/ui';
+import { TextField, MenuItem } from '@sinnapi/ui/atoms';
 
 export type FilterOption = { value: string; label: string };
 

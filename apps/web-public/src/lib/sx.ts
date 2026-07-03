@@ -1,4 +1,5 @@
-import type { SxProps, Theme } from '@sinnapi/ui';
+import type { Theme } from '@sinnapi/ui/theme';
+import type { SxProps } from '@sinnapi/ui/system';
 
 /**
  * Subtle alternating section surface. Light grey in light mode; in dark mode it

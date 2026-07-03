@@ -1,6 +1,6 @@
 'use client';
-import { Fab, Tooltip } from '@sinnapi/ui';
-import { WhatsApp } from '@sinnapi/ui/icons';
+import { Fab, Tooltip } from '@sinnapi/ui/atoms';
+import { WhatsApp } from '@mui/icons-material';
 import { brand, withAlpha } from '@sinnapi/ui/tokens';
 import { CONTACT } from '@sinnapi/utils/constants';
 import { SITE } from '@/lib/config/site';

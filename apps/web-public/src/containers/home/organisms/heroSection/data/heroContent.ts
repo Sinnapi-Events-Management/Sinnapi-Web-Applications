@@ -5,8 +5,8 @@ export const TRUST_SIGNALS = [
   'Direct messaging',
 ];
 
-import type { SvgIconComponent } from '@sinnapi/ui/icons';
-import { Category, Place, Star, VerifiedUser } from '@sinnapi/ui/icons';
+import type { SvgIconComponent } from '@mui/icons-material';
+import { Category, Place, Star, VerifiedUser } from '@mui/icons-material';
 
 export type Stat = { label: string; value: string; icon: SvgIconComponent };
 

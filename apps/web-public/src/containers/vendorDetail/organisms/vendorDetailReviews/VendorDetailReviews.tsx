@@ -1,5 +1,5 @@
-import { Box, Stack, Typography, Rating, Paper, Avatar, Divider } from '@sinnapi/ui';
-import { Person, FormatQuote } from '@sinnapi/ui/icons';
+import { Box, Stack, Typography, Rating, Paper, Avatar, Divider } from '@sinnapi/ui/atoms';
+import { Person, FormatQuote } from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 import type { PublicReview, VendorDetailModel } from '@/lib/types';
 

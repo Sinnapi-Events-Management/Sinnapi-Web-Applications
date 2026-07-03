@@ -12,7 +12,7 @@ import {
   Security,
   TheaterComedy,
   Speaker,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 import { unsplash } from '@/lib/images';
 
 export type Category = {

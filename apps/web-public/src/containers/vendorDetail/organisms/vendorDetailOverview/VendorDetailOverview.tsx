@@ -1,4 +1,4 @@
-import { Box, Typography, Stack } from '@sinnapi/ui';
+import { Box, Typography, Stack } from '@sinnapi/ui/atoms';
 import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { VendorDetailModel } from '@/lib/types';
 

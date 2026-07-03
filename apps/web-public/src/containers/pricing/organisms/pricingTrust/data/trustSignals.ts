@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Verified, Lock, EventAvailable, SupportAgent } from '@sinnapi/ui/icons';
+import { Verified, Lock, EventAvailable, SupportAgent } from '@mui/icons-material';
 
 export type TrustSignal = { Icon: ElementType; title: string; body: string };
 

@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
 import ScrollReveal from '@/components/atoms/scrollReveal';
 import { mutedSurface } from '@/lib/sx';
 import TipCard from './molecules/TipCard';
