@@ -1,4 +1,4 @@
-import { Container, Grid } from '@sinnapi/ui';
+import { Container, Grid } from '@sinnapi/ui/atoms';
 import { SITE } from '@/lib/config/site';
 import VendorDetailHero from './organisms/vendorDetailHero';
 import VendorDetailHighlights from './organisms/vendorDetailHighlights';

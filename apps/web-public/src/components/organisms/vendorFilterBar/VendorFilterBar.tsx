@@ -1,4 +1,4 @@
-import { Box, Paper, TextField, Button, Grid } from '@sinnapi/ui';
+import { Box, Paper, TextField, Button, Grid } from '@sinnapi/ui/atoms';
 import FilterSelect from '@/components/molecules/filterSelect';
 import { CATEGORY_OPTIONS, REGION_OPTIONS } from './data/options';
 

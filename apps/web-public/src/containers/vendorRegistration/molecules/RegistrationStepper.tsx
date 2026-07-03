@@ -1,4 +1,5 @@
-import { Box, Stepper, Step, StepLabel, Typography, LinearProgress } from '@sinnapi/ui';
+import { Box, Typography, LinearProgress } from '@sinnapi/ui/atoms';
+import { Stepper, Step, StepLabel } from '@sinnapi/ui/molecules';
 import { STEPS } from '../data/steps';
 
 type Props = { activeStep: number };

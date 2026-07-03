@@ -1,4 +1,4 @@
-import { Container, Grid } from '@sinnapi/ui';
+import { Container, Grid } from '@sinnapi/ui/atoms';
 import VendorCard from '@/components/molecules/vendorCard';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import EmptyState from '@/components/molecules/emptyState';

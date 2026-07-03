@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Tooltip, type SxProps, type Theme } from '@sinnapi/ui';
-import { Share, Check } from '@sinnapi/ui/icons';
+import { Button, Tooltip } from '@sinnapi/ui/atoms';
+import { type Theme } from '@sinnapi/ui/theme';
+import { type SxProps } from '@sinnapi/ui/system';
+import { Share, Check } from '@mui/icons-material';
 
 type ShareButtonProps = {
   /** Title used by the native share sheet when available. */

@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
-import type { UploadedFile } from '@sinnapi/ui';
+import type { UploadedFile } from '@sinnapi/ui/molecules';
 import { createBrowserClient } from '@/lib/supabase/browser';
 import {
   INITIAL_VALUES,

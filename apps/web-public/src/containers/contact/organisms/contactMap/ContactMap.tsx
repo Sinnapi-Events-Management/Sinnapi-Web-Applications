@@ -1,4 +1,4 @@
-import { Box, Container } from '@sinnapi/ui';
+import { Box, Container } from '@sinnapi/ui/atoms';
 import { CONTACT } from '@sinnapi/utils/constants';
 
 // Keyless Google Maps embed centred on the office location. Uses the public

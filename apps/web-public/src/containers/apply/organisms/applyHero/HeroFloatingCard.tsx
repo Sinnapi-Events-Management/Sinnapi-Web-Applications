@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Box, Stack, Typography } from '@sinnapi/ui';
+import { Box, Stack, Typography } from '@sinnapi/ui/atoms';
 import { common, palette, withAlpha } from '@sinnapi/ui/tokens';
 
 export type HeroFloatingCardProps = {

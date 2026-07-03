@@ -1,6 +1,6 @@
 import NextLink from 'next/link';
-import { Box, Container, Grid, Stack, Typography, Button } from '@sinnapi/ui';
-import { ArrowForward } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Stack, Typography, Button } from '@sinnapi/ui/atoms';
+import { ArrowForward } from '@mui/icons-material';
 import EventCard from '@/components/molecules/eventCard';
 import type { EventCardModel } from '@/lib/types';
 

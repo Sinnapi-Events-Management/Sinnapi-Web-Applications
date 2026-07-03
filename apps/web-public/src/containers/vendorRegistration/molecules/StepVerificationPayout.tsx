@@ -1,4 +1,5 @@
-import { Grid, TextField, MenuItem, Typography, FileUpload, Alert } from '@sinnapi/ui';
+import { Grid, TextField, MenuItem, Typography } from '@sinnapi/ui/atoms';
+import { FileUpload, Alert } from '@sinnapi/ui/molecules';
 import { DOC_ACCEPT, DOC_MAX_MB } from '../data/options';
 import type { RegistrationApi } from '../hooks/useVendorRegistration';
 

@@ -1,5 +1,5 @@
 'use client';
-import { Box, Chip, Stack, ToggleButton, ToggleButtonGroup } from '@sinnapi/ui';
+import { Box, Chip, Stack, ToggleButton, ToggleButtonGroup } from '@sinnapi/ui/atoms';
 import { ANNUAL_SAVING_PERCENT, type BillingCycle } from '../data/plans';
 
 type BillingToggleProps = {

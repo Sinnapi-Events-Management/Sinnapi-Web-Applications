@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Stack, Typography } from '@sinnapi/ui';
+import { Box, Stack, Typography } from '@sinnapi/ui/atoms';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 
 /**

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { Box, ColorSchemeScript } from '@sinnapi/ui';
+import { Box } from '@sinnapi/ui/atoms';
+import { ColorSchemeScript } from '@sinnapi/ui/theme';
 import Providers from './providers';
 import PublicNavbar from '@/components/organisms/publicNavbar';
 import PublicFooter from '@/components/organisms/publicFooter';

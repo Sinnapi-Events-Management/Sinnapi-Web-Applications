@@ -1,6 +1,8 @@
 import { SvgIcon, type SvgIconProps } from '@mui/material';
-import { Stack, IconButton, type SxProps, type Theme } from '@sinnapi/ui';
-import { Instagram, Facebook, YouTube, LinkedIn } from '@sinnapi/ui/icons';
+import { Stack, IconButton } from '@sinnapi/ui/atoms';
+import { type Theme } from '@sinnapi/ui/theme';
+import { type SxProps } from '@sinnapi/ui/system';
+import { Instagram, Facebook, YouTube, LinkedIn } from '@mui/icons-material';
 import { CONTACT } from '@sinnapi/utils/constants';
 
 // MUI ships no TikTok brand glyph, so we provide the logo path inline. It

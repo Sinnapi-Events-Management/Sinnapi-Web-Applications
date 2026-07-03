@@ -1,4 +1,4 @@
-import { Typography } from '@sinnapi/ui';
+import { Typography } from '@sinnapi/ui/atoms';
 import Prose from '@/components/molecules/prose';
 
 // Mission page: states Sinnapi's mission.

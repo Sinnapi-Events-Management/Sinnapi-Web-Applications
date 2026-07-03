@@ -1,4 +1,4 @@
-import { Box } from '@sinnapi/ui';
+import { Box } from '@sinnapi/ui/atoms';
 import { scrollAnchor } from '@/lib/sx';
 import AboutHero from './organisms/aboutHero';
 import MissionVision from './organisms/missionVision';

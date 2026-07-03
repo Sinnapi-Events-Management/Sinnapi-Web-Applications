@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Description, FactCheck, Gavel, RocketLaunch, Celebration } from '@sinnapi/ui/icons';
+import { Description, FactCheck, Gavel, RocketLaunch, Celebration } from '@mui/icons-material';
 
 export type OnboardingStep = { Icon: ElementType; title: string; body: string };
 

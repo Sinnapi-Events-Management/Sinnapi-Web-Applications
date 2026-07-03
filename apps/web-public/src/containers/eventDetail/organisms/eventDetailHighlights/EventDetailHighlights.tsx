@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Grid, Paper } from '@sinnapi/ui';
-import { Event as EventIcon, Place as PlaceIcon, Payments, LocalOffer } from '@sinnapi/ui/icons';
+import { Grid, Paper } from '@sinnapi/ui/atoms';
+import { Event as EventIcon, Place as PlaceIcon, Payments, LocalOffer } from '@mui/icons-material';
 import { titleize } from '@/lib/config/site';
 import type { EventCardModel } from '@/lib/types';
 import DetailRow from '../eventDetailSidebar/molecules/DetailRow';

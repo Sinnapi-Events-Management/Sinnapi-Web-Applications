@@ -1,5 +1,5 @@
-import { Container, Typography, Box } from '@sinnapi/ui';
-import { Build as BuildIcon } from '@sinnapi/ui/icons';
+import { Container, Typography, Box } from '@sinnapi/ui/atoms';
+import { Build as BuildIcon } from '@mui/icons-material';
 
 // Maintenance page: shown when the platform is undergoing scheduled maintenance.
 export default function MaintenanceContainer() {

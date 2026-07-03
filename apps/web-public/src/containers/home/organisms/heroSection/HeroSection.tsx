@@ -1,17 +1,8 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import {
-  Box,
-  Container,
-  Grid,
-  Typography,
-  Button,
-  SecondaryButton,
-  Stack,
-  Chip,
-  Rating,
-} from '@sinnapi/ui';
-import { Verified } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Typography, Button, Stack, Chip, Rating } from '@sinnapi/ui/atoms';
+import { SecondaryButton } from '@sinnapi/ui/molecules';
+import { Verified } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { SITE } from '@/lib/config/site';
 import { IMAGES } from '@/lib/assets';

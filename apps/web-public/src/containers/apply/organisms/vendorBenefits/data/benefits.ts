@@ -6,7 +6,7 @@ import {
   CalendarMonth,
   WorkspacePremium,
   SupportAgent,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 
 export type Benefit = { Icon: ElementType; title: string; body: string };
 

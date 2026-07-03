@@ -1,7 +1,7 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Grid, Stack, Chip, Typography, Button } from '@sinnapi/ui';
-import { Storefront, ArrowForward, CheckCircle } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Stack, Chip, Typography, Button } from '@sinnapi/ui/atoms';
+import { Storefront, ArrowForward, CheckCircle } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
 import HeroFloatingCard from './HeroFloatingCard';

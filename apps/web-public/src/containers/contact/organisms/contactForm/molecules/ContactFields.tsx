@@ -1,4 +1,4 @@
-import { Grid, TextField, MenuItem } from '@sinnapi/ui';
+import { Grid, TextField, MenuItem } from '@sinnapi/ui/atoms';
 import { INQUIRY_TYPES } from '../data/inquiryTypes';
 
 interface ContactFieldsProps {

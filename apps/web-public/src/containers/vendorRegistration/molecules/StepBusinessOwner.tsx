@@ -1,4 +1,5 @@
-import { Grid, TextField, MenuItem, Autocomplete, Typography } from '@sinnapi/ui';
+import { Grid, TextField, MenuItem, Typography } from '@sinnapi/ui/atoms';
+import { Autocomplete } from '@sinnapi/ui/molecules';
 import type { ReferenceOption } from '@/lib/queries';
 import { APPLICANT_TYPES, YEARS_OPTIONS } from '../data/options';
 import type { RegistrationApi } from '../hooks/useVendorRegistration';

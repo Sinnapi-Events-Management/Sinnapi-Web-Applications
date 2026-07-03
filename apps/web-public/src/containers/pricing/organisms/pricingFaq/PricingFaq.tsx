@@ -1,5 +1,5 @@
 import NextLink from 'next/link';
-import { Link } from '@sinnapi/ui';
+import { Link } from '@sinnapi/ui/atoms';
 import SharedFaqSection, { FAQS } from '@/components/organisms/faqSection';
 
 /**

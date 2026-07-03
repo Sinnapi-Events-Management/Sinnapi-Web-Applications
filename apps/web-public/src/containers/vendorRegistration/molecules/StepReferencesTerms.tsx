@@ -7,7 +7,7 @@ import {
   FormHelperText,
   Link,
   Divider,
-} from '@sinnapi/ui';
+} from '@sinnapi/ui/atoms';
 import { TERMS } from '../data/options';
 import type { RegistrationApi } from '../hooks/useVendorRegistration';
 import type { RegistrationValues } from '../data/schema';

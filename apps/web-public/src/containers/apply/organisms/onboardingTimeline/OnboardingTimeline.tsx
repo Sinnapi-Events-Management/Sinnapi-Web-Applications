@@ -1,6 +1,6 @@
 import NextLink from 'next/link';
-import { Box, Container, Grid, Stack, Button } from '@sinnapi/ui';
-import { ArrowForward } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Stack, Button } from '@sinnapi/ui/atoms';
+import { ArrowForward } from '@mui/icons-material';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { mutedSurface } from '@/lib/sx';
 import TimelineStep from './TimelineStep';

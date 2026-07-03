@@ -8,9 +8,9 @@ import {
   Checkbox,
   FormHelperText,
   InputAdornment,
-  FileUpload,
   Box,
-} from '@sinnapi/ui';
+} from '@sinnapi/ui/atoms';
+import { FileUpload } from '@sinnapi/ui/molecules';
 import type { ReferenceOption } from '@/lib/queries';
 import {
   PRICING_OPTIONS,

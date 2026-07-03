@@ -1,5 +1,5 @@
-import { Box, Container, Grid, Stack, Typography, Paper, Avatar, Rating } from '@sinnapi/ui';
-import { FormatQuote } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Stack, Typography, Paper, Avatar, Rating } from '@sinnapi/ui/atoms';
+import { FormatQuote } from '@mui/icons-material';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { mutedSurface } from '@/lib/sx';
 import { TESTIMONIALS } from './data/testimonials';

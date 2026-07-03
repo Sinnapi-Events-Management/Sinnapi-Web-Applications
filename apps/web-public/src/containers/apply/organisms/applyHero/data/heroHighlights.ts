@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Payments, VerifiedUser, RocketLaunch } from '@sinnapi/ui/icons';
+import { Payments, VerifiedUser, RocketLaunch } from '@mui/icons-material';
 
 export type HeroHighlight = { Icon: ElementType; value: string; label: string };
 

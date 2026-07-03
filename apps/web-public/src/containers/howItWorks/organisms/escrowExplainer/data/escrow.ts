@@ -5,7 +5,7 @@ import {
   AccountBalanceWallet,
   Security,
   CheckCircle,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 
 export type PayOption = {
   Icon: ElementType;

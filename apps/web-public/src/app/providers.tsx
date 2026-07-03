@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { ColorModeProvider } from '@sinnapi/ui';
+import { ColorModeProvider } from '@sinnapi/ui/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { theme } from '@/lib/theme';

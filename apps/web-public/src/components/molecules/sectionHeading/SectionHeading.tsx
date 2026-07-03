@@ -1,4 +1,4 @@
-import { Box, Container, Typography } from '@sinnapi/ui';
+import { Box, Container, Typography } from '@sinnapi/ui/atoms';
 import { mutedSurface } from '@/lib/sx';
 
 export default function SectionHeading({

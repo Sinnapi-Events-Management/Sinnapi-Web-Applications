@@ -1,5 +1,5 @@
-import { Box, Stack, Typography, Link, Divider } from '@sinnapi/ui';
-import { AccessTime } from '@sinnapi/ui/icons';
+import { Box, Stack, Typography, Link, Divider } from '@sinnapi/ui/atoms';
+import { AccessTime } from '@mui/icons-material';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SocialLinks from '@/components/molecules/socialLinks';
 import { CONTACT_DETAILS, BUSINESS_HOURS } from '../data/contactDetails';

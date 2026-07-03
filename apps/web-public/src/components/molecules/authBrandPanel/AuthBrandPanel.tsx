@@ -1,6 +1,6 @@
 import type { ElementType } from 'react';
 import Image from 'next/image';
-import { Box, Stack, Typography, Rating } from '@sinnapi/ui';
+import { Box, Stack, Typography, Rating } from '@sinnapi/ui/atoms';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import type { LocalImage } from '@/lib/assets';
 

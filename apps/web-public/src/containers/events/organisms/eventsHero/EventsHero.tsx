@@ -1,7 +1,7 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Typography, Chip, Stack } from '@sinnapi/ui';
-import { CalendarMonth } from '@sinnapi/ui/icons';
+import { Box, Container, Typography, Chip, Stack } from '@sinnapi/ui/atoms';
+import { CalendarMonth } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
 import type { EventsSearchParams } from '../../data/filterEvents';

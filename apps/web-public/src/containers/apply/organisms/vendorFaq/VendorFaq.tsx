@@ -1,12 +1,6 @@
-import {
-  Box,
-  Container,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@sinnapi/ui';
-import { ExpandMore } from '@sinnapi/ui/icons';
+import { Box, Container, Typography } from '@sinnapi/ui/atoms';
+import { Accordion, AccordionSummary, AccordionDetails } from '@sinnapi/ui/molecules';
+import { ExpandMore } from '@mui/icons-material';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { VENDOR_FAQS } from './data/faqs';
 

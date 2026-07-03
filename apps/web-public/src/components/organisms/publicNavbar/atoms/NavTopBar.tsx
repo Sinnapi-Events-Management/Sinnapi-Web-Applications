@@ -1,4 +1,4 @@
-import { Box, Container, Stack, Divider } from '@sinnapi/ui';
+import { Box, Container, Stack, Divider } from '@sinnapi/ui/atoms';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import NavSearchForm from '@/components/molecules/navSearchForm';
 import SocialLinks from '@/components/molecules/socialLinks';

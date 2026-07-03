@@ -1,5 +1,5 @@
 import NextLink from 'next/link';
-import { Box, Container, Grid, Stack, Typography, Link } from '@sinnapi/ui';
+import { Box, Container, Grid, Stack, Typography, Link } from '@sinnapi/ui/atoms';
 import AuthBrandPanel, { type AuthBrandPanelProps } from '@/components/molecules/authBrandPanel';
 import RoleCard, { type RoleCardProps } from '@/components/molecules/roleCard';
 

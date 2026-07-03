@@ -1,6 +1,7 @@
 'use client';
-import { Box, Paper, Stack, Button, Alert, CircularProgress } from '@sinnapi/ui';
-import { ArrowBack, ArrowForward, Send } from '@sinnapi/ui/icons';
+import { Box, Paper, Stack, Button, CircularProgress } from '@sinnapi/ui/atoms';
+import { Alert } from '@sinnapi/ui/molecules';
+import { ArrowBack, ArrowForward, Send } from '@mui/icons-material';
 import type { ReferenceOption } from '@/lib/queries';
 import { useVendorRegistration } from '../../hooks/useVendorRegistration';
 import RegistrationStepper from '../../molecules/RegistrationStepper';

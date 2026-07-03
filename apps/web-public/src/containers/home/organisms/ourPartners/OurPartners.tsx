@@ -1,4 +1,4 @@
-import { Box, Container, Grid } from '@sinnapi/ui';
+import { Box, Container, Grid } from '@sinnapi/ui/atoms';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { mutedSurface } from '@/lib/sx';
 import { PARTNERS } from './data/partners';

@@ -1,6 +1,6 @@
 import NextLink from 'next/link';
-import { Box, Paper, Stack, Typography, Link } from '@sinnapi/ui';
-import { ArrowForward } from '@sinnapi/ui/icons';
+import { Box, Paper, Stack, Typography, Link } from '@sinnapi/ui/atoms';
+import { ArrowForward } from '@mui/icons-material';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import type { ContactMethod } from '../data/methods';
 

@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { Box, Paper, TextField, IconButton, type SxProps, type Theme } from '@sinnapi/ui';
-import { Search, ArrowForward } from '@sinnapi/ui/icons';
+import { Box, Paper, TextField, IconButton } from '@sinnapi/ui/atoms';
+import { type Theme } from '@sinnapi/ui/theme';
+import { type SxProps } from '@sinnapi/ui/system';
+import { Search, ArrowForward } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { SEARCH_PLACEHOLDERS } from './data/placeholders';
 import { useRotatingPlaceholder, TRANSITION_MS } from './hooks/useRotatingPlaceholder';

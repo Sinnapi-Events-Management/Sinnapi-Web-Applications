@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Verified, Lock, Chat, Search } from '@sinnapi/ui/icons';
+import { Verified, Lock, Chat, Search } from '@mui/icons-material';
 
 export type ValueProp = { Icon: ElementType; title: string; body: string };
 

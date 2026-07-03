@@ -1,5 +1,5 @@
-import { Box, Chip, Container, Grid, Paper, Stack, Typography } from '@sinnapi/ui';
-import { CheckCircle } from '@sinnapi/ui/icons';
+import { Box, Chip, Container, Grid, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
+import { CheckCircle } from '@mui/icons-material';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import { mutedSurface } from '@/lib/sx';
 import SectionHeading from '@/components/molecules/sectionHeading';

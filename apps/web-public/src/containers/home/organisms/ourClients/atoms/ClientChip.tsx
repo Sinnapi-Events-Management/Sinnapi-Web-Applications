@@ -1,4 +1,4 @@
-import { Avatar, Paper, Stack, Typography } from '@sinnapi/ui';
+import { Avatar, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
 import type { Client } from '../data/clients';
 
 export default function ClientChip({ client }: { client: Client }) {

@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Paper, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Paper, Typography } from '@sinnapi/ui/atoms';
 import { mutedSurface, scrollAnchor } from '@/lib/sx';
 import ContactForm from '../contactForm';
 import ContactInfoPanel from './molecules/ContactInfoPanel';

@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
 import VendorCard from '@/components/molecules/vendorCard';
 import { mutedSurface } from '@/lib/sx';
 import type { VendorCardModel } from '@/lib/types';

@@ -1,4 +1,5 @@
-import { Box, Typography, ImageList, ImageListItem } from '@sinnapi/ui';
+import { Box, Typography } from '@sinnapi/ui/atoms';
+import { ImageList, ImageListItem } from '@sinnapi/ui/molecules';
 import type { VendorMediaModel } from '@/lib/types';
 
 /**

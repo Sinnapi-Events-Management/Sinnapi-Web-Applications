@@ -1,15 +1,7 @@
 import NextLink from 'next/link';
-import {
-  Box,
-  Card,
-  CardActionArea,
-  CardContent,
-  CardMedia,
-  Typography,
-  Chip,
-  Stack,
-} from '@sinnapi/ui';
-import { Event as EventIcon, Place as PlaceIcon, Payments } from '@sinnapi/ui/icons';
+import { Box, Typography, Chip, Stack } from '@sinnapi/ui/atoms';
+import { Card, CardActionArea, CardContent, CardMedia } from '@sinnapi/ui/molecules';
+import { Event as EventIcon, Place as PlaceIcon, Payments } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { titleize, formatMoney } from '@/lib/config/site';
 import type { EventCardModel } from '@/lib/types';

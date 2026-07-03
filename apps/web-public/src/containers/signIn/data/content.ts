@@ -1,4 +1,4 @@
-import { Person, Storefront, Verified, Lock, Bolt } from '@sinnapi/ui/icons';
+import { Person, Storefront, Verified, Lock, Bolt } from '@mui/icons-material';
 import type { AuthScreenProps } from '@/components/organisms/authScreen';
 import { IMAGES } from '@/lib/assets';
 import { SITE } from '@/lib/config/site';

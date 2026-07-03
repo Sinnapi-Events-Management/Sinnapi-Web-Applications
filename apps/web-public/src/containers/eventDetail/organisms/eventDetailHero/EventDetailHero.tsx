@@ -1,6 +1,11 @@
 import NextLink from 'next/link';
-import { Box, Container, Typography, Chip, Stack, Link } from '@sinnapi/ui';
-import { Event as EventIcon, Place as PlaceIcon, ArrowBack, NavigateNext } from '@sinnapi/ui/icons';
+import { Box, Container, Typography, Chip, Stack, Link } from '@sinnapi/ui/atoms';
+import {
+  Event as EventIcon,
+  Place as PlaceIcon,
+  ArrowBack,
+  NavigateNext,
+} from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import ShareButton from '@/components/atoms/shareButton';
 import { titleize } from '@/lib/config/site';

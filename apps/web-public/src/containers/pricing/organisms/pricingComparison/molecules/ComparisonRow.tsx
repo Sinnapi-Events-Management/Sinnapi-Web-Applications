@@ -1,5 +1,5 @@
-import { Box, Typography } from '@sinnapi/ui';
-import { Check, Remove } from '@sinnapi/ui/icons';
+import { Box, Typography } from '@sinnapi/ui/atoms';
+import { Check, Remove } from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 import { COMPARISON_COLUMNS, type CellValue, type ComparisonRow as Row } from '../data/comparison';
 

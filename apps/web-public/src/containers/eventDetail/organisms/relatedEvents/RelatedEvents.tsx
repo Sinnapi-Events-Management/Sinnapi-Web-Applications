@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Typography } from '@sinnapi/ui';
+import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
 import EventCard from '@/components/molecules/eventCard';
 import { mutedSurface } from '@/lib/sx';
 import type { EventCardModel } from '@/lib/types';

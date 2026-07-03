@@ -1,6 +1,6 @@
 import NextLink from 'next/link';
-import { Box, Paper, Typography, Button, Stack } from '@sinnapi/ui';
-import { CheckCircle } from '@sinnapi/ui/icons';
+import { Box, Paper, Typography, Button, Stack } from '@sinnapi/ui/atoms';
+import { CheckCircle } from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 
 /** Confirmation shown after a successful application submission. */

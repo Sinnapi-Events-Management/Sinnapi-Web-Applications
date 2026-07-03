@@ -1,11 +1,11 @@
 import NextLink from 'next/link';
-import { Box, Container, Typography, Chip, Stack, Rating, Link } from '@sinnapi/ui';
+import { Box, Container, Typography, Chip, Stack, Rating, Link } from '@sinnapi/ui/atoms';
 import {
   Verified as VerifiedIcon,
   Place as PlaceIcon,
   ArrowBack,
   NavigateNext,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import ShareButton from '@/components/atoms/shareButton';
 import type { VendorDetailModel } from '@/lib/types';

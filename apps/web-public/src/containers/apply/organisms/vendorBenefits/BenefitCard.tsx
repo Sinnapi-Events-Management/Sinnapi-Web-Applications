@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Box, Paper, Typography } from '@sinnapi/ui';
+import { Box, Paper, Typography } from '@sinnapi/ui/atoms';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 
 export type BenefitCardProps = { Icon: ElementType; title: string; body: string };

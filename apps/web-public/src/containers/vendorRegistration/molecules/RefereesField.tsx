@@ -1,5 +1,5 @@
-import { Box, Grid, TextField, Button, IconButton, Typography, Paper } from '@sinnapi/ui';
-import { Add, DeleteOutline } from '@sinnapi/ui/icons';
+import { Box, Grid, TextField, Button, IconButton, Typography, Paper } from '@sinnapi/ui/atoms';
+import { Add, DeleteOutline } from '@mui/icons-material';
 import type { RegistrationApi } from '../hooks/useVendorRegistration';
 
 type Props = { api: RegistrationApi };

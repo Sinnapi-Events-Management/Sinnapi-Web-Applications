@@ -13,6 +13,22 @@ const nextConfig = {
   modularizeImports: {
     '@mui/icons-material': { transform: '@mui/icons-material/{{member}}' },
   },
+  experimental: {
+    // Barrel-file optimization: rewrites `import { Box } from '@sinnapi/ui'`
+    // into direct deep imports at compile time, so a single named import no
+    // longer drags the entire design system (+ its MUI deps) into the module
+    // graph. This is the primary lever against the ~24k-module dev compiles.
+    // @mui/material is already optimized by Next's default list; the local
+    // first-party barrels are added explicitly here.
+    optimizePackageImports: [
+      '@sinnapi/ui',
+      '@sinnapi/ui/atoms',
+      '@sinnapi/ui/molecules',
+      '@sinnapi/ui/organisms',
+      '@mui/material',
+      '@mui/icons-material',
+    ],
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

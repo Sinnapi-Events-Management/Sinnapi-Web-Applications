@@ -1,6 +1,7 @@
 import NextLink from 'next/link';
-import { Box, Paper, Stack, Typography, Button, Alert, Divider } from '@sinnapi/ui';
-import { Storefront, Lock as LockIcon, Language } from '@sinnapi/ui/icons';
+import { Box, Paper, Stack, Typography, Button, Divider } from '@sinnapi/ui/atoms';
+import { Alert } from '@sinnapi/ui/molecules';
+import { Storefront, Lock as LockIcon, Language } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { formatMoney } from '@/lib/config/site';
 import type { VendorDetailModel } from '@/lib/types';

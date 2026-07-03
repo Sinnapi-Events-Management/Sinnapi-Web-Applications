@@ -1,4 +1,4 @@
-import { Box, Container } from '@sinnapi/ui';
+import { Box, Container } from '@sinnapi/ui/atoms';
 import type { ReferenceOption } from '@/lib/queries';
 import RegistrationHero from './organisms/registrationHero';
 import RegistrationForm from './organisms/registrationForm';

@@ -1,4 +1,4 @@
-import { Container, Typography, Box } from '@sinnapi/ui';
+import { Container, Typography, Box } from '@sinnapi/ui/atoms';
 import { PageHeader } from '@/components/molecules/sectionHeading';
 
 // Lightweight prose layout for static marketing / legal pages.

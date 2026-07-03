@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { Container, Grid } from '@sinnapi/ui';
+import { Container, Grid } from '@sinnapi/ui/atoms';
 import { SITE } from '@/lib/config/site';
 import EventDetailHero from './organisms/eventDetailHero';
 import EventDetailHighlights from './organisms/eventDetailHighlights';

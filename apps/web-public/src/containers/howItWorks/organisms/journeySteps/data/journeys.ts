@@ -8,7 +8,7 @@ import {
   VerifiedUser,
   RocketLaunch,
   TrendingUp,
-} from '@sinnapi/ui/icons';
+} from '@mui/icons-material';
 
 export type JourneyStep = { Icon: ElementType; title: string; body: string };
 

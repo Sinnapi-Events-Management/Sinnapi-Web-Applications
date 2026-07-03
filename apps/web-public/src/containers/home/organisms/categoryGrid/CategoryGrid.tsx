@@ -1,7 +1,7 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Grid, Typography, Button } from '@sinnapi/ui';
-import { ArrowForward } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Typography, Button } from '@sinnapi/ui/atoms';
+import { ArrowForward } from '@mui/icons-material';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { titleize } from '@/lib/config/site';

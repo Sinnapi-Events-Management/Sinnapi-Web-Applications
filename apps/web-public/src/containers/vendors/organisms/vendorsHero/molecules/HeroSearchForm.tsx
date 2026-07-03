@@ -1,5 +1,5 @@
-import { Paper, TextField, Button } from '@sinnapi/ui';
-import { Search } from '@sinnapi/ui/icons';
+import { Paper, TextField, Button } from '@sinnapi/ui/atoms';
+import { Search } from '@mui/icons-material';
 import type { VendorsSearchParams } from '../../../utils/filterVendors';
 
 /** Facet keys carried through the hero search so an active filter survives a new search. */

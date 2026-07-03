@@ -1,4 +1,4 @@
-import { Container, Grid } from '@sinnapi/ui';
+import { Container, Grid } from '@sinnapi/ui/atoms';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import BenefitCard from './BenefitCard';
 import { BENEFITS } from './data/benefits';

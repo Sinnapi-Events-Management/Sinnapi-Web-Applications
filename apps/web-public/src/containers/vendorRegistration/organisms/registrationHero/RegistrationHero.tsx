@@ -1,5 +1,5 @@
-import { Box, Container, Chip, Typography, Stack } from '@sinnapi/ui';
-import { Storefront, LockOutlined, ScheduleOutlined, VerifiedOutlined } from '@sinnapi/ui/icons';
+import { Box, Container, Chip, Typography, Stack } from '@sinnapi/ui/atoms';
+import { Storefront, LockOutlined, ScheduleOutlined, VerifiedOutlined } from '@mui/icons-material';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 
 const REASSURANCES = [

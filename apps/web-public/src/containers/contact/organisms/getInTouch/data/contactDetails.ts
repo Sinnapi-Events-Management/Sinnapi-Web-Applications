@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { EmailOutlined, PhoneOutlined, WhatsApp, PlaceOutlined } from '@sinnapi/ui/icons';
+import { EmailOutlined, PhoneOutlined, WhatsApp, PlaceOutlined } from '@mui/icons-material';
 import { CONTACT } from '@sinnapi/utils/constants';
 
 const digits = (value: string) => value.replace(/[^\d]/g, '');

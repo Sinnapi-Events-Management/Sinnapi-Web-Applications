@@ -1,7 +1,8 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Typography, Chip, Stack, SecondaryButton, Button } from '@sinnapi/ui';
-import { LocalOffer } from '@sinnapi/ui/icons';
+import { Box, Container, Typography, Chip, Stack, Button } from '@sinnapi/ui/atoms';
+import { SecondaryButton } from '@sinnapi/ui/molecules';
+import { LocalOffer } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
 

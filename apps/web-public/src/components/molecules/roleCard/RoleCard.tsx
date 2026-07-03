@@ -1,7 +1,7 @@
 import type { ElementType } from 'react';
 import NextLink from 'next/link';
-import { Box, Paper, Stack, Typography } from '@sinnapi/ui';
-import { ArrowForward } from '@sinnapi/ui/icons';
+import { Box, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
+import { ArrowForward } from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
 
 export type RoleCardProps = {

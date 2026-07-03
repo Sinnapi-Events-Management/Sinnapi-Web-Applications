@@ -1,16 +1,8 @@
 import NextLink from 'next/link';
 import Image from 'next/image';
-import {
-  Box,
-  Container,
-  Grid,
-  Stack,
-  Typography,
-  Paper,
-  Button,
-  SecondaryButton,
-} from '@sinnapi/ui';
-import { EventAvailable, Storefront } from '@sinnapi/ui/icons';
+import { Box, Container, Grid, Stack, Typography, Paper, Button } from '@sinnapi/ui/atoms';
+import { SecondaryButton } from '@sinnapi/ui/molecules';
+import { EventAvailable, Storefront } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { CLIENT_CTA_IMAGE, VENDOR_CTA_IMAGE } from './data/images';
 
