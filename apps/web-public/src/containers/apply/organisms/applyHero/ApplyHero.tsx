@@ -4,12 +4,12 @@ import { Box, Container, Grid, Stack, Chip, Typography, Button } from '@sinnapi/
 import { Storefront, ArrowForward, CheckCircle } from '@sinnapi/ui/icons';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
-import { SITE } from '@/lib/config/site';
 import HeroFloatingCard from './HeroFloatingCard';
 import { HERO_HIGHLIGHTS, HERO_TRUST } from './data/heroHighlights';
 
-// Where the primary CTA sends a prospective vendor — straight into the apply flow.
-const APPLY_HREF = `${SITE.portalUrl}?role=vendor&mode=apply`;
+// The primary CTA sends a prospective vendor straight into the in-app
+// application form (kept on web-public — no portal redirect until login).
+const APPLY_HREF = '/apply/register';
 
 // md+ placements for the glass proof cards floating over the collage.
 const FLOAT_POSITIONS = [

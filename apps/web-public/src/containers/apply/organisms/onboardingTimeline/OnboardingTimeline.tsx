@@ -3,11 +3,10 @@ import { Box, Container, Grid, Stack, Button } from '@sinnapi/ui';
 import { ArrowForward } from '@sinnapi/ui/icons';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import { mutedSurface } from '@/lib/sx';
-import { SITE } from '@/lib/config/site';
 import TimelineStep from './TimelineStep';
 import { ONBOARDING_STEPS } from './data/steps';
 
-const APPLY_HREF = `${SITE.portalUrl}?role=vendor&mode=apply`;
+const APPLY_HREF = '/apply/register';
 
 /**
  * How onboarding works — a narrative on the left, a vertical numbered rail of

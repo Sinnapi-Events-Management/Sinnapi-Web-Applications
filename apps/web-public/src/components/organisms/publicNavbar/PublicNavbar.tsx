@@ -60,6 +60,12 @@ export default function PublicNavbar() {
         color: transparent ? 'common.white' : 'text.primary',
         borderBottom: 1,
         borderColor: transparent ? 'transparent' : 'divider',
+        // Dark mode pairs a pure-black NavTopBar with a lighter "light black" nav
+        // row (elevated paper surface) for a two-tier header. Light mode keeps the
+        // standard off-white surface above. Selector resolves CSS vars at paint time.
+        ...(transparent
+          ? null
+          : { '[data-mui-color-scheme="dark"] &': { backgroundColor: 'background.paper' } }),
       }}
     >
       {/* Utility bar — discovery search (left) + contact & socials (right). Sits

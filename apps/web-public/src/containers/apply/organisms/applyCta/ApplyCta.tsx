@@ -3,9 +3,8 @@ import Image from 'next/image';
 import { Box, Container, Stack, Typography, Link, SecondaryButton, Button } from '@sinnapi/ui';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
-import { SITE } from '@/lib/config/site';
 
-const APPLY_HREF = `${SITE.portalUrl}?role=vendor&mode=apply`;
+const APPLY_HREF = '/apply/register';
 
 /**
  * Closing vendor CTA — a photo-backed teal band that mirrors the site's other

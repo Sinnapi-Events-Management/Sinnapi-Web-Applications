@@ -19,8 +19,8 @@ export const CONTACT = {
   social: {
     instagram: 'https://www.instagram.com/sinnapi_inc',
     facebook: 'https://www.facebook.com/cosmoweddings',
-    x: 'https://x.com/sinnapi',
-    linkedin: 'https://linkedin.com/company/sinnapi',
+    youtube: 'https://youtube.com/@sinnapi-inc',
+    linkedin: 'https://www.linkedin.com/company/sinnapi',
     tiktok: 'https://www.tiktok.com/@sinnapi',
   },
 } as const;
