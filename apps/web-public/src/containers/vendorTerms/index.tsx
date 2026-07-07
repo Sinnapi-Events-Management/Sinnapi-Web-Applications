@@ -1,7 +1,15 @@
 import { vendorTerms } from '@sinnapi/content';
 import { LegalContent } from '@sinnapi/ui/organisms';
+import LegalHero from '@/components/organisms/legalHero';
+import { vendorTermsHero } from './data/hero';
 
-// Vendor terms page: renders the vendor terms legal document.
+// Vendor terms page: an editorial hero owns the title + metadata, then the shared
+// LegalContent renders the document body (header suppressed to avoid duplication).
 export default function VendorTermsContainer() {
-  return <LegalContent document={vendorTerms} />;
+  return (
+    <>
+      <LegalHero document={vendorTerms} {...vendorTermsHero} />
+      <LegalContent document={vendorTerms} hideHeader />
+    </>
+  );
 }

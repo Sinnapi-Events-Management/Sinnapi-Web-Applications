@@ -13,10 +13,12 @@ import {
 } from '@sinnapi/ui/molecules';
 import { AppBar, Toolbar, Drawer } from '@sinnapi/ui/organisms';
 import { useColorScheme } from '@sinnapi/ui/theme';
+import type { Theme } from '@sinnapi/ui/theme';
 import { useScrollTrigger } from '@sinnapi/ui/system';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { PRIMARY_NAV, SITE } from '@/lib/config/site';
+import { isActiveHref } from '@/lib/nav';
 import NavTopBar from './atoms/NavTopBar';
 
 export default function PublicNavbar() {
@@ -36,6 +38,58 @@ export default function PublicNavbar() {
   // The light logo reads on a dark background — use it over the hero overlay and
   // on solid surfaces in dark mode; otherwise the dark logo on the light surface.
   const logoSrc = transparent || isDark ? '/logo-light.png' : '/logo.png';
+
+  // The active menu item reads as a distinct pill — a soft brand-tinted, fully
+  // rounded background with bold brand-coloured text — so the current page stands
+  // out clearly against the flat sibling links (Material 3 / pill-nav pattern),
+  // instead of a subtle colour change that blends in. Over the transparent hero
+  // it's a translucent white chip so it stays legible on the photo (in practice
+  // no primary-nav item is active on `/`, but this keeps the rule robust).
+  const activeNavSx = (theme: Theme) => ({
+    fontWeight: 700,
+    borderRadius: '999px',
+    ...(transparent
+      ? {
+          color: common.white,
+          backgroundColor: withAlpha(common.white, 0.16),
+          '&:hover': { backgroundColor: withAlpha(common.white, 0.24) },
+        }
+      : {
+          color:
+            theme.palette.mode === 'dark'
+              ? theme.palette.primary.light
+              : theme.palette.primary.main,
+          backgroundColor: withAlpha(
+            theme.palette.primary.main,
+            theme.palette.mode === 'dark' ? 0.22 : 0.1,
+          ),
+          '&:hover': {
+            backgroundColor: withAlpha(
+              theme.palette.primary.main,
+              theme.palette.mode === 'dark' ? 0.3 : 0.16,
+            ),
+          },
+        }),
+  });
+
+  // The active item in the mobile drawer gets the same soft-teal pill plus a
+  // brand accent bar down its leading edge — a common modern "current section"
+  // cue in vertical nav lists.
+  const drawerActiveSx = {
+    borderRadius: 1.5,
+    '&.Mui-selected': {
+      backgroundColor: withAlpha(mode === 'dark' ? '#3F9BA3' : '#07504D', 0.1),
+      borderLeft: '3px solid',
+      borderColor: 'primary.main',
+      '&:hover': {
+        backgroundColor: withAlpha(mode === 'dark' ? '#3F9BA3' : '#07504D', 0.16),
+      },
+    },
+  };
+
+  // The "Become a Vendor" CTA doubles as a nav entry to `/apply`, so it lights up
+  // like the primary-nav items when the vendor-application flow is open.
+  const applyActive = isActiveHref(pathname, '/apply');
 
   return (
     <AppBar
@@ -88,17 +142,21 @@ export default function PublicNavbar() {
             spacing={0.5}
             sx={{ display: { xs: 'none', lg: 'flex' }, flex: 1 }}
           >
-            {PRIMARY_NAV.map((item) => (
-              <Button
-                key={item.href}
-                component={NextLink}
-                href={item.href}
-                color="inherit"
-                sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-              >
-                {item.label}
-              </Button>
-            ))}
+            {PRIMARY_NAV.map((item) => {
+              const active = isActiveHref(pathname, item.href);
+              return (
+                <Button
+                  key={item.href}
+                  component={NextLink}
+                  href={item.href}
+                  color="inherit"
+                  aria-current={active ? 'page' : undefined}
+                  sx={[{ flexShrink: 0, whiteSpace: 'nowrap' }, active && activeNavSx]}
+                >
+                  {item.label}
+                </Button>
+              );
+            })}
           </Stack>
 
           <Stack
@@ -110,7 +168,8 @@ export default function PublicNavbar() {
               component={NextLink}
               href="/apply"
               color="inherit"
-              sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+              aria-current={applyActive ? 'page' : undefined}
+              sx={[{ flexShrink: 0, whiteSpace: 'nowrap' }, applyActive && activeNavSx]}
             >
               Become a Vendor
             </Button>
@@ -153,16 +212,44 @@ export default function PublicNavbar() {
       <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
         <Box sx={{ width: 280 }} role="presentation" onClick={() => setOpen(false)}>
           <List>
-            {PRIMARY_NAV.map((item) => (
-              <ListItemButton key={item.href} component={NextLink} href={item.href}>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            ))}
+            {PRIMARY_NAV.map((item) => {
+              const active = isActiveHref(pathname, item.href);
+              return (
+                <ListItemButton
+                  key={item.href}
+                  component={NextLink}
+                  href={item.href}
+                  selected={active}
+                  aria-current={active ? 'page' : undefined}
+                  sx={active ? drawerActiveSx : undefined}
+                >
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontWeight: active ? 700 : undefined,
+                      color: active ? 'primary.main' : undefined,
+                    }}
+                  />
+                </ListItemButton>
+              );
+            })}
           </List>
           <Divider />
           <List>
-            <ListItemButton component={NextLink} href="/apply">
-              <ListItemText primary="Become a Vendor" />
+            <ListItemButton
+              component={NextLink}
+              href="/apply"
+              selected={applyActive}
+              aria-current={applyActive ? 'page' : undefined}
+              sx={applyActive ? drawerActiveSx : undefined}
+            >
+              <ListItemText
+                primary="Become a Vendor"
+                primaryTypographyProps={{
+                  fontWeight: applyActive ? 700 : undefined,
+                  color: applyActive ? 'primary.main' : undefined,
+                }}
+              />
             </ListItemButton>
             <ListItemButton component={NextLink} href="/sign-in">
               <ListItemText primary="Sign in" />
