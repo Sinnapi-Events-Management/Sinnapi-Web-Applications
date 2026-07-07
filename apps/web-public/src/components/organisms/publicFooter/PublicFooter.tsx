@@ -6,6 +6,7 @@ import { common, withAlpha } from '@sinnapi/ui/tokens';
 import { CONTACT } from '@sinnapi/utils/constants';
 import SocialLinks from '@/components/molecules/socialLinks';
 import { FOOTER_NAV, SITE } from '@/lib/config/site';
+import FooterLink from './FooterLink';
 
 // Strip spaces / punctuation so a display string like "+256 700 000 000"
 // becomes a valid `tel:` / `wa.me` target.
@@ -28,6 +29,22 @@ const CONTACT_ITEMS = [
   },
   { label: CONTACT.address, href: undefined, Icon: LocationOnOutlined, external: false },
 ];
+
+// Curated legal links for the bottom bar (a subset of FOOTER_NAV.Legal, in the
+// order we surface here). They share one style, so a small map keeps them DRY.
+const BOTTOM_LINKS = [
+  { label: 'Terms', href: '/terms' },
+  { label: 'Vendor Terms', href: '/vendor-terms' },
+  { label: 'Client Terms', href: '/client-event-planner-terms' },
+  { label: 'Privacy', href: '/privacy' },
+];
+
+const bottomLinkSx = {
+  color: withAlpha(common.white, 0.55),
+  fontSize: '0.8rem',
+  transition: 'color .2s ease',
+  '&:hover': { color: 'common.white' },
+};
 
 export default function PublicFooter() {
   const year = new Date().getFullYear();
@@ -102,11 +119,9 @@ export default function PublicFooter() {
               </Typography>
               <Stack spacing={1.25} sx={{ mt: 2 }}>
                 {links.map((l) => (
-                  <Link
+                  <FooterLink
                     key={l.href}
-                    component={NextLink}
                     href={l.href}
-                    underline="none"
                     sx={{
                       color: withAlpha(common.white, 0.72),
                       fontSize: '0.9rem',
@@ -116,7 +131,7 @@ export default function PublicFooter() {
                     }}
                   >
                     {l.label}
-                  </Link>
+                  </FooterLink>
                 ))}
               </Stack>
             </Grid>
@@ -176,54 +191,11 @@ export default function PublicFooter() {
             are.
           </Typography>
           <Stack direction="row" spacing={2.5}>
-            <Link
-              component={NextLink}
-              href="/terms"
-              underline="none"
-              sx={{
-                color: withAlpha(common.white, 0.55),
-                fontSize: '0.8rem',
-                '&:hover': { color: 'common.white' },
-              }}
-            >
-              Terms
-            </Link>
-            <Link
-              component={NextLink}
-              href="/vendor-terms"
-              underline="none"
-              sx={{
-                color: withAlpha(common.white, 0.55),
-                fontSize: '0.8rem',
-                '&:hover': { color: 'common.white' },
-              }}
-            >
-              Vendor Terms
-            </Link>
-            <Link
-              component={NextLink}
-              href="/client-event-planner-terms"
-              underline="none"
-              sx={{
-                color: withAlpha(common.white, 0.55),
-                fontSize: '0.8rem',
-                '&:hover': { color: 'common.white' },
-              }}
-            >
-              Client Terms
-            </Link>
-            <Link
-              component={NextLink}
-              href="/privacy"
-              underline="none"
-              sx={{
-                color: withAlpha(common.white, 0.55),
-                fontSize: '0.8rem',
-                '&:hover': { color: 'common.white' },
-              }}
-            >
-              Privacy
-            </Link>
+            {BOTTOM_LINKS.map((l) => (
+              <FooterLink key={l.href} href={l.href} sx={bottomLinkSx}>
+                {l.label}
+              </FooterLink>
+            ))}
           </Stack>
         </Stack>
       </Container>

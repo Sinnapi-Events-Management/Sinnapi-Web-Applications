@@ -185,7 +185,7 @@ export default function HeroSection() {
                 sx={{
                   position: 'relative',
                   width: '100%',
-                  aspectRatio: '4 / 5',
+                  aspectRatio: '6 / 7',
                   borderRadius: 4,
                   overflow: 'hidden',
                   boxShadow: `0 30px 60px ${withAlpha(common.black, 0.35)}`,

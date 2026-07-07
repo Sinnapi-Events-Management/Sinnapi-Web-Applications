@@ -6,6 +6,13 @@ import { Typography } from '../atoms/Typography';
 export interface LegalContentProps {
   /** The structured legal document to render (e.g. `generalTerms`). */
   document: LegalDocument;
+  /**
+   * Suppress the built-in title/subtitle/effective-date header. Use when a page
+   * presents the document under its own hero that already owns the title and
+   * metadata (e.g. the public site's legal heroes). Defaults to `false` so the
+   * component stays self-contained for the portals.
+   */
+  hideHeader?: boolean;
 }
 
 /**
@@ -13,25 +20,27 @@ export interface LegalContentProps {
  * self-contained legal page. Shared across all apps so Terms render identically
  * whether shown on the public site or inside a portal.
  */
-export function LegalContent({ document }: LegalContentProps) {
+export function LegalContent({ document, hideHeader = false }: LegalContentProps) {
   const { title, subtitle, effectiveDate, jurisdiction, sections } = document;
 
   return (
     <Container sx={{ py: { xs: 4, md: 6 }, maxWidth: 820 }}>
-      <Box sx={{ mb: { xs: 3, md: 4 } }}>
-        <Typography variant="h1" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1.5 }}>
-            {subtitle}
+      {!hideHeader && (
+        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+          <Typography variant="h1" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
+            {title}
           </Typography>
-        )}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          Effective date: {effectiveDate}
-          {jurisdiction ? ` · Jurisdiction: ${jurisdiction}` : ''}
-        </Typography>
-      </Box>
+          {subtitle && (
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 1.5 }}>
+              {subtitle}
+            </Typography>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Effective date: {effectiveDate}
+            {jurisdiction ? ` · Jurisdiction: ${jurisdiction}` : ''}
+          </Typography>
+        </Box>
+      )}
 
       <Box
         component="ol"
