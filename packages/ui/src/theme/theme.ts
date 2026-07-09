@@ -2,6 +2,20 @@
 import { createTheme, type ThemeOptions } from '@mui/material/styles';
 import { palette, radius, fonts } from './tokens';
 
+// Extend MUI's palette colors with two extra tints above `light`, so
+// `secondary.lighter`, `error.lightest`, etc. resolve in both the `sx` prop and
+// `theme.palette.*`. The hex values live in ./tokens (single source of truth).
+declare module '@mui/material/styles' {
+  interface PaletteColor {
+    lighter: string;
+    lightest: string;
+  }
+  interface SimplePaletteColorOptions {
+    lighter?: string;
+    lightest?: string;
+  }
+}
+
 // Shared, palette-independent options. Component defaults live here so every
 // app gets identical Button/Card/TextField behaviour without per-app overrides.
 const shared: ThemeOptions = {

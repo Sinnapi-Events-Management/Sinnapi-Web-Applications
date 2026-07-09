@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Stack, TextField, Button, Alert, Typography } from '@sinnapi/ui';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
+import { Stack, TextField, Button, Alert, IconButton, InputAdornment, Link } from '@sinnapi/ui';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { supabase } from '@/lib/supabase';
 
 // Admin sign-in only — accounts are provisioned in the DB (no public sign-up).
@@ -10,6 +12,7 @@ export default function SignInForm() {
   const returnTo = params.get('returnTo') || '/dashboard';
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,20 +34,55 @@ export default function SignInForm() {
   return (
     <Stack component="form" spacing={2.5} onSubmit={onSubmit} noValidate>
       {error && <Alert severity="error">{error}</Alert>}
-      <TextField name="email" type="email" label="Email" autoComplete="email" required />
+
       <TextField
-        name="password"
-        type="password"
-        label="Password"
-        autoComplete="current-password"
+        name="email"
+        type="email"
+        label="Email Address"
+        autoComplete="email"
         required
+        autoFocus
       />
-      <Button type="submit" variant="contained" size="large" disabled={loading}>
-        {loading ? 'Signing in…' : 'Sign in'}
+
+      <Stack spacing={0.75}>
+        <TextField
+          name="password"
+          type={showPassword ? 'text' : 'password'}
+          label="Password"
+          autoComplete="current-password"
+          required
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((v) => !v)}
+                  edge="end"
+                  size="small"
+                >
+                  {showPassword ? (
+                    <VisibilityOff fontSize="small" />
+                  ) : (
+                    <Visibility fontSize="small" />
+                  )}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Link
+          component={RouterLink}
+          to="/forgot-password"
+          variant="body2"
+          sx={{ alignSelf: 'flex-end', fontWeight: 600, color: 'primary.main' }}
+        >
+          Forgot password?
+        </Link>
+      </Stack>
+
+      <Button type="submit" variant="contained" color="primary" size="large" disabled={loading}>
+        {loading ? 'Signing in…' : 'Sign In'}
       </Button>
-      <Typography variant="caption" color="text.secondary">
-        Admin access is granted by a Super Admin. Contact your administrator if you can't sign in.
-      </Typography>
     </Stack>
   );
 }

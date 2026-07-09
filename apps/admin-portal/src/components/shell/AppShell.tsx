@@ -25,6 +25,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { NAV_SECTIONS, APP } from '@/lib/config';
 import { useAuth } from '@/auth/AuthProvider';
+import SessionTimeoutDialog from '@/auth/SessionTimeoutDialog';
 import { useAdmin } from '@/admin/AdminProvider';
 import { useProfile, useUnreadCount } from '@/hooks/queries';
 
@@ -107,6 +108,7 @@ export default function AppShell() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
+      <SessionTimeoutDialog />
       <AppBar
         position="fixed"
         color="inherit"
