@@ -1,4 +1,4 @@
-import { createTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
+import { extendTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
 
 // Portal design language — denser typography & controls than the marketing site.
 // Colors come from the shared design tokens (single source of truth in @sinnapi/ui/tokens).
@@ -33,4 +33,14 @@ const shared: ThemeOptions = {
   },
 };
 
-export const lightTheme = createTheme({ ...shared, palette: palette.light });
+// Single CSS-variables theme carrying both schemes. The active scheme is chosen
+// at runtime by ColorModeProvider/useColorScheme (via the AppBar's ThemeToggle)
+// and applied through CSS variables, so toggling re-colors the portal instantly
+// and the choice persists across reloads with no flash.
+export const theme = extendTheme({
+  ...shared,
+  colorSchemes: {
+    light: { palette: palette.light },
+    dark: { palette: palette.dark },
+  },
+});

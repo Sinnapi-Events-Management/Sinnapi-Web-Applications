@@ -10,4 +10,6 @@ export {
   type StackProps,
   Grid,
   type GridProps,
+  Collapse,
+  type CollapseProps,
 } from '@mui/material';
