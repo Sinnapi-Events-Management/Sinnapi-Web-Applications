@@ -7,7 +7,7 @@ export default function SignIn() {
   const { session, loading } = useSignIn();
   if (!loading && session) return <Navigate to="/dashboard" replace />;
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to your Sinnapi account.">
+    <AuthLayout title="Sign in" subtitle="Enter your details to access your dashboard.">
       <SignInForm />
     </AuthLayout>
   );
