@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.payment-reconciliation]
 verify_jwt = false
+
+[functions.vendor-application]
+verify_jwt = false
+
+[functions.promote-intake]
+verify_jwt = true

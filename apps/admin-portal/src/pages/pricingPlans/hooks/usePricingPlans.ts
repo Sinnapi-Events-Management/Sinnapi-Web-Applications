@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePlansAdmin } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { supabase } from '@/lib/supabase';
 import type { PlanModel } from '@/lib/types';
 
 export function usePricingPlans() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = usePlansAdmin();
+  const table = useTableState();
+  const { data, isLoading, isFetching, error } = usePlansAdmin(table.params);
   const [edit, setEdit] = useState<PlanModel | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ['admin-plans'] });
@@ -43,5 +44,18 @@ export function usePricingPlans() {
     refresh();
   }
 
-  return { rows, isLoading, error, edit, setEdit, busy, err, toggle, save };
+  return {
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
+    isLoading,
+    isFetching,
+    error,
+    edit,
+    setEdit,
+    busy,
+    err,
+    toggle,
+    save,
+    table,
+  };
 }

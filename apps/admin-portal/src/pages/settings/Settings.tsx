@@ -1,10 +1,6 @@
+import { useMemo } from 'react';
 import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  DataTable,
   Button,
   Dialog,
   DialogTitle,
@@ -12,14 +8,38 @@ import {
   DialogActions,
   TextField,
   Alert,
+  type DataTableColumn,
 } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
+import type { SettingModel } from '@/lib/types';
 import { useSettings } from './hooks/useSettings';
 
 export default function Settings() {
-  const { rows, isLoading, error, edit, setEdit, busy, err, save } = useSettings();
+  const { rows, total, isLoading, isFetching, error, edit, setEdit, busy, err, save, table } =
+    useSettings();
+
+  const columns = useMemo<DataTableColumn<SettingModel>[]>(
+    () => [
+      { field: 'key', headerName: 'Key', sortable: true, render: (s) => s.key },
+      {
+        field: 'value',
+        headerName: 'Value',
+        render: (s) => <code>{JSON.stringify(s.value)}</code>,
+      },
+      { field: 'description', headerName: 'Description', render: (s) => s.description ?? '—' },
+      {
+        field: 'edit',
+        headerName: 'Edit',
+        align: 'right',
+        render: (s) => (
+          <Button size="small" onClick={() => setEdit(s)}>
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [setEdit],
+  );
 
   return (
     <>
@@ -27,40 +47,20 @@ export default function Settings() {
         title="Platform settings"
         subtitle="Commission %, grace period, FX, quote expiry, etc."
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No settings" />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Key</TableCell>
-                  <TableCell>Value</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell align="right">Edit</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((s) => (
-                  <TableRow key={s.id} hover>
-                    <TableCell>{s.key}</TableCell>
-                    <TableCell>
-                      <code>{JSON.stringify(s.value)}</code>
-                    </TableCell>
-                    <TableCell>{s.description ?? '—'}</TableCell>
-                    <TableCell align="right">
-                      <Button size="small" onClick={() => setEdit(s)}>
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load settings.'}
+        </Alert>
+      )}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(s) => s.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        emptyMessage="No settings yet."
+        {...table.controls}
+      />
 
       <Dialog
         open={!!edit}

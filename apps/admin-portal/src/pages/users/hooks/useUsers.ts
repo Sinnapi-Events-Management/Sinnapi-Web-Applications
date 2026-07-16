@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUsers as useUsersQuery, useRoles } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
@@ -9,12 +10,12 @@ import type { UserModel } from '@/lib/types';
 export function useUsers() {
   const qc = useQueryClient();
   const { has } = useAdmin();
-  const users = useUsersQuery();
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const users = useUsersQuery(table.params);
   const roles = useRoles();
   const [active, setActive] = useState<UserModel | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const canManage = has('users.manage');
-  const rows = users.data ?? [];
 
   function userRoleKeys(u: UserModel): Set<string> {
     const keys: string[] = [];
@@ -44,9 +45,12 @@ export function useUsers() {
   const current = active ? userRoleKeys(active) : new Set<string>();
 
   return {
-    users,
     roles,
-    rows,
+    rows: users.data?.rows ?? [],
+    total: users.data?.total ?? 0,
+    isLoading: users.isLoading,
+    isFetching: users.isFetching,
+    error: users.error,
     canManage,
     active,
     setActive,
@@ -54,5 +58,6 @@ export function useUsers() {
     userRoleKeys,
     toggleRole,
     current,
+    table,
   };
 }

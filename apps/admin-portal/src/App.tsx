@@ -14,6 +14,7 @@ import Dashboard from '@/pages/dashboard';
 import Applications from '@/pages/applications';
 import ApplicationDetail from '@/pages/applicationDetail';
 import Vendors from '@/pages/vendors';
+import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
 import Quotations from '@/pages/quotations';
 import Events from '@/pages/events';
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/applications" element={g('vendor.review', <Applications />)} />
         <Route path="/applications/:id" element={g('vendor.review', <ApplicationDetail />)} />
         <Route path="/vendors" element={g('vendor.manage', <Vendors />)} />
+        <Route path="/vendors/:id" element={g('vendor.manage', <VendorDetail />)} />
         <Route path="/bookings" element={g('bookings.read', <Bookings />)} />
         <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
         <Route path="/events" element={g('events.manage', <Events />)} />

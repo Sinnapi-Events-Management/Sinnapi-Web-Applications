@@ -1,53 +1,61 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody } from '@sinnapi/ui';
+import { DataTable, Alert, type DataTableColumn } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
 import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
+import type { PaymentModel } from '@/lib/types';
 import { usePayments } from './hooks/usePayments';
 
+const columns: DataTableColumn<PaymentModel>[] = [
+  {
+    field: 'created_at',
+    headerName: 'Date',
+    sortable: true,
+    render: (p) => formatDate(p.created_at),
+  },
+  { field: 'purpose', headerName: 'Purpose', sortable: true, render: (p) => titleize(p.purpose) },
+  {
+    field: 'provider',
+    headerName: 'Provider',
+    render: (p) => `${titleize(p.provider)} · ${titleize(p.provider_method)}`,
+  },
+  {
+    field: 'amount',
+    headerName: 'Amount',
+    align: 'right',
+    sortable: true,
+    render: (p) => formatMoney(p.amount, p.currency),
+  },
+  {
+    field: 'status',
+    headerName: 'Status',
+    sortable: true,
+    render: (p) => <StatusChip status={p.status} />,
+  },
+];
+
 export default function Payments() {
-  const { rows, isLoading, error } = usePayments();
+  const { rows, total, isLoading, isFetching, error, table } = usePayments();
+
   return (
     <>
       <PageTitle
         title="Payments"
         subtitle="Payment oversight (PSP charges, escrow funding, subscriptions)."
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No payments" />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Purpose</TableCell>
-                  <TableCell>Provider</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((p) => (
-                  <TableRow key={p.id} hover>
-                    <TableCell>{formatDate(p.created_at)}</TableCell>
-                    <TableCell>{titleize(p.purpose)}</TableCell>
-                    <TableCell>
-                      {titleize(p.provider)} · {titleize(p.provider_method)}
-                    </TableCell>
-                    <TableCell align="right">{formatMoney(p.amount, p.currency)}</TableCell>
-                    <TableCell>
-                      <StatusChip status={p.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load payments.'}
+        </Alert>
+      )}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(p) => p.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        emptyMessage="No payments yet."
+        {...table.controls}
+      />
     </>
   );
 }

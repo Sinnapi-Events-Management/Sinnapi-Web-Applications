@@ -1,36 +1,32 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useVendorsAdmin } from '@/hooks/queries';
-import { supabase } from '@/lib/supabase';
+import { useTableState } from '@/hooks/useTableState';
+import { useVendorStatus } from '@/hooks/useVendorStatus';
+import { useVendorEdit } from './useVendorEdit';
+import { useVendorDelete } from './useVendorDelete';
 
+// Vendors list: paginated read + navigation. Each row action owns its own flow —
+// `useVendorStatus` (active/suspended, shared with the detail page), `useVendorEdit`
+// (drawer + write) and `useVendorDelete` (confirm + soft delete) — so this hook
+// only composes them and exposes the read.
 export function useVendors() {
-  const qc = useQueryClient();
-  const { data, isLoading, error } = useVendorsAdmin();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
-
-  async function setStatus(id: string, status: 'active' | 'suspended') {
-    setBusy(id);
-    setErr(null);
-    const { error } = await supabase
-      .from('vendors')
-      .update({ status, visibility: status === 'active' ? 'public' : 'hidden' })
-      .eq('id', id);
-    setBusy(null);
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ['admin-vendors'] });
-  }
+  const navigate = useNavigate();
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const { data, isLoading, isFetching, error } = useVendorsAdmin(table.params);
+  const status = useVendorStatus();
+  const edit = useVendorEdit();
+  const remove = useVendorDelete();
 
   return {
-    rows,
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
     isLoading,
+    isFetching,
     error,
-    busy,
-    err,
-    setStatus,
+    status,
+    edit,
+    remove,
+    navigate,
+    table,
   };
 }

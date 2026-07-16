@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEventsAdmin } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { supabase } from '@/lib/supabase';
 
 export function useEvents() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useEventsAdmin();
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const { data, isLoading, isFetching, error } = useEventsAdmin(table.params);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
 
   async function post(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,13 +41,16 @@ export function useEvents() {
   }
 
   return {
-    rows,
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
     isLoading,
+    isFetching,
     error,
     open,
     setOpen,
     busy,
     err,
     post,
+    table,
   };
 }

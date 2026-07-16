@@ -1,10 +1,6 @@
+import { useMemo } from 'react';
 import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  DataTable,
   Switch,
   Button,
   Dialog,
@@ -14,15 +10,70 @@ import {
   TextField,
   Alert,
   Stack,
+  type DataTableColumn,
 } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import { formatMoney, titleize } from '@/lib/config';
+import type { PlanModel } from '@/lib/types';
 import { usePricingPlans } from './hooks/usePricingPlans';
 
 export default function PricingPlans() {
-  const { rows, isLoading, error, edit, setEdit, busy, err, toggle, save } = usePricingPlans();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    edit,
+    setEdit,
+    busy,
+    err,
+    toggle,
+    save,
+    table,
+  } = usePricingPlans();
+
+  const columns = useMemo<DataTableColumn<PlanModel>[]>(
+    () => [
+      { field: 'name', headerName: 'Plan', sortable: true, render: (p) => p.name },
+      {
+        field: 'billing_cycle',
+        headerName: 'Cycle',
+        sortable: true,
+        render: (p) => titleize(p.billing_cycle),
+      },
+      {
+        field: 'price',
+        headerName: 'Price',
+        align: 'right',
+        sortable: true,
+        render: (p) => formatMoney(p.price, p.currency),
+      },
+      {
+        field: 'trial_days',
+        headerName: 'Trial days',
+        align: 'right',
+        sortable: true,
+        render: (p) => p.trial_days,
+      },
+      {
+        field: 'is_active',
+        headerName: 'Active',
+        render: (p) => <Switch checked={p.is_active} onChange={(_, c) => toggle(p.id, c)} />,
+      },
+      {
+        field: 'edit',
+        headerName: 'Edit',
+        align: 'right',
+        render: (p) => (
+          <Button size="small" onClick={() => setEdit(p)}>
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [toggle, setEdit],
+  );
 
   return (
     <>
@@ -30,44 +81,20 @@ export default function PricingPlans() {
         title="Pricing plans"
         subtitle="Set plan pricing and trial length. Admin-managed."
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No plans" />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Plan</TableCell>
-                  <TableCell>Cycle</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell align="right">Trial days</TableCell>
-                  <TableCell>Active</TableCell>
-                  <TableCell align="right">Edit</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((p) => (
-                  <TableRow key={p.id} hover>
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell>{titleize(p.billing_cycle)}</TableCell>
-                    <TableCell align="right">{formatMoney(p.price, p.currency)}</TableCell>
-                    <TableCell align="right">{p.trial_days}</TableCell>
-                    <TableCell>
-                      <Switch checked={p.is_active} onChange={(_, c) => toggle(p.id, c)} />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Button size="small" onClick={() => setEdit(p)}>
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load plans.'}
+        </Alert>
+      )}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(p) => p.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        emptyMessage="No plans yet."
+        {...table.controls}
+      />
 
       <Dialog
         open={!!edit}

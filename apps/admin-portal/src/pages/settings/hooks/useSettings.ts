@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSettings as useSettingsQuery } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { supabase } from '@/lib/supabase';
 import type { SettingModel } from '@/lib/types';
 
 export function useSettings() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useSettingsQuery();
+  const table = useTableState({ sort: { field: 'key', direction: 'asc' } });
+  const { data, isLoading, isFetching, error } = useSettingsQuery(table.params);
   const [edit, setEdit] = useState<SettingModel | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,13 +38,16 @@ export function useSettings() {
   }
 
   return {
-    rows,
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
     isLoading,
+    isFetching,
     error,
     edit,
     setEdit,
     busy,
     err,
     save,
+    table,
   };
 }

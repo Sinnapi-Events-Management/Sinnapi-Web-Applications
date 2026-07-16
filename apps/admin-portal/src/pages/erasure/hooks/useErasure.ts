@@ -1,11 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useErasureRequests } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { supabase } from '@/lib/supabase';
 
 export function useErasure() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useErasureRequests();
-  const rows = data ?? [];
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const { data, isLoading, isFetching, error } = useErasureRequests(table.params);
 
   async function setStatus(id: string, status: string) {
     await supabase.from('erasure_requests').update({ status }).eq('id', id);
@@ -13,9 +14,12 @@ export function useErasure() {
   }
 
   return {
-    rows,
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
     isLoading,
+    isFetching,
     error,
     setStatus,
+    table,
   };
 }
