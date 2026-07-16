@@ -1,87 +1,77 @@
-import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Button,
-  Alert,
-  Rating,
-} from '@sinnapi/ui';
+import { useMemo } from 'react';
+import { DataTable, Alert } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import type { VendorAdminModel } from '@/lib/types';
 import { useVendors } from './hooks/useVendors';
+import { getColumns } from './schema';
+import VendorStatusDialog from './components/organisms/VendorStatusDialog';
+import VendorEditDrawer from './components/organisms/VendorEditDrawer';
+import VendorDeleteDialog from './components/organisms/VendorDeleteDialog';
 
 export default function Vendors() {
-  const { rows, isLoading, error, busy, err, setStatus } = useVendors();
+  const { rows, total, isLoading, isFetching, error, status, edit, remove, navigate, table } =
+    useVendors();
+
+  const columns = useMemo(
+    () =>
+      getColumns({
+        onView: (v: VendorAdminModel) => navigate(`/vendors/${v.id}`),
+        onEdit: edit.open,
+        onRequestStatusChange: status.request,
+        onRequestDelete: remove.request,
+      }),
+    [navigate, edit.open, status.request, remove.request],
+  );
+
+  // Save failures belong to the drawer, so they're rendered there instead.
+  const pageError =
+    status.err ??
+    remove.err ??
+    (error ? (error instanceof Error ? error.message : 'Failed to load vendors.') : null);
 
   return (
     <>
       <PageTitle title="Vendors" subtitle="Monitor and manage vendor listings." />
-      {err && (
+      {pageError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
+          {pageError}
         </Alert>
       )}
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No vendors" />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Business</TableCell>
-                  <TableCell>Rating</TableCell>
-                  <TableCell>Visibility</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((v) => (
-                  <TableRow key={v.id} hover>
-                    <TableCell>{v.business_name}</TableCell>
-                    <TableCell>
-                      <Rating value={v.avg_rating} size="small" readOnly precision={0.5} /> (
-                      {v.review_count})
-                    </TableCell>
-                    <TableCell>
-                      <StatusChip status={v.visibility} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusChip status={v.status} />
-                    </TableCell>
-                    <TableCell align="right">
-                      {v.status === 'active' ? (
-                        <Button
-                          size="small"
-                          color="error"
-                          disabled={busy === v.id}
-                          onClick={() => setStatus(v.id, 'suspended')}
-                        >
-                          Suspend
-                        </Button>
-                      ) : (
-                        <Button
-                          size="small"
-                          disabled={busy === v.id}
-                          onClick={() => setStatus(v.id, 'active')}
-                        >
-                          Activate
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(v) => v.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        onRowClick={(v) => navigate(`/vendors/${v.id}`)}
+        emptyMessage="No vendors yet."
+        {...table.controls}
+      />
+
+      <VendorStatusDialog
+        pending={status.pending}
+        busy={status.busy}
+        onCancel={status.cancel}
+        onConfirm={status.confirm}
+      />
+
+      <VendorEditDrawer
+        open={edit.isOpen}
+        vendor={edit.vendor}
+        loading={edit.loading}
+        loadError={edit.loadError}
+        busy={edit.busy}
+        err={edit.err}
+        onClose={edit.close}
+        onSave={edit.save}
+      />
+
+      <VendorDeleteDialog
+        pending={remove.pending}
+        busy={remove.busy}
+        onCancel={remove.cancel}
+        onConfirm={remove.confirm}
+      />
     </>
   );
 }

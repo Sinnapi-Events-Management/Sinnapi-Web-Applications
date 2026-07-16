@@ -1,10 +1,5 @@
 import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  DataTable,
   Button,
   Stack,
   Dialog,
@@ -13,17 +8,36 @@ import {
   DialogActions,
   TextField,
   Alert,
+  type DataTableColumn,
 } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
 import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate, titleize } from '@/lib/config';
+import type { EventModel } from '@/lib/types';
 import { useEvents } from './hooks/useEvents';
 
+const columns: DataTableColumn<EventModel>[] = [
+  { field: 'title', headerName: 'Title', sortable: true, render: (e) => e.title },
+  { field: 'source', headerName: 'Source', sortable: true, render: (e) => titleize(e.source) },
+  {
+    field: 'event_date',
+    headerName: 'Date',
+    sortable: true,
+    render: (e) => formatDate(e.event_date),
+  },
+  { field: 'is_public', headerName: 'Public', render: (e) => (e.is_public ? 'Yes' : 'No') },
+  {
+    field: 'status',
+    headerName: 'Status',
+    sortable: true,
+    render: (e) => <StatusChip status={e.status} />,
+  },
+];
+
 export default function Events() {
-  const { rows, isLoading, error, open, setOpen, busy, err, post } = useEvents();
+  const { rows, total, isLoading, isFetching, error, open, setOpen, busy, err, post, table } =
+    useEvents();
 
   return (
     <>
@@ -36,38 +50,20 @@ export default function Events() {
           </Button>
         }
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No events" />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Source</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Public</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((e) => (
-                  <TableRow key={e.id} hover>
-                    <TableCell>{e.title}</TableCell>
-                    <TableCell>{titleize(e.source)}</TableCell>
-                    <TableCell>{formatDate(e.event_date)}</TableCell>
-                    <TableCell>{e.is_public ? 'Yes' : 'No'}</TableCell>
-                    <TableCell>
-                      <StatusChip status={e.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load events.'}
+        </Alert>
+      )}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(e) => e.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        emptyMessage="No events yet."
+        {...table.controls}
+      />
 
       <Dialog
         open={open}

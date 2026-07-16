@@ -56,6 +56,11 @@ export type DataTableProps<Row> = {
   loadingRows?: number;
   size?: 'small' | 'medium';
   stickyHeader?: boolean;
+  /**
+   * Minimum table width before the container scrolls horizontally. Keeps
+   * dense tables legible on small screens instead of squashing columns.
+   */
+  minWidth?: number | string;
 };
 
 function cellValue<Row>(row: Row, col: DataTableColumn<Row>): ReactNode {
@@ -87,6 +92,7 @@ export function DataTable<Row>({
   loadingRows = 5,
   size = 'medium',
   stickyHeader = false,
+  minWidth = 640,
 }: DataTableProps<Row>) {
   const sortingEnabled = Boolean(onSortChange);
   const isInitialLoad = loading && rows.length === 0;
@@ -106,8 +112,8 @@ export function DataTable<Row>({
         {loading && !isInitialLoad && (
           <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2 }} />
         )}
-        <TableContainer>
-          <Table size={size} stickyHeader={stickyHeader}>
+        <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
+          <Table size={size} stickyHeader={stickyHeader} sx={{ minWidth }}>
             <TableHead>
               <TableRow>
                 {columns.map((col) => {
@@ -117,7 +123,17 @@ export function DataTable<Row>({
                     <TableCell
                       key={col.field}
                       align={col.align}
-                      sx={{ width: col.width, fontWeight: 700, whiteSpace: 'nowrap' }}
+                      sx={{
+                        width: col.width,
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        // Standout header: tinted band + stronger text so the
+                        // header row is clearly separated from the body.
+                        bgcolor: 'action.hover',
+                        color: 'text.primary',
+                        borderBottom: 2,
+                        borderColor: 'divider',
+                      }}
                       sortDirection={active ? sortModel?.direction : false}
                     >
                       {canSort ? (

@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePayoutsAdmin } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
 
 export function usePayouts() {
   const qc = useQueryClient();
   const { has } = useAdmin();
-  const { data, isLoading, error } = usePayoutsAdmin();
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const { data, isLoading, isFetching, error } = usePayoutsAdmin(table.params);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ['admin-payouts'] });
@@ -53,5 +54,17 @@ export function usePayouts() {
     refresh();
   }
 
-  return { rows, isLoading, error, has, busy, err, approve, process };
+  return {
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
+    isLoading,
+    isFetching,
+    error,
+    has,
+    busy,
+    err,
+    approve,
+    process,
+    table,
+  };
 }

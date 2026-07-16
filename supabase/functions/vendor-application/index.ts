@@ -7,6 +7,8 @@
 // stores their paths/urls. No account required to apply.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, HttpError } from '../_shared/supabase.ts';
+import { sendEmail } from '../_shared/email.ts';
+import { applicantConfirmationEmail, internalNotificationEmail } from './emails.ts';
 
 const YEARS = ['lt_1y', '1_3y', '3_5y', '5_10y', '10y_plus'];
 const PRICING = ['fixed', 'hourly', 'custom', 'combination'];
@@ -185,6 +187,37 @@ Deno.serve(
 
     if (error) throw new HttpError(400, error.message);
 
-    return json(request, { id: data.id }, 201);
+    // --- Confirmation + internal notification emails (best-effort) ---
+    // The application is already persisted, so email failure must NOT fail the
+    // request — we surface the outcome in the response and log any error.
+    const summary = {
+      ownerFullName: clean(b.ownerFullName)!,
+      ownerEmail: b.ownerEmail!.trim().toLowerCase(),
+      businessName: clean(b.businessName)!,
+      submissionRef: b.submissionRef!,
+    };
+
+    const internalInbox = clean(Deno.env.get('VENDOR_APPLICATIONS_INBOX'));
+
+    const [applicantResult] = await Promise.all([
+      sendEmail(applicantConfirmationEmail(summary)),
+      internalInbox
+        ? sendEmail(internalNotificationEmail(internalInbox, summary))
+        : Promise.resolve({ sent: false, error: 'internal_inbox_not_configured' }),
+    ]).catch((e) => {
+      // Promise.all itself shouldn't reject (sendEmail never throws), but guard.
+      console.error('[VENDOR-APP] email dispatch error:', (e as Error).message);
+      return [{ sent: false, error: (e as Error).message }] as const;
+    });
+
+    return json(
+      request,
+      {
+        id: data.id,
+        emailSent: applicantResult.sent,
+        ...(applicantResult.error && { emailWarning: applicantResult.error }),
+      },
+      201,
+    );
   }),
 );

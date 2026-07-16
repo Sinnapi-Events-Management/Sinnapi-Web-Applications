@@ -1,10 +1,6 @@
+import { useMemo } from 'react';
 import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  DataTable,
   Button,
   Alert,
   Dialog,
@@ -14,14 +10,13 @@ import {
   TextField,
   MenuItem,
   Stack,
+  type DataTableColumn,
 } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
 import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
-import type { BookingRef } from '@/lib/types';
+import type { DisputeModel, BookingRef } from '@/lib/types';
 import { useDisputes } from './hooks/useDisputes';
 
 const RESOLUTIONS = [
@@ -32,55 +27,74 @@ const RESOLUTIONS = [
 ];
 
 export default function Disputes() {
-  const { has, rows, isLoading, error, active, setActive, busy, err, resolve } = useDisputes();
+  const {
+    has,
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    active,
+    setActive,
+    busy,
+    err,
+    resolve,
+    table,
+  } = useDisputes();
+
+  const columns = useMemo<DataTableColumn<DisputeModel>[]>(
+    () => [
+      {
+        field: 'booking',
+        headerName: 'Booking',
+        render: (d) => one<BookingRef>(d.bookings)?.reference_no ?? '—',
+      },
+      { field: 'reason', headerName: 'Reason', render: (d) => d.reason },
+      {
+        field: 'sla_due_at',
+        headerName: 'SLA due',
+        sortable: true,
+        render: (d) => formatDate(d.sla_due_at),
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        sortable: true,
+        render: (d) => <StatusChip status={d.status} />,
+      },
+      {
+        field: 'action',
+        headerName: 'Action',
+        align: 'right',
+        render: (d) =>
+          has('dispute.manage') &&
+          ['open', 'under_review', 'awaiting_evidence'].includes(d.status) ? (
+            <Button size="small" variant="contained" onClick={() => setActive(d.id)}>
+              Resolve
+            </Button>
+          ) : null,
+      },
+    ],
+    [has, setActive],
+  );
 
   return (
     <>
       <PageTitle title="Disputes" subtitle="Adjudicate disputes based on evidence and SLA." />
-      {err && (
+      {(err || error) && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
+          {err ?? (error instanceof Error ? error.message : 'Failed to load disputes.')}
         </Alert>
       )}
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No disputes" />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Booking</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>SLA due</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((d) => (
-                  <TableRow key={d.id} hover>
-                    <TableCell>{one<BookingRef>(d.bookings)?.reference_no ?? '—'}</TableCell>
-                    <TableCell>{d.reason}</TableCell>
-                    <TableCell>{formatDate(d.sla_due_at)}</TableCell>
-                    <TableCell>
-                      <StatusChip status={d.status} />
-                    </TableCell>
-                    <TableCell align="right">
-                      {has('dispute.manage') &&
-                        ['open', 'under_review', 'awaiting_evidence'].includes(d.status) && (
-                          <Button size="small" variant="contained" onClick={() => setActive(d.id)}>
-                            Resolve
-                          </Button>
-                        )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(d) => d.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        emptyMessage="No disputes yet."
+        {...table.controls}
+      />
 
       <Dialog
         open={!!active}

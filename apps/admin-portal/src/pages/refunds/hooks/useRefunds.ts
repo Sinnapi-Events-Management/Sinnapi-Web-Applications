@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRefundsAdmin } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
 
 export function useRefunds() {
   const qc = useQueryClient();
   const { has } = useAdmin();
-  const { data, isLoading, error } = useRefundsAdmin();
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const { data, isLoading, isFetching, error } = useRefundsAdmin(table.params);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
 
   async function approve(id: string) {
     setBusy(id);
@@ -26,11 +27,14 @@ export function useRefunds() {
 
   return {
     has,
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
     isLoading,
+    isFetching,
     error,
     busy,
     err,
-    rows,
     approve,
+    table,
   };
 }

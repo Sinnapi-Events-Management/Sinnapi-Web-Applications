@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEscrowAdmin } from '@/hooks/queries';
+import { useTableState } from '@/hooks/useTableState';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
 
 export function useEscrow() {
   const qc = useQueryClient();
   const { has } = useAdmin();
-  const { data, isLoading, error } = useEscrowAdmin();
+  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const { data, isLoading, isFetching, error } = useEscrowAdmin(table.params);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const rows = data ?? [];
 
   async function approveRelease(escrowId: string) {
     setBusy(escrowId);
@@ -27,12 +28,15 @@ export function useEscrow() {
   }
 
   return {
-    rows,
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
     isLoading,
+    isFetching,
     error,
     has,
     busy,
     err,
     approveRelease,
+    table,
   };
 }
