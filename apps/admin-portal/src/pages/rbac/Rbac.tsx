@@ -43,7 +43,7 @@ export default function Rbac() {
                     onClick={() => setRoleId(r.id)}
                   >
                     <ListItemText primary={r.name} secondary={r.key} />
-                    {r.is_admin && <Chip size="small" label="admin" color="primary" />}
+                    {r.is_admin && <Chip size="small" label="admin" color="secondary" />}
                   </ListItemButton>
                 ))}
               </List>

@@ -62,7 +62,7 @@ export default function DetailsSection({ a }: { a: IntakeDetailModel }) {
   ];
 
   return (
-    <SectionCard title="Application details" icon={<InfoIcon />} accent="primary">
+    <SectionCard title="Application details" icon={<InfoIcon />} accent="secondary">
       <Grid container columnSpacing={4}>
         <Grid item xs={12} md={6}>
           {left.map((r) => (
@@ -101,8 +101,8 @@ export default function DetailsSection({ a }: { a: IntakeDetailModel }) {
               mt: 0.5,
               p: 2,
               borderRadius: 2,
-              bgcolor: (t) => alpha(t.palette.primary.main, 0.05),
-              borderLeft: (t) => `3px solid ${t.palette.primary.main}`,
+              bgcolor: (t) => alpha(t.palette.secondary.main, 0.08),
+              borderLeft: (t) => `3px solid ${t.palette.secondary.main}`,
             }}
           >
             {a.biography}

@@ -39,6 +39,12 @@ const EMPTY_MESSAGES: Record<IntakeTabValue, string> = {
   rejected: 'No applications have been rejected.',
 };
 
-export function getEmptyMessage(status: IntakeTabValue): string {
+/**
+ * Empty-state copy for the current tab. When a search is narrowing the list,
+ * say so — otherwise a searched-to-nothing table reads as "no applications at
+ * all", which is misleading.
+ */
+export function getEmptyMessage(status: IntakeTabValue, filtered = false): string {
+  if (filtered) return 'No applications match your search.';
   return EMPTY_MESSAGES[status];
 }

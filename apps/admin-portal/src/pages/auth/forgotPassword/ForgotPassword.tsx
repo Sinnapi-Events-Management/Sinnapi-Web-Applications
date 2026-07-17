@@ -36,7 +36,7 @@ export default function ForgotPassword() {
             <Button
               type="submit"
               variant="contained"
-              color="primary"
+              color="secondary"
               size="large"
               disabled={loading}
             >
@@ -48,7 +48,7 @@ export default function ForgotPassword() {
           component={RouterLink}
           to="/sign-in"
           variant="body2"
-          sx={{ alignSelf: 'center', fontWeight: 600, color: 'primary.main' }}
+          sx={{ alignSelf: 'center', fontWeight: 600, color: 'secondary.dark' }}
         >
           Back to sign in
         </Link>

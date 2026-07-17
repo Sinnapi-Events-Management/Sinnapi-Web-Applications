@@ -221,7 +221,7 @@ export default function AppShell() {
               alt={APP.name}
               sx={{ height: 40, width: 'auto', maxWidth: 132, objectFit: 'contain' }}
             />
-            <Chip size="small" label={APP.tagline} color="primary" />
+            <Chip size="small" label={APP.tagline} color="secondary" />
           </Box>
           <Tooltip title="Collapse menu">
             <IconButton
@@ -302,13 +302,16 @@ export default function AppShell() {
           borderBottom: 1,
           borderColor: 'divider',
           backgroundColor: (t) => {
-            // CssVarsProvider exposes `vars` at runtime (channel tokens for
-            // alpha), but the base Theme type doesn't declare it.
-            const vars = (t as { vars?: { palette: { background: { defaultChannel: string } } } })
+            // Sit the bar on the white `paper` surface so it lifts off the warm
+            // `secondary.lightest` content canvas (chrome reads as one crisp
+            // layer with the white sidebar + cards). CssVarsProvider exposes
+            // `vars` at runtime (channel tokens for alpha), but the base Theme
+            // type doesn't declare it.
+            const vars = (t as { vars?: { palette: { background: { paperChannel: string } } } })
               .vars;
             return vars
-              ? `rgba(${vars.palette.background.defaultChannel} / 0.72)`
-              : t.palette.background.default;
+              ? `rgba(${vars.palette.background.paperChannel} / 0.8)`
+              : t.palette.background.paper;
           },
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',

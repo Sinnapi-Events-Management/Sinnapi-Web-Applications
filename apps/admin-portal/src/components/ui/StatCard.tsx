@@ -18,7 +18,7 @@ export default function StatCard({
         <Typography variant="overline" color="text.secondary">
           {label}
         </Typography>
-        <Box sx={{ color: 'primary.main' }}>{icon}</Box>
+        <Box sx={{ color: 'secondary.main' }}>{icon}</Box>
       </Box>
       <Typography variant="h2" sx={{ fontSize: '2.25rem' }}>
         {value}

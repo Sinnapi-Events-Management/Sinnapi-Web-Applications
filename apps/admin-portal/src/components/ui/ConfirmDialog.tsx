@@ -14,7 +14,7 @@ type Props = {
   /** Explains what the action does — say the consequence, not just "are you sure". */
   message: React.ReactNode;
   confirmLabel: string;
-  confirmColor?: 'primary' | 'error' | 'success';
+  confirmColor?: 'primary' | 'secondary' | 'error' | 'success';
   busy?: boolean;
   /** Require a free-text justification before the action can be confirmed. */
   requireReason?: boolean;
@@ -34,7 +34,7 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel,
-  confirmColor = 'primary',
+  confirmColor = 'secondary',
   busy = false,
   requireReason = false,
   reasonLabel = 'Reason',

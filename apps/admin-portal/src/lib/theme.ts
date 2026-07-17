@@ -22,14 +22,34 @@ const shared: ThemeOptions = {
     overline: { fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
+    // Gold (`secondary`) is the portal's default action color — every button
+    // reads gold unless it opts into a semantic color (error/success) or is
+    // explicitly set otherwise. Applies to contained, outlined and text alike;
+    // `secondary.contrastText` (white) keeps solid buttons AA-legible and
+    // outlined/text use `secondary.main`/`.dark` which clear contrast on the
+    // white/cream surfaces. Teal (`primary`) is reserved for wayfinding accents.
     MuiButton: {
-      defaultProps: { disableElevation: true },
+      defaultProps: { disableElevation: true, color: 'secondary' },
       styleOverrides: { root: { borderRadius: 8, minHeight: 42 } },
     },
     MuiCard: { styleOverrides: { root: { borderRadius: 12 } } },
     MuiChip: { styleOverrides: { root: { borderRadius: 999 } } },
     MuiTextField: { defaultProps: { variant: 'outlined', fullWidth: true, size: 'small' } },
     MuiListItemButton: { styleOverrides: { root: { borderRadius: 8 } } },
+  },
+};
+
+// Warm the light scheme toward the secondary (gold) family: the page canvas is
+// the palest gold tint (`secondary.lightest`) while cards/paper stay white, so
+// every surface sits on a soft golden field and white content lifts off it. This
+// is the ambient 60% of the 60-30-10 balance — deep teal (primary) stays for
+// primary actions and active states, saturated gold for accents. Dark mode is
+// left on its neutral canvas for now.
+const lightPalette = {
+  ...palette.light,
+  background: {
+    ...palette.light.background,
+    default: palette.light.secondary.lightest,
   },
 };
 
@@ -40,7 +60,7 @@ const shared: ThemeOptions = {
 export const theme = extendTheme({
   ...shared,
   colorSchemes: {
-    light: { palette: palette.light },
+    light: { palette: lightPalette },
     dark: { palette: palette.dark },
   },
 });

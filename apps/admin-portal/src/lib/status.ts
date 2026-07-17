@@ -2,7 +2,7 @@ type ChipColor = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | '
 
 const MAP: Record<string, ChipColor> = {
   requested: 'info',
-  confirmed: 'primary',
+  confirmed: 'secondary',
   in_progress: 'secondary',
   completed: 'success',
   cancelled: 'error',
@@ -17,7 +17,7 @@ const MAP: Record<string, ChipColor> = {
   held: 'info',
   release_requested: 'warning',
   admin_review: 'warning',
-  payout_approved: 'primary',
+  payout_approved: 'secondary',
   paid_out: 'success',
   disputed: 'error',
   refunded: 'error',
@@ -33,6 +33,9 @@ const MAP: Record<string, ChipColor> = {
   published: 'success',
   hidden: 'default',
   removed: 'error',
+  // event lifecycle
+  closed: 'warning',
+  archived: 'default',
   // vendor application intake
   submitted: 'info',
   reviewing: 'warning',
@@ -52,3 +55,32 @@ export function statusColor(status: string): ChipColor {
 export const INTAKE_STATUSES = ['submitted', 'reviewing', 'approved', 'rejected'] as const;
 
 export type IntakeStatus = (typeof INTAKE_STATUSES)[number];
+
+/**
+ * The `vendor_status` enum, in lifecycle order. Authoritative source for the
+ * Vendors list' status tabs and their counts. `active` vendors are live,
+ * `suspended` are temporarily disabled, `hidden` are delisted.
+ */
+export const VENDOR_STATUSES = ['active', 'suspended', 'hidden'] as const;
+
+export type VendorAdminStatus = (typeof VENDOR_STATUSES)[number];
+
+/** The `vendor_visibility` enum — whether a listing is publicly discoverable. */
+export const VENDOR_VISIBILITIES = ['public', 'hidden'] as const;
+
+export type VendorVisibility = (typeof VENDOR_VISIBILITIES)[number];
+
+/**
+ * The `event_status` enum, in lifecycle order. Authoritative source for the
+ * Events list' status tabs and their counts. `draft` events are unpublished,
+ * `published` are live, `closed` are no longer accepting interest, `archived`
+ * are retired.
+ */
+export const EVENT_STATUSES = ['draft', 'published', 'closed', 'archived'] as const;
+
+export type EventStatus = (typeof EVENT_STATUSES)[number];
+
+/** The `event_source` enum — who authored the event. */
+export const EVENT_SOURCES = ['admin', 'client'] as const;
+
+export type EventSource = (typeof EVENT_SOURCES)[number];

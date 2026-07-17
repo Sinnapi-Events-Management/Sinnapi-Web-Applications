@@ -1,7 +1,15 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
-import { INTAKE_STATUSES, type IntakeStatus } from '@/lib/status';
+import { paginate, type PageParams, type Paged } from '@/lib/table';
+import {
+  INTAKE_STATUSES,
+  VENDOR_STATUSES,
+  EVENT_STATUSES,
+  type IntakeStatus,
+  type VendorAdminStatus,
+  type EventStatus,
+} from '@/lib/status';
 import type {
   ProfileModel,
   IntakeListModel,
@@ -25,6 +33,7 @@ import type {
   BookingModel,
   QuotationModel,
   EventModel,
+  EventDetailModel,
   ReviewReportModel,
   MessageFlagModel,
   NotificationTemplateModel,
@@ -35,6 +44,10 @@ import type {
   ConversationModel,
   MessageModel,
   NotificationModel,
+  EventInterestModel,
+  EventQuotationModel,
+  EventEngagementKpis,
+  QuotationDocument,
 } from '@/lib/types';
 
 // Reads are RLS-gated by the admin's permissions (UI also hides via RBAC).
@@ -136,56 +149,72 @@ export function useAdminDashboard() {
   });
 }
 
+// Everything the paginated Applications query needs: a page + sort + the
+// free-text search and status tab. `status` is `undefined` on the "All" tab.
+export type IntakeAdminParams = {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** Debounced term matched against business name, owner name/email and city. */
+  search?: string;
+  status?: string;
+};
+
 // The admin "Applications" queue reads the public intake table (anonymous
 // submissions from the web-public "Become a vendor" form). Approved intakes are
-// promoted into `vendor_applications` by the promote-intake Edge Function.
-export function useApplications(params: PageParams) {
-  return useQuery(
-    pagedOptions('intake', params, () =>
-      paginate<IntakeListModel>(
-        applyFilters(
-          supabase
-            .from('vendor_application_intake')
-            .select('id,business_name,status,owner_full_name,owner_email,created_at', {
-              count: 'exact',
-            }),
-          params.filters,
-        ),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
-  );
+// promoted into `vendor_applications` by the promote-intake Edge Function. The
+// `search_intake_admin` RPC does search + status filter + sort + paginate +
+// count server-side, returning each row with a window `total_count`.
+export function useApplications(params: IntakeAdminParams) {
+  return useQuery({
+    queryKey: ['intake', params] as const,
+    queryFn: async (): Promise<Paged<IntakeListModel>> => {
+      const { data, error } = await supabase.rpc('search_intake_admin', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (IntakeListModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
 }
 
 /** Row count per intake status, plus `all` — drives the review queue's tabs. */
 export type IntakeCounts = Record<IntakeStatus | 'all', number>;
 
-function intakeCount(status?: IntakeStatus) {
-  const query = supabase
-    .from('vendor_application_intake')
-    .select('id', { count: 'exact', head: true });
-  return status ? query.eq('status', status) : query;
-}
-
 /**
- * Head-only counts (no rows transferred) for the queue tabs. `all` is counted
- * separately rather than summed so it stays correct if a status outside
- * `INTAKE_STATUSES` ever lands in the table. Shares the `intake` key prefix, so
- * the detail page's existing invalidation refreshes these badges after a
- * triage decision.
+ * Per-status counts for the queue tabs. The RPC honours the active search but
+ * NOT status, so each badge reflects what its tab would show once selected.
+ * Shares the `intake` key prefix, so the detail page's existing invalidation
+ * refreshes these badges after a triage decision.
  */
-export function useApplicationCounts() {
+export function useApplicationCounts(search?: string) {
   return useQuery({
-    queryKey: ['intake', 'counts'] as const,
+    queryKey: ['intake', 'counts', search] as const,
     queryFn: async (): Promise<IntakeCounts> => {
-      const [all, ...byStatus] = await Promise.all([
-        intakeCount(),
-        ...INTAKE_STATUSES.map((status) => intakeCount(status)),
-      ]);
-      return INTAKE_STATUSES.reduce(
-        (acc, status, i) => ({ ...acc, [status]: byStatus[i].count ?? 0 }),
-        { all: all.count ?? 0 } as IntakeCounts,
+      const { data, error } = await supabase.rpc('count_intake_admin_by_status', {
+        p_search: search ?? null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: IntakeStatus; count: number | string }[];
+      const base = INTAKE_STATUSES.reduce(
+        (acc, status) => ({ ...acc, [status]: 0 }),
+        {} as IntakeCounts,
+      );
+      return byStatus.reduce(
+        (acc, { status, count }) => {
+          const n = Number(count);
+          acc[status] = n;
+          acc.all += n;
+          return acc;
+        },
+        { ...base, all: 0 },
       );
     },
   });
@@ -205,25 +234,94 @@ export function useApplication(id: string) {
   });
 }
 
+// Non-status filters for the admin Vendors list. Every field is optional; an
+// omitted field means "no constraint on that dimension". `status` is tracked
+// separately (see `VendorAdminParams`) because the status tabs and their count
+// badges consume it differently from the free-text/attribute filters.
+export type VendorAdminFilters = {
+  /** Debounced free-text term matched against business name + city. */
+  search?: string;
+  /** `vendor_visibility` value, or `undefined` for any. */
+  visibility?: string;
+  /** Lower bound on `avg_rating`, or `undefined` for any. */
+  minRating?: number;
+  /** `true` to show only featured vendors; `undefined` for any. */
+  featured?: boolean;
+};
+
+/** Everything the paginated Vendors query needs: a page + sort + all filters. */
+export type VendorAdminParams = VendorAdminFilters & {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** `vendor_status` value, or `undefined` for the "All" tab. */
+  status?: string;
+};
+
 // Deleting a vendor is a soft delete — a database trigger stamps `deleted_at`
-// and cancels the physical delete — so both vendor reads must exclude the
-// tombstoned rows, or a "deleted" vendor keeps showing up here.
-export function useVendorsAdmin(params: PageParams) {
-  return useQuery(
-    pagedOptions('admin-vendors', params, () =>
-      paginate<VendorAdminModel>(
-        supabase
-          .from('vendors')
-          .select(
-            'id,business_name,slug,status,visibility,avg_rating,review_count,profile_image_url,base_city,created_at',
-            { count: 'exact' },
-          )
-          .is('deleted_at', null),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
-  );
+// and cancels the physical delete. The `search_vendors_admin` RPC already
+// excludes tombstoned rows and does search + filter + sort + paginate + count
+// server-side, returning each row with a window `total_count`, so the whole
+// list is one round trip regardless of which controls are active.
+export function useVendorsAdmin(params: VendorAdminParams) {
+  return useQuery({
+    queryKey: ['admin-vendors', params] as const,
+    queryFn: async (): Promise<Paged<VendorAdminModel>> => {
+      const { data, error } = await supabase.rpc('search_vendors_admin', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_visibility: params.visibility ?? null,
+        p_min_rating: params.minRating ?? null,
+        p_featured: params.featured ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (VendorAdminModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Row count per vendor status, plus `all` — drives the Vendors list' tabs. */
+export type VendorAdminCounts = Record<VendorAdminStatus | 'all', number>;
+
+/**
+ * Per-status counts for the tab badges. The RPC honours every filter EXCEPT
+ * status, so each badge reflects what that tab would show once selected. Shares
+ * the `admin-vendors` key prefix so a status/edit/delete mutation's existing
+ * invalidation refreshes the badges alongside the list.
+ */
+export function useVendorAdminStatusCounts(filters: VendorAdminFilters) {
+  return useQuery({
+    queryKey: ['admin-vendors', 'counts', filters] as const,
+    queryFn: async (): Promise<VendorAdminCounts> => {
+      const { data, error } = await supabase.rpc('count_vendors_admin_by_status', {
+        p_search: filters.search ?? null,
+        p_visibility: filters.visibility ?? null,
+        p_min_rating: filters.minRating ?? null,
+        p_featured: filters.featured ?? null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: VendorAdminStatus; count: number | string }[];
+      const base = VENDOR_STATUSES.reduce(
+        (acc, status) => ({ ...acc, [status]: 0 }),
+        {} as VendorAdminCounts,
+      );
+      return byStatus.reduce(
+        (acc, { status, count }) => {
+          const n = Number(count);
+          acc[status] = n;
+          acc.all += n;
+          return acc;
+        },
+        { ...base, all: 0 },
+      );
+    },
+  });
 }
 
 // --- single vendor + related collections (detail page) ----------------------
@@ -588,18 +686,199 @@ export function useQuotationsAdmin(params: PageParams) {
   );
 }
 
-export function useEventsAdmin(params: PageParams) {
-  return useQuery(
-    pagedOptions('admin-events', params, () =>
-      paginate<EventModel>(
-        supabase
-          .from('events')
-          .select('id,title,source,status,event_date,is_public,created_at', { count: 'exact' }),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
-  );
+// Non-status filters for the admin Events list. Every field is optional; an
+// omitted field means "no constraint on that dimension". `status` is tracked
+// separately (see `EventAdminParams`) because the status tabs and their count
+// badges consume it differently from the free-text/attribute filters.
+export type EventAdminFilters = {
+  /** Debounced free-text term matched against title + location. */
+  search?: string;
+  /** `event_source` value ('admin' | 'client'), or `undefined` for any. */
+  source?: string;
+  /** `true`/`false` to constrain on `is_public`; `undefined` for any. */
+  isPublic?: boolean;
+  /** Inclusive lower bound on `event_date` (yyyy-mm-dd), or `undefined`. */
+  dateFrom?: string;
+  /** Inclusive upper bound on `event_date` (yyyy-mm-dd), or `undefined`. */
+  dateTo?: string;
+};
+
+/** Everything the paginated Events query needs: a page + sort + all filters. */
+export type EventAdminParams = EventAdminFilters & {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** `event_status` value, or `undefined` for the "All" tab. */
+  status?: string;
+};
+
+// Deleting an event is a soft delete — a database trigger stamps `deleted_at`
+// and cancels the physical delete. The `search_events_admin` RPC already
+// excludes tombstoned rows and does search + filter + sort + paginate + count
+// server-side, returning each row with a window `total_count`, so the whole
+// list is one round trip regardless of which controls are active.
+export function useEventsAdmin(params: EventAdminParams) {
+  return useQuery({
+    queryKey: ['admin-events', params] as const,
+    queryFn: async (): Promise<Paged<EventModel>> => {
+      const { data, error } = await supabase.rpc('search_events_admin', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_source: params.source ?? null,
+        p_is_public: params.isPublic ?? null,
+        p_date_from: params.dateFrom ?? null,
+        p_date_to: params.dateTo ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (EventModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Row count per event status, plus `all` — drives the Events list' tabs. */
+export type EventAdminCounts = Record<EventStatus | 'all', number>;
+
+/**
+ * Per-status counts for the tab badges. The RPC honours every filter EXCEPT
+ * status, so each badge reflects what that tab would show once selected. Shares
+ * the `admin-events` key prefix so a create/edit/status/delete mutation's
+ * existing invalidation refreshes the badges alongside the list.
+ */
+export function useEventAdminStatusCounts(filters: EventAdminFilters) {
+  return useQuery({
+    queryKey: ['admin-events', 'counts', filters] as const,
+    queryFn: async (): Promise<EventAdminCounts> => {
+      const { data, error } = await supabase.rpc('count_events_admin_by_status', {
+        p_search: filters.search ?? null,
+        p_source: filters.source ?? null,
+        p_is_public: filters.isPublic ?? null,
+        p_date_from: filters.dateFrom ?? null,
+        p_date_to: filters.dateTo ?? null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: EventStatus; count: number | string }[];
+      const base = EVENT_STATUSES.reduce(
+        (acc, status) => ({ ...acc, [status]: 0 }),
+        {} as EventAdminCounts,
+      );
+      return byStatus.reduce(
+        (acc, { status, count }) => {
+          const n = Number(count);
+          acc[status] = n;
+          acc.all += n;
+          return acc;
+        },
+        { ...base, all: 0 },
+      );
+    },
+  });
+}
+
+/** The full editable event behind the edit drawer. `''` keeps it disabled. */
+export function useEvent(id: string) {
+  return useQuery({
+    queryKey: ['event', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(
+          'id,posted_by,source,title,description,event_type,event_date,location,' +
+            'budget_min,budget_max,currency,status,is_public,cover_image_url,created_at,' +
+            'poster:profiles!posted_by(full_name,email,phone)',
+        )
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+      if (error) throw error;
+      return data as unknown as EventDetailModel;
+    },
+  });
+}
+
+// --- single event + related vendor engagement (detail page) -----------------
+// The event detail page works the vendors that engaged with an event. Reads go
+// through SECURITY DEFINER RPCs gated on `events.manage` because that admin has
+// no direct RLS read on `quotations`/`quotation_items` and shouldn't need the
+// finance grants just to triage an event. Each list returns a window
+// `total_count`, so a page is one round trip (same contract as the admin lists).
+
+/** Headline engagement counts (interested / shortlisted / declined / quotes). */
+export function useEventEngagementKpis(id: string) {
+  return useQuery({
+    queryKey: ['event-engagement', id],
+    enabled: !!id,
+    queryFn: async (): Promise<EventEngagementKpis> => {
+      const { data, error } = await supabase.rpc('event_engagement_counts', { p_event_id: id });
+      if (error) throw error;
+      const row = (data ?? [])[0] as Record<string, number | string> | undefined;
+      return {
+        interested: Number(row?.interested ?? 0),
+        shortlisted: Number(row?.shortlisted ?? 0),
+        declined: Number(row?.declined ?? 0),
+        quotations: Number(row?.quotations ?? 0),
+      };
+    },
+  });
+}
+
+/** Vendors that expressed interest in an event, server-paginated. */
+export function useEventInterests(id: string, params: PageParams) {
+  return useQuery({
+    queryKey: ['event-interests', id, params] as const,
+    enabled: !!id,
+    queryFn: async (): Promise<Paged<EventInterestModel>> => {
+      const { data, error } = await supabase.rpc('search_event_interests', {
+        p_event_id: id,
+        p_status: params.filters?.status ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (EventInterestModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Quotations submitted against an event, server-paginated. */
+export function useEventQuotations(id: string, params: PageParams) {
+  return useQuery({
+    queryKey: ['event-quotations', id, params] as const,
+    enabled: !!id,
+    queryFn: async (): Promise<Paged<EventQuotationModel>> => {
+      const { data, error } = await supabase.rpc('search_event_quotations', {
+        p_event_id: id,
+        p_status: params.filters?.status ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (EventQuotationModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Fetch the full quotation document (header + line items) for the PDF export. */
+export async function fetchQuotationDocument(quotationId: string): Promise<QuotationDocument> {
+  const { data, error } = await supabase.rpc('get_event_quotation', {
+    p_quotation_id: quotationId,
+  });
+  if (error) throw error;
+  return data as QuotationDocument;
 }
 
 export function useReviewReports() {

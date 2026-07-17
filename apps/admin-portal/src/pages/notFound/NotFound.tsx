@@ -7,7 +7,7 @@ export default function NotFound() {
       sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', textAlign: 'center', p: 4 }}
     >
       <Box>
-        <Typography variant="h1" sx={{ fontSize: '4rem', color: 'primary.main' }}>
+        <Typography variant="h1" sx={{ fontSize: '4rem', color: 'secondary.dark' }}>
           404
         </Typography>
         <Typography variant="h5">Page not found</Typography>

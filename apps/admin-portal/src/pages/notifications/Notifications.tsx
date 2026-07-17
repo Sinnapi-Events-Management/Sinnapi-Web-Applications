@@ -41,7 +41,7 @@ export default function Notifications() {
                   {i > 0 && <Divider />}
                   <ListItem sx={{ bgcolor: n.read_at ? 'transparent' : 'action.hover' }}>
                     {!n.read_at && (
-                      <FiberManualRecordIcon color="primary" sx={{ fontSize: 10, mr: 1 }} />
+                      <FiberManualRecordIcon color="secondary" sx={{ fontSize: 10, mr: 1 }} />
                     )}
                     <ListItemText
                       primary={n.title || titleize(n.trigger_key)}
