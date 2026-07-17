@@ -37,7 +37,7 @@ export default function ChipCloud({ title, items, icon }: Props) {
             key={it.key}
             size="small"
             label={it.label}
-            color={it.highlight ? 'primary' : 'default'}
+            color={it.highlight ? 'secondary' : 'default'}
             variant={it.variant ?? (it.highlight ? 'filled' : 'outlined')}
             sx={{ fontWeight: it.highlight ? 600 : 400 }}
           />

@@ -74,7 +74,7 @@ export default function SignInForm() {
           component={RouterLink}
           to="/forgot-password"
           variant="body2"
-          sx={{ alignSelf: 'flex-end', fontWeight: 600, color: 'primary.main' }}
+          sx={{ alignSelf: 'flex-end', fontWeight: 600, color: 'secondary.dark' }}
         >
           Forgot password?
         </Link>

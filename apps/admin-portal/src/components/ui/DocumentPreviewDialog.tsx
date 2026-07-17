@@ -98,8 +98,8 @@ function PreviewHeader({ doc, onClose }: { doc: PreviewDoc; onClose: () => void 
           width: 40,
           height: 40,
           borderRadius: 2,
-          color: 'primary.main',
-          bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
+          color: 'secondary.main',
+          bgcolor: (t) => alpha(t.palette.secondary.main, 0.12),
         }}
       >
         {KIND_ICON[doc.kind]}

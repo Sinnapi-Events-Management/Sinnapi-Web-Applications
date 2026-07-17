@@ -5,7 +5,7 @@ import StatusTabs from '@/components/ui/StatusTabs';
 import type { IntakeListModel } from '@/lib/types';
 import { useApplications } from './hooks/useApplications';
 import { getColumns } from './schema';
-import { getEmptyMessage } from './schema/tabs';
+import ApplicationsToolbar from './components/organisms/ApplicationsToolbar';
 
 export default function Applications() {
   const {
@@ -18,8 +18,10 @@ export default function Applications() {
     table,
     tabs,
     countsLoading,
+    emptyMessage,
     status,
     onStatusChange,
+    search,
   } = useApplications();
 
   const columns = useMemo(
@@ -40,6 +42,7 @@ export default function Applications() {
         loadingCounts={countsLoading}
         ariaLabel="Filter applications by status"
       />
+      <ApplicationsToolbar search={search} />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error instanceof Error ? error.message : 'Failed to load applications.'}
@@ -52,7 +55,7 @@ export default function Applications() {
         rowCount={total}
         loading={isLoading || isFetching}
         onRowClick={(a) => viewApplication(a.id)}
-        emptyMessage={getEmptyMessage(status)}
+        emptyMessage={emptyMessage}
         {...table.controls}
       />
     </>

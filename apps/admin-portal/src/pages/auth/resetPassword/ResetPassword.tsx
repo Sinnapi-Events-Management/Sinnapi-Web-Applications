@@ -96,7 +96,7 @@ export default function ResetPassword() {
           component={RouterLink}
           to="/sign-in"
           variant="body2"
-          sx={{ alignSelf: 'center', fontWeight: 600, color: 'primary.main' }}
+          sx={{ alignSelf: 'center', fontWeight: 600, color: 'secondary.dark' }}
         >
           Back to sign in
         </Link>

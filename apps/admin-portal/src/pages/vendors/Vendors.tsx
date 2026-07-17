@@ -1,16 +1,35 @@
 import { useMemo } from 'react';
 import { DataTable, Alert } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
+import StatusTabs from '@/components/ui/StatusTabs';
 import type { VendorAdminModel } from '@/lib/types';
 import { useVendors } from './hooks/useVendors';
 import { getColumns } from './schema';
+import VendorsToolbar from './components/organisms/VendorsToolbar';
 import VendorStatusDialog from './components/organisms/VendorStatusDialog';
 import VendorEditDrawer from './components/organisms/VendorEditDrawer';
 import VendorDeleteDialog from './components/organisms/VendorDeleteDialog';
 
 export default function Vendors() {
-  const { rows, total, isLoading, isFetching, error, status, edit, remove, navigate, table } =
-    useVendors();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    emptyMessage,
+    tabs,
+    countsLoading,
+    tab,
+    onTabChange,
+    search,
+    filters,
+    status,
+    edit,
+    remove,
+    navigate,
+    table,
+  } = useVendors();
 
   const columns = useMemo(
     () =>
@@ -32,6 +51,16 @@ export default function Vendors() {
   return (
     <>
       <PageTitle title="Vendors" subtitle="Monitor and manage vendor listings." />
+
+      <StatusTabs
+        options={tabs}
+        value={tab}
+        onChange={onTabChange}
+        loadingCounts={countsLoading}
+        ariaLabel="Filter vendors by status"
+      />
+      <VendorsToolbar search={search} filters={filters} />
+
       {pageError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {pageError}
@@ -44,7 +73,7 @@ export default function Vendors() {
         rowCount={total}
         loading={isLoading || isFetching}
         onRowClick={(v) => navigate(`/vendors/${v.id}`)}
-        emptyMessage="No vendors yet."
+        emptyMessage={emptyMessage}
         {...table.controls}
       />
 

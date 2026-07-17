@@ -19,7 +19,7 @@ export const palette = {
     // Gold deepened from #B9890F so white label text clears WCAG AA (4.7:1);
     // contained primary/secondary buttons therefore render white via contrastText.
     secondary: {
-      lightest: '#FEF8E8',
+      lightest: '#FDFCF5D6',
       lighter: '#FAE3A2',
       light: '#F6D064',
       main: '#c8973a',

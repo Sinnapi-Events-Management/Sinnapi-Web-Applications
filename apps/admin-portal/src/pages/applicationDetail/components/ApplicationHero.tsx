@@ -38,7 +38,7 @@ export default function ApplicationHero({ a }: { a: IntakeDetailModel }) {
         mb: 3,
         color: 'common.white',
         background: (t) =>
-          `linear-gradient(120deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.main} 55%, ${t.palette.secondary.main} 130%)`,
+          `linear-gradient(120deg, ${t.palette.secondary.dark} 0%, ${t.palette.secondary.main} 52%, ${t.palette.primary.dark} 128%)`,
       }}
     >
       {/* decorative glow */}

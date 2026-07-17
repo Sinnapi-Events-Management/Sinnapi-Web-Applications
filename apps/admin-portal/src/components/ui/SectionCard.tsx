@@ -22,7 +22,7 @@ type Props = {
 export default function SectionCard({
   title,
   icon,
-  accent = 'primary',
+  accent = 'secondary',
   action,
   subtitle,
   children,
