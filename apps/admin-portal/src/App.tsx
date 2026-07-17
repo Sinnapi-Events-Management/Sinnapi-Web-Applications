@@ -18,6 +18,7 @@ import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
 import Quotations from '@/pages/quotations';
 import Events from '@/pages/events';
+import EventDetail from '@/pages/eventDetail';
 import Escrow from '@/pages/escrow';
 import Payouts from '@/pages/payouts';
 import Refunds from '@/pages/refunds';
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="/bookings" element={g('bookings.read', <Bookings />)} />
         <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
         <Route path="/events" element={g('events.manage', <Events />)} />
+        <Route path="/events/:id" element={g('events.manage', <EventDetail />)} />
 
         <Route path="/escrow" element={g('escrow.read', <Escrow />)} />
         <Route path="/payouts" element={g('payout.approve', <Payouts />)} />

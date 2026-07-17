@@ -371,6 +371,96 @@ export type EventModel = {
   created_at: string | null;
 };
 
+/** The full editable event behind the edit drawer (see `useEvent`). */
+export type EventDetailModel = {
+  id: string;
+  posted_by: string | null;
+  source: string;
+  title: string;
+  description: string | null;
+  event_type: string | null;
+  event_date: string | null;
+  location: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string | null;
+  status: string;
+  is_public: boolean | null;
+  cover_image_url: string | null;
+  created_at: string | null;
+  /** The profile that posted the event (Supabase to-one embed). */
+  poster: OwnerRef | OwnerRef[] | null;
+};
+
+// --- event ↔ vendor engagement (event detail page) --------------------------
+// Both list shapes are returned flat by the `search_event_*` RPCs (vendor
+// fields already joined in), so no relation normalization is needed. The
+// `vendor_id` on each row is what the approve/reject/message actions key on.
+
+/** A vendor that expressed interest in an event (`search_event_interests`). */
+export type EventInterestModel = {
+  id: string;
+  vendor_id: string;
+  business_name: string | null;
+  profile_image_url: string | null;
+  base_city: string | null;
+  message: string | null;
+  status: string;
+  created_at: string | null;
+};
+
+/** A quotation submitted against an event (`search_event_quotations`). */
+export type EventQuotationModel = {
+  id: string;
+  vendor_id: string;
+  business_name: string | null;
+  reference_no: string | null;
+  status: string;
+  currency: string | null;
+  total: number | null;
+  sent_at: string | null;
+  created_at: string | null;
+};
+
+/** Headline engagement counts for the event detail KPI row. */
+export type EventEngagementKpis = {
+  interested: number;
+  shortlisted: number;
+  declined: number;
+  quotations: number;
+};
+
+/** One priced line on a quotation. */
+export type QuotationItem = {
+  description: string;
+  quantity: number | null;
+  unit_price: number | null;
+  line_total: number | null;
+};
+
+/**
+ * The full quotation document behind the "Download quotation" action, built by
+ * the `get_event_quotation` RPC (the only admin-visible path to line items).
+ */
+export type QuotationDocument = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  currency: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  tax_total: number | null;
+  total: number | null;
+  valid_until: string | null;
+  request_details: string | null;
+  sent_at: string | null;
+  created_at: string | null;
+  vendor_name: string | null;
+  client_name: string | null;
+  event_title: string | null;
+  items: QuotationItem[];
+};
+
 // --- moderation -------------------------------------------------------------
 
 export type ReviewRef = {

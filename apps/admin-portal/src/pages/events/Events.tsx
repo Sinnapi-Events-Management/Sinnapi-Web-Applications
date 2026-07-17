@@ -1,43 +1,55 @@
-import {
-  DataTable,
-  Button,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Alert,
-  type DataTableColumn,
-} from '@sinnapi/ui';
+import { useMemo } from 'react';
+import { DataTable, Alert, Button } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
-import { formatDate, titleize } from '@/lib/config';
+import StatusTabs from '@/components/ui/StatusTabs';
 import type { EventModel } from '@/lib/types';
 import { useEvents } from './hooks/useEvents';
-
-const columns: DataTableColumn<EventModel>[] = [
-  { field: 'title', headerName: 'Title', sortable: true, render: (e) => e.title },
-  { field: 'source', headerName: 'Source', sortable: true, render: (e) => titleize(e.source) },
-  {
-    field: 'event_date',
-    headerName: 'Date',
-    sortable: true,
-    render: (e) => formatDate(e.event_date),
-  },
-  { field: 'is_public', headerName: 'Public', render: (e) => (e.is_public ? 'Yes' : 'No') },
-  {
-    field: 'status',
-    headerName: 'Status',
-    sortable: true,
-    render: (e) => <StatusChip status={e.status} />,
-  },
-];
+import { getColumns } from './schema';
+import EventsToolbar from './components/organisms/EventsToolbar';
+import EventCreateDrawer from './components/organisms/EventCreateDrawer';
+import EventEditDrawer from './components/organisms/EventEditDrawer';
+import EventStatusDialog from './components/organisms/EventStatusDialog';
+import EventDeleteDialog from './components/organisms/EventDeleteDialog';
 
 export default function Events() {
-  const { rows, total, isLoading, isFetching, error, open, setOpen, busy, err, post, table } =
-    useEvents();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    emptyMessage,
+    tabs,
+    countsLoading,
+    tab,
+    onTabChange,
+    search,
+    filters,
+    create,
+    edit,
+    remove,
+    status,
+    navigate,
+    table,
+  } = useEvents();
+
+  const columns = useMemo(
+    () =>
+      getColumns({
+        onView: (e: EventModel) => navigate(`/events/${e.id}`),
+        onEdit: edit.open,
+        onRequestStatusChange: status.request,
+        onRequestDelete: remove.request,
+      }),
+    [navigate, edit.open, status.request, remove.request],
+  );
+
+  // Save failures belong to their drawer, so they're rendered there instead.
+  const pageError =
+    status.err ??
+    remove.err ??
+    (error ? (error instanceof Error ? error.message : 'Failed to load events.') : null);
 
   return (
     <>
@@ -45,60 +57,69 @@ export default function Events() {
         title="Events"
         subtitle="Post inspiration events and manage all platform events."
         action={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={create.open}>
             Post event
           </Button>
         }
       />
-      {error && (
+
+      <StatusTabs
+        options={tabs}
+        value={tab}
+        onChange={onTabChange}
+        loadingCounts={countsLoading}
+        ariaLabel="Filter events by status"
+      />
+      <EventsToolbar search={search} filters={filters} />
+
+      {pageError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : 'Failed to load events.'}
+          {pageError}
         </Alert>
       )}
       <DataTable
         columns={columns}
         rows={rows}
-        getRowId={(e) => e.id}
+        getRowId={(e: EventModel) => e.id}
         rowCount={total}
         loading={isLoading || isFetching}
-        emptyMessage="No events yet."
+        onRowClick={(e: EventModel) => navigate(`/events/${e.id}`)}
+        emptyMessage={emptyMessage}
         {...table.controls}
       />
 
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{ component: 'form', onSubmit: post }}
-      >
-        <DialogTitle>Post an event</DialogTitle>
-        <DialogContent>
-          {err && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {err}
-            </Alert>
-          )}
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField name="title" label="Title" required autoFocus />
-            <TextField name="event_type" label="Event type" />
-            <TextField
-              name="event_date"
-              type="date"
-              label="Date"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField name="location" label="Location" />
-            <TextField name="description" label="Description" multiline minRows={3} />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button type="submit" variant="contained" disabled={busy}>
-            Publish
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EventCreateDrawer
+        open={create.isOpen}
+        busy={create.busy}
+        err={create.err}
+        onClose={create.close}
+        onSave={create.save}
+      />
+
+      <EventEditDrawer
+        open={edit.isOpen}
+        event={edit.event}
+        loading={edit.loading}
+        loadError={edit.loadError}
+        busy={edit.busy}
+        err={edit.err}
+        onClose={edit.close}
+        onSave={edit.save}
+      />
+
+      <EventStatusDialog
+        pending={status.pending}
+        busy={status.busy}
+        onCancel={status.cancel}
+        onConfirm={status.confirm}
+      />
+
+      <EventDeleteDialog
+        pending={remove.pending}
+        busy={remove.busy}
+        onCancel={remove.cancel}
+        onConfirm={remove.confirm}
+      />
     </>
   );
 }

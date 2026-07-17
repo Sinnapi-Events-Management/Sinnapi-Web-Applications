@@ -36,7 +36,7 @@ export default function ForgotPassword() {
             <Button
               type="submit"
               variant="contained"
-              color="primary"
+              color="secondary"
               size="large"
               disabled={loading}
             >

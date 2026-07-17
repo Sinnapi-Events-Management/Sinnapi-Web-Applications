@@ -82,7 +82,7 @@ export default function ResetPassword() {
               <Button
                 type="submit"
                 variant="contained"
-                color="primary"
+                color="secondary"
                 size="large"
                 disabled={submitting}
               >

@@ -80,7 +80,7 @@ export default function SignInForm() {
         </Link>
       </Stack>
 
-      <Button type="submit" variant="contained" color="primary" size="large" disabled={loading}>
+      <Button type="submit" variant="contained" color="secondary" size="large" disabled={loading}>
         {loading ? 'Signing in…' : 'Sign In'}
       </Button>
     </Stack>

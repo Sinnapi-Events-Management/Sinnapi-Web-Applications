@@ -5,8 +5,10 @@ import { paginate, type PageParams, type Paged } from '@/lib/table';
 import {
   INTAKE_STATUSES,
   VENDOR_STATUSES,
+  EVENT_STATUSES,
   type IntakeStatus,
   type VendorAdminStatus,
+  type EventStatus,
 } from '@/lib/status';
 import type {
   ProfileModel,
@@ -31,6 +33,7 @@ import type {
   BookingModel,
   QuotationModel,
   EventModel,
+  EventDetailModel,
   ReviewReportModel,
   MessageFlagModel,
   NotificationTemplateModel,
@@ -41,6 +44,10 @@ import type {
   ConversationModel,
   MessageModel,
   NotificationModel,
+  EventInterestModel,
+  EventQuotationModel,
+  EventEngagementKpis,
+  QuotationDocument,
 } from '@/lib/types';
 
 // Reads are RLS-gated by the admin's permissions (UI also hides via RBAC).
@@ -679,18 +686,199 @@ export function useQuotationsAdmin(params: PageParams) {
   );
 }
 
-export function useEventsAdmin(params: PageParams) {
-  return useQuery(
-    pagedOptions('admin-events', params, () =>
-      paginate<EventModel>(
-        supabase
-          .from('events')
-          .select('id,title,source,status,event_date,is_public,created_at', { count: 'exact' }),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
-  );
+// Non-status filters for the admin Events list. Every field is optional; an
+// omitted field means "no constraint on that dimension". `status` is tracked
+// separately (see `EventAdminParams`) because the status tabs and their count
+// badges consume it differently from the free-text/attribute filters.
+export type EventAdminFilters = {
+  /** Debounced free-text term matched against title + location. */
+  search?: string;
+  /** `event_source` value ('admin' | 'client'), or `undefined` for any. */
+  source?: string;
+  /** `true`/`false` to constrain on `is_public`; `undefined` for any. */
+  isPublic?: boolean;
+  /** Inclusive lower bound on `event_date` (yyyy-mm-dd), or `undefined`. */
+  dateFrom?: string;
+  /** Inclusive upper bound on `event_date` (yyyy-mm-dd), or `undefined`. */
+  dateTo?: string;
+};
+
+/** Everything the paginated Events query needs: a page + sort + all filters. */
+export type EventAdminParams = EventAdminFilters & {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** `event_status` value, or `undefined` for the "All" tab. */
+  status?: string;
+};
+
+// Deleting an event is a soft delete — a database trigger stamps `deleted_at`
+// and cancels the physical delete. The `search_events_admin` RPC already
+// excludes tombstoned rows and does search + filter + sort + paginate + count
+// server-side, returning each row with a window `total_count`, so the whole
+// list is one round trip regardless of which controls are active.
+export function useEventsAdmin(params: EventAdminParams) {
+  return useQuery({
+    queryKey: ['admin-events', params] as const,
+    queryFn: async (): Promise<Paged<EventModel>> => {
+      const { data, error } = await supabase.rpc('search_events_admin', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_source: params.source ?? null,
+        p_is_public: params.isPublic ?? null,
+        p_date_from: params.dateFrom ?? null,
+        p_date_to: params.dateTo ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (EventModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Row count per event status, plus `all` — drives the Events list' tabs. */
+export type EventAdminCounts = Record<EventStatus | 'all', number>;
+
+/**
+ * Per-status counts for the tab badges. The RPC honours every filter EXCEPT
+ * status, so each badge reflects what that tab would show once selected. Shares
+ * the `admin-events` key prefix so a create/edit/status/delete mutation's
+ * existing invalidation refreshes the badges alongside the list.
+ */
+export function useEventAdminStatusCounts(filters: EventAdminFilters) {
+  return useQuery({
+    queryKey: ['admin-events', 'counts', filters] as const,
+    queryFn: async (): Promise<EventAdminCounts> => {
+      const { data, error } = await supabase.rpc('count_events_admin_by_status', {
+        p_search: filters.search ?? null,
+        p_source: filters.source ?? null,
+        p_is_public: filters.isPublic ?? null,
+        p_date_from: filters.dateFrom ?? null,
+        p_date_to: filters.dateTo ?? null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: EventStatus; count: number | string }[];
+      const base = EVENT_STATUSES.reduce(
+        (acc, status) => ({ ...acc, [status]: 0 }),
+        {} as EventAdminCounts,
+      );
+      return byStatus.reduce(
+        (acc, { status, count }) => {
+          const n = Number(count);
+          acc[status] = n;
+          acc.all += n;
+          return acc;
+        },
+        { ...base, all: 0 },
+      );
+    },
+  });
+}
+
+/** The full editable event behind the edit drawer. `''` keeps it disabled. */
+export function useEvent(id: string) {
+  return useQuery({
+    queryKey: ['event', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(
+          'id,posted_by,source,title,description,event_type,event_date,location,' +
+            'budget_min,budget_max,currency,status,is_public,cover_image_url,created_at,' +
+            'poster:profiles!posted_by(full_name,email,phone)',
+        )
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+      if (error) throw error;
+      return data as unknown as EventDetailModel;
+    },
+  });
+}
+
+// --- single event + related vendor engagement (detail page) -----------------
+// The event detail page works the vendors that engaged with an event. Reads go
+// through SECURITY DEFINER RPCs gated on `events.manage` because that admin has
+// no direct RLS read on `quotations`/`quotation_items` and shouldn't need the
+// finance grants just to triage an event. Each list returns a window
+// `total_count`, so a page is one round trip (same contract as the admin lists).
+
+/** Headline engagement counts (interested / shortlisted / declined / quotes). */
+export function useEventEngagementKpis(id: string) {
+  return useQuery({
+    queryKey: ['event-engagement', id],
+    enabled: !!id,
+    queryFn: async (): Promise<EventEngagementKpis> => {
+      const { data, error } = await supabase.rpc('event_engagement_counts', { p_event_id: id });
+      if (error) throw error;
+      const row = (data ?? [])[0] as Record<string, number | string> | undefined;
+      return {
+        interested: Number(row?.interested ?? 0),
+        shortlisted: Number(row?.shortlisted ?? 0),
+        declined: Number(row?.declined ?? 0),
+        quotations: Number(row?.quotations ?? 0),
+      };
+    },
+  });
+}
+
+/** Vendors that expressed interest in an event, server-paginated. */
+export function useEventInterests(id: string, params: PageParams) {
+  return useQuery({
+    queryKey: ['event-interests', id, params] as const,
+    enabled: !!id,
+    queryFn: async (): Promise<Paged<EventInterestModel>> => {
+      const { data, error } = await supabase.rpc('search_event_interests', {
+        p_event_id: id,
+        p_status: params.filters?.status ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (EventInterestModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Quotations submitted against an event, server-paginated. */
+export function useEventQuotations(id: string, params: PageParams) {
+  return useQuery({
+    queryKey: ['event-quotations', id, params] as const,
+    enabled: !!id,
+    queryFn: async (): Promise<Paged<EventQuotationModel>> => {
+      const { data, error } = await supabase.rpc('search_event_quotations', {
+        p_event_id: id,
+        p_status: params.filters?.status ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (EventQuotationModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Fetch the full quotation document (header + line items) for the PDF export. */
+export async function fetchQuotationDocument(quotationId: string): Promise<QuotationDocument> {
+  const { data, error } = await supabase.rpc('get_event_quotation', {
+    p_quotation_id: quotationId,
+  });
+  if (error) throw error;
+  return data as QuotationDocument;
 }
 
 export function useReviewReports() {

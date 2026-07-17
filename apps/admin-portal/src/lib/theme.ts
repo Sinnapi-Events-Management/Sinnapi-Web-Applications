@@ -22,8 +22,14 @@ const shared: ThemeOptions = {
     overline: { fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
+    // Gold (`secondary`) is the portal's default action color — every button
+    // reads gold unless it opts into a semantic color (error/success) or is
+    // explicitly set otherwise. Applies to contained, outlined and text alike;
+    // `secondary.contrastText` (white) keeps solid buttons AA-legible and
+    // outlined/text use `secondary.main`/`.dark` which clear contrast on the
+    // white/cream surfaces. Teal (`primary`) is reserved for wayfinding accents.
     MuiButton: {
-      defaultProps: { disableElevation: true },
+      defaultProps: { disableElevation: true, color: 'secondary' },
       styleOverrides: { root: { borderRadius: 8, minHeight: 42 } },
     },
     MuiCard: { styleOverrides: { root: { borderRadius: 12 } } },
