@@ -318,14 +318,19 @@ export type DisputeModel = {
 
 // --- subscriptions / plans --------------------------------------------------
 
-export type SubscriptionModel = {
+/**
+ * A subscription as returned by the `search_subscriptions_admin` RPC — flat, with
+ * the owning vendor's name and the plan's name already joined in (both nullable:
+ * `plan_name` is null for a plan-less subscription).
+ */
+export type SubscriptionAdminModel = {
   id: string;
   status: string;
   current_period_end: string | null;
   grace_until: string | null;
   trial_ends_at: string | null;
-  vendors: VendorRef | VendorRef[] | null;
-  pricing_plans: PricingPlanRef | PricingPlanRef[] | null;
+  business_name: string | null;
+  plan_name: string | null;
 };
 
 export type PlanModel = {
