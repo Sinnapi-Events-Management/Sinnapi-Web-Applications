@@ -27,6 +27,7 @@ import Payments from '@/pages/payments';
 import Ledger from '@/pages/ledger';
 import Subscriptions from '@/pages/subscriptions';
 import PricingPlans from '@/pages/pricingPlans';
+import PlanDetail from '@/pages/planDetail';
 import Users from '@/pages/users';
 import Rbac from '@/pages/rbac';
 import ReviewsModeration from '@/pages/reviewsModeration';
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/ledger" element={g('finance.read', <Ledger />)} />
         <Route path="/subscriptions" element={g('subscriptions.manage', <Subscriptions />)} />
         <Route path="/pricing-plans" element={g('plans.manage', <PricingPlans />)} />
+        <Route path="/pricing-plans/:id" element={g('plans.manage', <PlanDetail />)} />
 
         <Route path="/users" element={g('users.read', <Users />)} />
         <Route path="/rbac" element={g('roles.manage', <Rbac />)} />

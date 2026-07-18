@@ -1,14 +1,16 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { paginate, type PageParams, type Paged } from '@/lib/table';
+import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
 import {
   INTAKE_STATUSES,
   VENDOR_STATUSES,
   EVENT_STATUSES,
+  SUBSCRIPTION_STATUSES,
   type IntakeStatus,
   type VendorAdminStatus,
   type EventStatus,
+  type SubscriptionStatus,
 } from '@/lib/status';
 import type {
   ProfileModel,
@@ -28,8 +30,10 @@ import type {
   DisputeModel,
   PaymentModel,
   LedgerEntryModel,
-  SubscriptionModel,
+  SubscriptionAdminModel,
   PlanModel,
+  PlanDetailModel,
+  PlanKpis,
   BookingModel,
   QuotationModel,
   EventModel,
@@ -621,37 +625,171 @@ export function useLedger(params: PageParams) {
   );
 }
 
-export function useSubscriptionsAdmin(params: PageParams) {
-  return useQuery(
-    pagedOptions('admin-subscriptions', params, () =>
-      paginate<SubscriptionModel>(
-        supabase
-          .from('subscriptions')
-          .select(
-            'id,status,current_period_end,grace_until,trial_ends_at,vendors(business_name),pricing_plans(name)',
-            { count: 'exact' },
-          ),
-        params,
-        { field: 'current_period_end', ascending: true },
-      ),
-    ),
-  );
+// Non-status filters for the admin Subscriptions list. `status` is tracked
+// separately (see `SubscriptionAdminParams`) because the status tabs and their
+// count badges consume it differently from the free-text/attribute filters.
+export type SubscriptionAdminFilters = {
+  /** Debounced free-text term matched against the vendor's business name. */
+  search?: string;
+  /** `pricing_plans.id` to narrow by plan, or `undefined` for any plan. */
+  planId?: string;
+  /** `true` to show only subscriptions whose period ends within the window. */
+  expiringSoon?: boolean;
+};
+
+/** Everything the paginated Subscriptions query needs: page + sort + filters. */
+export type SubscriptionAdminParams = SubscriptionAdminFilters & {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** `subscription_status` value, or `undefined` for the "All" tab. */
+  status?: string;
+};
+
+/** How soon a subscription must lapse to count as "expiring soon", in days. */
+export const EXPIRING_SOON_DAYS = 30;
+
+// One page of the admin Subscriptions list. Like `search_vendors_admin`, the
+// `search_subscriptions_admin` RPC does search + filter + sort + paginate +
+// count server-side (excluding soft-deleted rows) and returns each row with a
+// window `total_count`, so the whole list is one round trip regardless of which
+// controls are active. Plan filtering is `plan_id = p_plan_id`, so a plan-less
+// subscription only ever shows under "any plan".
+export function useSubscriptionsAdmin(params: SubscriptionAdminParams) {
+  return useQuery({
+    queryKey: ['admin-subscriptions', params] as const,
+    queryFn: async (): Promise<Paged<SubscriptionAdminModel>> => {
+      const { data, error } = await supabase.rpc('search_subscriptions_admin', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_plan_id: params.planId ?? null,
+        p_expiring_days: params.expiringSoon ? EXPIRING_SOON_DAYS : null,
+        p_sort_field: params.sort?.field ?? 'current_period_end',
+        p_sort_dir: params.sort?.direction ?? 'asc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (SubscriptionAdminModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
 }
+
+/** Row count per subscription status, plus `all` — drives the list' tabs. */
+export type SubscriptionAdminCounts = Record<SubscriptionStatus | 'all', number>;
+
+/**
+ * Per-status counts for the tab badges. The RPC honours every filter EXCEPT
+ * status, so each badge reflects what that tab would show once selected. Shares
+ * the `admin-subscriptions` key prefix so a list refresh refreshes the badges
+ * alongside it.
+ */
+export function useSubscriptionAdminStatusCounts(filters: SubscriptionAdminFilters) {
+  return useQuery({
+    queryKey: ['admin-subscriptions', 'counts', filters] as const,
+    queryFn: async (): Promise<SubscriptionAdminCounts> => {
+      const { data, error } = await supabase.rpc('count_subscriptions_admin_by_status', {
+        p_search: filters.search ?? null,
+        p_plan_id: filters.planId ?? null,
+        p_expiring_days: filters.expiringSoon ? EXPIRING_SOON_DAYS : null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: SubscriptionStatus; count: number | string }[];
+      const base = SUBSCRIPTION_STATUSES.reduce(
+        (acc, status) => ({ ...acc, [status]: 0 }),
+        {} as SubscriptionAdminCounts,
+      );
+      return byStatus.reduce(
+        (acc, { status, count }) => {
+          const n = Number(count);
+          acc[status] = n;
+          acc.all += n;
+          return acc;
+        },
+        { ...base, all: 0 },
+      );
+    },
+  });
+}
+
+/** A pricing plan reduced to what the Subscriptions plan filter needs. */
+export type PricingPlanOption = { id: string; name: string };
+
+/**
+ * All pricing plans as filter options, active or not — a subscription can sit on
+ * a since-retired plan, and hiding that plan would make those rows unfilterable.
+ */
+export function usePricingPlanOptions() {
+  return useQuery({
+    queryKey: ['pricing-plan-options'] as const,
+    queryFn: async (): Promise<PricingPlanOption[]> => {
+      const { data, error } = await supabase.rpc('list_pricing_plan_options');
+      if (error) throw error;
+      return (data ?? []) as PricingPlanOption[];
+    },
+  });
+}
+
+const PLAN_COLUMNS =
+  'id,key,name,tagline,description,highlight,price,currency,billing_cycle,is_active,trial_days,sort_order,features';
 
 export function usePlansAdmin(params: PageParams) {
   return useQuery(
     pagedOptions('admin-plans', params, () =>
       paginate<PlanModel>(
-        supabase
-          .from('pricing_plans')
-          .select('id,key,name,price,currency,billing_cycle,is_active,trial_days', {
-            count: 'exact',
-          }),
+        applyFilters(
+          supabase.from('pricing_plans').select(PLAN_COLUMNS, { count: 'exact' }),
+          params.filters,
+        ),
         params,
         { field: 'sort_order', ascending: true },
       ),
     ),
   );
+}
+
+/** A single plan by id — drives the plan detail page. */
+export function usePlan(id: string) {
+  return useQuery({
+    queryKey: ['plan', id],
+    enabled: !!id,
+    queryFn: async (): Promise<PlanDetailModel> => {
+      const { data, error } = await supabase
+        .from('pricing_plans')
+        .select(`${PLAN_COLUMNS},created_at,updated_at`)
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data as unknown as PlanDetailModel;
+    },
+  });
+}
+
+// Subscriber counts for the plan detail KPI row. Each tile is a head+count
+// query filtered to this plan; soft-deleted subscriptions are excluded so the
+// numbers match the Subscriptions list.
+export function usePlanKpis(id: string) {
+  return useQuery({
+    queryKey: ['plan-kpis', id],
+    enabled: !!id,
+    queryFn: async (): Promise<PlanKpis> => {
+      const base = () =>
+        supabase
+          .from('subscriptions')
+          .select('id', { count: 'exact', head: true })
+          .eq('plan_id', id)
+          .is('deleted_at', null);
+      const [subscribers, active, trialing, expired] = await Promise.all([
+        count(base()),
+        count(base().eq('status', 'active')),
+        count(base().eq('status', 'trialing')),
+        count(base().eq('status', 'expired')),
+      ]);
+      return { subscribers, active, trialing, expired };
+    },
+  });
 }
 
 export function useBookingsAdmin(params: PageParams) {

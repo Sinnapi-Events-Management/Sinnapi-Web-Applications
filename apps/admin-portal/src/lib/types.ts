@@ -318,25 +318,53 @@ export type DisputeModel = {
 
 // --- subscriptions / plans --------------------------------------------------
 
-export type SubscriptionModel = {
+/**
+ * A subscription as returned by the `search_subscriptions_admin` RPC — flat, with
+ * the owning vendor's name and the plan's name already joined in (both nullable:
+ * `plan_name` is null for a plan-less subscription).
+ */
+export type SubscriptionAdminModel = {
   id: string;
   status: string;
   current_period_end: string | null;
   grace_until: string | null;
   trial_ends_at: string | null;
-  vendors: VendorRef | VendorRef[] | null;
-  pricing_plans: PricingPlanRef | PricingPlanRef[] | null;
+  business_name: string | null;
+  plan_name: string | null;
 };
 
 export type PlanModel = {
   id: string;
   key: string;
   name: string;
+  /** One-line positioning shown under the name on the public card. */
+  tagline: string | null;
+  description: string | null;
+  /** Marks the recommended/"most popular" plan for emphasis. */
+  highlight: boolean;
   price: number | null;
   currency: string | null;
   billing_cycle: string;
   is_active: boolean;
   trial_days: number | null;
+  sort_order: number;
+  /** Display bullet list rendered on the marketing card. */
+  features: string[];
+};
+
+/** A single plan plus audit timestamps, for the plan detail page. */
+export type PlanDetailModel = PlanModel & {
+  created_at: string;
+  updated_at: string;
+};
+
+/** Headline subscriber counts for a plan's KPI row. */
+export type PlanKpis = {
+  subscribers: number;
+  active: number;
+  trialing: number;
+  /** Subscriptions that have lapsed on this plan (status = 'expired'). */
+  expired: number;
 };
 
 // --- bookings / quotations / events -----------------------------------------

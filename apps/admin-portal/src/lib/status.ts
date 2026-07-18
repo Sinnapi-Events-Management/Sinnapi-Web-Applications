@@ -84,3 +84,22 @@ export type EventStatus = (typeof EVENT_STATUSES)[number];
 export const EVENT_SOURCES = ['admin', 'client'] as const;
 
 export type EventSource = (typeof EVENT_SOURCES)[number];
+
+/**
+ * The `subscription_status` enum, in lifecycle order. Authoritative source for
+ * the Subscriptions list' status tabs and their counts. `trialing` is inside the
+ * free trial, `active` is paid and current, `past_due` has a failed renewal,
+ * `grace` is in the post-expiry grace window, `suspended` is disabled for
+ * non-payment, `expired` has lapsed, `cancelled` was ended by the vendor.
+ */
+export const SUBSCRIPTION_STATUSES = [
+  'trialing',
+  'active',
+  'past_due',
+  'grace',
+  'suspended',
+  'expired',
+  'cancelled',
+] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
