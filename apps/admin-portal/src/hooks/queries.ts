@@ -1,7 +1,7 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { paginate, type PageParams, type Paged } from '@/lib/table';
+import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
 import {
   INTAKE_STATUSES,
   VENDOR_STATUSES,
@@ -32,6 +32,8 @@ import type {
   LedgerEntryModel,
   SubscriptionAdminModel,
   PlanModel,
+  PlanDetailModel,
+  PlanKpis,
   BookingModel,
   QuotationModel,
   EventModel,
@@ -730,20 +732,64 @@ export function usePricingPlanOptions() {
   });
 }
 
+const PLAN_COLUMNS =
+  'id,key,name,tagline,description,highlight,price,currency,billing_cycle,is_active,trial_days,sort_order,features';
+
 export function usePlansAdmin(params: PageParams) {
   return useQuery(
     pagedOptions('admin-plans', params, () =>
       paginate<PlanModel>(
-        supabase
-          .from('pricing_plans')
-          .select('id,key,name,price,currency,billing_cycle,is_active,trial_days', {
-            count: 'exact',
-          }),
+        applyFilters(
+          supabase.from('pricing_plans').select(PLAN_COLUMNS, { count: 'exact' }),
+          params.filters,
+        ),
         params,
         { field: 'sort_order', ascending: true },
       ),
     ),
   );
+}
+
+/** A single plan by id — drives the plan detail page. */
+export function usePlan(id: string) {
+  return useQuery({
+    queryKey: ['plan', id],
+    enabled: !!id,
+    queryFn: async (): Promise<PlanDetailModel> => {
+      const { data, error } = await supabase
+        .from('pricing_plans')
+        .select(`${PLAN_COLUMNS},created_at,updated_at`)
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data as unknown as PlanDetailModel;
+    },
+  });
+}
+
+// Subscriber counts for the plan detail KPI row. Each tile is a head+count
+// query filtered to this plan; soft-deleted subscriptions are excluded so the
+// numbers match the Subscriptions list.
+export function usePlanKpis(id: string) {
+  return useQuery({
+    queryKey: ['plan-kpis', id],
+    enabled: !!id,
+    queryFn: async (): Promise<PlanKpis> => {
+      const base = () =>
+        supabase
+          .from('subscriptions')
+          .select('id', { count: 'exact', head: true })
+          .eq('plan_id', id)
+          .is('deleted_at', null);
+      const [subscribers, active, trialing, expired] = await Promise.all([
+        count(base()),
+        count(base().eq('status', 'active')),
+        count(base().eq('status', 'trialing')),
+        count(base().eq('status', 'expired')),
+      ]);
+      return { subscribers, active, trialing, expired };
+    },
+  });
 }
 
 export function useBookingsAdmin(params: PageParams) {

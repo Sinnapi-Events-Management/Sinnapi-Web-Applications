@@ -337,11 +337,34 @@ export type PlanModel = {
   id: string;
   key: string;
   name: string;
+  /** One-line positioning shown under the name on the public card. */
+  tagline: string | null;
+  description: string | null;
+  /** Marks the recommended/"most popular" plan for emphasis. */
+  highlight: boolean;
   price: number | null;
   currency: string | null;
   billing_cycle: string;
   is_active: boolean;
   trial_days: number | null;
+  sort_order: number;
+  /** Display bullet list rendered on the marketing card. */
+  features: string[];
+};
+
+/** A single plan plus audit timestamps, for the plan detail page. */
+export type PlanDetailModel = PlanModel & {
+  created_at: string;
+  updated_at: string;
+};
+
+/** Headline subscriber counts for a plan's KPI row. */
+export type PlanKpis = {
+  subscribers: number;
+  active: number;
+  trialing: number;
+  /** Subscriptions that have lapsed on this plan (status = 'expired'). */
+  expired: number;
 };
 
 // --- bookings / quotations / events -----------------------------------------
