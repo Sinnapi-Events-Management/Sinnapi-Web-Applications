@@ -29,7 +29,7 @@ export default function SearchField({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       size="small"
-      fullWidth
+      fullWidth={false}
       inputProps={{ 'aria-label': ariaLabel }}
       InputProps={{
         startAdornment: (
@@ -45,6 +45,7 @@ export default function SearchField({
           </InputAdornment>
         ) : null,
       }}
+      sx={{ width: { xs: '100%', sm: 'auto' }, minWidth: 300 }}
     />
   );
 }

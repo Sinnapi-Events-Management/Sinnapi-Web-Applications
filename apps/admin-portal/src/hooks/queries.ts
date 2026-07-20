@@ -11,6 +11,7 @@ import {
   type VendorAdminStatus,
   type EventStatus,
   type SubscriptionStatus,
+  type ProfileStatus,
 } from '@/lib/status';
 import type {
   ProfileModel,
@@ -22,6 +23,8 @@ import type {
   VendorPaymentModel,
   ReviewModel,
   UserModel,
+  ClientKpis,
+  EngagedVendor,
   RoleModel,
   PermissionModel,
   EscrowModel,
@@ -485,20 +488,289 @@ export function useVendorReviews(id: string, params: PageParams) {
   );
 }
 
+// A profile is Sinnapi *staff* iff it holds at least one is_admin role. Staff
+// numbers are small, so resolving the id set in a separate query and filtering
+// `profiles` with `.in()` is both correct — a join would fan out multi-role
+// staff and inflate the exact count — and cheap. It also keeps the Users page
+// scoped to staff, leaving clients/vendors to their own future pages.
+async function staffProfileIds(): Promise<string[]> {
+  const { data } = await supabase
+    .from('user_roles')
+    .select('profile_id, roles!inner(is_admin)')
+    .eq('roles.is_admin', true);
+  return [...new Set((data ?? []).map((r) => r.profile_id as string))];
+}
+
+// `profiles` has two FKs from `user_roles` (profile_id and granted_by), so the
+// embed must name the one we want — the role assignment — or PostgREST throws
+// PGRST201 (ambiguous relationship) and the whole query fails.
+const USER_SELECT =
+  'id,full_name,first_name,middle_name,last_name,email,phone,status,created_at,user_roles!user_roles_profile_id_fkey(roles(id,key,name,is_admin))';
+
+// Case-insensitive "contains" across name + email, with the PostgREST logical
+// operators a user might type stripped so a search term can't rewrite the query.
+function userSearchClause(search: string): string {
+  const s = `%${search.replace(/[%,()]/g, '')}%`;
+  return `full_name.ilike.${s},email.ilike.${s}`;
+}
+
+// Staff list: soft-deleted rows are excluded, and status / free-text search
+// arrive via `params.filters` so they're part of the react-query cache key.
 export function useUsers(params: PageParams) {
   return useQuery(
-    pagedOptions('users', params, () =>
-      paginate<UserModel>(
-        supabase
+    pagedOptions('users', params, async () => {
+      const f = params.filters ?? {};
+      const ids = await staffProfileIds();
+      if (ids.length === 0) return { rows: [], total: 0 };
+      let q = supabase
+        .from('profiles')
+        .select(USER_SELECT, { count: 'exact' })
+        .is('deleted_at', null)
+        .in('id', ids);
+      if (f.status) q = q.eq('status', f.status);
+      if (f.search) q = q.or(userSearchClause(f.search));
+      return paginate<UserModel>(q, params, { field: 'created_at', ascending: false });
+    }),
+  );
+}
+
+export type UserStatusCounts = { all?: number } & Partial<Record<ProfileStatus, number>>;
+
+// Per-status badges for the Users tabs. Mirrors the list's staff scope + search
+// so the counts always match what the table can show.
+export function useUserStatusCounts(search?: string) {
+  return useQuery({
+    queryKey: ['user-status-counts', search ?? null],
+    queryFn: async (): Promise<UserStatusCounts> => {
+      const ids = await staffProfileIds();
+      if (ids.length === 0) return { all: 0, active: 0, suspended: 0, pending: 0 };
+      const base = () => {
+        let q = supabase
           .from('profiles')
-          .select('id,full_name,email,status,created_at,user_roles(roles(key,name))', {
-            count: 'exact',
-          }),
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .in('id', ids);
+        if (search) q = q.or(userSearchClause(search));
+        return q;
+      };
+      const [all, active, suspended, pending] = await Promise.all([
+        count(base()),
+        count(base().eq('status', 'active')),
+        count(base().eq('status', 'suspended')),
+        count(base().eq('status', 'pending')),
+      ]);
+      return { all, active, suspended, pending };
+    },
+  });
+}
+
+// ─── Clients ──────────────────────────────────────────────────────────────
+// "Clients" are self-registered non-staff accounts: the client + event_planner
+// roles. Same two-step id-scoping as staff (see staffProfileIds) keeps the count
+// exact and leaves clients cleanly separated from staff/vendors.
+async function clientProfileIds(): Promise<string[]> {
+  const { data } = await supabase
+    .from('user_roles')
+    .select('profile_id, roles!inner(key)')
+    .in('roles.key', ['client', 'event_planner']);
+  return [...new Set((data ?? []).map((r) => r.profile_id as string))];
+}
+
+// Same two-FK disambiguation as USER_SELECT (see note there).
+const CLIENT_SELECT =
+  'id,full_name,first_name,middle_name,last_name,email,phone,status,created_at,user_roles!user_roles_profile_id_fkey(roles(id,key,name,is_admin))';
+
+export function useClients(params: PageParams) {
+  return useQuery(
+    pagedOptions('clients', params, async () => {
+      const f = params.filters ?? {};
+      const ids = await clientProfileIds();
+      if (ids.length === 0) return { rows: [], total: 0 };
+      let q = supabase
+        .from('profiles')
+        .select(CLIENT_SELECT, { count: 'exact' })
+        .is('deleted_at', null)
+        .in('id', ids);
+      if (f.status) q = q.eq('status', f.status);
+      if (f.search) q = q.or(userSearchClause(f.search));
+      return paginate<UserModel>(q, params, { field: 'created_at', ascending: false });
+    }),
+  );
+}
+
+export function useClientStatusCounts(search?: string) {
+  return useQuery({
+    queryKey: ['client-status-counts', search ?? null],
+    queryFn: async (): Promise<UserStatusCounts> => {
+      const ids = await clientProfileIds();
+      if (ids.length === 0) return { all: 0, active: 0, suspended: 0, pending: 0 };
+      const base = () => {
+        let q = supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .in('id', ids);
+        if (search) q = q.or(userSearchClause(search));
+        return q;
+      };
+      const [all, active, suspended, pending] = await Promise.all([
+        count(base()),
+        count(base().eq('status', 'active')),
+        count(base().eq('status', 'suspended')),
+        count(base().eq('status', 'pending')),
+      ]);
+      return { all, active, suspended, pending };
+    },
+  });
+}
+
+export function useClient(id: string) {
+  return useQuery({
+    queryKey: ['client', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(CLIENT_SELECT)
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+      if (error) throw error;
+      return data as unknown as UserModel;
+    },
+  });
+}
+
+export function useClientKpis(id: string) {
+  return useQuery({
+    queryKey: ['client-kpis', id],
+    enabled: !!id,
+    queryFn: async (): Promise<ClientKpis> => {
+      const [bookings, events, quotations, bVendors, qVendors] = await Promise.all([
+        count(
+          supabase
+            .from('bookings')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', id),
+        ),
+        count(
+          supabase
+            .from('events')
+            .select('id', { count: 'exact', head: true })
+            .eq('posted_by', id)
+            .is('deleted_at', null),
+        ),
+        count(
+          supabase
+            .from('quotations')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', id),
+        ),
+        supabase.from('bookings').select('vendor_id').eq('client_id', id).is('deleted_at', null),
+        supabase.from('quotations').select('vendor_id').eq('client_id', id),
+      ]);
+      const vendorIds = new Set<string>();
+      for (const r of bVendors.data ?? []) vendorIds.add(r.vendor_id as string);
+      for (const r of qVendors.data ?? []) vendorIds.add(r.vendor_id as string);
+      return { bookings, events, quotations, vendors: vendorIds.size };
+    },
+  });
+}
+
+export function useClientBookings(id: string, params: PageParams) {
+  return useQuery(
+    pagedOptions(`client-bookings:${id}`, params, () =>
+      paginate<BookingModel>(
+        supabase
+          .from('bookings')
+          .select(
+            'id,reference_no,status,event_date,amount,currency,vendors:vendor_id(business_name)',
+            {
+              count: 'exact',
+            },
+          )
+          .eq('client_id', id)
+          .is('deleted_at', null),
+        params,
+        { field: 'event_date', ascending: false },
+      ),
+    ),
+  );
+}
+
+export function useClientQuotations(id: string, params: PageParams) {
+  return useQuery(
+    pagedOptions(`client-quotations:${id}`, params, () =>
+      paginate<QuotationModel>(
+        supabase
+          .from('quotations')
+          .select(
+            'id,reference_no,status,total,currency,created_at,vendors:vendor_id(business_name)',
+            {
+              count: 'exact',
+            },
+          )
+          .eq('client_id', id),
         params,
         { field: 'created_at', ascending: false },
       ),
     ),
   );
+}
+
+export function useClientEvents(id: string, params: PageParams) {
+  return useQuery(
+    pagedOptions(`client-events:${id}`, params, () =>
+      paginate<EventModel>(
+        supabase
+          .from('events')
+          .select('id,title,source,status,event_date,is_public,created_at', { count: 'exact' })
+          .eq('posted_by', id)
+          .is('deleted_at', null),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
+  );
+}
+
+// Distinct vendors the client has engaged, merged from bookings + quotations.
+export function useClientVendors(id: string) {
+  return useQuery({
+    queryKey: ['client-vendors', id],
+    enabled: !!id,
+    queryFn: async (): Promise<EngagedVendor[]> => {
+      const sel = 'vendor:vendor_id(id,business_name,profile_image_url,status)';
+      const [b, q] = await Promise.all([
+        supabase.from('bookings').select(sel).eq('client_id', id).is('deleted_at', null),
+        supabase.from('quotations').select(sel).eq('client_id', id),
+      ]);
+      const byId = new Map<string, EngagedVendor>();
+      for (const row of [...(b.data ?? []), ...(q.data ?? [])]) {
+        const v = (row as { vendor: EngagedVendor | EngagedVendor[] | null }).vendor;
+        const vendor = Array.isArray(v) ? v[0] : v;
+        if (vendor?.id) byId.set(vendor.id, vendor);
+      }
+      return [...byId.values()];
+    },
+  });
+}
+
+// Resolve (find-or-create) the admin↔client conversation, then hand the id to the
+// shared messaging queries. RLS blocks creating conversations from the browser,
+// so this goes through a SECURITY DEFINER RPC (see 0023 migration).
+export function useClientAdminConversation(clientId: string) {
+  return useQuery({
+    queryKey: ['client-admin-conversation', clientId],
+    enabled: !!clientId,
+    queryFn: async (): Promise<string> => {
+      const { data, error } = await supabase.rpc('get_or_create_client_admin_conversation', {
+        p_client_id: clientId,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+  });
 }
 
 export function useRoles() {

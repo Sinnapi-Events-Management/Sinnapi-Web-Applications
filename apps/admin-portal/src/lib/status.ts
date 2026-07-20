@@ -48,6 +48,16 @@ export function statusColor(status: string): ChipColor {
 }
 
 /**
+ * The `profile_status` enum, in lifecycle order. Authoritative source for the
+ * Users list' status tabs and their counts. `active` accounts can sign in,
+ * `suspended` are blocked (login banned), `pending` are provisioned but not yet
+ * activated.
+ */
+export const PROFILE_STATUSES = ['active', 'suspended', 'pending'] as const;
+
+export type ProfileStatus = (typeof PROFILE_STATUSES)[number];
+
+/**
  * The vendor application intake lifecycle, in workflow order. This is the
  * authoritative list of `vendor_application_intake.status` values — the review
  * queue's tabs and status counts are both derived from it.

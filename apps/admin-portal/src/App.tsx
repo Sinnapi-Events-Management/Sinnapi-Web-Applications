@@ -8,6 +8,7 @@ import AppShell from '@/components/shell/AppShell';
 import SignIn from '@/pages/auth/signIn';
 import ForgotPassword from '@/pages/auth/forgotPassword';
 import ResetPassword from '@/pages/auth/resetPassword';
+import ChangePassword from '@/pages/auth/changePassword';
 import AuthCallback from '@/pages/auth/authCallback';
 
 import Dashboard from '@/pages/dashboard';
@@ -29,6 +30,8 @@ import Subscriptions from '@/pages/subscriptions';
 import PricingPlans from '@/pages/pricingPlans';
 import PlanDetail from '@/pages/planDetail';
 import Users from '@/pages/users';
+import Clients from '@/pages/clients';
+import ClientDetail from '@/pages/clientDetail';
 import Rbac from '@/pages/rbac';
 import ReviewsModeration from '@/pages/reviewsModeration';
 import MessagingModeration from '@/pages/messagingModeration';
@@ -54,6 +57,17 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+
+      {/* Requires a session but sits outside the admin shell: the forced
+          password change must be reachable before AdminProvider / AdminGate. */}
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute>
+            <ChangePassword />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         element={
@@ -89,6 +103,8 @@ export default function App() {
         <Route path="/pricing-plans/:id" element={g('plans.manage', <PlanDetail />)} />
 
         <Route path="/users" element={g('users.read', <Users />)} />
+        <Route path="/clients" element={g('users.read', <Clients />)} />
+        <Route path="/clients/:id" element={g('users.read', <ClientDetail />)} />
         <Route path="/rbac" element={g('roles.manage', <Rbac />)} />
 
         <Route path="/reviews-moderation" element={g('moderation.manage', <ReviewsModeration />)} />
