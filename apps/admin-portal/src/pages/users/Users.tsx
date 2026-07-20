@@ -1,118 +1,142 @@
 import { useMemo } from 'react';
-import {
-  DataTable,
-  Chip,
-  Stack,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControlLabel,
-  Switch,
-  Alert,
-  type DataTableColumn,
-} from '@sinnapi/ui';
+import { Alert, DataTable, Snackbar } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
-import type { UserModel } from '@/lib/types';
+import StatusTabs from '@/components/ui/StatusTabs';
 import { useUsers } from './hooks/useUsers';
+import { getColumns, toFormValues, emptyFormValues } from './schema';
+import UsersToolbar from './components/organisms/UsersToolbar';
+import UserFormDrawer from './components/organisms/UserFormDrawer';
+import UserStatusDialog from './components/organisms/UserStatusDialog';
+import UserDeleteDialog from './components/organisms/UserDeleteDialog';
+import UserPasswordResetDialog from './components/organisms/UserPasswordResetDialog';
 
 export default function Users() {
   const {
-    roles,
     rows,
     total,
     isLoading,
     isFetching,
-    error,
+    pageError,
+    emptyMessage,
     canManage,
-    active,
-    setActive,
-    err,
-    userRoleKeys,
-    toggleRole,
-    current,
+    roleOptions,
+    tabs,
+    countsLoading,
+    tab,
+    onTabChange,
+    search,
+    create,
+    edit,
+    status,
+    remove,
+    passwordReset,
+    notice,
+    clearNotice,
     table,
   } = useUsers();
 
-  const columns = useMemo<DataTableColumn<UserModel>[]>(() => {
-    const base: DataTableColumn<UserModel>[] = [
-      { field: 'full_name', headerName: 'Name', sortable: true, render: (u) => u.full_name },
-      { field: 'email', headerName: 'Email', sortable: true, render: (u) => u.email },
-      {
-        field: 'roles',
-        headerName: 'Roles',
-        render: (u) => (
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-            {[...userRoleKeys(u)].map((k) => (
-              <Chip key={k} size="small" label={k} />
-            ))}
-          </Stack>
-        ),
-      },
-      {
-        field: 'status',
-        headerName: 'Status',
-        sortable: true,
-        render: (u) => <StatusChip status={u.status} />,
-      },
-    ];
-    if (canManage) {
-      base.push({
-        field: 'manage',
-        headerName: 'Manage',
-        align: 'right',
-        render: (u) => (
-          <Button size="small" onClick={() => setActive(u)}>
-            Roles
-          </Button>
-        ),
-      });
-    }
-    return base;
-  }, [canManage, userRoleKeys, setActive]);
+  const { open: onEdit } = edit;
+  const { request: onResetPassword } = passwordReset;
+  const { request: onRequestStatusChange } = status;
+  const { request: onRequestDelete } = remove;
+
+  const columns = useMemo(() => {
+    const cols = getColumns({ onEdit, onResetPassword, onRequestStatusChange, onRequestDelete });
+    // Row actions are all management operations — hide the column entirely for
+    // read-only viewers.
+    return canManage ? cols : cols.filter((c) => c.field !== 'actions');
+  }, [canManage, onEdit, onResetPassword, onRequestStatusChange, onRequestDelete]);
+
+  // Memoised so react-hook-form's `values` prop stays referentially stable per
+  // record and doesn't reset the form on every render.
+  const editValues = useMemo(
+    () => (edit.user ? toFormValues(edit.user) : emptyFormValues),
+    [edit.user],
+  );
 
   return (
     <>
-      <PageTitle title="Users" subtitle="Manage accounts and role assignments." />
-      {(err || error) && (
+      <PageTitle title="Users" subtitle="Manage Sinnapi staff accounts and their roles." />
+
+      <StatusTabs
+        options={tabs}
+        value={tab}
+        onChange={onTabChange}
+        loadingCounts={countsLoading}
+        ariaLabel="Filter users by status"
+      />
+      <UsersToolbar search={search} canManage={canManage} onCreate={create.open} />
+
+      {pageError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {err ?? (error instanceof Error ? error.message : 'Failed to load users.')}
+          {pageError}
         </Alert>
       )}
+
       <DataTable
         columns={columns}
         rows={rows}
         getRowId={(u) => u.id}
         rowCount={total}
         loading={isLoading || isFetching}
-        emptyMessage="No users yet."
+        emptyMessage={emptyMessage}
         {...table.controls}
       />
 
-      <Dialog open={!!active} onClose={() => setActive(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Roles · {active?.full_name}</DialogTitle>
-        <DialogContent>
-          <Stack sx={{ mt: 1 }}>
-            {(roles.data ?? []).map((r) => (
-              <FormControlLabel
-                key={r.id}
-                control={
-                  <Switch
-                    checked={current.has(r.key)}
-                    onChange={(_, on) => active && toggleRole(active.id, r.id, on)}
-                  />
-                }
-                label={r.name}
-              />
-            ))}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setActive(null)}>Done</Button>
-        </DialogActions>
-      </Dialog>
+      <UserFormDrawer
+        open={create.isOpen}
+        mode="create"
+        values={emptyFormValues}
+        roleOptions={roleOptions}
+        busy={create.busy}
+        err={create.err}
+        onClose={create.close}
+        onSave={create.save}
+      />
+
+      <UserFormDrawer
+        open={edit.isOpen}
+        mode="edit"
+        values={editValues}
+        roleOptions={roleOptions}
+        subtitle={edit.user?.email ?? undefined}
+        busy={edit.busy}
+        err={edit.err}
+        onClose={edit.close}
+        onSave={edit.save}
+      />
+
+      <UserStatusDialog
+        pending={status.pending}
+        busy={status.busy}
+        onCancel={status.cancel}
+        onConfirm={status.confirm}
+      />
+
+      <UserDeleteDialog
+        pending={remove.pending}
+        busy={remove.busy}
+        onCancel={remove.cancel}
+        onConfirm={remove.confirm}
+      />
+
+      <UserPasswordResetDialog
+        pending={passwordReset.pending}
+        busy={passwordReset.busy}
+        onCancel={passwordReset.cancel}
+        onConfirm={passwordReset.confirm}
+      />
+
+      <Snackbar
+        open={!!notice}
+        autoHideDuration={6000}
+        onClose={clearNotice}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={clearNotice} sx={{ width: '100%' }}>
+          {notice}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

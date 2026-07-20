@@ -13,6 +13,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import PeopleIcon from '@mui/icons-material/People';
+import Groups2Icon from '@mui/icons-material/Groups2';
 import SecurityIcon from '@mui/icons-material/Security';
 import StarIcon from '@mui/icons-material/Star';
 import ForumIcon from '@mui/icons-material/Forum';
@@ -71,6 +72,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'People',
     items: [
       { label: 'Users', to: '/users', icon: PeopleIcon, perm: 'users.read' },
+      { label: 'Clients', to: '/clients', icon: Groups2Icon, perm: 'users.read' },
       { label: 'Roles & Permissions', to: '/rbac', icon: SecurityIcon, perm: 'roles.manage' },
     ],
   },

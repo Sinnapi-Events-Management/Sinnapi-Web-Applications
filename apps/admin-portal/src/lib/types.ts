@@ -172,6 +172,22 @@ export type VendorKpis = {
   payouts: number;
 };
 
+/** Headline counts for a client's detail view. */
+export type ClientKpis = {
+  bookings: number;
+  events: number;
+  quotations: number;
+  vendors: number;
+};
+
+/** A distinct vendor a client has engaged (derived from bookings/quotations). */
+export type EngagedVendor = {
+  id: string;
+  business_name: string | null;
+  profile_image_url: string | null;
+  status: string;
+};
+
 // Vendor reviews (public feedback) surfaced on the detail page.
 export type ReviewModel = {
   id: string;
@@ -185,8 +201,10 @@ export type ReviewModel = {
 // --- users / RBAC -----------------------------------------------------------
 
 export type RoleKeyRef = {
+  id: string;
   key: string;
   name: string;
+  is_admin?: boolean | null;
 };
 
 export type UserRoleRow = {
@@ -196,7 +214,11 @@ export type UserRoleRow = {
 export type UserModel = {
   id: string;
   full_name: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
   email: string | null;
+  phone: string | null;
   status: string;
   created_at: string | null;
   user_roles: UserRoleRow[] | null;

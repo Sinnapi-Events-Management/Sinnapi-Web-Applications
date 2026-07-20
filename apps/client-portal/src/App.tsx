@@ -4,6 +4,7 @@ import AppShell from '@/components/shell/AppShell';
 
 import SignIn from '@/pages/auth/signIn';
 import SignUp from '@/pages/auth/signUp';
+import ResetPassword from '@/pages/auth/resetPassword';
 import AuthCallback from '@/pages/auth/authCallback';
 import Terms from '@/pages/terms';
 import EscrowPolicy from '@/pages/escrowPolicy';
@@ -34,6 +35,7 @@ export default function App() {
       {/* Public auth routes */}
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/sign-up" element={<SignUp />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/escrow-policy" element={<EscrowPolicy />} />
