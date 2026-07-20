@@ -1388,17 +1388,29 @@ export function useSettings(params: PageParams) {
   );
 }
 
+// Embeds the actor profile (with its roles) and the before/after row snapshots
+// so the UI can render human names, roles, and what actually changed instead of
+// bare UUIDs. `profiles!actor_id` disambiguates the single FK to profiles; the
+// nested `user_roles!..._profile_id_fkey` picks the assignment FK (not granted_by).
+const AUDIT_SELECT =
+  'id,action,entity_type,entity_id,actor_id,occurred_at,before,after,' +
+  'actor:profiles!actor_id(id,full_name,email,' +
+  'user_roles!user_roles_profile_id_fkey(roles(id,key,name,is_admin)))';
+
 export function useAuditLogs(params: PageParams) {
   return useQuery(
-    pagedOptions('audit', params, () =>
-      paginate<AuditLogModel>(
-        supabase
-          .from('audit_logs')
-          .select('id,action,entity_type,entity_id,actor_id,occurred_at', { count: 'exact' }),
-        params,
-        { field: 'occurred_at', ascending: false },
-      ),
-    ),
+    pagedOptions('audit', params, () => {
+      const f = params.filters ?? {};
+      let query = supabase.from('audit_logs').select(AUDIT_SELECT, { count: 'exact' });
+      // `op` matches the auto-generated `${op}_${table}` action prefix.
+      if (f.op) query = query.like('action', `${f.op}_%`);
+      if (f.entity_type) query = query.eq('entity_type', f.entity_type);
+      if (f.actor === 'system') query = query.is('actor_id', null);
+      else if (f.actor === 'people') query = query.not('actor_id', 'is', null);
+      if (f.from) query = query.gte('occurred_at', f.from);
+      if (f.to) query = query.lte('occurred_at', f.to);
+      return paginate<AuditLogModel>(query, params, { field: 'occurred_at', ascending: false });
+    }),
   );
 }
 

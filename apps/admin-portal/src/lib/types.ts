@@ -571,6 +571,14 @@ export type NotificationModel = {
 
 // --- compliance: audit / retention / erasure --------------------------------
 
+/** The profile that performed an audited action, with its roles embedded. */
+export type AuditActor = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  user_roles: UserRoleRow[] | null;
+};
+
 export type AuditLogModel = {
   id: string;
   action: string;
@@ -578,6 +586,12 @@ export type AuditLogModel = {
   entity_id: string | null;
   actor_id: string | null;
   occurred_at: string | null;
+  /** Row snapshot before the change (null for inserts). */
+  before: Record<string, unknown> | null;
+  /** Row snapshot after the change (null for deletes). */
+  after: Record<string, unknown> | null;
+  /** Embedded actor profile; null when the action was automated (system). */
+  actor: AuditActor | AuditActor[] | null;
 };
 
 export type RetentionPolicyModel = {
