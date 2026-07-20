@@ -1,15 +1,58 @@
-import { Stack, Card, CardContent, Typography, Button, Alert } from '@sinnapi/ui';
+import { Alert, Snackbar, Stack } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
-import { formatDate, titleize } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { MessageRef } from '@/lib/types';
+import StatusTabs from '@/components/ui/StatusTabs';
 import { useMessagingModeration } from './hooks/useMessagingModeration';
+import { useFlagDetail } from './hooks/useFlagDetail';
+import { buildTabs } from './schema';
+import ModerationSummary from './components/organisms/ModerationSummary';
+import ModerationToolbar from './components/organisms/ModerationToolbar';
+import ModerationWorkspace from './components/organisms/ModerationWorkspace';
+import FlagList from './components/organisms/FlagList';
+import FlagDetail from './components/organisms/FlagDetail';
+import BulkActionBar from './components/molecules/BulkActionBar';
 
 export default function MessagingModeration() {
-  const { rows, isLoading, error, busy, err, blockMessage, dismiss } = useMessagingModeration();
+  const {
+    rows,
+    counts,
+    isLoading,
+    error,
+    busy,
+    bulkBusy,
+    err,
+    notice,
+    clearNotice,
+    tab,
+    setTab,
+    search,
+    selection,
+    blockMessage,
+    dismiss,
+    blockSelected,
+    dismissSelected,
+  } = useMessagingModeration();
+
+  const detail = useFlagDetail(rows);
+
+  const master = (
+    <Stack spacing={2}>
+      <ModerationToolbar search={search} resultCount={rows.length} />
+      <BulkActionBar
+        selection={selection}
+        busy={bulkBusy}
+        onBlock={blockSelected}
+        onDismiss={dismissSelected}
+      />
+      {err && <Alert severity="error">{err}</Alert>}
+      <FlagList
+        rows={rows}
+        isLoading={isLoading}
+        error={error}
+        selection={selection}
+        detail={detail}
+      />
+    </Stack>
+  );
 
   return (
     <>
@@ -17,56 +60,42 @@ export default function MessagingModeration() {
         title="Messaging moderation"
         subtitle="Flagged messages (auto-detected scam/profanity or user-reported)."
       />
-      {err && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {err}
+
+      <ModerationSummary counts={counts} loading={isLoading} />
+
+      <StatusTabs
+        options={buildTabs(counts)}
+        value={tab}
+        onChange={setTab}
+        loadingCounts={isLoading}
+        ariaLabel="Filter flagged messages by status"
+      />
+
+      <ModerationWorkspace
+        master={master}
+        detailOpen={!!detail.active}
+        onCloseDetail={detail.close}
+        detail={
+          <FlagDetail
+            flag={detail.active}
+            busy={busy === detail.active?.id}
+            onBlock={blockMessage}
+            onDismiss={dismiss}
+            onClose={detail.close}
+          />
+        }
+      />
+
+      <Snackbar
+        open={!!notice}
+        autoHideDuration={6000}
+        onClose={clearNotice}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={clearNotice} sx={{ width: '100%' }}>
+          {notice}
         </Alert>
-      )}
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState title="No flagged messages" />
-        ) : (
-          <Stack spacing={2}>
-            {rows.map((f) => {
-              const msg = one<MessageRef>(f.messages);
-              return (
-                <Card key={f.id} variant="outlined">
-                  <CardContent>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="subtitle2">Flag: {titleize(f.reason)}</Typography>
-                      <StatusChip status={f.status} />
-                    </Stack>
-                    {msg && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        “{msg.body}”
-                      </Typography>
-                    )}
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDate(f.created_at)}
-                    </Typography>
-                    {f.status === 'open' && (
-                      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
-                        <Button
-                          size="small"
-                          color="error"
-                          variant="contained"
-                          disabled={busy === f.id}
-                          onClick={() => blockMessage(msg?.id, f.id)}
-                        >
-                          Block message
-                        </Button>
-                        <Button size="small" disabled={busy === f.id} onClick={() => dismiss(f.id)}>
-                          Dismiss
-                        </Button>
-                      </Stack>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </Stack>
-        )}
-      </QueryState>
+      </Snackbar>
     </>
   );
 }

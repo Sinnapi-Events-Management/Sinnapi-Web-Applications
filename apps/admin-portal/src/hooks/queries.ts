@@ -1317,18 +1317,63 @@ export function useMessageFlags() {
   });
 }
 
+// Case-insensitive "contains" across the fields an admin scans by, with the
+// PostgREST logical operators a user might type stripped so a search term can't
+// rewrite the query.
+function templateSearchClause(search: string): string {
+  const s = `%${search.replace(/[%,()]/g, '')}%`;
+  return `trigger_key.ilike.${s},subject.ilike.${s}`;
+}
+
+// Notification templates: channel filter + free-text search arrive via
+// `params.filters` so they're part of the react-query cache key, and filtering
+// happens server-side so the `exact` count keeps pagination honest.
 export function useNotificationTemplates(params: PageParams) {
   return useQuery(
-    pagedOptions('notification-templates', params, () =>
-      paginate<NotificationTemplateModel>(
-        supabase
-          .from('notification_templates')
-          .select('id,trigger_key,channel,subject,locale,is_active', { count: 'exact' }),
-        params,
-        { field: 'trigger_key', ascending: true },
-      ),
-    ),
+    pagedOptions('notification-templates', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase
+        .from('notification_templates')
+        .select('id,trigger_key,channel,subject,locale,is_active', { count: 'exact' });
+      if (f.channel) q = q.eq('channel', f.channel);
+      if (f.search) q = q.or(templateSearchClause(f.search));
+      return paginate<NotificationTemplateModel>(q, params, {
+        field: 'trigger_key',
+        ascending: true,
+      });
+    }),
   );
+}
+
+export type NotificationTemplateStats = {
+  all: number;
+  email: number;
+  in_app: number;
+  active: number;
+};
+
+// KPI + tab-badge counts for the templates page. Mirrors the list's search so
+// the tiles and channel tabs always match what the table can show.
+export function useNotificationTemplateStats(search?: string) {
+  return useQuery({
+    queryKey: ['notification-template-stats', search ?? null] as const,
+    queryFn: async (): Promise<NotificationTemplateStats> => {
+      const base = () => {
+        let q = supabase
+          .from('notification_templates')
+          .select('id', { count: 'exact', head: true });
+        if (search) q = q.or(templateSearchClause(search));
+        return q;
+      };
+      const [all, email, inApp, active] = await Promise.all([
+        count(base()),
+        count(base().eq('channel', 'email')),
+        count(base().eq('channel', 'in_app')),
+        count(base().eq('is_active', true)),
+      ]);
+      return { all, email, in_app: inApp, active };
+    },
+  });
 }
 
 export function useSettings(params: PageParams) {
