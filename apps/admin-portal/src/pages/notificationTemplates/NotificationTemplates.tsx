@@ -1,48 +1,63 @@
-import { useMemo } from 'react';
-import { DataTable, Alert, Switch, Chip, type DataTableColumn } from '@sinnapi/ui';
+import { Alert } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import type { NotificationTemplateModel } from '@/lib/types';
+import StatusTabs from '@/components/ui/StatusTabs';
 import { useNotificationTemplates } from './hooks/useNotificationTemplates';
+import TemplatesSummary from './components/organisms/TemplatesSummary';
+import TemplatesToolbar from './components/organisms/TemplatesToolbar';
+import TemplatesTable from './components/organisms/TemplatesTable';
 
 export default function NotificationTemplates() {
-  const { rows, total, isLoading, isFetching, error, toggle, table } = useNotificationTemplates();
-
-  const columns = useMemo<DataTableColumn<NotificationTemplateModel>[]>(
-    () => [
-      { field: 'trigger_key', headerName: 'Trigger', sortable: true, render: (t) => t.trigger_key },
-      {
-        field: 'channel',
-        headerName: 'Channel',
-        sortable: true,
-        render: (t) => <Chip size="small" label={t.channel} />,
-      },
-      { field: 'locale', headerName: 'Locale', sortable: true, render: (t) => t.locale },
-      { field: 'subject', headerName: 'Subject', render: (t) => t.subject ?? '—' },
-      {
-        field: 'is_active',
-        headerName: 'Active',
-        render: (t) => <Switch checked={t.is_active} onChange={(_, c) => toggle(t.id, c)} />,
-      },
-    ],
-    [toggle],
-  );
+  const {
+    rows,
+    total,
+    stats,
+    statsLoading,
+    isLoading,
+    isFetching,
+    pageError,
+    emptyMessage,
+    tabs,
+    channelTab,
+    onChannelChange,
+    search,
+    busyId,
+    toggle,
+    table,
+  } = useNotificationTemplates();
 
   return (
     <>
-      <PageTitle title="Notification templates" subtitle="Email / in-app templates per trigger." />
-      {error && (
+      <PageTitle
+        title="Notification templates"
+        subtitle="Email / in-app templates per trigger key and locale."
+      />
+
+      <TemplatesSummary stats={stats} loading={statsLoading} />
+
+      <StatusTabs
+        options={tabs}
+        value={channelTab}
+        onChange={onChannelChange}
+        loadingCounts={statsLoading}
+        ariaLabel="Filter notification templates by channel"
+      />
+
+      <TemplatesToolbar search={search} resultCount={rows.length} />
+
+      {pageError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : 'Failed to load templates.'}
+          {pageError}
         </Alert>
       )}
-      <DataTable
-        columns={columns}
+
+      <TemplatesTable
         rows={rows}
-        getRowId={(t) => t.id}
-        rowCount={total}
+        total={total}
         loading={isLoading || isFetching}
-        emptyMessage="No templates yet. Seed templates per trigger key (email + in-app)."
-        {...table.controls}
+        emptyMessage={emptyMessage}
+        controls={table.controls}
+        busyId={busyId}
+        onToggle={toggle}
       />
     </>
   );
