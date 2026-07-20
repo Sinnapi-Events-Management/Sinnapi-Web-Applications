@@ -1,41 +1,40 @@
-import { Grid, Card, CardContent, Typography } from '@sinnapi/ui';
+import type { ComponentType } from 'react';
 import PageTitle from '@/components/ui/PageTitle';
-import StatCard from '@/components/ui/StatCard';
-import QueryState from '@/components/ui/QueryState';
 import { useReports } from './hooks/useReports';
+import type { ReportCategory, ReportPeriod } from './schema';
+import ReportTabs from './components/organisms/ReportTabs';
+import RevenueReportPanel from './components/organisms/RevenueReportPanel';
+import VendorReportPanel from './components/organisms/VendorReportPanel';
+import SubscriptionReportPanel from './components/organisms/SubscriptionReportPanel';
+import OperationsReportPanel from './components/organisms/OperationsReportPanel';
 
-// Reporting overview. Detailed report types (revenue, escrow flow, vendor growth,
-// subscription churn) plug in here as read models / charts in a later pass.
+/** Every report panel shares the same props: the active window + its setter. */
+export type ReportPanelProps = {
+  period: ReportPeriod;
+  onPeriodChange: (next: ReportPeriod) => void;
+};
+
+// Category → panel. Each panel owns its own data hook, toolbar and charts, so
+// this page stays a thin router between the tab nav and the active report.
+const PANELS: Record<ReportCategory, ComponentType<ReportPanelProps>> = {
+  revenue: RevenueReportPanel,
+  vendors: VendorReportPanel,
+  subscriptions: SubscriptionReportPanel,
+  operations: OperationsReportPanel,
+};
+
 export default function Reports() {
-  const { data, isLoading, error } = useReports();
+  const { category, setCategory, period, setPeriod } = useReports();
+  const Panel = PANELS[category];
+
   return (
     <>
-      <PageTitle title="Reports & analytics" subtitle="Platform overview." />
-      <QueryState isLoading={isLoading} error={error}>
-        <Grid container spacing={3}>
-          <Grid item xs={6} md={3}>
-            <StatCard label="Active vendors" value={data?.activeVendors ?? 0} />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard label="Pending applications" value={data?.pendingApplications ?? 0} />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard label="Escrow held" value={data?.escrowHeld ?? 0} />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard label="Open disputes" value={data?.openDisputes ?? 0} />
-          </Grid>
-        </Grid>
-        <Card variant="outlined" sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6">Detailed reports</Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Revenue, escrow flow, vendor growth, and subscription churn reports plug in here (read
-              models / charts).
-            </Typography>
-          </CardContent>
-        </Card>
-      </QueryState>
+      <PageTitle
+        title="Reports & analytics"
+        subtitle="System-wide operational reporting across revenue, vendors, subscriptions and operations."
+      />
+      <ReportTabs value={category} onChange={setCategory} />
+      <Panel period={period} onPeriodChange={setPeriod} />
     </>
   );
 }
