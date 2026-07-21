@@ -11,9 +11,19 @@ type VendorsToolbarProps = {
 };
 
 /**
- * Search + attribute filters for the Vendors list. Presentational: it renders
- * the controls and delegates every change to the `search`/`filters` hooks the
- * page hook already owns. Collapses to a single column on narrow screens.
+ * Fixed track for each dropdown. The shared theme defaults `MuiTextField` to
+ * `fullWidth`, so an unsized select in a flex row takes a 100% flex basis and
+ * crowds out its neighbours; pinning the width and refusing to shrink keeps
+ * each one at its own size and leaves the leftovers to the search box.
+ */
+const FILTER_SX = { width: { xs: '100%', md: 160 }, flexShrink: 0 } as const;
+
+/**
+ * Search + attribute filters for the Vendors list. Everything sits on a single
+ * row on desktop — the search grows to fill, the filters keep fixed widths so
+ * they don't stretch — and collapses to a stacked column on narrow screens.
+ * Presentational: it renders the controls and delegates every change to the
+ * `search`/`filters` hooks the page hook already owns.
  */
 export default function VendorsToolbar({ search, filters }: VendorsToolbarProps) {
   const { values, setVisibility, setMinRating, setFeatured, isActive, reset } = filters;
@@ -31,7 +41,9 @@ export default function VendorsToolbar({ search, filters }: VendorsToolbarProps)
       alignItems={{ md: 'center' }}
       sx={{ mb: 2 }}
     >
-      <Box sx={{ flex: 1, minWidth: { md: 240 } }}>
+      {/* Grows to absorb the leftover width; minWidth 0 lets it shrink politely
+          rather than overflow into the filter beside it. */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <SearchField
           value={search.input}
           onChange={search.setInput}
@@ -47,7 +59,7 @@ export default function VendorsToolbar({ search, filters }: VendorsToolbarProps)
         label="Visibility"
         value={values.visibility}
         onChange={(e) => setVisibility(e.target.value)}
-        sx={{ minWidth: 150 }}
+        sx={FILTER_SX}
       >
         <MenuItem value="">Any</MenuItem>
         {VISIBILITY_OPTIONS.map((option) => (
@@ -63,7 +75,7 @@ export default function VendorsToolbar({ search, filters }: VendorsToolbarProps)
         label="Rating"
         value={values.minRating}
         onChange={(e) => setMinRating(e.target.value)}
-        sx={{ minWidth: 150 }}
+        sx={FILTER_SX}
       >
         <MenuItem value="">Any</MenuItem>
         {RATING_OPTIONS.map((option) => (
@@ -78,7 +90,7 @@ export default function VendorsToolbar({ search, filters }: VendorsToolbarProps)
           <Switch checked={values.featured} onChange={(e) => setFeatured(e.target.checked)} />
         }
         label="Featured only"
-        sx={{ whiteSpace: 'nowrap', mr: 0 }}
+        sx={{ whiteSpace: 'nowrap', mr: 0, flexShrink: 0 }}
       />
 
       {showClear && (
@@ -87,7 +99,7 @@ export default function VendorsToolbar({ search, filters }: VendorsToolbarProps)
           color="inherit"
           startIcon={<FilterAltOffIcon />}
           onClick={clearAll}
-          sx={{ whiteSpace: 'nowrap' }}
+          sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           Clear
         </Button>

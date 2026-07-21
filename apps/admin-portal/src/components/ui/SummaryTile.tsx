@@ -1,11 +1,21 @@
 import { Card, CardContent, Box, Typography, Skeleton } from '@sinnapi/ui';
 
-type Accent = 'default' | 'warning' | 'success' | 'error';
+export type SummaryAccent =
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error';
 
-const ACCENTS: Record<Accent, { fg: string; bg: string }> = {
+const ACCENTS: Record<SummaryAccent, { fg: string; bg: string }> = {
   default: { fg: 'text.secondary', bg: 'action.hover' },
-  warning: { fg: 'warning.main', bg: 'warning.light' },
+  primary: { fg: 'primary.main', bg: 'primary.light' },
+  secondary: { fg: 'secondary.main', bg: 'secondary.light' },
+  info: { fg: 'info.main', bg: 'info.light' },
   success: { fg: 'success.main', bg: 'success.light' },
+  warning: { fg: 'warning.main', bg: 'warning.light' },
   error: { fg: 'error.main', bg: 'error.light' },
 };
 
@@ -13,13 +23,15 @@ type Props = {
   label: string;
   value: number;
   icon: React.ReactNode;
-  accent?: Accent;
+  /** Colour cue for the icon badge — use it to signal urgency, not decoration. */
+  accent?: SummaryAccent;
   loading?: boolean;
 };
 
 /**
- * A single KPI tile for the moderation summary bar: a big count with a tinted
- * icon badge whose colour signals urgency (open flags read as "warning").
+ * A single KPI tile for a summary bar: a big count beside a tinted icon badge.
+ * Presentational — counts are owned by the caller's hook — and shared across the
+ * admin queues so every summary row reads the same.
  */
 export default function SummaryTile({ label, value, icon, accent = 'default', loading }: Props) {
   const { fg, bg } = ACCENTS[accent];
@@ -41,11 +53,19 @@ export default function SummaryTile({ label, value, icon, accent = 'default', lo
         >
           {icon}
         </Box>
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
             variant="overline"
             color="text.secondary"
-            sx={{ display: 'block', lineHeight: 1.4 }}
+            // A one-word label ("CONVERSATIONS") has no break opportunity, so a
+            // squeezed tile clipped it mid-word instead of wrapping. Let it wrap
+            // anywhere and drop the tracking a touch so it rarely needs to.
+            sx={{
+              display: 'block',
+              lineHeight: 1.4,
+              letterSpacing: '0.5px',
+              overflowWrap: 'anywhere',
+            }}
           >
             {label}
           </Typography>

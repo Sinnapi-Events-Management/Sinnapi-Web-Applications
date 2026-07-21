@@ -1,12 +1,8 @@
 import { useParams } from 'react-router-dom';
-import { useMessages } from '@/hooks/queries';
-import { useAuth } from '@/auth/AuthProvider';
+import { useMessageThread } from '@/hooks/useMessageThread';
 
+/** Binds the `/messages/:conversationId` route param to the shared thread hook. */
 export function useConversation() {
   const { conversationId = '' } = useParams();
-  const { user } = useAuth();
-  const { data, isLoading, error } = useMessages(conversationId);
-  const messages = data ?? [];
-
-  return { conversationId, user, messages, isLoading, error };
+  return { conversationId, ...useMessageThread(conversationId) };
 }

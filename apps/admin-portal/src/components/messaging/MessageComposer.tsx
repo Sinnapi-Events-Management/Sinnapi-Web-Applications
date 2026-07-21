@@ -49,6 +49,9 @@ export default function MessageComposer({ conversationId }: { conversationId: st
           placeholder="Type a message…"
           multiline
           maxRows={4}
+          // Fills whatever column it lands in — the inbox thread pane is far
+          // narrower than the standalone conversation page.
+          fullWidth
         />
         <IconButton type="submit" color="primary" disabled={busy} aria-label="Send">
           <SendIcon />

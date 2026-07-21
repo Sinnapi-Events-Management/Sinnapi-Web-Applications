@@ -1,59 +1,92 @@
-import { Card, List, ListItem, ListItemText, Divider, Button } from '@sinnapi/ui';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import { Stack, Button } from '@sinnapi/ui';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
-import { formatDate, titleize } from '@/lib/config';
+import StatusTabs from '@/components/ui/StatusTabs';
 import { useNotifications } from './hooks/useNotifications';
+import { useActiveNotification } from './hooks/useActiveNotification';
+import { buildNotificationTabs } from './schema';
+import NotificationsSummary from './components/organisms/NotificationsSummary';
+import NotificationsToolbar from './components/organisms/NotificationsToolbar';
+import NotificationsWorkspace from './components/organisms/NotificationsWorkspace';
+import NotificationList from './components/organisms/NotificationList';
+import NotificationDetailPane from './components/organisms/NotificationDetailPane';
 
 export default function Notifications() {
-  const { rows, isLoading, error, busy, markAll } = useNotifications();
+  const {
+    rows,
+    groups,
+    counts,
+    availableDomains,
+    isLoading,
+    countsLoading,
+    error,
+    tab,
+    setTab,
+    domainFilter,
+    search,
+    paging,
+    markAll,
+    markingAll,
+    isFiltered,
+  } = useNotifications();
+
+  const active = useActiveNotification();
+
+  const master = (
+    <Stack spacing={2}>
+      <NotificationsToolbar
+        search={search}
+        domainFilter={domainFilter}
+        availableDomains={availableDomains}
+        resultCount={rows.length}
+      />
+      <NotificationList
+        groups={groups}
+        isLoading={isLoading}
+        error={error}
+        tab={tab}
+        isFiltered={isFiltered}
+        paging={paging}
+        active={active}
+      />
+    </Stack>
+  );
 
   return (
     <>
       <PageTitle
         title="Notifications"
+        subtitle="Alerts raised by bookings, payments and compliance across the platform."
         action={
-          rows.length > 0 ? (
+          counts.unread > 0 ? (
             <Button
               onClick={markAll}
-              disabled={busy}
+              disabled={markingAll}
               startIcon={<DoneAllIcon />}
               variant="outlined"
             >
-              Mark all read
+              {markingAll ? 'Marking…' : 'Mark all read'}
             </Button>
           ) : undefined
         }
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="You're all caught up"
-            description="Notifications about bookings, quotes, and payments appear here."
-          />
-        ) : (
-          <Card variant="outlined">
-            <List disablePadding>
-              {rows.map((n, i) => (
-                <div key={n.id}>
-                  {i > 0 && <Divider />}
-                  <ListItem sx={{ bgcolor: n.read_at ? 'transparent' : 'action.hover' }}>
-                    {!n.read_at && (
-                      <FiberManualRecordIcon color="secondary" sx={{ fontSize: 10, mr: 1 }} />
-                    )}
-                    <ListItemText
-                      primary={n.title || titleize(n.trigger_key)}
-                      secondary={`${n.body ? `${n.body} · ` : ''}${formatDate(n.created_at)}`}
-                    />
-                  </ListItem>
-                </div>
-              ))}
-            </List>
-          </Card>
-        )}
-      </QueryState>
+
+      <NotificationsSummary counts={counts} loading={countsLoading} />
+
+      <StatusTabs
+        options={buildNotificationTabs(counts)}
+        value={tab}
+        onChange={setTab}
+        loadingCounts={countsLoading}
+        ariaLabel="Filter notifications by read state"
+      />
+
+      <NotificationsWorkspace
+        master={master}
+        detailOpen={!!active.active}
+        onCloseDetail={active.close}
+        detail={<NotificationDetailPane notification={active.active} onClose={active.close} />}
+      />
     </>
   );
 }

@@ -1,51 +1,67 @@
-import { Link as RouterLink } from 'react-router-dom';
-import { Card, List, ListItemButton, ListItemText, Divider } from '@sinnapi/ui';
+import { Stack } from '@sinnapi/ui';
 import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
-import { formatDate, titleize } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { VendorRef } from '@/lib/types';
+import StatusTabs from '@/components/ui/StatusTabs';
 import { useMessages } from './hooks/useMessages';
+import { useActiveConversation } from './hooks/useActiveConversation';
+import { buildInboxTabs } from './schema';
+import InboxSummary from './components/organisms/InboxSummary';
+import InboxToolbar from './components/organisms/InboxToolbar';
+import InboxWorkspace from './components/organisms/InboxWorkspace';
+import ConversationList from './components/organisms/ConversationList';
+import ConversationPane from './components/organisms/ConversationPane';
 
 export default function Messages() {
-  const { rows, isLoading, error } = useMessages();
+  const {
+    rows,
+    counts,
+    isLoading,
+    countsLoading,
+    error,
+    tab,
+    setTab,
+    typeFilter,
+    search,
+    isFiltered,
+  } = useMessages();
+
+  const active = useActiveConversation(rows);
+
+  const master = (
+    <Stack spacing={2}>
+      <InboxToolbar search={search} typeFilter={typeFilter} resultCount={rows.length} />
+      <ConversationList
+        rows={rows}
+        isLoading={isLoading}
+        error={error}
+        isFiltered={isFiltered}
+        active={active}
+      />
+    </Stack>
+  );
 
   return (
     <>
-      <PageTitle title="Messages" subtitle="Chat with vendors and the Sinnapi team." />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="No conversations yet"
-            description="Message a vendor from their profile to start a conversation."
-            ctaLabel="Discover vendors"
-            ctaHref="/discover"
-          />
-        ) : (
-          <Card variant="outlined">
-            <List disablePadding>
-              {rows.map((c, i) => (
-                <div key={c.id}>
-                  {i > 0 && <Divider />}
-                  <ListItemButton component={RouterLink} to={`/messages/${c.id}`}>
-                    <ListItemText
-                      primary={
-                        one<VendorRef>(c.vendors)?.business_name ?? c.subject ?? titleize(c.type)
-                      }
-                      secondary={
-                        c.last_message_at
-                          ? `Last activity ${formatDate(c.last_message_at)}`
-                          : 'No messages yet'
-                      }
-                    />
-                  </ListItemButton>
-                </div>
-              ))}
-            </List>
-          </Card>
-        )}
-      </QueryState>
+      <PageTitle
+        title="Messages"
+        subtitle="Vendor and client conversations handled by the Sinnapi team."
+      />
+
+      <InboxSummary counts={counts} loading={countsLoading} />
+
+      <StatusTabs
+        options={buildInboxTabs(counts)}
+        value={tab}
+        onChange={setTab}
+        loadingCounts={countsLoading}
+        ariaLabel="Filter conversations by status"
+      />
+
+      <InboxWorkspace
+        master={master}
+        detailOpen={!!active.active}
+        onCloseDetail={active.close}
+        detail={<ConversationPane conversation={active.active} onClose={active.close} />}
+      />
     </>
   );
 }

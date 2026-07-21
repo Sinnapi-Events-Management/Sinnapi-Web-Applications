@@ -144,6 +144,36 @@ export function formatDateTime(value: string | null | undefined): string {
   return new Date(value).toLocaleString();
 }
 
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 365 * 24 * 60 * 60],
+  ['month', 30 * 24 * 60 * 60],
+  ['day', 24 * 60 * 60],
+  ['hour', 60 * 60],
+  ['minute', 60],
+];
+
+/**
+ * Short relative timestamp ("2 hr ago") for activity feeds and inbox rows,
+ * where an absolute date is noise. Falls back to "Just now" under a minute.
+ */
+export function formatRelative(value: string | null | undefined): string {
+  if (!value) return '—';
+  const seconds = Math.round((Date.now() - new Date(value).getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' });
+  for (const [unit, secondsPerUnit] of RELATIVE_UNITS) {
+    if (seconds >= secondsPerUnit) return rtf.format(-Math.floor(seconds / secondsPerUnit), unit);
+  }
+  return 'Just now';
+}
+
+/** Initials for an avatar, e.g. "Bella Events" → "BE". Max two letters. */
+export function initials(name: string | null | undefined): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
+}
+
 export function titleize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }

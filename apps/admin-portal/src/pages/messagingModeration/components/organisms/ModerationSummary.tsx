@@ -3,7 +3,7 @@ import FlagIcon from '@mui/icons-material/Flag';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import BlockIcon from '@mui/icons-material/Block';
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
-import SummaryTile from '../molecules/SummaryTile';
+import SummaryTile from '@/components/ui/SummaryTile';
 import type { FlagCounts } from '../../schema';
 
 type Props = {
