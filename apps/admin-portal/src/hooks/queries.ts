@@ -1,4 +1,4 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
@@ -49,6 +49,7 @@ import type {
   RetentionPolicyModel,
   ErasureRequestModel,
   ConversationModel,
+  ConversationReadStateModel,
   MessageModel,
   NotificationModel,
   EventInterestModel,
@@ -1447,15 +1448,44 @@ export function useErasureRequests(params: PageParams) {
 }
 
 // shared inbox
+/**
+ * Inbox list. The vendor join gives each row a human name, and the embedded
+ * `messages` resource is capped at the single newest non-deleted message so the
+ * list can show a preview without a second round trip per conversation.
+ */
 export function useConversations() {
   return useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
       const { data } = await supabase
         .from('conversations')
-        .select('id,type,subject,last_message_at,status')
+        .select(
+          'id,type,subject,last_message_at,status,created_at,vendors(business_name),messages(body,created_at,sender_id)',
+        )
+        .is('messages.deleted_at', null)
+        .order('created_at', { referencedTable: 'messages', ascending: false })
+        .limit(1, { referencedTable: 'messages' })
         .order('last_message_at', { ascending: false, nullsFirst: false });
       return (data ?? []) as ConversationModel[];
+    },
+  });
+}
+
+/**
+ * The signed-in admin's participant rows, keyed by conversation. Split from
+ * `useConversations` because it is scoped to `auth.uid()` and is invalidated on
+ * its own whenever a thread is marked read.
+ */
+export function useConversationReadState(profileId: string | undefined) {
+  return useQuery({
+    queryKey: ['conversation-read-state', profileId],
+    enabled: !!profileId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id,last_read_at,is_muted')
+        .eq('profile_id', profileId!);
+      return (data ?? []) as ConversationReadStateModel[];
     },
   });
 }
@@ -1463,6 +1493,8 @@ export function useConversations() {
 export function useMessages(conversationId: string) {
   return useQuery({
     queryKey: ['messages', conversationId],
+    // The inbox mounts this before a thread is picked; don't fetch on an empty id.
+    enabled: !!conversationId,
     queryFn: async () => {
       const { data } = await supabase
         .from('messages')
@@ -1475,16 +1507,39 @@ export function useMessages(conversationId: string) {
   });
 }
 
+/** Rows fetched per notification feed page. */
+export const NOTIFICATIONS_PAGE_SIZE = 25;
+
+export type NotificationPage = {
+  rows: NotificationModel[];
+  /** Exact server-side total, so counts stay honest while only a page is loaded. */
+  total: number;
+};
+
+/**
+ * The notification feed, newest first, paged for "Load more". `count: 'exact'`
+ * rides along on the same request, so the summary tiles report the true totals
+ * rather than whatever happens to be loaded.
+ */
 export function useNotifications() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['notifications'],
-    queryFn: async () => {
-      const { data } = await supabase
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<NotificationPage> => {
+      const from = pageParam * NOTIFICATIONS_PAGE_SIZE;
+      const { data, count } = await supabase
         .from('notifications')
-        .select('id,trigger_key,title,body,read_at,created_at')
+        .select('id,trigger_key,title,body,data,channel,read_at,created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(50);
-      return (data ?? []) as NotificationModel[];
+        .range(from, from + NOTIFICATIONS_PAGE_SIZE - 1);
+      return { rows: (data ?? []) as NotificationModel[], total: count ?? 0 };
+    },
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.rows.length, 0);
+      // Stop on a short page too: `total` can shrink under us if rows are purged
+      // between requests, and an empty page would otherwise loop forever.
+      if (lastPage.rows.length === 0 || loaded >= lastPage.total) return undefined;
+      return pages.length;
     },
   });
 }

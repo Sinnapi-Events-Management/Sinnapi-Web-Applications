@@ -565,6 +565,15 @@ export type NotificationModel = {
   trigger_key: string;
   title: string | null;
   body: string | null;
+  /**
+   * Producer-supplied context. Deliberately untyped: the three writers each use
+   * a different shape — `{dispute_id}` (cron), `{aggregate,id}` (outbox
+   * dispatch) and `{mismatches}` (reconciliation) — so consumers must probe
+   * rather than destructure.
+   */
+  data: Record<string, unknown> | null;
+  /** `notification_channel` enum — 'in_app' | 'email'. */
+  channel: string;
   read_at: string | null;
   created_at: string | null;
 };
@@ -613,15 +622,34 @@ export type ErasureRequestModel = {
 
 // --- inbox ------------------------------------------------------------------
 
+/** Newest message of a conversation, embedded for the inbox row preview. */
+export type MessagePreviewRef = {
+  body: string | null;
+  created_at: string | null;
+  sender_id: string | null;
+};
+
 export type ConversationModel = {
   id: string;
   type: string;
   subject: string | null;
   last_message_at: string | null;
   status: string;
-  // Not part of the current select; kept optional so the inbox list can fall
-  // back to subject/type without a runtime change if a vendor join is added.
-  vendors?: VendorRef | VendorRef[] | null;
+  created_at: string | null;
+  vendors: VendorRef | VendorRef[] | null;
+  // PostgREST caps this embed at the single newest message (see useConversations),
+  // so it is an array of at most one — never the full thread.
+  messages: MessagePreviewRef[] | null;
+};
+
+/**
+ * The signed-in admin's own participant row. `last_read_at` is what the unread
+ * badge is derived from; RLS always lets a profile read its own rows.
+ */
+export type ConversationReadStateModel = {
+  conversation_id: string;
+  last_read_at: string | null;
+  is_muted: boolean;
 };
 
 export type MessageModel = {
