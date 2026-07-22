@@ -1,6 +1,6 @@
 import type { VendorDetailModel, VendorMediaModel, PublicReview } from '@/lib/types';
 import { MOCK_VENDORS } from '@/containers/vendors/data/mockVendors';
-import type { VendorListItem } from '@/containers/vendors/utils/filterVendors';
+import type { MockVendor } from '@/containers/vendors/data/mockVendors';
 
 /**
  * Mock fallback for the vendor detail page. While the `vendors` table is empty
@@ -88,7 +88,7 @@ const REVIEW_SEEDS: { title: string; body: string; offset: number }[] = [
 const clampRating = (value: number): number => Math.max(1, Math.min(5, Math.round(value * 2) / 2));
 
 /** Strips the listing-only fields and augments a card into a full detail model. */
-function toVendorDetail(vendor: VendorListItem, index: number): VendorDetailModel {
+function toVendorDetail(vendor: MockVendor, index: number): VendorDetailModel {
   const category = vendor.category ?? '';
   return {
     ...vendor,

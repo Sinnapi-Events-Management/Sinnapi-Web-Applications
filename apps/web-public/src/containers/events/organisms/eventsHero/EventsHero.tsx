@@ -1,22 +1,24 @@
-import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Typography, Chip, Stack } from '@sinnapi/ui/atoms';
+import { Box, Container, Typography, Chip } from '@sinnapi/ui/atoms';
 import { CalendarMonth } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
-import type { EventsSearchParams } from '../../data/filterEvents';
 import HeroSearchForm from './molecules/HeroSearchForm';
-import { QUICK_FILTERS } from './data/quickFilters';
+import HeroQuickFilters from './molecules/HeroQuickFilters';
 
 /**
  * Events hero — keeps the brand teal-over-photo treatment for continuity with
  * the About/How-it-works heroes, but is intentionally its own thing: a
  * search-led, engagement-first banner. The search pill is the focal point and
  * two slow drifting orbs add depth without touching the main thread (GPU-only
- * transforms, paused under `prefers-reduced-motion`). Fully server-rendered with
- * a `priority` image so the LCP isn't gated behind client JS.
+ * transforms, paused under `prefers-reduced-motion`).
+ *
+ * Stays a Server Component with a `priority` image so the LCP isn't gated behind
+ * client JS — only the two interactive islands inside it (the search pill and
+ * the quick filters) ship any. It takes no props: both islands read the current
+ * filters straight from the URL, so the hero has nothing to thread through.
  */
-export default function EventsHero({ defaults }: { defaults: EventsSearchParams }) {
+export default function EventsHero() {
   return (
     <Box
       sx={{
@@ -120,42 +122,8 @@ export default function EventsHero({ defaults }: { defaults: EventsSearchParams 
           or budget — then sign in to express interest.
         </Typography>
 
-        <HeroSearchForm defaults={defaults} />
-
-        {/* Fast paths into the same server-side filtering the form drives. */}
-        <Stack
-          direction="row"
-          spacing={1}
-          useFlexGap
-          flexWrap="wrap"
-          sx={{ mt: 3, justifyContent: { md: 'center' } }}
-        >
-          <Typography
-            variant="body2"
-            sx={{ color: withAlpha(common.white, 0.7), mr: 0.5, py: 0.5 }}
-          >
-            Popular:
-          </Typography>
-          {QUICK_FILTERS.map((quick) => (
-            <Chip
-              key={quick.type}
-              component={NextLink}
-              href={`/events?type=${quick.type}`}
-              label={quick.label}
-              clickable
-              size="small"
-              sx={{
-                color: 'common.white',
-                bgcolor: withAlpha(common.white, 0.12),
-                border: '1px solid',
-                borderColor: withAlpha(common.white, 0.28),
-                fontWeight: 600,
-                transition: 'background-color .2s ease',
-                '&:hover': { bgcolor: withAlpha(common.white, 0.22) },
-              }}
-            />
-          ))}
-        </Stack>
+        <HeroSearchForm />
+        <HeroQuickFilters />
       </Container>
     </Box>
   );

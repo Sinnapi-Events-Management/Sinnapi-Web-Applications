@@ -1,14 +1,26 @@
-import type { VendorListItem } from '../utils/filterVendors';
+import type { VendorCardModel } from '@/lib/types';
+
+/**
+ * A mock vendor row: the public card model plus the facet fields the real card
+ * model doesn't carry (live rows keep category and regions in join tables).
+ */
+export type MockVendor = VendorCardModel & {
+  category?: string;
+  regions?: string[];
+};
 
 /**
  * Placeholder vendors used while the `vendors` table is empty in development.
  * Shape matches the public `VendorCardModel` (a subset of the `vendors` table:
- * see migration 20260618000004) enriched with `category` + `regions` so the
- * facet filters work in-memory. The container falls back to these only when the
- * live query returns nothing, so wiring real data later needs no UI change.
+ * see migration 20260618000004) enriched with `category` + `regions`.
  * Image URLs point at the locally hosted marketing photography in /public/images.
+ *
+ * The /vendors listing no longer falls back to these — it filters server-side
+ * through `search_vendors_public`, where substituting fake rows for an empty
+ * result would mean a search returning vendors that don't exist. Only
+ * `vendorDetail` still uses them, for its own placeholder profiles.
  */
-export const MOCK_VENDORS: VendorListItem[] = [
+export const MOCK_VENDORS: MockVendor[] = [
   {
     id: 'mock-v-01',
     slug: 'lumiere-events-photography',

@@ -3,7 +3,8 @@ import type { AuthScreenProps } from '@/components/organisms/authScreen';
 import { IMAGES } from '@/lib/assets';
 import { SITE } from '@/lib/config/site';
 
-const portal = SITE.portalUrl;
+const vendorPortal = SITE.vendorPortalUrl;
+const clientPortal = SITE.clientPortalUrl;
 
 /** All copy + routing for the sign-in split screen — the container just renders it. */
 export const SIGN_IN_CONTENT: AuthScreenProps = {
@@ -27,7 +28,7 @@ export const SIGN_IN_CONTENT: AuthScreenProps = {
       Icon: Person,
       title: 'Client / Event Planner',
       description: 'Plan events, book vendors, and manage quotes.',
-      href: `${portal}?role=client`,
+      href: `${clientPortal}`,
       ctaLabel: 'Sign in as Client',
       featured: true,
     },
@@ -35,7 +36,7 @@ export const SIGN_IN_CONTENT: AuthScreenProps = {
       Icon: Storefront,
       title: 'Vendor',
       description: 'Manage your listing, bookings, and payouts.',
-      href: `${portal}?role=vendor`,
+      href: `${vendorPortal}`,
       ctaLabel: 'Sign in as Vendor',
     },
   ],

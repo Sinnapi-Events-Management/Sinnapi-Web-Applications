@@ -5,14 +5,24 @@ import { Verified as VerifiedIcon, Place as PlaceIcon } from '@mui/icons-materia
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import type { VendorCardModel } from '@/lib/types';
 import { useVendorCard } from './hooks/useVendorCard';
+import CategoryChips from './atoms/CategoryChips';
 
 /**
  * Presentational Server Component for a single vendor in a listing grid.
  * Display values are derived by useVendorCard so this stays purely declarative.
  * On hover the whole card lifts and the cover gently zooms (GPU-only transforms)
  * to match the events feed's tactile, scannable rhythm.
+ *
+ * `categories` is optional: surfaces that join them (the home featured rail, via
+ * `list_featured_vendors_public`) get a chip row, plain listings stay unchanged.
  */
-export default function VendorCard({ vendor }: { vendor: VendorCardModel }) {
+export default function VendorCard({
+  vendor,
+  categories = [],
+}: {
+  vendor: VendorCardModel;
+  categories?: string[];
+}) {
   const { price, image } = useVendorCard(vendor);
 
   return (
@@ -80,6 +90,7 @@ export default function VendorCard({ vendor }: { vendor: VendorCardModel }) {
               <Typography variant="body2">{vendor.base_city}</Typography>
             </Stack>
           )}
+          <CategoryChips categories={categories} />
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
             <Rating value={vendor.avg_rating} precision={0.5} size="small" readOnly />
             <Typography variant="caption" color="text.secondary">

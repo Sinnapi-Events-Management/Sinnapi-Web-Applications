@@ -5,9 +5,10 @@ export const SITE = {
   tagline: 'Plan your event with trusted, verified vendors',
   description:
     'Sinnapi is a trusted marketplace connecting you with authentic, verified event service providers across Uganda and beyond. Discover, compare, and book with confidence.',
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  url: process.env.NEXT_CLIENT_PORTAL_URL ?? 'http://localhost:3000',
   // The authenticated portal lives in a separate app; public CTAs deep-link to it.
-  portalUrl: process.env.NEXT_PUBLIC_PORTAL_URL ?? '/sign-in',
+  vendorPortalUrl: process.env.NEXT_VENDORS_PORTAL_URL ?? '/sign-in',
+  clientPortalUrl: process.env.NEXT_CLIENT_PORTAL_URL ?? '/sign-in',
 };
 
 export const PRIMARY_NAV = [
@@ -69,6 +70,43 @@ export const SERVICE_REGIONS = [
   'nationwide',
   'east_africa',
   'international',
+];
+
+/**
+ * Occasion tokens for the events grid. These are matched against
+ * `events.event_type` exactly, so they must stay snake_case and in step with
+ * what the admin portal writes — a label can change, a value cannot.
+ */
+export const EVENT_TYPES = [
+  'wedding',
+  'birthday',
+  'corporate',
+  'graduation',
+  'baby_shower',
+  'anniversary',
+  'concert',
+  'conference',
+  'product_launch',
+];
+
+/**
+ * Towns the events grid offers as a location facet.
+ *
+ * Separate from `SERVICE_REGIONS` on purpose: a vendor's coverage is a
+ * normalised reference row, whereas `events.location` is free text a poster
+ * typed, so these are matched by containment ("kampala" finds "Kampala,
+ * Uganda"). This list is also what `count_event_facets_public` counts against —
+ * the RPC cannot group free text into sensible options on its own.
+ */
+export const EVENT_LOCATIONS = [
+  'kampala',
+  'entebbe',
+  'jinja',
+  'mukono',
+  'wakiso',
+  'mbarara',
+  'gulu',
+  'nationwide',
 ];
 
 export function formatMoney(amount: number | null, currency: string | null): string | null {

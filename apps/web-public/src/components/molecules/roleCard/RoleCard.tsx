@@ -37,6 +37,9 @@ export default function RoleCard({
     <Paper
       component={NextLink}
       href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      elevation={featured ? 4 : 1}
       variant="outlined"
       sx={{
         display: 'flex',
