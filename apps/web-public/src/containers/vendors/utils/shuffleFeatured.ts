@@ -1,5 +1,3 @@
-import type { VendorListItem } from './filterVendors';
-
 /** Rotation window in ms — the featured order is stable within it, then reshuffles. */
 const ROTATION_WINDOW_MS = 15 * 60 * 1000; // 15 min, matches the page's ISR revalidate.
 
@@ -23,10 +21,7 @@ function mulberry32(seed: number): () => number {
  * hydration mismatch) and reshuffles when the window rolls over. Pure: the input
  * array is not mutated.
  */
-export function shuffleFeatured(
-  vendors: VendorListItem[],
-  now: number = Date.now(),
-): VendorListItem[] {
+export function shuffleFeatured<T>(vendors: T[], now: number = Date.now()): T[] {
   const seed = Math.floor(now / ROTATION_WINDOW_MS);
   const rand = mulberry32(seed);
   const out = [...vendors];

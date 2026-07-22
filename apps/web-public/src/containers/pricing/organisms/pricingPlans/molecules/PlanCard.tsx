@@ -1,23 +1,28 @@
 import NextLink from 'next/link';
-import { Box, Button, Chip, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
+import { Button, Chip, Paper, Typography } from '@sinnapi/ui/atoms';
 import { List, ListItem, ListItemIcon, ListItemText } from '@sinnapi/ui/molecules';
 import { Check as CheckIcon } from '@mui/icons-material';
 import { withAlpha, palette } from '@sinnapi/ui/tokens';
-import { formatPrice, type BillingCycle, type Plan } from '../data/plans';
+import type { BillingCycle, PricingPlanModel } from '@/lib/types';
+import { priceFor } from '../../../utils/planSummary';
+import PlanPrice from './PlanPrice';
 
 type PlanCardProps = {
-  plan: Plan;
+  plan: PricingPlanModel;
   cycle: BillingCycle;
 };
 
 /**
- * A single subscription tier. The popular plan is lifted (raised, primary-bordered,
- * badged) so the eye lands on it first; all cards stretch to equal height so the
- * CTAs line up regardless of feature-list length.
+ * A single subscription tier, rendered from the admin-managed catalogue. The
+ * highlighted plan is lifted (raised, primary-bordered, badged) so the eye lands
+ * on it first; all cards stretch to equal height so the CTAs line up regardless
+ * of feature-list length.
+ *
+ * Presentational by design — it takes a plan and a cycle and renders them. Which
+ * cycle is showing, and whether there is a catalogue at all, are decided above.
  */
 export default function PlanCard({ plan, cycle }: PlanCardProps) {
   const { highlight } = plan;
-  const price = cycle === 'annual' ? plan.priceAnnual : plan.priceMonthly;
 
   return (
     <Paper
@@ -59,21 +64,14 @@ export default function PlanCard({ plan, cycle }: PlanCardProps) {
       <Typography variant="h5" sx={{ fontWeight: 700 }}>
         {plan.name}
       </Typography>
+      {/* Reserved height rather than a conditional: the tagline is optional in
+          the admin form, and a plan without one must not pull its price up out
+          of line with the cards beside it. */}
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, minHeight: 40 }}>
-        {plan.tagline}
+        {plan.tagline ?? plan.description ?? ''}
       </Typography>
 
-      <Stack direction="row" alignItems="baseline" spacing={0.75} sx={{ mt: 2.5 }}>
-        <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
-          {formatPrice(price)}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          /mo
-        </Typography>
-      </Stack>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-        {cycle === 'annual' ? 'Billed annually' : 'Billed monthly'}
-      </Typography>
+      <PlanPrice amount={priceFor(plan, cycle)} currency={plan.currency} cycle={cycle} />
 
       <Button
         component={NextLink}
@@ -82,17 +80,21 @@ export default function PlanCard({ plan, cycle }: PlanCardProps) {
         fullWidth
         size="large"
         sx={{ mt: 3 }}
+        // Three identical "Start free trial" buttons are indistinguishable to a
+        // screen-reader user listing the page's links; the plan name is the
+        // only thing that tells them apart.
+        aria-label={`Start free trial on the ${plan.name} plan`}
       >
         Start free trial
       </Button>
 
       <List sx={{ flex: 1, mt: 1.5 }}>
-        {plan.features.map((f) => (
-          <ListItem key={f} disableGutters sx={{ py: 0.25, alignItems: 'flex-start' }}>
+        {plan.features.map((feature) => (
+          <ListItem key={feature} disableGutters sx={{ py: 0.25, alignItems: 'flex-start' }}>
             <ListItemIcon sx={{ minWidth: 30, mt: 0.5 }}>
               <CheckIcon color="primary" fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary={f} primaryTypographyProps={{ variant: 'body2' }} />
+            <ListItemText primary={feature} primaryTypographyProps={{ variant: 'body2' }} />
           </ListItem>
         ))}
       </List>

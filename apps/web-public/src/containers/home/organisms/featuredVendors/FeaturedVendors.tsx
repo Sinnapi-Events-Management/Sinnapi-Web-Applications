@@ -1,10 +1,23 @@
-import { Container, Grid } from '@sinnapi/ui/atoms';
-import VendorCard from '@/components/molecules/vendorCard';
+import { Container } from '@sinnapi/ui/atoms';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import EmptyState from '@/components/molecules/emptyState';
-import type { VendorCardModel } from '@/lib/types';
+import type { FeaturedVendorModel } from '@/lib/types';
+import FeaturedVendorsGrid from './molecules/FeaturedVendorsGrid';
+import FeaturedVendorsRail from './molecules/FeaturedVendorsRail';
 
-export default function FeaturedVendors({ vendors }: { vendors: VendorCardModel[] }) {
+/**
+ * Above this many featured vendors a grid would push the rest of the page below
+ * the fold, so the section switches to the scrolling rail. At or below it, the
+ * grid is both calmer and cheaper (no client JS).
+ */
+const RAIL_THRESHOLD = 3;
+
+/**
+ * "Featured vendors" — the paid-placement spotlight. Presentational only: the
+ * vendors (and their categories) arrive already ranked from
+ * `list_featured_vendors_public`, so nothing is sorted or sliced here.
+ */
+export default function FeaturedVendors({ vendors }: { vendors: FeaturedVendorModel[] }) {
   return (
     <Container sx={{ py: { xs: 6, md: 9 } }}>
       <SectionHeading
@@ -19,14 +32,10 @@ export default function FeaturedVendors({ vendors }: { vendors: VendorCardModel[
           ctaLabel="Browse all vendors"
           ctaHref="/vendors"
         />
+      ) : vendors.length <= RAIL_THRESHOLD ? (
+        <FeaturedVendorsGrid vendors={vendors} />
       ) : (
-        <Grid container spacing={3}>
-          {vendors.map((v) => (
-            <Grid item xs={12} sm={6} md={4} key={v.id}>
-              <VendorCard vendor={v} />
-            </Grid>
-          ))}
-        </Grid>
+        <FeaturedVendorsRail vendors={vendors} />
       )}
     </Container>
   );

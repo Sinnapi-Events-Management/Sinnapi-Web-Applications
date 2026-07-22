@@ -1,25 +1,32 @@
-import { Paper, TextField, Button } from '@sinnapi/ui/atoms';
-import { Search } from '@mui/icons-material';
-import type { VendorsSearchParams } from '../../../utils/filterVendors';
-
-/** Facet keys carried through the hero search so an active filter survives a new search. */
-const CARRIED: (keyof VendorsSearchParams)[] = ['category', 'region', 'price', 'rating'];
+'use client';
+import { Paper, TextField, Button, IconButton } from '@sinnapi/ui/atoms';
+import { Search, Close } from '@mui/icons-material';
+import { useVendorsSearchInput } from '../../../hooks/useVendorsSearchInput';
 
 /**
- * Prominent hero search — a plain GET form to `/vendors`, so search works
- * without client JS and stays crawlable (mirrors the events discovery pattern).
- * Renders as a solid white pill over the teal hero so it reads as the primary
- * action. Any active facet is preserved via hidden inputs so searching refines
- * rather than resets the current view.
+ * The hero's search pill — the page's primary action, and now a live one: the
+ * grid below re-queries as the visitor types (debounced), instead of waiting
+ * for a submit that reloads the whole page.
+ *
+ * It stays a real `<form>` with a real submit button rather than a bare input.
+ * Enter has to work, mobile keyboards need a search action key to show, and
+ * `role="search"` is what lets assistive tech jump straight here — none of
+ * which a div with an onChange gives you. Submit's own job is small: flush the
+ * pending debounce and scroll the results into view, since on a hero this tall
+ * the grid the visitor just asked for is off screen.
  */
-export default function HeroSearchForm({ defaults }: { defaults: VendorsSearchParams }) {
+export default function HeroSearchForm() {
+  const { value, setValue, submit, clear } = useVendorsSearchInput();
+
   return (
     <Paper
       component="form"
-      action="/vendors"
-      method="get"
       role="search"
       elevation={0}
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -32,21 +39,23 @@ export default function HeroSearchForm({ defaults }: { defaults: VendorsSearchPa
         boxShadow: '0 18px 40px -18px rgba(4, 46, 44, 0.55)',
       }}
     >
-      {CARRIED.map((key) =>
-        defaults[key] ? <input key={key} type="hidden" name={key} value={defaults[key]} /> : null,
-      )}
-
       <Search sx={{ color: 'text.disabled' }} />
       <TextField
         name="q"
         variant="standard"
         fullWidth
-        defaultValue={defaults.q ?? ''}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
         placeholder="Search vendors, services, or towns…"
         InputProps={{ disableUnderline: true }}
-        inputProps={{ 'aria-label': 'Search vendors' }}
+        inputProps={{ 'aria-label': 'Search vendors', enterKeyHint: 'search' }}
         sx={{ '& .MuiInputBase-input': { py: 1, fontSize: '1rem' } }}
       />
+      {value && (
+        <IconButton aria-label="Clear search" size="small" onClick={clear}>
+          <Close fontSize="small" />
+        </IconButton>
+      )}
       <Button
         type="submit"
         variant="contained"

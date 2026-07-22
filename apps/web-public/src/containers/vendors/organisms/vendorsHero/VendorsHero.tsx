@@ -1,13 +1,11 @@
-import NextLink from 'next/link';
 import Image from 'next/image';
-import { Box, Container, Typography, Chip, Stack } from '@sinnapi/ui/atoms';
+import { Box, Container, Typography, Chip } from '@sinnapi/ui/atoms';
 import { Verified } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
-import type { VendorsSearchParams } from '../../utils/filterVendors';
 import HeroSearchForm from './molecules/HeroSearchForm';
+import HeroQuickFilters from './molecules/HeroQuickFilters';
 import HeroStats from './molecules/HeroStats';
-import { QUICK_FILTERS } from './data/quickFilters';
 
 /**
  * Vendors hero — keeps the brand teal-over-photo treatment for continuity with
@@ -15,10 +13,15 @@ import { QUICK_FILTERS } from './data/quickFilters';
  * focal point is the search pill, lit by a single soft spotlight that slowly
  * breathes (GPU-only transform, paused under `prefers-reduced-motion`) rather
  * than the Events hero's drifting orbs. A trust strip of marketplace figures
- * sits below to build confidence. Fully server-rendered with a `priority` image
- * so the LCP isn't gated behind client JS.
+ * sits below to build confidence.
+ *
+ * Stays a Server Component with a `priority` image so the LCP isn't gated
+ * behind client JS — only the two interactive islands inside it (the search
+ * pill and the quick filters) ship any. It takes no props: both islands read
+ * the current filters straight from the URL, so the hero has nothing to thread
+ * through.
  */
-export default function VendorsHero({ defaults }: { defaults: VendorsSearchParams }) {
+export default function VendorsHero() {
   return (
     <Box
       sx={{
@@ -114,43 +117,8 @@ export default function VendorsHero({ defaults }: { defaults: VendorsSearchParam
           budget — then sign in to chat, request quotes, and book.
         </Typography>
 
-        <HeroSearchForm defaults={defaults} />
-
-        {/* Fast paths into the same server-side filtering the form drives. */}
-        <Stack
-          direction="row"
-          spacing={1}
-          useFlexGap
-          flexWrap="wrap"
-          sx={{ mt: 3, justifyContent: { md: 'center' } }}
-        >
-          <Typography
-            variant="body2"
-            sx={{ color: withAlpha(common.white, 0.7), mr: 0.5, py: 0.5 }}
-          >
-            Popular:
-          </Typography>
-          {QUICK_FILTERS.map((quick) => (
-            <Chip
-              key={quick.category}
-              component={NextLink}
-              href={`/vendors?category=${quick.category}`}
-              label={quick.label}
-              clickable
-              size="small"
-              sx={{
-                color: 'common.white',
-                bgcolor: withAlpha(common.white, 0.12),
-                border: '1px solid',
-                borderColor: withAlpha(common.white, 0.28),
-                fontWeight: 600,
-                transition: 'background-color .2s ease',
-                '&:hover': { bgcolor: withAlpha(common.white, 0.22) },
-              }}
-            />
-          ))}
-        </Stack>
-
+        <HeroSearchForm />
+        <HeroQuickFilters />
         <HeroStats />
       </Container>
     </Box>

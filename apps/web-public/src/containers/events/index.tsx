@@ -1,38 +1,44 @@
-import { Container } from '@sinnapi/ui/atoms';
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import MarketplaceCta from '@/components/organisms/marketplaceCta';
 import EventTips from '@/components/organisms/eventTips';
 import EventsHero from './organisms/eventsHero';
-import EventsToolbar from './organisms/eventsToolbar';
-import EventsResults from './organisms/eventsResults';
-import type { EventsSearchParams } from './data/filterEvents';
-import { getEventsData } from './utils/getEventsData';
+import EventsBrowser from './organisms/eventsBrowser';
+import { parseEventsSearchParams, type EventsSearchParams } from './utils/searchParams';
+import { prefetchEventsData } from './utils/prefetchEventsData';
 
 /**
- * Events page. Composes the experience as: a search-led hero → a refinement
- * toolbar → the reveal-on-scroll grid. Search & filtering are URL-driven and
- * resolved server-side in `getEventsData` (with a mock fallback while the table
- * is empty); presentation lives in the organisms, so this file only sequences
- * them and threads the current query through.
+ * Events page. Sequences the experience — search-led hero → toolbar → results
+ * grid → tips → CTA — and nothing else.
+ *
+ * The data is deliberately split across the server/client boundary rather than
+ * living on either side of it. The server resolves the *first* view of the grid
+ * and dehydrates it into the payload, so the page ships with real events in its
+ * HTML (indexable, no loading state, LCP unblocked by JS). From mount onward
+ * `EventsBrowser` owns it: searching, filtering, sorting and paging are TanStack
+ * Query cache reads or single Supabase RPC calls, with no navigation and no
+ * server round trip.
+ *
+ * This replaces a page that fetched 24 rows and narrowed them in JavaScript —
+ * which meant search and every facet only ever looked at those 24, and the
+ * headline count described the fetch rather than the feed.
  */
 export default async function EventsContainer({
   searchParams,
 }: {
   searchParams: EventsSearchParams;
 }) {
-  const { events, total, activeFilters } = await getEventsData(searchParams);
+  // Normalised once, here: an unrecognised facet from a stale link must not
+  // reach the prefetch, or the server and the client would resolve different
+  // query keys and the hydrated page would silently refetch everything.
+  const params = parseEventsSearchParams(searchParams);
+  const queryClient = await prefetchEventsData(params);
 
   return (
     <>
-      <EventsHero defaults={searchParams} />
-      <Container sx={{ py: { xs: 4, md: 6 } }}>
-        <EventsToolbar
-          defaults={searchParams}
-          resultCount={events.length}
-          total={total}
-          activeFilters={activeFilters}
-        />
-        <EventsResults events={events} activeFilters={activeFilters} />
-      </Container>
+      <EventsHero />
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <EventsBrowser />
+      </HydrationBoundary>
       <EventTips />
       <MarketplaceCta
         title="Find the right vendors for your event"

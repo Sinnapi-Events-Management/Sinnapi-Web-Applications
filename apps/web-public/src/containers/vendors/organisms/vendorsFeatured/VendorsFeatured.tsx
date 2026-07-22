@@ -1,7 +1,7 @@
 import { Box, Container } from '@sinnapi/ui/atoms';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
-import type { VendorListItem } from '../../utils/filterVendors';
+import type { VendorListingModel } from '@/lib/types';
 import FeaturedVendorCard from './molecules/FeaturedVendorCard';
 
 const GOLD = palette.light.secondary;
@@ -12,10 +12,13 @@ const GOLD = palette.light.secondary;
  * presents every featured vendor in a horizontal scroll-snap rail so the section
  * scales to any number of paid vendors without growing vertically. The rail is
  * CSS-only (no client JS): native horizontal scroll with snap points, the next
- * card peeking to signal more. The container only mounts this when there are
- * featured vendors and no active search/filters.
+ * card peeking to signal more.
+ *
+ * Server-rendered in full and handed to `VendorsBrowser` as a slot, which mounts
+ * it only on the default view — a paid-placement rail has no business talking
+ * over a visitor who has already told us what they're looking for.
  */
-export default function VendorsFeatured({ vendors }: { vendors: VendorListItem[] }) {
+export default function VendorsFeatured({ vendors }: { vendors: VendorListingModel[] }) {
   if (vendors.length === 0) return null;
 
   return (

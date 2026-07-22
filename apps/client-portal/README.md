@@ -9,10 +9,12 @@ public website (which deep-links here), or sign in / sign up directly.
 > `packages/`.
 
 ## Stack
+
 React 18 + TypeScript + Vite · React Router v6 · MUI 5 · TanStack Query ·
 `@supabase/supabase-js` · Zustand · react-hook-form + Zod.
 
 ## Auth & security model
+
 - **Supabase Auth, PKCE flow**, session persisted in browser storage + auto-refresh.
 - `AuthProvider` tracks the session; `ProtectedRoute` gates the app shell and
   redirects to `/sign-in?returnTo=…` when signed out.
@@ -24,6 +26,7 @@ React 18 + TypeScript + Vite · React Router v6 · MUI 5 · TanStack Query ·
   (migration `…0017`).
 
 ## Structure
+
 ```
 index.html            # app entry + CSP
 src/
@@ -40,21 +43,25 @@ src/
 ```
 
 ## RPC-backed actions (Step 7 functions)
+
 request quote → `request_quotation` · request booking → `create_booking` ·
 confirm release → `client_confirm_release` · dispute → `open_dispute` ·
 mark read → `mark_all_notifications_read`. Messages/events inserted directly under RLS.
 
 ## Run
+
 ```bash
 cd apps/portal
 cp .env.example .env.local   # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 yarn install
 yarn dev                     # http://localhost:3001
 ```
-Set the public site's `NEXT_PUBLIC_PORTAL_URL=http://localhost:3001` so its
+
+Set the public site's `NEXT_VENDORS_PORTAL_URL=http://localhost:3001` so its
 sign-in buttons land here. Add this SPA's URL to Supabase Auth → URL Configuration
 (redirect URLs) so the PKCE callback (`/auth/callback`) is allowed.
 
 ## Production CSP
+
 Prefer serving the CSP as an HTTP header from your host/CDN (not just the meta tag),
 and lock `connect-src` to your exact Supabase project URL.

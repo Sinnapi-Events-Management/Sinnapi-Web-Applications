@@ -1,43 +1,55 @@
-import { Grid } from '@sinnapi/ui/atoms';
-import VendorCard from '@/components/molecules/vendorCard';
-import EmptyState from '@/components/molecules/emptyState';
-import type { VendorListItem } from '../../utils/filterVendors';
+'use client';
+import { Box } from '@sinnapi/ui/atoms';
+import type { VendorListingModel } from '@/lib/types';
+import { VENDOR_PAGE_SIZE } from '@/lib/queries';
+import { VendorsGrid, VendorsGridSkeleton } from './molecules/VendorsGrid';
+import { VendorsEmpty, VendorsError } from './molecules/VendorsFallback';
+
+type VendorsResultsProps = {
+  vendors: VendorListingModel[];
+  activeFilters: number;
+  isLoading: boolean;
+  /** Stale results are on screen while the new filters resolve. */
+  isRefreshing: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  onClear: () => void;
+};
 
 /**
- * The vendors grid. Falls back to a contextual empty state whose CTA adapts to
- * whether filters are active — clearing filters when the user has narrowed, or a
- * neutral "coming soon" message when the marketplace is genuinely empty.
+ * Picks the grid's state — skeletons, error, empty, or results — and nothing
+ * else. Each branch lives in its own component so this stays a readable
+ * decision, and the branch order matters: an error must win over "empty", or a
+ * failed request reads to the visitor as a marketplace with no vendors in it.
+ *
+ * While refreshing, the previous results stay mounted and dim rather than
+ * unmounting into skeletons. Pointer events are suppressed for the moment it
+ * takes, so a click can't land on a card that's about to be replaced by a
+ * different one under the same cursor.
  */
 export default function VendorsResults({
   vendors,
   activeFilters,
-}: {
-  vendors: VendorListItem[];
-  activeFilters: number;
-}) {
-  if (vendors.length === 0) {
-    return activeFilters > 0 ? (
-      <EmptyState
-        title="No vendors match your filters"
-        description="Try a different category, region or price band — or clear your filters to see everyone."
-        ctaLabel="Clear filters"
-        ctaHref="/vendors"
-      />
-    ) : (
-      <EmptyState
-        title="No vendors listed yet"
-        description="Check back soon as we verify and onboard providers across every category."
-      />
-    );
-  }
+  isLoading,
+  isRefreshing,
+  isError,
+  onRetry,
+  onClear,
+}: VendorsResultsProps) {
+  if (isLoading) return <VendorsGridSkeleton count={VENDOR_PAGE_SIZE} />;
+  if (isError && vendors.length === 0) return <VendorsError onRetry={onRetry} />;
+  if (vendors.length === 0) return <VendorsEmpty activeFilters={activeFilters} onClear={onClear} />;
 
   return (
-    <Grid container spacing={3}>
-      {vendors.map((vendor) => (
-        <Grid item xs={12} sm={6} md={4} lg={3} key={vendor.id}>
-          <VendorCard vendor={vendor} />
-        </Grid>
-      ))}
-    </Grid>
+    <Box
+      aria-busy={isRefreshing}
+      sx={{
+        transition: 'opacity .15s ease',
+        opacity: isRefreshing ? 0.55 : 1,
+        pointerEvents: isRefreshing ? 'none' : 'auto',
+      }}
+    >
+      <VendorsGrid vendors={vendors} />
+    </Box>
   );
 }

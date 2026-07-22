@@ -1,44 +1,55 @@
-import { Grid } from '@sinnapi/ui/atoms';
-import EventCard from '@/components/molecules/eventCard';
-import EmptyState from '@/components/molecules/emptyState';
+'use client';
+import { Box } from '@sinnapi/ui/atoms';
 import type { EventCardModel } from '@/lib/types';
+import { EVENT_PAGE_SIZE } from '@/lib/queries';
+import { EventsGrid, EventsGridSkeleton } from './molecules/EventsGrid';
+import { EventsEmpty, EventsError } from './molecules/EventsFallback';
+
+type EventsResultsProps = {
+  events: EventCardModel[];
+  activeFilters: number;
+  isLoading: boolean;
+  /** Stale results are on screen while the new filters resolve. */
+  isRefreshing: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  onClear: () => void;
+};
 
 /**
- * The events grid. Each card fades + lifts into place the first time it scrolls
- * into view (one-shot, GPU-only — see `ScrollReveal`), cascading by column so a
- * row reveals as a gentle wave. Falls back to a contextual empty state whose CTA
- * adapts to whether filters are active.
+ * Picks the grid's state — skeletons, error, empty, or results — and nothing
+ * else. Each branch lives in its own component so this stays a readable
+ * decision, and the branch order matters: an error must win over "empty", or a
+ * failed request reads to the visitor as a feed with no events in it.
+ *
+ * While refreshing, the previous results stay mounted and dim rather than
+ * unmounting into skeletons. Pointer events are suppressed for the moment it
+ * takes, so a click can't land on a card that's about to be replaced by a
+ * different one under the same cursor.
  */
 export default function EventsResults({
   events,
   activeFilters,
-}: {
-  events: EventCardModel[];
-  activeFilters: number;
-}) {
-  if (events.length === 0) {
-    return activeFilters > 0 ? (
-      <EmptyState
-        title="No events match your filters"
-        description="Try a different occasion, location or budget — or clear your filters to see everything."
-        ctaLabel="Clear filters"
-        ctaHref="/events"
-      />
-    ) : (
-      <EmptyState
-        title="No events published yet"
-        description="Check back soon for event inspiration and open opportunities looking for vendors."
-      />
-    );
-  }
+  isLoading,
+  isRefreshing,
+  isError,
+  onRetry,
+  onClear,
+}: EventsResultsProps) {
+  if (isLoading) return <EventsGridSkeleton count={EVENT_PAGE_SIZE} />;
+  if (isError && events.length === 0) return <EventsError onRetry={onRetry} />;
+  if (events.length === 0) return <EventsEmpty activeFilters={activeFilters} onClear={onClear} />;
 
   return (
-    <Grid container spacing={3}>
-      {events.map((event, i) => (
-        <Grid item xs={12} sm={6} md={4} key={event.id}>
-          <EventCard event={event} />
-        </Grid>
-      ))}
-    </Grid>
+    <Box
+      aria-busy={isRefreshing}
+      sx={{
+        transition: 'opacity .15s ease',
+        opacity: isRefreshing ? 0.55 : 1,
+        pointerEvents: isRefreshing ? 'none' : 'auto',
+      }}
+    >
+      <EventsGrid events={events} />
+    </Box>
   );
 }

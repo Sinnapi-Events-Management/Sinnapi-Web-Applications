@@ -3,9 +3,8 @@ import { Box, Typography, Chip, Rating, Stack } from '@sinnapi/ui/atoms';
 import { Card, CardActionArea, CardContent, CardMedia } from '@sinnapi/ui/molecules';
 import { Verified as VerifiedIcon, Place as PlaceIcon, Star } from '@mui/icons-material';
 import { common, palette, withAlpha } from '@sinnapi/ui/tokens';
-import { titleize } from '@/lib/config/site';
 import { useVendorCard } from '@/components/molecules/vendorCard/hooks/useVendorCard';
-import type { VendorListItem } from '../../../utils/filterVendors';
+import type { VendorListingModel } from '@/lib/types';
 
 const GOLD = palette.light.secondary;
 
@@ -16,8 +15,11 @@ const GOLD = palette.light.secondary;
  * (price, image) are derived by the shared `useVendorCard` hook to stay in sync
  * with the listing card.
  */
-export default function FeaturedVendorCard({ vendor }: { vendor: VendorListItem }) {
+export default function FeaturedVendorCard({ vendor }: { vendor: VendorListingModel }) {
   const { price, image } = useVendorCard(vendor);
+  // The RPC returns categories already alphabetised; the card has room for one,
+  // and the overline is a scanning cue rather than a full inventory.
+  const [category] = vendor.categories;
 
   return (
     <Card
@@ -79,9 +81,9 @@ export default function FeaturedVendorCard({ vendor }: { vendor: VendorListItem 
         </Box>
 
         <CardContent sx={{ width: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-          {vendor.category && (
+          {category && (
             <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>
-              {titleize(vendor.category)}
+              {category}
             </Typography>
           )}
 

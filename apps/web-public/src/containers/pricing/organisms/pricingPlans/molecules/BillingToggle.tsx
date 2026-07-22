@@ -1,17 +1,27 @@
 'use client';
 import { Box, Chip, Stack, ToggleButton, ToggleButtonGroup } from '@sinnapi/ui/atoms';
-import { ANNUAL_SAVING_PERCENT, type BillingCycle } from '../data/plans';
+import type { BillingCycle } from '@/lib/types';
 
 type BillingToggleProps = {
   value: BillingCycle;
   onChange: (cycle: BillingCycle) => void;
+  /**
+   * Percent saved by paying yearly, computed from the live catalogue. Null when
+   * the numbers don't support a claim — see `annualSavingPercent`.
+   */
+  savingPercent: number | null;
 };
 
 /**
- * Monthly ⇄ Annual billing switch. Defaults to annual at the call site (best
- * practice — it anchors the lower price), with a savings badge to nudge yearly.
+ * Monthly ⇄ Annual billing switch. Defaults to annual at the call site (it
+ * anchors the lower price), with a savings badge to nudge yearly.
+ *
+ * The badge quotes a figure derived from the catalogue rather than a constant,
+ * so an admin re-pricing a plan can't leave the page advertising a discount it
+ * no longer gives. Its slot keeps its width when there's nothing to claim, so
+ * the toggle doesn't shift sideways as the data lands.
  */
-export default function BillingToggle({ value, onChange }: BillingToggleProps) {
+export default function BillingToggle({ value, onChange, savingPercent }: BillingToggleProps) {
   return (
     <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
       <ToggleButtonGroup
@@ -47,16 +57,18 @@ export default function BillingToggle({ value, onChange }: BillingToggleProps) {
         </ToggleButton>
       </ToggleButtonGroup>
       <Box sx={{ minWidth: 96 }}>
-        <Chip
-          size="small"
-          color="secondary"
-          label={`Save ${ANNUAL_SAVING_PERCENT}%`}
-          sx={{
-            fontWeight: 700,
-            opacity: value === 'annual' ? 1 : 0.55,
-            transition: 'opacity .2s',
-          }}
-        />
+        {savingPercent !== null && (
+          <Chip
+            size="small"
+            color="secondary"
+            label={`Save ${savingPercent}%`}
+            sx={{
+              fontWeight: 700,
+              opacity: value === 'annual' ? 1 : 0.55,
+              transition: 'opacity .2s',
+            }}
+          />
+        )}
       </Box>
     </Stack>
   );

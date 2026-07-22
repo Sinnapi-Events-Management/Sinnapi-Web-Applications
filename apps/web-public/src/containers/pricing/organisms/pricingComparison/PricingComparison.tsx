@@ -1,17 +1,31 @@
-import { Box, Container, Typography } from '@sinnapi/ui/atoms';
-import { withAlpha, palette } from '@sinnapi/ui/tokens';
+'use client';
+import { Box, Container } from '@sinnapi/ui/atoms';
 import { mutedSurface } from '@/lib/sx';
 import SectionHeading from '@/components/molecules/sectionHeading';
-import { COMPARISON_COLUMNS, COMPARISON_GROUPS } from './data/comparison';
-import ComparisonRow, { COMPARISON_GRID } from './molecules/ComparisonRow';
+import { usePlanComparison } from './hooks/usePlanComparison';
+import ComparisonTable from './molecules/ComparisonTable';
+import { ComparisonError, ComparisonSkeleton } from './molecules/ComparisonFallback';
 
 /**
- * Feature comparison — the full plan-by-feature matrix below the cards, so buyers
- * can justify a tier line by line. Built as a CSS grid (the design system ships
- * no Table) inside a horizontally scrollable shell that keeps the columns aligned
- * on narrow screens.
+ * Feature comparison — the full plan-by-feature matrix below the cards, so
+ * buyers can justify a tier line by line.
+ *
+ * Driven by `plan_features`, the same structured flags that decide what a
+ * subscriber can actually do, so the table can't promise a capability the
+ * platform won't grant. Its columns come from the plan catalogue under the key
+ * the cards already populated, so this section renders from cache rather than
+ * fetching the catalogue a second time.
+ *
+ * The whole section disappears when there is nothing to compare — an empty
+ * matrix under a heading promising one reads as a bug, and the cards above
+ * already carry the feature bullets.
  */
 export default function PricingComparison() {
+  const { columns, groups, isLoading, isError, refetch } = usePlanComparison();
+
+  const hasMatrix = columns.length > 0 && groups.length > 0;
+  if (!isLoading && !isError && !hasMatrix) return null;
+
   return (
     <Box sx={{ ...mutedSurface, borderTop: 1, borderColor: 'divider' }}>
       <Container sx={{ py: { xs: 6, md: 9 } }}>
@@ -22,60 +36,13 @@ export default function PricingComparison() {
           subtitle="See exactly what each plan unlocks so you can pick with confidence."
         />
 
-        {/* Horizontal scroll shell — the grid keeps a comfortable min width. */}
-        <Box sx={{ overflowX: 'auto' }}>
-          <Box sx={{ minWidth: 640 }}>
-            {/* Sticky-feel header row with the plan names. */}
-            <Box
-              sx={{
-                ...COMPARISON_GRID,
-                pb: 1.5,
-                borderBottom: 2,
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="subtitle2" color="text.secondary">
-                Features
-              </Typography>
-              {COMPARISON_COLUMNS.map((col) => (
-                <Box
-                  key={col.key}
-                  sx={{
-                    textAlign: 'center',
-                    py: 1,
-                    borderTopLeftRadius: 8,
-                    borderTopRightRadius: 8,
-                    bgcolor: col.highlight
-                      ? withAlpha(palette.light.primary.main, 0.08)
-                      : 'transparent',
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: 700, color: col.highlight ? 'primary.main' : 'text.primary' }}
-                  >
-                    {col.name}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-
-            {COMPARISON_GROUPS.map((group) => (
-              <Box key={group.title}>
-                <Typography
-                  variant="overline"
-                  color="text.disabled"
-                  sx={{ display: 'block', fontWeight: 700, mt: 3, mb: 0.5 }}
-                >
-                  {group.title}
-                </Typography>
-                {group.rows.map((row) => (
-                  <ComparisonRow key={row.label} row={row} />
-                ))}
-              </Box>
-            ))}
-          </Box>
-        </Box>
+        {isLoading ? (
+          <ComparisonSkeleton />
+        ) : isError && !hasMatrix ? (
+          <ComparisonError onRetry={refetch} />
+        ) : (
+          <ComparisonTable columns={columns} groups={groups} />
+        )}
       </Container>
     </Box>
   );
