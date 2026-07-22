@@ -26,6 +26,8 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import LockIcon from '@mui/icons-material/LockOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -371,6 +373,8 @@ export default function AppShell() {
               {name.charAt(0)}
             </Avatar>
           </IconButton>
+
+          {/* Avatar menu */}
           <Menu
             anchorEl={menuEl}
             open={!!menuEl}
@@ -385,6 +389,19 @@ export default function AppShell() {
                   {roles.join(', ') || 'admin'}
                 </Typography>
               </Box>
+            </MenuItem>
+            <Divider />
+            {/* Both land on the same page; `?tab=security` opens it on the
+                password form rather than the details. */}
+            <MenuItem component={RouterLink} to="/profile" onClick={() => setMenuEl(null)}>
+              <PersonIcon fontSize="small" sx={{ mr: 1 }} /> Profile
+            </MenuItem>
+            <MenuItem
+              component={RouterLink}
+              to="/profile?tab=security"
+              onClick={() => setMenuEl(null)}
+            >
+              <LockIcon fontSize="small" sx={{ mr: 1 }} /> Change password
             </MenuItem>
             <Divider />
             <MenuItem onClick={handleSignOut}>

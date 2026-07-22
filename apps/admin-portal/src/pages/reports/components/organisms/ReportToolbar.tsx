@@ -2,7 +2,7 @@ import { Paper, Stack, Typography } from '@sinnapi/ui';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { getPeriodOption, type ReportPeriod } from '../../schema';
 import type { ExportFormat } from '../../data/reportExport';
-import PeriodSelector from '../molecules/PeriodSelector';
+import PeriodSelector from '@/components/analytics/PeriodSelector';
 import ExportMenu from '../molecules/ExportMenu';
 
 type Props = {

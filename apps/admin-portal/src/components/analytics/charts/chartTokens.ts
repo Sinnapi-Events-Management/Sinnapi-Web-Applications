@@ -1,5 +1,5 @@
 import { useTheme } from '@sinnapi/ui';
-import type { SeriesColor } from '../../../schema';
+import type { SeriesColor } from '@/lib/analytics';
 
 /**
  * Resolve report chart colours from the live MUI theme so every recharts surface

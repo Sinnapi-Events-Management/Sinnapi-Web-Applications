@@ -1,24 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { titleize } from '@/lib/config';
-import type { BreakdownSlice, SeriesColor } from '../schema';
+import { toSeriesColor } from '@/lib/analytics';
+import type { BreakdownSlice } from '../schema';
 
 /** Default marketplace currency (matches `formatMoney`'s fallback). */
 export const CURRENCY = 'UGX';
 
-const SERIES_COLORS: SeriesColor[] = [
-  'primary',
-  'secondary',
-  'success',
-  'warning',
-  'error',
-  'info',
-];
-
-// `statusColor` can return 'default' (grey), which the theme has no `.main` for.
-// Coerce anything outside the chartable palette to 'info' so every slice resolves.
-export function toSeriesColor(raw: string): SeriesColor {
-  return (SERIES_COLORS as string[]).includes(raw) ? (raw as SeriesColor) : 'info';
-}
+// Palette coercion is shared with the dashboard's charts — see `@/lib/analytics`.
+export { toSeriesColor };
 
 // A head+count query resolves to a result carrying only `count` — same helper the
 // global queries file uses, re-declared here so the reports data layer stays

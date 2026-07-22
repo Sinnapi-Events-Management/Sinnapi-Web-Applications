@@ -1,6 +1,6 @@
 import { Box, Skeleton, Stack, Typography } from '@sinnapi/ui';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import type { BreakdownSlice } from '../../../schema';
+import type { BreakdownSlice } from '@/lib/analytics';
 import ChartTooltip from './ChartTooltip';
 import { useChartTokens } from './chartTokens';
 

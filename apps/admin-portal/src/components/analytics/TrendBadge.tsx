@@ -1,7 +1,7 @@
 import { Box, Typography } from '@sinnapi/ui';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import { formatDelta } from '../../format';
+import { formatDelta } from '@/lib/analytics';
 
 type Props = {
   /** Fractional change (0.12 = +12%). */

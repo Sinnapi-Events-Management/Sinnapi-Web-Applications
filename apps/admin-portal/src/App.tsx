@@ -41,6 +41,7 @@ import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Retention from '@/pages/retention';
 import Erasure from '@/pages/erasure';
+import Profile from '@/pages/profile';
 import Messages from '@/pages/messages';
 import Conversation from '@/pages/conversation';
 import Notifications from '@/pages/notifications';
@@ -119,6 +120,10 @@ export default function App() {
         <Route path="/settings" element={g('settings.manage', <Settings />)} />
         <Route path="/retention" element={g('compliance.manage', <Retention />)} />
         <Route path="/erasure" element={g('compliance.manage', <Erasure />)} />
+
+        {/* The signed-in admin's own account — never permission-gated: every
+            admin can read and edit their own profile and password. */}
+        <Route path="/profile" element={<Profile />} />
 
         <Route path="/messages" element={<Messages />} />
         <Route path="/messages/:conversationId" element={<Conversation />} />

@@ -31,11 +31,22 @@ export type PricingPlanRef = {
 
 // --- profile / auth ---------------------------------------------------------
 
+// The signed-in admin's own profile row. The shell only needs the display name
+// and avatar, but the same query backs the self-service Profile page, so it also
+// carries the editable name parts / phone and the read-only account facts
+// (status, member-since, last sign-in) that page reports.
 export type ProfileModel = {
   id: string;
   full_name: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
   email: string | null;
+  phone: string | null;
   avatar_url: string | null;
+  status: string | null;
+  created_at: string | null;
+  last_login_at: string | null;
 };
 
 // --- dashboard --------------------------------------------------------------
