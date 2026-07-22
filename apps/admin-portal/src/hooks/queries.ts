@@ -78,6 +78,12 @@ function pagedOptions<Row>(key: string, params: PageParams, fetcher: () => Promi
   };
 }
 
+// Everything the shell (name + avatar) and the self-service Profile page (name
+// parts, phone, account facts) need, so both share one `['profile']` cache entry
+// — saving the page therefore refreshes the AppBar avatar in the same tick.
+const MY_PROFILE_SELECT =
+  'id,full_name,first_name,middle_name,last_name,email,phone,avatar_url,status,created_at,last_login_at';
+
 export function useProfile() {
   return useQuery({
     queryKey: ['profile'],
@@ -88,7 +94,7 @@ export function useProfile() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('id,full_name,email,avatar_url')
+        .select(MY_PROFILE_SELECT)
         .eq('id', user.id)
         .maybeSingle();
       return (data as ProfileModel) ?? null;
@@ -109,53 +115,9 @@ export function useUnreadCount() {
   });
 }
 
-export function useAdminDashboard() {
-  return useQuery({
-    queryKey: ['admin-dashboard'],
-    queryFn: async () => {
-      const [apps, payouts, disputes, escrow, vendors] = await Promise.all([
-        count(
-          // Pending = intake submissions awaiting or under compliance review.
-          supabase
-            .from('vendor_application_intake')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['submitted', 'reviewing']),
-        ),
-        count(
-          supabase
-            .from('payouts')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['requested', 'approved', 'processing']),
-        ),
-        count(
-          supabase
-            .from('disputes')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['open', 'under_review', 'awaiting_evidence']),
-        ),
-        count(
-          supabase
-            .from('escrow_transactions')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['held', 'release_requested', 'admin_review']),
-        ),
-        count(
-          supabase
-            .from('vendors')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'active'),
-        ),
-      ]);
-      return {
-        pendingApplications: apps,
-        pendingPayouts: payouts,
-        openDisputes: disputes,
-        escrowHeld: escrow,
-        activeVendors: vendors,
-      };
-    },
-  });
-}
+// The dashboard's own read lives in `pages/dashboard/data` — it goes through the
+// `admin_dashboard_overview` RPC, which aggregates these counts server-side
+// alongside the trends and SLA ages the page now shows.
 
 // Everything the paginated Applications query needs: a page + sort + the
 // free-text search and status tab. `status` is `undefined` on the "All" tab.

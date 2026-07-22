@@ -1,17 +1,9 @@
 import { titleize } from '@/lib/config';
 import { one } from '@/lib/rel';
+import * as audit from '@/lib/audit';
 import type { AuditLogModel, RoleKeyRef } from '@/lib/types';
-import { ENTITY_LABELS, OPERATIONS, type OperationKey, type OperationAccent } from './labels';
 
-/** Everything the UI needs to render an action in plain language. */
-export type ActionInfo = {
-  op: OperationKey;
-  verb: string;
-  /** Full sentence, e.g. "Updated a pricing plan". */
-  label: string;
-  accent: OperationAccent;
-  Icon: (typeof OPERATIONS)[OperationKey]['Icon'];
-};
+export type { ActionInfo } from '@/lib/audit';
 
 /** Details for the "Performed by" column and the detail drawer. */
 export type ActorInfo = {
@@ -25,28 +17,11 @@ export type ActorInfo = {
 /** A single before → after difference, ready to render. */
 export type FieldChange = { key: string; label: string; before: string; after: string };
 
-export function entityLabel(entityType: string | null): string {
-  if (!entityType) return 'Record';
-  return ENTITY_LABELS[entityType] ?? titleize(entityType.replace(/s$/, ''));
-}
+export const entityLabel = audit.entityLabel;
 
-function article(word: string): 'a' | 'an' {
-  return /^[aeiou]/i.test(word) ? 'an' : 'a';
-}
-
-/** Map an audit action to human copy, colour, and icon. */
-export function describeAction(log: AuditLogModel): ActionInfo {
-  const op: OperationKey = log.action.startsWith('insert_')
-    ? 'insert'
-    : log.action.startsWith('update_')
-      ? 'update'
-      : log.action.startsWith('delete_')
-        ? 'delete'
-        : 'other';
-  const cfg = OPERATIONS[op];
-  const noun = entityLabel(log.entity_type).toLowerCase();
-  const label = op === 'other' ? titleize(log.action) : `${cfg.verb} ${article(noun)} ${noun}`;
-  return { op, verb: cfg.verb, label, accent: cfg.accent, Icon: cfg.Icon };
+/** Map an audit log row to human copy, colour, and icon. */
+export function describeAction(log: AuditLogModel): audit.ActionInfo {
+  return audit.describeAction(log.action, log.entity_type);
 }
 
 // Field names, in priority order, that best identify a record to a human.

@@ -4,11 +4,11 @@ import DonutLargeIcon from '@mui/icons-material/DonutLarge';
 import ReplayIcon from '@mui/icons-material/Replay';
 import type { ReportPeriod, SeriesDef } from '../../schema';
 import { useRevenueReport } from '../../data';
-import KpiRow from '../molecules/KpiRow';
+import KpiRow from '@/components/analytics/KpiRow';
 import ChartCard from '../molecules/ChartCard';
-import TrendAreaChart from '../molecules/charts/TrendAreaChart';
-import GroupedBarChart from '../molecules/charts/GroupedBarChart';
-import BreakdownDonut from '../molecules/charts/BreakdownDonut';
+import TrendAreaChart from '@/components/analytics/charts/TrendAreaChart';
+import GroupedBarChart from '@/components/analytics/charts/GroupedBarChart';
+import BreakdownDonut from '@/components/analytics/charts/BreakdownDonut';
 import ReportShell from './ReportShell';
 
 const REVENUE_SERIES: SeriesDef[] = [

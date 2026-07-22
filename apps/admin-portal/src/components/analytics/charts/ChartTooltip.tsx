@@ -1,6 +1,5 @@
 import { Box, Typography } from '@sinnapi/ui';
-import type { ValueFormat } from '../../../schema';
-import { formatCompact } from '../../../format';
+import { formatCompact, type ValueFormat } from '@/lib/analytics';
 import { useChartTokens } from './chartTokens';
 
 type TooltipEntry = { name?: string; value?: number; color?: string; dataKey?: string };

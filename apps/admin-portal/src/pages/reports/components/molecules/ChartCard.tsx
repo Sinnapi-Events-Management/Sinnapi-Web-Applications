@@ -1,5 +1,5 @@
 import { Chip, Stack, Tooltip } from '@sinnapi/ui';
-import SectionCard from '@/components/ui/SectionCard';
+import ChartCardShell from '@/components/analytics/ChartCard';
 import type { ExportFormat } from '../../data/reportExport';
 import ExportMenu from './ExportMenu';
 
@@ -22,9 +22,9 @@ type Props = {
 };
 
 /**
- * A titled card housing one chart: reuses the shared `SectionCard` shell (icon
- * badge + accent bar) and adds a provenance chip and an optional per-card export
- * menu in the header action slot.
+ * The reports flavour of a chart card: the shared analytics `ChartCard` shell
+ * plus the two things only reporting needs in its header — a data-provenance
+ * chip and a per-card export menu.
  */
 export default function ChartCard({
   title,
@@ -53,8 +53,8 @@ export default function ChartCard({
   );
 
   return (
-    <SectionCard title={title} subtitle={subtitle} icon={icon} accent={accent} action={action}>
+    <ChartCardShell title={title} subtitle={subtitle} icon={icon} accent={accent} action={action}>
       {children}
-    </SectionCard>
+    </ChartCardShell>
   );
 }

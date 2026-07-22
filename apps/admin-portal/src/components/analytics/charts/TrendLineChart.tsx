@@ -1,6 +1,5 @@
 import { CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
-import type { SeriesDef, TrendPoint, ValueFormat } from '../../../schema';
-import { formatCompact } from '../../../format';
+import { formatCompact, type SeriesDef, type TrendPoint, type ValueFormat } from '@/lib/analytics';
 import ChartFrame from './ChartFrame';
 import ChartTooltip from './ChartTooltip';
 import { useChartTokens } from './chartTokens';

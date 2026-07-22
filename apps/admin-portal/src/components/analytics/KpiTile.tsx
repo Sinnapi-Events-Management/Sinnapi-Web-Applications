@@ -1,6 +1,5 @@
 import { Box, Card, CardContent, Skeleton, Stack, Typography } from '@sinnapi/ui';
-import type { Kpi } from '../../schema';
-import { formatValue } from '../../format';
+import { formatValue, type Kpi } from '@/lib/analytics';
 import TrendBadge from './TrendBadge';
 
 type Props = {

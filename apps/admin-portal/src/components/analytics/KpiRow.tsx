@@ -1,5 +1,5 @@
 import { Card, CardContent, Grid, Skeleton } from '@sinnapi/ui';
-import type { Kpi } from '../../schema';
+import type { Kpi } from '@/lib/analytics';
 import KpiTile from './KpiTile';
 
 type Props = {

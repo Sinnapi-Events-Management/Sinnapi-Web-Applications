@@ -4,11 +4,11 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import type { ReportPeriod, SeriesDef } from '../../schema';
 import { useOperationsReport } from '../../data';
-import KpiRow from '../molecules/KpiRow';
+import KpiRow from '@/components/analytics/KpiRow';
 import ChartCard from '../molecules/ChartCard';
-import GroupedBarChart from '../molecules/charts/GroupedBarChart';
-import TrendLineChart from '../molecules/charts/TrendLineChart';
-import BreakdownDonut from '../molecules/charts/BreakdownDonut';
+import GroupedBarChart from '@/components/analytics/charts/GroupedBarChart';
+import TrendLineChart from '@/components/analytics/charts/TrendLineChart';
+import BreakdownDonut from '@/components/analytics/charts/BreakdownDonut';
 import ReportShell from './ReportShell';
 
 const VOLUME_SERIES: SeriesDef[] = [

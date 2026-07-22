@@ -4,11 +4,11 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import type { ReportPeriod, SeriesDef } from '../../schema';
 import { useSubscriptionReport } from '../../data';
-import KpiRow from '../molecules/KpiRow';
+import KpiRow from '@/components/analytics/KpiRow';
 import ChartCard from '../molecules/ChartCard';
-import TrendAreaChart from '../molecules/charts/TrendAreaChart';
-import GroupedBarChart from '../molecules/charts/GroupedBarChart';
-import BreakdownDonut from '../molecules/charts/BreakdownDonut';
+import TrendAreaChart from '@/components/analytics/charts/TrendAreaChart';
+import GroupedBarChart from '@/components/analytics/charts/GroupedBarChart';
+import BreakdownDonut from '@/components/analytics/charts/BreakdownDonut';
 import ReportShell from './ReportShell';
 
 const MRR_SERIES: SeriesDef[] = [{ key: 'mrr', label: 'MRR', color: 'primary' }];

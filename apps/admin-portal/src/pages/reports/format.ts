@@ -1,52 +1,11 @@
-import { formatMoney } from '@/lib/config';
-import type { ValueFormat } from './schema';
-
-/** Render a KPI/point value for its declared format. */
-export function formatValue(value: number, format: ValueFormat): string {
-  if (format === 'money') return formatMoney(value);
-  if (format === 'percent') return `${(value * 100).toFixed(1)}%`;
-  return Math.round(value).toLocaleString();
-}
-
-/** Compact money for chart axes/tooltips, e.g. 8_400_000 → "8.4M". */
-export function compactMoney(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
-  return `${Math.round(value)}`;
-}
-
-/** Axis/tooltip formatter for a series value by its format. */
-export function formatCompact(value: number, format: ValueFormat = 'number'): string {
-  if (format === 'money') return compactMoney(value);
-  if (format === 'percent') return `${(value * 100).toFixed(1)}%`;
-  return Math.round(value).toLocaleString();
-}
-
-/** Signed percentage label for a delta, e.g. 0.124 → "+12.4%". */
-export function formatDelta(delta: number): string {
-  const pct = (delta * 100).toFixed(1);
-  return `${delta >= 0 ? '+' : ''}${pct}%`;
-}
-
-/** x-axis label for an RPC bucket start date, formatted for its granularity. */
-export function bucketLabel(iso: string, unit: 'day' | 'week' | 'month'): string {
-  const d = new Date(iso);
-  if (unit === 'month') return d.toLocaleDateString(undefined, { month: 'short' });
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-/** First→last fractional change of a numeric series, for a KPI delta. */
-export function seriesDelta(rows: Array<Record<string, unknown>>, key: string): number | null {
-  if (rows.length < 2) return null;
-  const first = Number(rows[0][key]) || 0;
-  const last = Number(rows[rows.length - 1][key]) || 0;
-  if (first === 0) return null;
-  return (last - first) / first;
-}
-
-/** Sum a numeric series key across rows. */
-export function sumSeries(rows: Array<Record<string, unknown>>, key: string): number {
-  return rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
-}
+// Report value formatting is the shared analytics formatting — re-exported so
+// the report data hooks keep their existing `../format` import path.
+export {
+  bucketLabel,
+  compactMoney,
+  formatCompact,
+  formatDelta,
+  formatValue,
+  seriesDelta,
+  sumSeries,
+} from '@/lib/analytics';

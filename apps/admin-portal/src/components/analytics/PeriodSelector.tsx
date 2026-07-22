@@ -1,9 +1,9 @@
 import { ToggleButton, ToggleButtonGroup } from '@sinnapi/ui';
-import { PERIOD_OPTIONS, type ReportPeriod } from '../../schema';
+import { PERIOD_OPTIONS, type AnalyticsPeriod } from '@/lib/analytics';
 
 type Props = {
-  value: ReportPeriod;
-  onChange: (next: ReportPeriod) => void;
+  value: AnalyticsPeriod;
+  onChange: (next: AnalyticsPeriod) => void;
 };
 
 /**
@@ -17,7 +17,7 @@ export default function PeriodSelector({ value, onChange }: Props) {
       value={value}
       exclusive
       size="small"
-      onChange={(_, next: ReportPeriod | null) => next && onChange(next)}
+      onChange={(_, next: AnalyticsPeriod | null) => next && onChange(next)}
       aria-label="Reporting period"
     >
       {PERIOD_OPTIONS.map((p) => (
