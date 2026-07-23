@@ -28,7 +28,7 @@ export default function DocumentsSection({
   ];
 
   return (
-    <SectionCard title="Documents" icon={<FolderSharedIcon />} accent="warning">
+    <SectionCard title="Documents" icon={<FolderSharedIcon />} accent="info">
       <Stack spacing={1.5}>
         {docs.map((d) => {
           const available = !!d.path;

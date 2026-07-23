@@ -1,9 +1,13 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, Chip, Divider, Stack, Typography, alpha } from '@sinnapi/ui';
+import type { SxProps } from '@sinnapi/ui';
+import type { Theme } from '@sinnapi/ui/theme';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import StarIcon from '@mui/icons-material/Star';
+import HeroSurface from '@/components/ui/HeroSurface';
+import { heroGhostSx, heroChipSx, heroDividerSx } from '@/components/ui/heroSurface.styles';
 import { formatMoney, titleize } from '@/lib/config';
 import type { PlanDetailModel } from '@/lib/types';
 
@@ -15,35 +19,27 @@ type Props = {
 
 const CYCLE_SUFFIX: Record<string, string> = { monthly: '/month', annual: '/year' };
 
+// Semantic action buttons on the hero: a soft same-hue tint (matching the
+// IconBadge language) so Edit reads as the primary action and Delete as
+// destructive, without a loud solid fill on the calm surface.
+const heroEditSx: SxProps<Theme> = {
+  px: 3,
+  color: 'primary.main',
+  bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
+  '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.2) },
+};
+
+const heroDeleteSx: SxProps<Theme> = {
+  px: 3,
+  color: 'error.main',
+  bgcolor: (t) => alpha(t.palette.error.main, 0.12),
+  '&:hover': { bgcolor: (t) => alpha(t.palette.error.main, 0.2) },
+};
+
 /** Gradient header: plan identity, headline price and the primary actions. */
 export default function PlanHero({ plan, onEdit, onDelete }: Props) {
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 4,
-        p: { xs: 2.5, sm: 4 },
-        mb: 3,
-        color: 'common.white',
-        background: (t) =>
-          `linear-gradient(120deg, ${t.palette.secondary.dark} 0%, ${t.palette.secondary.main} 52%, ${t.palette.primary.dark} 128%)`,
-      }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          top: -80,
-          right: -60,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          bgcolor: alpha('#fff', 0.12),
-          filter: 'blur(4px)',
-        }}
-      />
-
+    <HeroSurface>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -56,36 +52,19 @@ export default function PlanHero({ plan, onEdit, onDelete }: Props) {
           to="/pricing-plans"
           startIcon={<ArrowBackIcon />}
           size="small"
-          sx={{
-            color: 'common.white',
-            bgcolor: alpha('#fff', 0.12),
-            '&:hover': { bgcolor: alpha('#fff', 0.22) },
-          }}
+          sx={{ px: 3, ...heroGhostSx }}
         >
           Back to plans
         </Button>
         <Stack direction="row" spacing={1}>
-          <Button
-            size="small"
-            startIcon={<EditOutlinedIcon />}
-            onClick={onEdit}
-            sx={{
-              color: 'common.white',
-              bgcolor: alpha('#fff', 0.12),
-              '&:hover': { bgcolor: alpha('#fff', 0.22) },
-            }}
-          >
+          <Button size="small" startIcon={<EditOutlinedIcon />} onClick={onEdit} sx={heroEditSx}>
             Edit
           </Button>
           <Button
             size="small"
             startIcon={<DeleteOutlineIcon />}
             onClick={onDelete}
-            sx={{
-              color: 'common.white',
-              bgcolor: alpha('#fff', 0.12),
-              '&:hover': { bgcolor: alpha('#fff', 0.22) },
-            }}
+            sx={heroDeleteSx}
           >
             Delete
           </Button>
@@ -105,23 +84,15 @@ export default function PlanHero({ plan, onEdit, onDelete }: Props) {
               {plan.name}
             </Typography>
             {plan.highlight && (
-              <Chip
-                size="small"
-                icon={<StarIcon />}
-                label="Most popular"
-                sx={{
-                  color: 'common.white',
-                  bgcolor: alpha('#fff', 0.18),
-                  '& .MuiChip-icon': { color: 'inherit' },
-                }}
-              />
+              <Chip size="small" icon={<StarIcon />} label="Most popular" sx={heroChipSx} />
             )}
             <Chip
               size="small"
               label={plan.is_active ? 'Active' : 'Inactive'}
               sx={{
-                color: 'common.white',
-                bgcolor: alpha('#fff', plan.is_active ? 0.24 : 0.1),
+                ...heroChipSx,
+                bgcolor: plan.is_active ? 'var(--hero-overlay-strong)' : 'var(--hero-overlay)',
+                opacity: plan.is_active ? 1 : 0.7,
               }}
             />
           </Stack>
@@ -131,16 +102,8 @@ export default function PlanHero({ plan, onEdit, onDelete }: Props) {
             </Typography>
           )}
           <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
-            <Chip
-              size="small"
-              label={plan.key}
-              sx={{ color: 'common.white', bgcolor: alpha('#fff', 0.14), fontFamily: 'monospace' }}
-            />
-            <Chip
-              size="small"
-              label={titleize(plan.billing_cycle)}
-              sx={{ color: 'common.white', bgcolor: alpha('#fff', 0.14) }}
-            />
+            <Chip size="small" label={plan.key} sx={{ ...heroChipSx, fontFamily: 'monospace' }} />
+            <Chip size="small" label={titleize(plan.billing_cycle)} sx={heroChipSx} />
           </Stack>
         </Box>
 
@@ -155,7 +118,7 @@ export default function PlanHero({ plan, onEdit, onDelete }: Props) {
         </Box>
       </Stack>
 
-      <Divider sx={{ mt: 3, borderColor: alpha('#fff', 0.2) }} />
-    </Box>
+      <Divider sx={{ mt: 3, ...heroDividerSx }} />
+    </HeroSurface>
   );
 }

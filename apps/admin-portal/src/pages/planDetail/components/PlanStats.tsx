@@ -1,10 +1,11 @@
-import { Grid, StatCard } from '@sinnapi/ui';
+import { Box } from '@sinnapi/ui';
 import GroupIcon from '@mui/icons-material/Group';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import type { PlanKpis } from '@/lib/types';
+import PlanStatTile from './PlanStatTile';
 
 type Props = {
   kpis?: PlanKpis;
@@ -12,31 +13,58 @@ type Props = {
 };
 
 /**
- * Subscriber KPI row for a plan. The first four tiles break the subscriber base
- * down by lifecycle stage (total, active, trialing, expired); the last shows
- * the plan's trial length. Laid out 5-up on desktop via a 10-column grid so the
- * row stays balanced.
+ * Subscriber KPI strip for a plan. The first four tiles break the subscriber
+ * base down by lifecycle stage — each carries a semantic tint (active = success,
+ * trialing = info, expired = error) so the row reads at a glance; the last tile
+ * shows the plan's trial length in brand gold. Laid out as a responsive metric
+ * strip: five-up on desktop, wrapping to three then two on smaller screens.
  */
 export default function PlanStats({ kpis, trialDays }: Props) {
   const cards = [
-    { label: 'Subscribers', value: kpis?.subscribers, icon: <GroupIcon /> },
-    { label: 'Active', value: kpis?.active, icon: <CheckCircleIcon /> },
-    { label: 'Trialing', value: kpis?.trialing, icon: <HourglassEmptyIcon /> },
-    { label: 'Expired', value: kpis?.expired, icon: <EventBusyIcon /> },
+    {
+      label: 'Subscribers',
+      value: kpis?.subscribers,
+      icon: <GroupIcon />,
+      accent: 'primary' as const,
+    },
+    { label: 'Active', value: kpis?.active, icon: <CheckCircleIcon />, accent: 'success' as const },
+    {
+      label: 'Trialing',
+      value: kpis?.trialing,
+      icon: <HourglassEmptyIcon />,
+      accent: 'info' as const,
+    },
+    { label: 'Expired', value: kpis?.expired, icon: <EventBusyIcon />, accent: 'error' as const },
     {
       label: 'Trial period',
       value: trialDays ? `${trialDays} days` : 'None',
       icon: <EventAvailableIcon />,
+      accent: 'secondary' as const,
     },
   ];
 
   return (
-    <Grid container spacing={2} columns={{ xs: 2, sm: 6, md: 10 }} sx={{ mb: 3 }}>
+    <Box
+      sx={{
+        display: 'grid',
+        gap: 2,
+        mb: 3,
+        gridTemplateColumns: {
+          xs: 'repeat(2, 1fr)',
+          sm: 'repeat(3, 1fr)',
+          md: 'repeat(5, 1fr)',
+        },
+      }}
+    >
       {cards.map((c) => (
-        <Grid item xs={1} sm={2} md={2} key={c.label}>
-          <StatCard label={c.label} value={c.value ?? '—'} icon={c.icon} />
-        </Grid>
+        <PlanStatTile
+          key={c.label}
+          label={c.label}
+          value={c.value ?? '—'}
+          icon={c.icon}
+          accent={c.accent}
+        />
       ))}
-    </Grid>
+    </Box>
   );
 }
