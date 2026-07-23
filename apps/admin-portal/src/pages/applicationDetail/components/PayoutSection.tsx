@@ -9,7 +9,7 @@ import type { IntakeDetailModel } from '@/lib/types';
 /** Bank / payout destination for the applicant. */
 export default function PayoutSection({ a }: { a: IntakeDetailModel }) {
   return (
-    <SectionCard title="Payout details" icon={<AccountBalanceIcon />} accent="info">
+    <SectionCard title="Payout details" icon={<AccountBalanceIcon />} accent="secondary">
       <InfoRow label="Bank" value={a.bank_name ?? undefined} icon={<AccountBalanceIcon />} />
       <InfoRow label="Account name" value={a.account_name ?? undefined} icon={<PersonIcon />} />
       <InfoRow

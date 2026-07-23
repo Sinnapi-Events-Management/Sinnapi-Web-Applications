@@ -1,5 +1,5 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Avatar, Chip, Divider, Button, Rating, alpha } from '@sinnapi/ui';
+import { Box, Stack, Typography, Avatar, Chip, Divider, Button, Rating } from '@sinnapi/ui';
 import PlaceIcon from '@mui/icons-material/Place';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -7,6 +7,13 @@ import CategoryIcon from '@mui/icons-material/Category';
 import EmailIcon from '@mui/icons-material/Email';
 import StarIcon from '@mui/icons-material/Star';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HeroSurface from '@/components/ui/HeroSurface';
+import {
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroAvatarSx,
+} from '@/components/ui/heroSurface.styles';
 import StatusChip from '@/components/ui/StatusChip';
 import type { VendorStatus } from '@/hooks/useVendorStatus';
 import { formatDate } from '@/lib/config';
@@ -43,32 +50,7 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
   const isActive = v.status === 'active';
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 4,
-        p: { xs: 2.5, sm: 4 },
-        mb: 3,
-        color: 'common.white',
-        background: (t) =>
-          `linear-gradient(120deg, ${t.palette.secondary.dark} 0%, ${t.palette.secondary.main} 52%, ${t.palette.primary.dark} 128%)`,
-      }}
-    >
-      {/* decorative glow */}
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          top: -80,
-          right: -60,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          bgcolor: alpha('#fff', 0.12),
-          filter: 'blur(4px)',
-        }}
-      />
+    <HeroSurface>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -81,11 +63,7 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
           to="/vendors"
           startIcon={<ArrowBackIcon />}
           size="small"
-          sx={{
-            color: 'common.white',
-            bgcolor: alpha('#fff', 0.12),
-            '&:hover': { bgcolor: alpha('#fff', 0.22) },
-          }}
+          sx={{ px: 3, ...heroGhostSx }}
         >
           Back to vendors
         </Button>
@@ -112,10 +90,7 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
             height: { xs: 56, sm: 72 },
             fontSize: { xs: 22, sm: 28 },
             fontWeight: 700,
-            bgcolor: alpha('#fff', 0.22),
-            color: 'common.white',
-            border: '2px solid',
-            borderColor: alpha('#fff', 0.4),
+            ...heroAvatarSx,
           }}
         >
           {initials(v.business_name)}
@@ -128,16 +103,7 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
             <StatusChip status={v.status} size="medium" />
             <StatusChip status={v.visibility} size="medium" />
             {v.is_featured && (
-              <Chip
-                size="small"
-                icon={<StarIcon />}
-                label="Featured"
-                sx={{
-                  color: 'common.white',
-                  bgcolor: alpha('#fff', 0.16),
-                  '& .MuiChip-icon': { color: 'inherit' },
-                }}
-              />
+              <Chip size="small" icon={<StarIcon />} label="Featured" sx={heroChipSx} />
             )}
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1, opacity: 0.95 }}>
@@ -149,7 +115,7 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
         </Box>
       </Stack>
 
-      <Divider sx={{ my: 2.5, borderColor: alpha('#fff', 0.2) }} />
+      <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Stack direction="row" flexWrap="wrap" useFlexGap gap={{ xs: 1.5, sm: 3 }}>
         {meta.map((m, i) => (
@@ -161,6 +127,6 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
           </Stack>
         ))}
       </Stack>
-    </Box>
+    </HeroSurface>
   );
 }

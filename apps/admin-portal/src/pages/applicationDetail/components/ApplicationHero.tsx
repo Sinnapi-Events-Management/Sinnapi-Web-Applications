@@ -1,11 +1,18 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Avatar, Chip, Divider, Button, alpha } from '@sinnapi/ui';
+import { Box, Stack, Typography, Avatar, Chip, Divider, Button } from '@sinnapi/ui';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import PlaceIcon from '@mui/icons-material/Place';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HeroSurface from '@/components/ui/HeroSurface';
+import {
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroAvatarSx,
+} from '@/components/ui/heroSurface.styles';
 import StatusChip from '@/components/ui/StatusChip';
 import { formatDate, titleize } from '@/lib/config';
 import type { IntakeDetailModel } from '@/lib/types';
@@ -29,44 +36,13 @@ export default function ApplicationHero({ a }: { a: IntakeDetailModel }) {
   ].filter(Boolean) as { icon: React.ReactNode; text: string }[];
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 4,
-        p: { xs: 2.5, sm: 4 },
-        mb: 3,
-        color: 'common.white',
-        background: (t) =>
-          `linear-gradient(120deg, ${t.palette.secondary.dark} 0%, ${t.palette.secondary.main} 52%, ${t.palette.primary.dark} 128%)`,
-      }}
-    >
-      {/* decorative glow */}
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          top: -80,
-          right: -60,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          bgcolor: alpha('#fff', 0.12),
-          filter: 'blur(4px)',
-        }}
-      />
+    <HeroSurface>
       <Button
         component={RouterLink}
         to="/applications"
         startIcon={<ArrowBackIcon />}
         size="small"
-        sx={{
-          position: 'relative',
-          mb: 2,
-          color: 'common.white',
-          bgcolor: alpha('#fff', 0.12),
-          '&:hover': { bgcolor: alpha('#fff', 0.22) },
-        }}
+        sx={{ position: 'relative', mb: 2, px: 3, ...heroGhostSx }}
       >
         Back to applications
       </Button>
@@ -82,10 +58,7 @@ export default function ApplicationHero({ a }: { a: IntakeDetailModel }) {
             height: { xs: 56, sm: 72 },
             fontSize: { xs: 22, sm: 28 },
             fontWeight: 700,
-            bgcolor: alpha('#fff', 0.22),
-            color: 'common.white',
-            border: '2px solid',
-            borderColor: alpha('#fff', 0.4),
+            ...heroAvatarSx,
           }}
         >
           {initials(a.business_name)}
@@ -110,11 +83,7 @@ export default function ApplicationHero({ a }: { a: IntakeDetailModel }) {
                 size="small"
                 icon={<BadgeIcon />}
                 label={titleize(a.applicant_type)}
-                sx={{
-                  color: 'common.white',
-                  bgcolor: alpha('#fff', 0.16),
-                  '& .MuiChip-icon': { color: 'inherit' },
-                }}
+                sx={heroChipSx}
               />
             )}
             {a.submission_ref && (
@@ -126,7 +95,7 @@ export default function ApplicationHero({ a }: { a: IntakeDetailModel }) {
         </Box>
       </Stack>
 
-      <Divider sx={{ my: 2.5, borderColor: alpha('#fff', 0.2) }} />
+      <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Stack direction="row" flexWrap="wrap" useFlexGap gap={{ xs: 1.5, sm: 3 }}>
         {meta.map((m, i) => (
@@ -138,6 +107,6 @@ export default function ApplicationHero({ a }: { a: IntakeDetailModel }) {
           </Stack>
         ))}
       </Stack>
-    </Box>
+    </HeroSurface>
   );
 }

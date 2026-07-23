@@ -1,5 +1,5 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Chip, Divider, Button, alpha } from '@sinnapi/ui';
+import { Box, Stack, Typography, Chip, Divider, Button } from '@sinnapi/ui';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -8,6 +8,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import PlaceIcon from '@mui/icons-material/Place';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CategoryIcon from '@mui/icons-material/Category';
+import HeroSurface from '@/components/ui/HeroSurface';
+import { heroGhostSx, heroChipSx, heroDividerSx } from '@/components/ui/heroSurface.styles';
 import StatusChip from '@/components/ui/StatusChip';
 import type { EventStatus } from '@/lib/status';
 import { formatDate, titleize } from '@/lib/config';
@@ -41,33 +43,7 @@ export default function EventHero({
   const transitions = getStatusTransitions(e.status);
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 4,
-        p: { xs: 2.5, sm: 4 },
-        mb: 3,
-        color: 'common.white',
-        background: (t) =>
-          `linear-gradient(120deg, ${t.palette.secondary.dark} 0%, ${t.palette.secondary.main} 52%, ${t.palette.primary.dark} 128%)`,
-      }}
-    >
-      {/* decorative glow */}
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          top: -80,
-          right: -60,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          bgcolor: alpha('#fff', 0.12),
-          filter: 'blur(4px)',
-        }}
-      />
-
+    <HeroSurface>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -82,11 +58,7 @@ export default function EventHero({
           to="/events"
           startIcon={<ArrowBackIcon />}
           size="small"
-          sx={{
-            color: 'common.white',
-            bgcolor: alpha('#fff', 0.12),
-            '&:hover': { bgcolor: alpha('#fff', 0.22) },
-          }}
+          sx={{ px: 3, ...heroGhostSx }}
         >
           Back to events
         </Button>
@@ -120,9 +92,9 @@ export default function EventHero({
             startIcon={<DeleteOutlineIcon />}
             onClick={onRequestDelete}
             sx={{
-              color: 'common.white',
-              borderColor: alpha('#fff', 0.5),
-              '&:hover': { borderColor: 'common.white', bgcolor: alpha('#fff', 0.12) },
+              color: 'inherit',
+              borderColor: 'var(--hero-border)',
+              '&:hover': { borderColor: 'currentColor', bgcolor: 'var(--hero-overlay)' },
             }}
           >
             Delete
@@ -142,14 +114,10 @@ export default function EventHero({
           {e.title}
         </Typography>
         <StatusChip status={e.status} size="medium" />
-        <Chip
-          size="small"
-          label={titleize(e.source)}
-          sx={{ color: 'common.white', bgcolor: alpha('#fff', 0.16) }}
-        />
+        <Chip size="small" label={titleize(e.source)} sx={heroChipSx} />
       </Stack>
 
-      <Divider sx={{ my: 2.5, borderColor: alpha('#fff', 0.2) }} />
+      <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Stack direction="row" flexWrap="wrap" useFlexGap gap={{ xs: 1.5, sm: 3 }}>
         {meta.map((m, i) => (
@@ -161,6 +129,6 @@ export default function EventHero({
           </Stack>
         ))}
       </Stack>
-    </Box>
+    </HeroSurface>
   );
 }
