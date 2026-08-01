@@ -13,6 +13,7 @@ import {
   heroChipSx,
   heroDividerSx,
   heroAvatarSx,
+  heroWarningSx,
 } from '@/components/ui/heroSurface.styles';
 import StatusChip from '@/components/ui/StatusChip';
 import type { VendorStatus } from '@/hooks/useVendorStatus';
@@ -67,11 +68,14 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
         >
           Back to vendors
         </Button>
+        {/* Suspending is the consequential move, so it reads as a muted amber
+            ghost; activating is the hero's one affirmative action and takes the
+            single gold fill. */}
         <Button
           size="small"
-          variant="contained"
-          color={isActive ? 'error' : 'success'}
+          variant={isActive ? 'text' : 'contained'}
           onClick={() => onRequestStatusChange(isActive ? 'suspended' : 'active')}
+          sx={isActive ? heroWarningSx : { px: 3 }}
         >
           {isActive ? 'Suspend vendor' : 'Activate vendor'}
         </Button>

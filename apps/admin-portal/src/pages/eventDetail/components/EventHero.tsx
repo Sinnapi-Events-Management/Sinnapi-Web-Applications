@@ -1,5 +1,7 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Stack, Typography, Chip, Divider, Button } from '@sinnapi/ui';
+import type { SxProps } from '@sinnapi/ui';
+import type { Theme } from '@sinnapi/ui/theme';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -9,12 +11,19 @@ import PlaceIcon from '@mui/icons-material/Place';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CategoryIcon from '@mui/icons-material/Category';
 import HeroSurface from '@/components/ui/HeroSurface';
-import { heroGhostSx, heroChipSx, heroDividerSx } from '@/components/ui/heroSurface.styles';
+import {
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroQuietSx,
+  heroWarningSx,
+  heroDangerSx,
+} from '@/components/ui/heroSurface.styles';
 import StatusChip from '@/components/ui/StatusChip';
 import type { EventStatus } from '@/lib/status';
 import { formatDate, titleize } from '@/lib/config';
 import type { EventDetailModel } from '@/lib/types';
-import { getStatusTransitions } from '../../events/schema';
+import { getStatusTransitions, type EventTransition } from '../../events/schema';
 
 type Props = {
   event: EventDetailModel;
@@ -22,6 +31,16 @@ type Props = {
   /** Signals intent only — the page owns confirmation and the write. */
   onRequestStatusChange: (status: EventStatus) => void;
   onRequestDelete: () => void;
+};
+
+// A transition's accent tracks how consequential the move is, not whether it is
+// "good" — a green Publish beside an amber Close just adds hues the status chip
+// already communicates. Routine, reversible moves therefore stay neutral.
+const TRANSITION_SX: Record<EventTransition['tone'], SxProps<Theme>> = {
+  success: heroQuietSx,
+  neutral: heroQuietSx,
+  warning: heroWarningSx,
+  danger: heroDangerSx,
 };
 
 /** Gradient header: title, lifecycle chips, quick-glance meta and primary actions. */
@@ -64,38 +83,31 @@ export default function EventHero({
         </Button>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {/* The row's single fill — gold via the theme's default button color. */}
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<EditOutlinedIcon />}
+            onClick={onEdit}
+            sx={{ px: 3 }}
+          >
+            Edit
+          </Button>
           {transitions.map((t) => (
             <Button
               key={t.to}
               size="small"
-              variant="contained"
-              color={
-                t.tone === 'success' ? 'success' : t.tone === 'warning' ? 'warning' : 'inherit'
-              }
               onClick={() => onRequestStatusChange(t.to)}
+              sx={TRANSITION_SX[t.tone]}
             >
               {t.label}
             </Button>
           ))}
           <Button
             size="small"
-            variant="contained"
-            color="inherit"
-            startIcon={<EditOutlinedIcon />}
-            onClick={onEdit}
-          >
-            Edit
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
             startIcon={<DeleteOutlineIcon />}
             onClick={onRequestDelete}
-            sx={{
-              color: 'inherit',
-              borderColor: 'var(--hero-border)',
-              '&:hover': { borderColor: 'currentColor', bgcolor: 'var(--hero-overlay)' },
-            }}
+            sx={heroDangerSx}
           >
             Delete
           </Button>

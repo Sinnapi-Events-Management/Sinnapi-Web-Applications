@@ -37,6 +37,8 @@
     "setup:env": "for d in apps/*/; do if [ -f \"$d.env.example\" ] && [ ! -f \"$d.env.local\" ]; then cp \"$d.env.example\" \"$d.env.local\" && echo \"created ${d}.env.local\"; fi; done; echo 'env ready (fill in your Supabase keys)'",
     "clean": "find apps -type d \\( -name dist -o -name .next -o -name .turbo \\) -prune -exec rm -rf {} + ; rm -rf .turbo",
     "clean:deps": "rm -rf node_modules apps/*/node_modules",
+    "email:preview": "node scripts/preview-emails.mjs",
+    "email:logo": "node scripts/build-email-logo.mjs",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "db:diff": "supabase db diff",

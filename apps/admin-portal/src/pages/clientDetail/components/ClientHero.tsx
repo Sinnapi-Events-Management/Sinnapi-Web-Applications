@@ -1,11 +1,21 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Avatar, Chip, Divider, Button, alpha } from '@sinnapi/ui';
+import { Box, Stack, Typography, Avatar, Chip, Divider, Button } from '@sinnapi/ui';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import HeroSurface from '@/components/ui/HeroSurface';
+import {
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroAvatarSx,
+  heroQuietSx,
+  heroWarningSx,
+  heroDangerSx,
+} from '@/components/ui/heroSurface.styles';
 import StatusChip from '@/components/ui/StatusChip';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
@@ -46,37 +56,13 @@ export default function ClientHero({
   const isActive = c.status === 'active';
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 4,
-        p: { xs: 2.5, sm: 4 },
-        mb: 3,
-        color: 'common.white',
-        background: (t) =>
-          `linear-gradient(120deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.main} 60%, ${t.palette.secondary.dark} 130%)`,
-      }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          position: 'absolute',
-          top: -80,
-          right: -60,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          bgcolor: alpha('#fff', 0.12),
-          filter: 'blur(4px)',
-        }}
-      />
-
+    <HeroSurface>
       <Stack
         direction="row"
         justifyContent="space-between"
         alignItems="center"
         flexWrap="wrap"
+        useFlexGap
         gap={1}
         sx={{ position: 'relative', mb: 2 }}
       >
@@ -85,32 +71,28 @@ export default function ClientHero({
           to="/clients"
           startIcon={<ArrowBackIcon />}
           size="small"
-          sx={{
-            color: 'common.white',
-            bgcolor: alpha('#fff', 0.12),
-            '&:hover': { bgcolor: alpha('#fff', 0.22) },
-          }}
+          sx={{ px: 3, ...heroGhostSx }}
         >
           Back to clients
         </Button>
+
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button
             size="small"
             startIcon={<LockResetIcon />}
             onClick={onResetPassword}
-            sx={{
-              color: 'common.white',
-              bgcolor: alpha('#fff', 0.12),
-              '&:hover': { bgcolor: alpha('#fff', 0.22) },
-            }}
+            sx={heroQuietSx}
           >
             Reset password
           </Button>
+          {/* Blocking is the consequential move, so it reads as a muted amber
+              ghost; activating is the hero's one affirmative action and takes
+              the single gold fill. */}
           <Button
             size="small"
-            variant="contained"
-            color={isActive ? 'error' : 'success'}
+            variant={isActive ? 'text' : 'contained'}
             onClick={() => onRequestStatusChange(isActive ? 'suspended' : 'active')}
+            sx={isActive ? heroWarningSx : { px: 3 }}
           >
             {isActive ? 'Block client' : 'Activate client'}
           </Button>
@@ -118,11 +100,7 @@ export default function ClientHero({
             size="small"
             startIcon={<DeleteOutlineIcon />}
             onClick={onRequestDelete}
-            sx={{
-              color: 'common.white',
-              bgcolor: alpha('#fff', 0.12),
-              '&:hover': { bgcolor: alpha('#ff5252', 0.4) },
-            }}
+            sx={heroDangerSx}
           >
             Remove
           </Button>
@@ -141,10 +119,7 @@ export default function ClientHero({
             height: { xs: 56, sm: 72 },
             fontSize: { xs: 22, sm: 28 },
             fontWeight: 700,
-            bgcolor: alpha('#fff', 0.22),
-            color: 'common.white',
-            border: '2px solid',
-            borderColor: alpha('#fff', 0.4),
+            ...heroAvatarSx,
           }}
         >
           {initials(c.full_name)}
@@ -156,18 +131,13 @@ export default function ClientHero({
             </Typography>
             <StatusChip status={c.status} size="medium" />
             {roles.map((r) => (
-              <Chip
-                key={r}
-                size="small"
-                label={r}
-                sx={{ color: 'common.white', bgcolor: alpha('#fff', 0.16) }}
-              />
+              <Chip key={r} size="small" label={r} sx={heroChipSx} />
             ))}
           </Stack>
         </Box>
       </Stack>
 
-      <Divider sx={{ my: 2.5, borderColor: alpha('#fff', 0.2) }} />
+      <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Stack direction="row" flexWrap="wrap" useFlexGap gap={{ xs: 1.5, sm: 3 }}>
         {meta.map((m, i) => (
@@ -179,6 +149,6 @@ export default function ClientHero({
           </Stack>
         ))}
       </Stack>
-    </Box>
+    </HeroSurface>
   );
 }

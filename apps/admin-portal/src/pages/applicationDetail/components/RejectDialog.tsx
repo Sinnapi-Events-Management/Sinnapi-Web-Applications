@@ -28,11 +28,13 @@ export default function RejectDialog({ open, busy, onClose, onSubmit }: Props) {
       <DialogTitle>Reject application</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 2 }}>
-          The applicant will be notified. Add a clear reason for the rejection.
+          The applicant is emailed this decision straight away. Whatever you write below is quoted
+          to them word for word, so keep it clear and specific.
         </DialogContentText>
         <TextField
           name="reason"
           label="Reason"
+          helperText="Shown to the applicant in the rejection email."
           multiline
           minRows={3}
           required

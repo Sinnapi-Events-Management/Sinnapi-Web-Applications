@@ -6,10 +6,6 @@
 
 /**
  * Company contact details and social profiles.
- *
- * NOTE: these are placeholders — replace with the real values before launch.
- * Phone/WhatsApp use E.164-friendly display strings; consumers derive `tel:`
- * and `wa.me` links by stripping non-digits, so keep the leading country code.
  */
 export const CONTACT = {
   email: 'support@sinnapi.com',

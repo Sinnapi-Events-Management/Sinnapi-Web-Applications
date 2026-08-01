@@ -6,7 +6,7 @@ export type EventTransition = {
   /** Verb-first menu label, e.g. "Publish event". */
   label: string;
   /** Tints the menu item so destructive/positive moves read at a glance. */
-  tone: 'success' | 'warning' | 'neutral';
+  tone: 'success' | 'warning' | 'neutral' | 'danger';
 };
 
 // The event lifecycle graph, expressed as the moves offered from each status.
@@ -18,8 +18,8 @@ const TRANSITIONS: Record<EventStatus, EventTransition[]> = {
     { to: 'archived', label: 'Archive event', tone: 'neutral' },
   ],
   published: [
-    { to: 'closed', label: 'Close event', tone: 'warning' },
     { to: 'archived', label: 'Archive event', tone: 'neutral' },
+    { to: 'closed', label: 'Close event', tone: 'warning' },
   ],
   closed: [
     { to: 'published', label: 'Republish event', tone: 'success' },
