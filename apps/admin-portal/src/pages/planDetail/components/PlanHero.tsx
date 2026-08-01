@@ -1,13 +1,16 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Chip, Divider, Stack, Typography, alpha } from '@sinnapi/ui';
-import type { SxProps } from '@sinnapi/ui';
-import type { Theme } from '@sinnapi/ui/theme';
+import { Box, Button, Chip, Divider, Stack, Typography } from '@sinnapi/ui';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import StarIcon from '@mui/icons-material/Star';
 import HeroSurface from '@/components/ui/HeroSurface';
-import { heroGhostSx, heroChipSx, heroDividerSx } from '@/components/ui/heroSurface.styles';
+import {
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroDangerSx,
+} from '@/components/ui/heroSurface.styles';
 import { formatMoney, titleize } from '@/lib/config';
 import type { PlanDetailModel } from '@/lib/types';
 
@@ -18,23 +21,6 @@ type Props = {
 };
 
 const CYCLE_SUFFIX: Record<string, string> = { monthly: '/month', annual: '/year' };
-
-// Semantic action buttons on the hero: a soft same-hue tint (matching the
-// IconBadge language) so Edit reads as the primary action and Delete as
-// destructive, without a loud solid fill on the calm surface.
-const heroEditSx: SxProps<Theme> = {
-  px: 3,
-  color: 'primary.main',
-  bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
-  '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.2) },
-};
-
-const heroDeleteSx: SxProps<Theme> = {
-  px: 3,
-  color: 'error.main',
-  bgcolor: (t) => alpha(t.palette.error.main, 0.12),
-  '&:hover': { bgcolor: (t) => alpha(t.palette.error.main, 0.2) },
-};
 
 /** Gradient header: plan identity, headline price and the primary actions. */
 export default function PlanHero({ plan, onEdit, onDelete }: Props) {
@@ -57,14 +43,21 @@ export default function PlanHero({ plan, onEdit, onDelete }: Props) {
           Back to plans
         </Button>
         <Stack direction="row" spacing={1}>
-          <Button size="small" startIcon={<EditOutlinedIcon />} onClick={onEdit} sx={heroEditSx}>
+          {/* The row's single fill — gold via the theme's default button color. */}
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<EditOutlinedIcon />}
+            onClick={onEdit}
+            sx={{ px: 3 }}
+          >
             Edit
           </Button>
           <Button
             size="small"
             startIcon={<DeleteOutlineIcon />}
             onClick={onDelete}
-            sx={heroDeleteSx}
+            sx={heroDangerSx}
           >
             Delete
           </Button>

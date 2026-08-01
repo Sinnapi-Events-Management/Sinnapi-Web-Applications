@@ -25,6 +25,7 @@ export default function ApplicationDetail() {
     has,
     busy,
     err,
+    notice,
     rejectOpen,
     setRejectOpen,
     markReviewing,
@@ -47,6 +48,12 @@ export default function ApplicationDetail() {
           {err && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {err}
+            </Alert>
+          )}
+
+          {notice && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {notice}
             </Alert>
           )}
 

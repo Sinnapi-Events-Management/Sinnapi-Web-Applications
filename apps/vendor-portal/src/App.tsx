@@ -6,6 +6,7 @@ import AppShell from '@/components/shell/AppShell';
 import SignIn from '@/pages/auth/signIn';
 import SignUp from '@/pages/auth/signUp';
 import AuthCallback from '@/pages/auth/authCallback';
+import ChangePassword from '@/pages/auth/changePassword';
 import Terms from '@/pages/terms';
 import VendorTerms from '@/pages/vendorTerms';
 import EscrowPolicy from '@/pages/escrowPolicy';
@@ -46,6 +47,18 @@ export default function App() {
       <Route path="/vendor-terms" element={<VendorTerms />} />
       <Route path="/escrow-policy" element={<EscrowPolicy />} />
       <Route path="/privacy" element={<Privacy />} />
+
+      {/* Requires a session but sits outside the vendor shell: the forced
+          password change must be reachable before VendorProvider loads a
+          vendor record the applicant may not have finished onboarding yet. */}
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute>
+            <ChangePassword />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         element={

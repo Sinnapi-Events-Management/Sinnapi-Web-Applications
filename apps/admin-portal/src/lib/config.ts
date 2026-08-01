@@ -16,8 +16,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import SecurityIcon from '@mui/icons-material/Security';
 import StarIcon from '@mui/icons-material/Star';
-import ForumIcon from '@mui/icons-material/Forum';
-import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import InsightsIcon from '@mui/icons-material/Insights';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -80,13 +78,13 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Content & Moderation',
     items: [
       { label: 'Reviews', to: '/reviews-moderation', icon: StarIcon, perm: 'moderation.manage' },
-      { label: 'Messaging', to: '/messaging', icon: ForumIcon, perm: 'moderation.manage' },
-      {
-        label: 'Notification Templates',
-        to: '/notification-templates',
-        icon: MarkEmailReadIcon,
-        perm: 'settings.manage',
-      },
+      // { label: 'Messaging', to: '/messaging', icon: ForumIcon, perm: 'moderation.manage' },
+      // {
+      //   label: 'Notification Templates',
+      //   to: '/notification-templates',
+      //   icon: MarkEmailReadIcon,
+      //   perm: 'settings.manage',
+      // },
     ],
   },
   {

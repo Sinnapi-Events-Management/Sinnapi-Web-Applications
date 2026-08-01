@@ -19,7 +19,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import type { SvgIconComponent } from '@mui/icons-material';
 import type { EventStatus } from '@/lib/status';
 import type { EventModel } from '@/lib/types';
-import { getStatusTransitions } from '../../schema';
+import { getStatusTransitions, type EventTransition } from '../../schema';
 
 type Props = {
   event: EventModel;
@@ -39,11 +39,15 @@ const TRANSITION_ICON: Record<EventStatus, SvgIconComponent> = {
   draft: RestoreIcon,
 };
 
-const TONE_COLOR = {
-  success: 'success',
-  warning: 'warning',
+// Matches the hero action row (see `heroSurface.styles`): only a consequential
+// outcome earns an accent, so routine moves — including the affirmative ones —
+// keep the menu's default ink.
+const TONE_COLOR: Record<EventTransition['tone'], 'warning' | 'error' | 'inherit'> = {
+  success: 'inherit',
   neutral: 'inherit',
-} as const;
+  warning: 'warning',
+  danger: 'error',
+};
 
 /**
  * Row action menu. Edit, the status moves valid from the event's current status

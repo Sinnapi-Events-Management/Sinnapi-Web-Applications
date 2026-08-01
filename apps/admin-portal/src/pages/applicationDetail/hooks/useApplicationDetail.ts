@@ -4,13 +4,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useApplication } from '@/hooks/queries';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
+import { invokeFunction } from '@/lib/functions';
 import { docKindFromPath, type PreviewDoc } from '@/components/ui/documentPreview';
 
 const INTAKE_BUCKET = 'application-intake';
 
-// Detail + triage for a single vendor application intake. Approval/promotion
-// (creating an auth user + vendor_applications row) is a service-role Edge
-// Function shipped in Stage 2 — `promote()` is intentionally not wired yet.
+type StatusResult = { emailSent?: boolean; emailWarning?: string };
+
+// Detail + triage for a single vendor application intake. Both triage actions
+// go through Edge Functions rather than the database directly: `set-intake-status`
+// applies the transition (still via the `set_intake_status` RPC, as the caller)
+// and emails the applicant copy matching the new status, and `promote-intake`
+// creates the account + vendor and sends the approval email.
 export function useApplicationDetail() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
@@ -19,6 +24,9 @@ export function useApplicationDetail() {
   const { data: intake, isLoading, error } = useApplication(id);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Email delivery is best-effort on the server: the status change succeeds even
+  // when SMTP does not, so that outcome is surfaced separately from `err`.
+  const [notice, setNotice] = useState<string | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -29,18 +37,23 @@ export function useApplicationDetail() {
     qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
   }
 
+  // Applies the transition and notifies the applicant by email, in one call.
   async function setStatus(status: 'reviewing' | 'rejected', notes?: string) {
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.rpc('set_intake_status', {
-      p_intake_id: id,
-      p_status: status,
-      p_notes: notes ?? null,
+    setNotice(null);
+    const { data, error } = await invokeFunction<StatusResult>('set-intake-status', {
+      intakeId: id,
+      status,
+      notes: notes ?? null,
     });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(error);
       return false;
+    }
+    if (data?.emailWarning) {
+      setNotice(`Status updated, but the applicant could not be emailed: ${data.emailWarning}`);
     }
     refresh();
     return true;
@@ -62,15 +75,24 @@ export function useApplicationDetail() {
   async function promote() {
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.functions.invoke('promote-intake', {
-      body: { intakeId: id },
-    });
+    setNotice(null);
+    const { data, error } = await invokeFunction<StatusResult>('promote-intake', { intakeId: id });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(error);
       return;
     }
     refresh();
+    // The welcome email carries the new vendor's one-time password, so a failed
+    // send needs a follow-up. Stay on the page in that case — navigating to
+    // /vendors would unmount the warning before it is read.
+    if (data?.emailWarning) {
+      setNotice(
+        `Vendor created, but the welcome email could not be sent: ${data.emailWarning}. ` +
+          'Reset their password from Users to re-issue credentials.',
+      );
+      return;
+    }
     navigate('/vendors');
   }
 
@@ -106,6 +128,7 @@ export function useApplicationDetail() {
     has,
     busy,
     err,
+    notice,
     rejectOpen,
     setRejectOpen,
     markReviewing,

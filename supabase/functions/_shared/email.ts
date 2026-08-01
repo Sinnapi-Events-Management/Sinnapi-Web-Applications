@@ -1,126 +1,33 @@
-// Shared transactional-email service. Sends mail over SMTP via nodemailer,
-// mirroring the benchmarked `register-staff` / vendor-application pattern.
+// Shared transactional-email transport. Sends mail over SMTP via nodemailer and
+// attaches the Sinnapi brand logo inline so it renders even in clients that
+// block remote images.
 //
-// This module owns ONLY the transport + generic helpers so no Edge Function
-// re-implements SMTP wiring. Per-flow content (subjects, HTML bodies) lives in
-// the calling function. Sending is best-effort: callers decide whether a
-// failure should block their response — `sendEmail` never throws.
+// This module owns ONLY the transport. The branded HTML shell and all content
+// blocks live in `./emailTemplate.ts` and are re-exported here, so existing
+// `_shared/email.ts` imports keep working and no Edge Function re-implements
+// SMTP wiring. Per-flow content (subjects, bodies) lives in each function's own
+// `emails.ts`. Sending is best-effort: callers decide whether a failure should
+// block their response — `sendEmail` never throws.
 //
 // Required env for delivery (if any is missing, sends become no-ops that
 // report `{ sent: false }` rather than crashing the caller):
 //   SMTP_HOST, SMTP_USER, SMTP_PASS   — credentials
 //   SMTP_PORT                         — optional, defaults to 587 (465 => TLS)
-// Optional branding env (safe fallbacks below):
-//   APP_NAME          — display name used in the From header, default "Sinnapi"
-//   PUBLIC_SITE_URL   — public marketing/app URL, default "https://sinnapi.com"
+// Optional branding env (see `./emailTemplate.ts`):
+//   APP_NAME, PUBLIC_SITE_URL
 //   EMAIL_FROM        — envelope From; defaults to SMTP_USER (many SMTP servers
 //                       reject a From that doesn't match the authenticated user)
 import nodemailer from 'npm:nodemailer@6';
+import { APP_NAME, LOGO_CID, LOGO_PNG_BASE64 } from './emailTemplate.ts';
+import type { EmailMessage, EmailResult } from './emailTemplate.ts';
 
-export const APP_NAME = Deno.env.get('APP_NAME') ?? 'Sinnapi';
-export const PUBLIC_SITE_URL = Deno.env.get('PUBLIC_SITE_URL') ?? 'https://sinnapi.com';
+// The design system is part of this module's public surface: callers import
+// `emailLayout`, `brandColors`, etc. from `_shared/email.ts` as before.
+export * from './emailTemplate.ts';
 
-// Sinnapi brand palette — inlined from `packages/ui/src/theme/tokens.ts`.
-// Edge functions can't import the workspace UI package (the CLI bundler only
-// follows relative/npm/https specifiers), so these hexes are duplicated here.
-// KEEP IN SYNC with tokens.ts `palette.light` + `gradientStops`.
-export const brandColors = {
-  primaryLightest: '#E2F0F1',
-  primaryLighter: '#8CC3C8',
-  primaryLight: '#3F9BA3',
-  primaryMain: '#07504D',
-  primaryDark: '#053837',
-  tealDeep: '#042E2C', // gradientStops.tealDeep — hero overlay start
-  secondaryLightest: '#FEF8E8',
-  secondaryMain: '#c8973a', // AA-safe brand gold
-  secondaryDark: '#a2770a',
-  gold: '#B9890F', // gradientStops.gold — vendor CTA
-  textPrimary: '#1A1320',
-  textSecondary: '#5C5468',
-  bgDefault: '#FAF9FB',
-  bgPaper: '#FFFFFF',
-  divider: 'rgba(26,19,32,0.12)',
-  white: '#FFFFFF',
-} as const;
-
-// Email-safe font stacks. tokens.ts `fonts` reference `var(--font-*)` webfonts
-// that mail clients can't load, so we fall back to the same families' web-safe
-// equivalents (Fraunces→serif for headings, Inter→sans for body).
-export const emailFonts = {
-  heading: "Georgia, 'Times New Roman', serif",
-  body: 'Helvetica, Arial, sans-serif',
-} as const;
-
-/**
- * Wrap per-flow content in the shared, brand-styled Sinnapi email shell:
- * teal gradient header + gold accent bar, paper card, and a footer signed by
- * the team. All templates should compose through this so branding stays
- * consistent across flows.
- */
-export function emailLayout(opts: {
-  heading: string;
-  body: string;
-  /** Hidden inbox-preview text shown before the body in most clients. */
-  preheader?: string;
-}): string {
-  const c = brandColors;
-  const preheader = opts.preheader
-    ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${opts.preheader}</div>`
-    : '';
-  return `
-  <div style="background:${c.bgDefault};padding:24px 12px;font-family:${emailFonts.body}">
-    ${preheader}
-    <div style="max-width:600px;margin:0 auto">
-      <div style="background:linear-gradient(135deg,${c.tealDeep} 0%,${c.primaryDark} 45%,${c.primaryMain} 100%);padding:36px 24px;border-radius:12px 12px 0 0;text-align:center">
-        <h1 style="color:${c.white};margin:0;font-family:${emailFonts.heading};font-size:24px;font-weight:600;letter-spacing:0.2px">${opts.heading}</h1>
-      </div>
-      <div style="height:4px;background:${c.secondaryMain}"></div>
-      <div style="padding:32px 28px;background:${c.bgPaper};border:1px solid ${c.divider};border-top:none;border-radius:0 0 12px 12px;color:${c.textPrimary};font-size:15px;line-height:1.6">
-        ${opts.body}
-        <div style="margin-top:28px;padding-top:20px;border-top:1px solid ${c.divider};color:${c.textSecondary};font-size:13px">
-          <p style="margin:0">Warm regards,<br/><strong style="color:${c.primaryMain}">The ${APP_NAME} Team</strong></p>
-          <p style="margin:12px 0 0"><a href="${PUBLIC_SITE_URL}" style="color:${c.primaryMain};text-decoration:none">${PUBLIC_SITE_URL.replace(/^https?:\/\//, '')}</a></p>
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-/** Brand-styled CTA button (table-based for Outlook compatibility). */
-export function emailButton(href: string, label: string): string {
-  const c = brandColors;
-  return `
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0">
-      <tr><td style="border-radius:8px;background:${c.primaryMain}">
-        <a href="${href}" style="display:inline-block;padding:12px 28px;color:${c.white};font-family:${emailFonts.body};font-size:15px;font-weight:600;text-decoration:none;border-radius:8px">${label}</a>
-      </td></tr>
-    </table>`;
-}
-
-export interface EmailMessage {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-  /** Override the From header. Defaults to EMAIL_FROM/SMTP_USER. */
-  from?: string;
-  replyTo?: string;
-}
-
-export interface EmailResult {
-  sent: boolean;
-  error?: string;
-}
-
-// Escape user-supplied strings before interpolating into HTML email bodies.
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// ───────────────────────────────────────────────────────────────────────────
+// Transport
+// ───────────────────────────────────────────────────────────────────────────
 
 // Lazily-built, reused across invocations warm on the same isolate.
 let cachedTransporter: ReturnType<typeof nodemailer.createTransport> | null = null;
@@ -163,6 +70,9 @@ function buildTransporter(): ReturnType<typeof nodemailer.createTransport> | nul
 /**
  * Send one transactional email. Best-effort: returns `{ sent: false, error }`
  * instead of throwing, so callers can decide whether delivery is blocking.
+ *
+ * The brand logo is attached inline (Content-ID) whenever the HTML references
+ * it, so it renders even in clients that block remote images.
  */
 export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
   const recipients = Array.isArray(msg.to) ? msg.to.join(', ') : msg.to;
@@ -179,6 +89,20 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
   // reject a mismatched From outright.
   const fromAddress = msg.from ?? Deno.env.get('EMAIL_FROM') ?? Deno.env.get('SMTP_USER')!;
 
+  // Only pay the ~9 KB attachment cost when the template actually renders it.
+  const attachments = msg.html.includes(`cid:${LOGO_CID}`)
+    ? [
+        {
+          filename: 'sinnapi-logo.png',
+          content: LOGO_PNG_BASE64,
+          encoding: 'base64' as const,
+          cid: LOGO_CID,
+          contentType: 'image/png',
+          contentDisposition: 'inline' as const,
+        },
+      ]
+    : undefined;
+
   try {
     const info = await transporter.sendMail({
       from: `"${APP_NAME}" <${fromAddress}>`,
@@ -187,6 +111,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
       subject: msg.subject,
       ...(msg.text ? { text: msg.text } : {}),
       html: msg.html,
+      ...(attachments ? { attachments } : {}),
     });
 
     console.log('[EMAIL] messageId:', info.messageId, '| response:', info.response);

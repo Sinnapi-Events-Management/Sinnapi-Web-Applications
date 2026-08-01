@@ -10,8 +10,15 @@
 // must run as the calling admin (its `has_permission('vendor.approve')` check
 // reads `auth.uid()`). So we combine a service-role client (privileged writes +
 // auth admin) with the caller's user-scoped client (for approve_vendor).
+//
+// Optional env:
+//   VENDOR_PORTAL_URL — sign-in URL in the approval email; falls back to
+//                       PUBLIC_SITE_URL when unset.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, userClient, requireUser, HttpError } from '../_shared/supabase.ts';
+import { generatePassword } from '../_shared/password.ts';
+import { sendEmail, PUBLIC_SITE_URL } from '../_shared/email.ts';
+import { vendorApprovedEmail } from './emails.ts';
 
 type Body = { intakeId?: string };
 
@@ -55,6 +62,10 @@ Deno.serve(
     // into `profiles` and assigns the default role).
     const email = String(intake.owner_email).trim().toLowerCase();
     let applicantId: string;
+    // Non-null only when we provision the account here — an applicant who
+    // already had a Sinnapi account keeps their own password untouched, and the
+    // approval email says so instead of shipping a credential they didn't need.
+    let tempPassword: string | null = null;
 
     const { data: existingProfile, error: profErr } = await admin
       .from('profiles')
@@ -69,13 +80,21 @@ Deno.serve(
     if (existingProfile) {
       applicantId = existingProfile.id;
     } else {
+      // A one-time password provisioned server-side (never through the browser),
+      // delivered by the approval email below — same contract as create-staff.
+      tempPassword = generatePassword(16);
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email,
+        password: tempPassword,
         email_confirm: true,
         // `handle_new_user` mirrors full_name + phone into the profile. Phone is
         // NOT set on auth.users: that field is the SMS/OTP identity, is uniquely
         // constrained and expects a confirmation flow.
-        user_metadata: { full_name: intake.owner_full_name ?? null, phone: ownerPhone || null },
+        user_metadata: {
+          full_name: intake.owner_full_name ?? null,
+          phone: ownerPhone || null,
+          must_change_password: true,
+        },
       });
       if (createErr || !created?.user) {
         throw new HttpError(400, `account_creation_failed:${createErr?.message ?? 'unknown'}`);
@@ -175,6 +194,32 @@ Deno.serve(
       .update({ status: 'approved', reviewed_by: uid, reviewed_at: new Date().toISOString() })
       .eq('id', intake.id);
 
-    return json(req, { applicationId: app.id, vendorId }, 200);
+    // --- Welcome the new vendor (best-effort: the vendor already exists, so a
+    // mail failure must not fail the promotion — it is reported instead, and an
+    // admin can fall back to a password reset).
+    const portalUrl = Deno.env.get('VENDOR_PORTAL_URL') ?? PUBLIC_SITE_URL;
+    const emailResult = await sendEmail(
+      vendorApprovedEmail({
+        ownerFullName: String(intake.owner_full_name ?? ''),
+        ownerEmail: email,
+        businessName: String(intake.business_name ?? ''),
+        portalUrl,
+        tempPassword,
+      }),
+    ).catch((e) => ({ sent: false, error: (e as Error).message }));
+    if (!emailResult.sent) {
+      console.error('[PROMOTE-INTAKE] approval email not delivered:', emailResult.error);
+    }
+
+    return json(
+      req,
+      {
+        applicationId: app.id,
+        vendorId,
+        emailSent: emailResult.sent,
+        ...(emailResult.error && { emailWarning: emailResult.error }),
+      },
+      200,
+    );
   }),
 );

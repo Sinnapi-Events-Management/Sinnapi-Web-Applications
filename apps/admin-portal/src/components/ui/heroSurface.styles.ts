@@ -1,5 +1,6 @@
 import type { SxProps } from '@sinnapi/ui';
 import type { Theme } from '@sinnapi/ui/theme';
+import { palette, withAlpha } from '@sinnapi/ui/tokens';
 
 /**
  * Style tokens for the detail-page hero banner (see {@link ../HeroSurface}).
@@ -49,6 +50,15 @@ export const heroRootSx: SxProps<Theme> = () => ({
   '--hero-divider': 'rgba(26, 19, 32, 0.08)',
   // The one touch of brand: a faint warm gold glow (secondary.main @ 8%).
   '--hero-glow': 'rgba(200, 151, 58, 0.08)',
+  // Accent inks for the action row (see `heroWarningSx` / `heroDangerSx`). Text
+  // uses `warning.dark`, not `.main` — the orange only clears AA against the
+  // white sheet once it is deepened.
+  '--hero-warning': palette.light.warning.dark,
+  '--hero-warning-bg': withAlpha(palette.light.warning.main, 0.12),
+  '--hero-warning-bg-hover': withAlpha(palette.light.warning.main, 0.2),
+  '--hero-danger': palette.light.error.main,
+  '--hero-danger-bg': withAlpha(palette.light.error.main, 0.1),
+  '--hero-danger-bg-hover': withAlpha(palette.light.error.main, 0.18),
 
   // --- dark mode: raised neutral panel, warm-white text ---
   [DARK_SELECTOR]: {
@@ -62,6 +72,14 @@ export const heroRootSx: SxProps<Theme> = () => ({
     '--hero-border': 'rgba(255, 255, 255, 0.16)',
     '--hero-divider': 'rgba(255, 255, 255, 0.10)',
     '--hero-glow': 'rgba(200, 151, 58, 0.10)',
+    // The dark scheme's amber/red already read as light-on-dark, so `.main` is
+    // the legible ink here; tints run a touch stronger to survive the panel.
+    '--hero-warning': palette.dark.warning.main,
+    '--hero-warning-bg': withAlpha(palette.dark.warning.main, 0.16),
+    '--hero-warning-bg-hover': withAlpha(palette.dark.warning.main, 0.24),
+    '--hero-danger': palette.dark.error.main,
+    '--hero-danger-bg': withAlpha(palette.dark.error.main, 0.14),
+    '--hero-danger-bg-hover': withAlpha(palette.dark.error.main, 0.22),
   },
 });
 
@@ -84,6 +102,43 @@ export const heroGhostSx = {
   color: 'inherit',
   bgcolor: 'var(--hero-overlay)',
   '&:hover': { bgcolor: 'var(--hero-overlay-hover)' },
+} as const;
+
+/**
+ * The hero action row, as a hierarchy rather than a row of colours.
+ *
+ * Exactly one action per hero is filled — plain `<Button variant="contained">`,
+ * which the portal theme already renders in gold (`secondary` is the default
+ * action colour; see the app theme's `MuiButton` override). Everything beside it
+ * is a tinted ghost: neutral by default, and coloured only when the *outcome* is
+ * consequential. Status meaning is already carried by the `StatusChip` next to
+ * the title, so the buttons don't repeat it — that repetition is what turned the
+ * row into four competing fills.
+ *
+ * Pick by consequence, not by sentiment:
+ *   `heroQuietSx`   — routine / reversible (archive, restore, republish)
+ *   `heroWarningSx` — consequential but recoverable (close, suspend)
+ *   `heroDangerSx`  — irreversible (delete)
+ */
+export const heroQuietSx = {
+  px: 3,
+  color: 'inherit',
+  bgcolor: 'var(--hero-overlay)',
+  '&:hover': { bgcolor: 'var(--hero-overlay-hover)' },
+} as const;
+
+export const heroWarningSx = {
+  px: 3,
+  color: 'var(--hero-warning)',
+  bgcolor: 'var(--hero-warning-bg)',
+  '&:hover': { bgcolor: 'var(--hero-warning-bg-hover)' },
+} as const;
+
+export const heroDangerSx = {
+  px: 3,
+  color: 'var(--hero-danger)',
+  bgcolor: 'var(--hero-danger-bg)',
+  '&:hover': { bgcolor: 'var(--hero-danger-bg-hover)' },
 } as const;
 
 /** Filled translucent chip on the hero; its icon inherits the foreground ink. */

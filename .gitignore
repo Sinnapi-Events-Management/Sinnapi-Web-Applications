@@ -16,6 +16,9 @@ out
 .env
 .env*.local
 
+# rendered email previews (yarn email:preview)
+.email-preview
+
 # misc
 *.tsbuildinfo
 .DS_Store
