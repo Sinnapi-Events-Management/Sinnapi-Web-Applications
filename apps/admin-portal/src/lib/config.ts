@@ -22,6 +22,8 @@ import InsightsIcon from '@mui/icons-material/Insights';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PolicyIcon from '@mui/icons-material/Policy';
+import CategoryIcon from '@mui/icons-material/Category';
+import PublicIcon from '@mui/icons-material/Public';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import ChatIcon from '@mui/icons-material/Chat';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -109,6 +111,23 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Messages', to: '/messages', icon: ChatIcon },
       { label: 'Notifications', to: '/notifications', icon: NotificationsIcon },
+    ],
+  },
+  {
+    title: 'Config',
+    items: [
+      {
+        label: 'Service Categories',
+        to: '/service-categories',
+        icon: CategoryIcon,
+        perm: 'settings.manage',
+      },
+      {
+        label: 'Service Regions',
+        to: '/service-regions',
+        icon: PublicIcon,
+        perm: 'settings.manage',
+      },
     ],
   },
 ];

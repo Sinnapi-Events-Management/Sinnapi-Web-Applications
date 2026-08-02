@@ -17,13 +17,13 @@ const shared: ThemeOptions = {
     // previous body font), so the MUI/Roboto-tuned default body scale reads
     // visibly smaller at the same nominal size. Body/UI variants are bumped
     // ~1 step up from MUI's defaults to compensate.
-    body1: { fontSize: '1.125rem', lineHeight: 1.6 },
-    body2: { fontSize: '1rem', lineHeight: 1.55 },
+    body1: { fontSize: '1.25rem', lineHeight: 1.6 },
+    body2: { fontSize: '1.125rem', lineHeight: 1.55 },
     subtitle1: { fontSize: '1.125rem', lineHeight: 1.5 },
     subtitle2: { fontSize: '1rem', lineHeight: 1.5, fontWeight: 500 },
-    caption: { fontSize: '0.875rem', lineHeight: 1.4 },
+    caption: { fontSize: '1rem', lineHeight: 1.4 },
     button: { fontSize: '1.25rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.3px' },
-    overline: { fontSize: '0.8125rem', fontWeight: 600, letterSpacing: '1px' },
+    overline: { fontSize: '1rem', fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
     // Gold (`secondary`) is the portal's default action color — every button

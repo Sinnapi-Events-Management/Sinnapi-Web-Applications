@@ -144,7 +144,7 @@ export default function AppShell() {
         </ListItemIcon>
         <ListItemText
           primary={item.label}
-          primaryTypographyProps={{ variant: 'body2', fontWeight: active ? 600 : 500 }}
+          primaryTypographyProps={{ variant: 'subtitle2', fontWeight: active ? 600 : 500 }}
         />
         {item.to === '/notifications' && unread > 0 && (
           <Badge color="error" badgeContent={unread} sx={{ mr: 1.5 }} />
@@ -270,7 +270,7 @@ export default function AppShell() {
                   primaryTypographyProps={{
                     variant: 'overline',
                     color: 'text.secondary',
-                    sx: { fontWeight: 700 },
+                    sx: { fontWeight: 700, fontSize: '0.75rem', letterSpacing: '1px' },
                   }}
                 />
                 {open ? (
