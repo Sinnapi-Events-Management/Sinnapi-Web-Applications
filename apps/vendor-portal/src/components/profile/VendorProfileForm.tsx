@@ -1,94 +1,56 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Stack, TextField, Button, Alert, MenuItem, Snackbar } from '@sinnapi/ui';
-import { supabase } from '@/lib/supabase';
+import { Stack, Button, Alert, Snackbar } from '@sinnapi/ui';
+import { ControlledField } from '@sinnapi/ui/forms';
+import { CURRENCY_OPTIONS, type VendorProfileSource } from './schema';
+import { useVendorProfileForm } from './hooks/useVendorProfileForm';
 
-type Vendor = {
-  id: string;
-  business_name: string;
-  biography: string | null;
-  base_city: string | null;
-  website: string | null;
-  starting_price: number | null;
-  starting_price_currency: string | null;
-};
+type Props = { vendor: VendorProfileSource & { id: string } };
 
 // NOTE: editing sensitive fields (banking, ID) triggers re-verification server-side.
-export default function VendorProfileForm({ vendor }: { vendor: Vendor }) {
-  const qc = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState(false);
-
-  async function save(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const form = new FormData(e.currentTarget);
-    const { error } = await supabase
-      .from('vendors')
-      .update({
-        business_name: String(form.get('business_name')),
-        biography: String(form.get('biography')) || null,
-        base_city: String(form.get('base_city')) || null,
-        website: String(form.get('website')) || null,
-        starting_price: form.get('starting_price') ? Number(form.get('starting_price')) : null,
-        starting_price_currency: String(form.get('currency')),
-      })
-      .eq('id', vendor.id);
-    setBusy(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setToast(true);
-    qc.invalidateQueries({ queryKey: ['my-vendor'] });
-  }
+export default function VendorProfileForm({ vendor }: Props) {
+  const { control, error, busy, isDirty, toast, dismissToast, submit } =
+    useVendorProfileForm(vendor);
 
   return (
-    <Stack component="form" spacing={2.5} onSubmit={save} sx={{ maxWidth: 560 }}>
+    <Stack component="form" spacing={2.5} onSubmit={submit} noValidate sx={{ maxWidth: 560 }}>
       {error && <Alert severity="error">{error}</Alert>}
-      <TextField
-        name="business_name"
-        label="Business name"
-        defaultValue={vendor.business_name}
-        required
-      />
-      <TextField name="base_city" label="Base city" defaultValue={vendor.base_city ?? ''} />
-      <TextField name="website" label="Website" defaultValue={vendor.website ?? ''} />
-      <TextField
+      <ControlledField name="business_name" control={control} label="Business name" />
+      <ControlledField name="base_city" control={control} label="Base city" />
+      <ControlledField name="website" control={control} label="Website" />
+      <ControlledField
         name="biography"
+        control={control}
         label="Business bio"
         multiline
         minRows={4}
-        defaultValue={vendor.biography ?? ''}
       />
       <Stack direction="row" spacing={2}>
-        <TextField
+        <ControlledField
           name="starting_price"
+          control={control}
           type="number"
           label="Starting price"
-          defaultValue={vendor.starting_price ?? ''}
           inputProps={{ min: 0 }}
         />
-        <TextField
+        <ControlledField
           name="currency"
+          control={control}
           label="Currency"
-          select
-          defaultValue={vendor.starting_price_currency ?? 'UGX'}
+          options={CURRENCY_OPTIONS}
           sx={{ width: 140 }}
-        >
-          <MenuItem value="UGX">UGX</MenuItem>
-          <MenuItem value="USD">USD</MenuItem>
-        </TextField>
+        />
       </Stack>
-      <Button type="submit" variant="contained" disabled={busy} sx={{ alignSelf: 'flex-start' }}>
+      <Button
+        type="submit"
+        variant="contained"
+        disabled={busy || !isDirty}
+        sx={{ alignSelf: 'flex-start' }}
+      >
         {busy ? 'Saving…' : 'Save changes'}
       </Button>
       <Snackbar
         open={toast}
         autoHideDuration={3000}
-        onClose={() => setToast(false)}
+        onClose={dismissToast}
         message="Profile updated"
       />
     </Stack>

@@ -1,11 +1,12 @@
 import { z } from 'zod';
 
 /**
- * Minimum length for a self-chosen password. Matches the forced first-sign-in
- * change (`pages/auth/changePassword`) so the two flows never disagree about
- * what an acceptable password is.
+ * Minimum length for a self-chosen password. 8 is the platform-wide rule —
+ * the forced first-sign-in change (`pages/auth/changePassword`) and both the
+ * client and vendor portals enforce the same number, so no two flows can
+ * disagree about what an acceptable password is.
  */
-export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MIN_LENGTH = 8;
 
 /** A single, individually-checkable password requirement. */
 export type PasswordRule = {

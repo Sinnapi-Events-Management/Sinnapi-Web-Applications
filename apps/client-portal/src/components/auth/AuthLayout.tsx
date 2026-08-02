@@ -1,6 +1,10 @@
-import { Box, Container, Typography, Paper, fonts } from '@sinnapi/ui';
-import { APP } from '@/lib/config';
+import { Grid } from '@sinnapi/ui';
+import AuthShowcase from './AuthShowcase';
+import AuthFormPanel from './AuthFormPanel';
 
+// Split-screen auth shell: marketing showcase (left, md+) and the form column
+// (right). Shared by every auth page so sign-in, sign-up, and reset-password
+// stay consistent.
 export default function AuthLayout({
   title,
   subtitle,
@@ -11,37 +15,15 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', bgcolor: 'grey.50' }}>
-      <Box sx={{ p: 3 }}>
-        <Box
-          component="a"
-          href={APP.publicUrl}
-          sx={{
-            fontFamily: fonts.heading,
-            fontWeight: 600,
-            fontSize: 24,
-            color: 'primary.main',
-            textDecoration: 'none',
-          }}
-        >
-          {APP.name}
-        </Box>
-      </Box>
-      <Container
-        maxWidth="sm"
-        sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}
-      >
-        <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, width: '100%' }}>
-          <Typography variant="h4">{title}</Typography>
-          {subtitle && (
-            <Typography color="text.secondary" sx={{ mt: 0.5, mb: 3 }}>
-              {subtitle}
-            </Typography>
-          )}
-          {!subtitle && <Box sx={{ mb: 2 }} />}
+    <Grid container sx={{ minHeight: '100dvh' }}>
+      <Grid item md={6} lg={7} sx={{ display: { xs: 'none', md: 'block' } }}>
+        <AuthShowcase />
+      </Grid>
+      <Grid item xs={12} md={6} lg={5}>
+        <AuthFormPanel title={title} subtitle={subtitle}>
           {children}
-        </Paper>
-      </Container>
-    </Box>
+        </AuthFormPanel>
+      </Grid>
+    </Grid>
   );
 }

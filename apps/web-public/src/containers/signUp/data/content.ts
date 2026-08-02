@@ -33,7 +33,12 @@ export const SIGN_UP_CONTENT: AuthScreenProps = {
       Icon: Storefront,
       title: 'I’m a service provider',
       description: 'Apply to list your business and get bookings.',
-      href: SITE.vendorPortalUrl,
+      // The public application form, not the vendor portal: vendors cannot
+      // self-register. The `vendor` role is granted when an application is
+      // approved, and the portal's sign-in gate refuses anyone without it — so
+      // sending applicants to a portal sign-up would be sending them to a door
+      // that cannot open for them yet. Approved vendors are emailed credentials.
+      href: '/apply',
       ctaLabel: 'Apply as Vendor',
     },
   ],

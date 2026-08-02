@@ -4,7 +4,6 @@ import { VendorProvider } from '@/vendor/VendorProvider';
 import AppShell from '@/components/shell/AppShell';
 
 import SignIn from '@/pages/auth/signIn';
-import SignUp from '@/pages/auth/signUp';
 import AuthCallback from '@/pages/auth/authCallback';
 import ChangePassword from '@/pages/auth/changePassword';
 import Terms from '@/pages/terms';
@@ -40,8 +39,11 @@ import NotFound from '@/pages/notFound';
 export default function App() {
   return (
     <Routes>
+      {/* No /sign-up: the `vendor` role is granted only when an application is
+          approved (`approve_vendor`), so a self-registered account could never
+          get past this portal's gate. Prospective vendors go to the public
+          application form — see the sign-in screen's footer link. */}
       <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/sign-up" element={<SignUp />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/vendor-terms" element={<VendorTerms />} />

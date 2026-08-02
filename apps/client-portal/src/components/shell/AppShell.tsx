@@ -192,7 +192,14 @@ export default function AppShell() {
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          bgcolor: 'secondary.lightest',
+        }}
+      >
         <Toolbar />
         <Box sx={{ p: { xs: 2, md: 4 } }}>
           <Outlet />

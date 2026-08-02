@@ -1,48 +1,46 @@
-import { useState } from 'react';
-import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
-import { Stack, TextField, Button, Alert, Typography } from '@sinnapi/ui';
-import { supabase } from '@/lib/supabase';
+import { Stack, Button, Alert, Link, Typography } from '@sinnapi/ui';
+import { ControlledField, ControlledPasswordField } from '@sinnapi/ui/forms';
+import { APP } from '@/lib/config';
+import { useSignInForm } from './hooks/useSignInForm';
 
 export default function SignInForm() {
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const returnTo = params.get('returnTo') || '/dashboard';
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const form = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(form.get('email')),
-      password: String(form.get('password')),
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    navigate(decodeURIComponent(returnTo), { replace: true });
-  }
+  const { control, error, loading, submit } = useSignInForm();
 
   return (
-    <Stack component="form" spacing={2.5} onSubmit={onSubmit} noValidate>
+    <Stack component="form" spacing={2.5} onSubmit={submit} noValidate>
       {error && <Alert severity="error">{error}</Alert>}
-      <TextField name="email" type="email" label="Email" autoComplete="email" required />
-      <TextField
+      <ControlledField
+        name="email"
+        control={control}
+        type="email"
+        label="Email"
+        autoComplete="email"
+      />
+      <ControlledPasswordField
         name="password"
-        type="password"
+        control={control}
         label="Password"
         autoComplete="current-password"
-        required
       />
       <Button type="submit" variant="contained" size="large" disabled={loading}>
         {loading ? 'Signing in…' : 'Sign in'}
       </Button>
-      <Typography variant="body2" color="text.secondary">
-        New here? <RouterLink to="/sign-up">Create an account</RouterLink>
+
+      {/*
+        Not `AuthSwitchPrompt`: that renders a react-router link, and this
+        destination is the public marketing site rather than a route in this SPA.
+
+        There is deliberately no "create an account" here. The `vendor` role is
+        granted only when an application is approved, so self-service sign-up
+        could only ever produce an account this portal's own gate then refuses —
+        the dead end this replaces. Approved applicants receive credentials by
+        email.
+      */}
+      <Typography variant="body1" color="text.secondary">
+        Not on Sinnapi yet?{' '}
+        <Link href={`${APP.publicUrl}/apply`} underline="none" sx={{ fontWeight: 600 }}>
+          Apply to become a vendor
+        </Link>
       </Typography>
     </Stack>
   );

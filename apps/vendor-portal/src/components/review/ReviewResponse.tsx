@@ -1,38 +1,32 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Stack, TextField, Button, Alert, Box, Typography } from '@sinnapi/ui';
-import { supabase } from '@/lib/supabase';
+import { Button, Box, Typography } from '@sinnapi/ui';
+import ReviewResponseEditor from './components/molecules/ReviewResponseEditor';
 
-export default function ReviewResponse({
-  reviewId,
-  existing,
-}: {
+type Props = {
   reviewId: string;
+  /** The vendor's existing public reply, if they have already responded. */
   existing?: string;
-}) {
-  const qc = useQueryClient();
+};
+
+/**
+ * A review's reply affordance: the published response, a prompt to write one,
+ * or the editor. Only the open state lives here — the draft and its validation
+ * belong to the editor, which unmounts with it.
+ */
+export default function ReviewResponse({ reviewId, existing }: Props) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(existing ?? '');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function submit() {
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase.rpc('respond_to_review', {
-      p_review_id: reviewId,
-      p_body: value,
-    });
-    setBusy(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setOpen(false);
-    qc.invalidateQueries({ queryKey: ['v-reviews'] });
-  }
+  if (open)
+    return (
+      <ReviewResponseEditor
+        reviewId={reviewId}
+        existing={existing}
+        onCancel={() => setOpen(false)}
+        onSuccess={() => setOpen(false)}
+      />
+    );
 
-  if (existing && !open) {
+  if (existing)
     return (
       <Box sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'primary.light' }}>
         <Typography variant="caption" color="text.secondary">
@@ -44,33 +38,10 @@ export default function ReviewResponse({
         </Button>
       </Box>
     );
-  }
-
-  if (!open)
-    return (
-      <Button size="small" onClick={() => setOpen(true)} sx={{ mt: 1 }}>
-        Respond
-      </Button>
-    );
 
   return (
-    <Stack spacing={1} sx={{ mt: 1 }}>
-      {error && <Alert severity="error">{error}</Alert>}
-      <TextField
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Write a response… (emoji welcome 🙂)"
-        multiline
-        minRows={2}
-      />
-      <Stack direction="row" spacing={1}>
-        <Button size="small" variant="contained" disabled={busy || !value.trim()} onClick={submit}>
-          Save
-        </Button>
-        <Button size="small" onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
-      </Stack>
-    </Stack>
+    <Button size="small" onClick={() => setOpen(true)} sx={{ mt: 1 }}>
+      Respond
+    </Button>
   );
 }
