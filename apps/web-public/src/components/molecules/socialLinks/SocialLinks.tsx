@@ -2,7 +2,7 @@ import { SvgIcon, type SvgIconProps } from '@mui/material';
 import { Stack, IconButton } from '@sinnapi/ui/atoms';
 import { type Theme } from '@sinnapi/ui/theme';
 import { type SxProps } from '@sinnapi/ui/system';
-import { Instagram, Facebook, YouTube, LinkedIn } from '@mui/icons-material';
+import { Instagram, Facebook, YouTube, LinkedIn, Twitter } from '@mui/icons-material';
 import { CONTACT } from '@sinnapi/utils/constants';
 
 // MUI ships no TikTok brand glyph, so we provide the logo path inline. It
@@ -19,6 +19,7 @@ function TikTok(props: SvgIconProps) {
 // source of truth — consumed by both the footer and the navbar top bar.
 const SOCIALS = [
   { label: 'Instagram', href: CONTACT.social.instagram, Icon: Instagram },
+  { label: 'Twitter', href: CONTACT.social.twitter, Icon: Twitter },
   { label: 'Facebook', href: CONTACT.social.facebook, Icon: Facebook },
   { label: 'YouTube', href: CONTACT.social.youtube, Icon: YouTube },
   { label: 'LinkedIn', href: CONTACT.social.linkedin, Icon: LinkedIn },

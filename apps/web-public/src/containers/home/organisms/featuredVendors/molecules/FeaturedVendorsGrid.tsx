@@ -1,5 +1,6 @@
 import { Grid } from '@sinnapi/ui/atoms';
 import VendorCard from '@/components/molecules/vendorCard';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { FeaturedVendorModel } from '@/lib/types';
 
 /**
@@ -11,9 +12,11 @@ import type { FeaturedVendorModel } from '@/lib/types';
 export default function FeaturedVendorsGrid({ vendors }: { vendors: FeaturedVendorModel[] }) {
   return (
     <Grid container spacing={3}>
-      {vendors.map((vendor) => (
+      {vendors.map((vendor, i) => (
         <Grid item xs={12} sm={6} md={4} key={vendor.id}>
-          <VendorCard vendor={vendor} categories={vendor.categories} />
+          <ScrollReveal delay={i * 60} sx={{ height: '100%' }}>
+            <VendorCard vendor={vendor} categories={vendor.categories} />
+          </ScrollReveal>
         </Grid>
       ))}
     </Grid>

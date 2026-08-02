@@ -61,7 +61,7 @@ export default function ImpactStats() {
                   />
                   <Typography
                     sx={{
-                      fontWeight: 600,
+                      fontWeight: 900,
                       lineHeight: 1.1,
                       fontSize: { xs: '1.4rem', md: '1.6rem' },
                     }}
@@ -70,11 +70,11 @@ export default function ImpactStats() {
                   </Typography>
                 </Stack>
                 <Typography
-                  variant="caption"
+                  variant="body2"
                   sx={{
                     mt: 0.75,
+                    fontWeight: 600,
                     display: 'block',
-                    textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     color: withAlpha(common.white, 0.82),
                   }}

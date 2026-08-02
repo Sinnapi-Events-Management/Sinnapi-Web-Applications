@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import ShareButton from '@/components/atoms/shareButton';
+import { MotionCoverImage } from '@/components/atoms/motionImage';
 import { titleize } from '@/lib/config/site';
 import type { EventCardModel } from '@/lib/types';
 
@@ -15,9 +16,9 @@ import type { EventCardModel } from '@/lib/types';
  * Cover hero for a single event — a full-bleed photo under a brand teal scrim
  * with the title, occasion/source chips and quick date/location meta laid over
  * it. Carries the breadcrumb, a back link and the share control so the page
- * frame reads as one editorial banner. The cover uses a plain <img> (via Box)
- * so any cover URL works without remote-image config; the scrim guarantees the
- * white overlay copy stays legible over bright photos.
+ * frame reads as one editorial banner. The cover uses a plain <img> (via
+ * MotionCoverImage) so any cover URL works without remote-image config; the
+ * scrim guarantees the white overlay copy stays legible over bright photos.
  */
 export default function EventDetailHero({ event }: { event: EventCardModel }) {
   const isInspiration = event.source === 'admin';
@@ -35,12 +36,7 @@ export default function EventDetailHero({ event }: { event: EventCardModel }) {
         alignItems: 'flex-end',
       }}
     >
-      <Box
-        component="img"
-        src={event.cover_image_url ?? '/placeholder-event.svg'}
-        alt={event.title}
-        sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-      />
+      <MotionCoverImage src={event.cover_image_url ?? '/placeholder-event.svg'} alt={event.title} />
 
       {/* Brand teal scrim — darkest at the bottom where the copy sits. */}
       <Box

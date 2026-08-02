@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Paper } from '@sinnapi/ui';
+import { Box, Container, Typography, Paper, fonts } from '@sinnapi/ui';
 import { APP } from '@/lib/config';
 
 export default function AuthLayout({
@@ -17,7 +17,7 @@ export default function AuthLayout({
           component="a"
           href={APP.publicUrl}
           sx={{
-            fontFamily: '"Fraunces", serif',
+            fontFamily: fonts.heading,
             fontWeight: 600,
             fontSize: 24,
             color: 'primary.main',

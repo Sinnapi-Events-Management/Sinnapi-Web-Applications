@@ -1,5 +1,6 @@
 import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
 import EventCard from '@/components/molecules/eventCard';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import { mutedSurface } from '@/lib/sx';
 import type { EventCardModel } from '@/lib/types';
 
@@ -23,7 +24,9 @@ export default function RelatedEvents({ events }: { events: EventCardModel[] }) 
         <Grid container spacing={3}>
           {events.map((event, i) => (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
-              <EventCard event={event} />
+              <ScrollReveal delay={i * 60} sx={{ height: '100%' }}>
+                <EventCard event={event} />
+              </ScrollReveal>
             </Grid>
           ))}
         </Grid>

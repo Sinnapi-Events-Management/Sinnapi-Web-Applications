@@ -1,6 +1,7 @@
 import { Box, Container } from '@sinnapi/ui/atoms';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { VendorListingModel } from '@/lib/types';
 import FeaturedVendorCard from './molecules/FeaturedVendorCard';
 
@@ -67,7 +68,7 @@ export default function VendorsFeatured({ vendors }: { vendors: VendorListingMod
           '&:focus-visible': { outline: `2px solid ${GOLD.main}`, outlineOffset: 2 },
         }}
       >
-        {vendors.map((vendor) => (
+        {vendors.map((vendor, i) => (
           <Box
             key={vendor.id}
             sx={{
@@ -76,7 +77,9 @@ export default function VendorsFeatured({ vendors }: { vendors: VendorListingMod
               scrollSnapAlign: 'start',
             }}
           >
-            <FeaturedVendorCard vendor={vendor} />
+            <ScrollReveal delay={i * 60} sx={{ height: '100%' }}>
+              <FeaturedVendorCard vendor={vendor} />
+            </ScrollReveal>
           </Box>
         ))}
       </Box>

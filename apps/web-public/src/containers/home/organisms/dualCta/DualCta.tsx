@@ -1,9 +1,9 @@
 import NextLink from 'next/link';
-import Image from 'next/image';
 import { Box, Container, Grid, Stack, Typography, Paper, Button } from '@sinnapi/ui/atoms';
 import { SecondaryButton } from '@sinnapi/ui/molecules';
 import { EventAvailable, Storefront } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { MotionImage } from '@/components/atoms/motionImage';
 import { CLIENT_CTA_IMAGE, VENDOR_CTA_IMAGE } from './data/images';
 
 export default function DualCta() {
@@ -21,7 +21,7 @@ export default function DualCta() {
               color: 'common.white',
             }}
           >
-            <Image
+            <MotionImage
               src={CLIENT_CTA_IMAGE.src}
               alt=""
               aria-hidden
@@ -86,7 +86,7 @@ export default function DualCta() {
               color: 'common.white',
             }}
           >
-            <Image
+            <MotionImage
               src={VENDOR_CTA_IMAGE.src}
               alt=""
               aria-hidden

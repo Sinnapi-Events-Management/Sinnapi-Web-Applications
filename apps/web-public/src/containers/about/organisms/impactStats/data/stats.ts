@@ -7,7 +7,7 @@ export type ImpactStat = { Icon: ElementType; value: string; label: string };
 export const IMPACT_STATS: ImpactStat[] = [
   {
     Icon: WorkHistory,
-    value: '7+ yrs',
+    value: '10+ yrs',
     label: 'In the wedding & events industry',
   },
   {

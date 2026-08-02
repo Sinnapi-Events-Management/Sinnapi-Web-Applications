@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/molecules/sectionHeading';
 import VendorCard from '@/components/molecules/vendorCard';
 import VendorFilterBar from '@/components/organisms/vendorFilterBar';
 import EmptyState from '@/components/molecules/emptyState';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import { titleize } from '@/lib/config/site';
 import { getVendorsByCategoryData } from './hooks/getVendorsByCategoryData';
 
@@ -29,9 +30,11 @@ export default async function VendorsByCategoryContainer({
           />
         ) : (
           <Grid container spacing={3}>
-            {vendors.map((v) => (
+            {vendors.map((v, i) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={v.id}>
-                <VendorCard vendor={v} />
+                <ScrollReveal delay={(i % 12) * 60} sx={{ height: '100%' }}>
+                  <VendorCard vendor={v} />
+                </ScrollReveal>
               </Grid>
             ))}
           </Grid>

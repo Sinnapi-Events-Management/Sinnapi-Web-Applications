@@ -1,4 +1,4 @@
-import { Box, Stack, Typography, alpha } from '@sinnapi/ui';
+import { Box, Stack, Typography, alpha, fonts } from '@sinnapi/ui';
 import { APP } from '@/lib/config';
 import authBackground from '@/assets/images/image-2.webp';
 import logo from '@/assets/logo-light.png';
@@ -100,7 +100,7 @@ export default function AuthShowcase() {
               display: 'flex',
               alignItems: 'center',
               gap: 1.25,
-              fontFamily: '"Fraunces", Georgia, serif',
+              fontFamily: fonts.heading,
             }}
           >
             <Box component="span" sx={{ fontWeight: 600, fontSize: 26, letterSpacing: '0.3px' }}>
@@ -109,7 +109,7 @@ export default function AuthShowcase() {
             <Box
               component="span"
               sx={{
-                fontFamily: '"Inter", Helvetica, Arial, sans-serif',
+                fontFamily: fonts.body,
                 fontSize: 11,
                 fontWeight: 700,
                 lineHeight: 1,

@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { Box } from '@sinnapi/ui/atoms';
 import { gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { MotionImage } from '@/components/atoms/motionImage';
 import type { LocalImage } from '@/lib/assets';
 
 export interface HeroBackdropProps {
@@ -25,7 +25,7 @@ export default function HeroBackdrop({
 }: HeroBackdropProps) {
   return (
     <>
-      <Image
+      <MotionImage
         src={image.src}
         alt=""
         aria-hidden

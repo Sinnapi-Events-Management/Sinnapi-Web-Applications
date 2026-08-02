@@ -26,22 +26,59 @@ const shared: ThemeOptions = {
     h1: {
       fontFamily: fonts.heading,
       fontWeight: 600,
-      fontSize: '2.8rem',
+      fontSize: '3.25rem',
       lineHeight: 1.15,
       letterSpacing: '-0.25px',
     },
-    h2: { fontWeight: 700, fontSize: '2.25rem', lineHeight: 1.2, letterSpacing: '-0.25px' },
-    h3: { fontWeight: 700, fontSize: '1.75rem', lineHeight: 1.25 },
-    h4: { fontWeight: 600, fontSize: '1.375rem', lineHeight: 1.3 },
-    h5: { fontWeight: 600, fontSize: '1.125rem', lineHeight: 1.35 },
-    h6: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, letterSpacing: '0.15px' },
-    button: { fontWeight: 600, textTransform: 'none', letterSpacing: '0.3px' },
-    overline: { fontWeight: 600, letterSpacing: '1px' },
+    h2: {
+      fontFamily: fonts.heading,
+      fontWeight: 700,
+      fontSize: '2.5rem',
+      lineHeight: 1.2,
+      letterSpacing: '-0.25px',
+    },
+    h3: { fontFamily: fonts.heading, fontWeight: 700, fontSize: '2rem', lineHeight: 1.25 },
+    h4: { fontFamily: fonts.heading, fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.3 },
+    h5: { fontFamily: fonts.heading, fontWeight: 600, fontSize: '1.25rem', lineHeight: 1.35 },
+    h6: {
+      fontFamily: fonts.heading,
+      fontWeight: 600,
+      fontSize: '1.125rem',
+      lineHeight: 1.4,
+      letterSpacing: '0.15px',
+    },
+    // Cormorant Garamond has a notably smaller x-height than Inter (the
+    // previous body font), so the MUI/Roboto-tuned default body scale reads
+    // visibly smaller at the same nominal size. Body/UI variants are bumped
+    // ~1 step up from MUI's defaults to compensate.
+    body1: { fontSize: '1.125rem', lineHeight: 1.6 },
+    body2: { fontSize: '1rem', lineHeight: 1.55 },
+    subtitle1: { fontSize: '1.125rem', lineHeight: 1.5 },
+    subtitle2: { fontSize: '1rem', lineHeight: 1.5, fontWeight: 500 },
+    caption: { fontSize: '0.875rem', lineHeight: 1.4 },
+    button: { fontSize: '1.25rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.3px' },
+    overline: { fontSize: '0.8125rem', fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
-      styleOverrides: { root: { borderRadius: radius.sm, minHeight: 44, paddingInline: 20 } },
+      styleOverrides: {
+        root: { borderRadius: radius.sm, minHeight: 44, paddingInline: 20 },
+        // MUI hardcodes fontSize per `size` (13px small / 15px large) inside
+        // Button itself, overriding typography.button for anything but the
+        // default medium size — restate it here so every size stays 1.25rem.
+        sizeSmall: { fontSize: '1.25rem' },
+        sizeMedium: { fontSize: '1.25rem' },
+        sizeLarge: { fontSize: '1.25rem' },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: { fontSize: '1.25rem' },
+        sizeSmall: { fontSize: '1.25rem' },
+        sizeMedium: { fontSize: '1.25rem' },
+        sizeLarge: { fontSize: '1.25rem' },
+      },
     },
     MuiCard: { styleOverrides: { root: { borderRadius: radius.md } } },
     MuiPaper: { styleOverrides: { rounded: { borderRadius: radius.md } } },

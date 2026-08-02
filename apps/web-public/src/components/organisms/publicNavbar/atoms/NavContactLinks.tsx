@@ -36,7 +36,7 @@ export default function NavContactLinks({ transparent = false }: { transparent?:
           }}
         >
           <Icon sx={{ fontSize: 16 }} />
-          <Typography variant="caption" sx={{ fontWeight: 500 }}>
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
             {label}
           </Typography>
         </Link>

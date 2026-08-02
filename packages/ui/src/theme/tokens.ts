@@ -142,6 +142,6 @@ export const brand = {
 } as const;
 
 export const fonts = {
-  body: 'var(--font-inter), Helvetica, Arial, sans-serif',
-  heading: 'var(--font-fraunces), Georgia, serif',
+  body: '"Cormorant Garamond", Georgia, serif',
+  heading: '"Cormorant Garamond", Georgia, serif',
 } as const;

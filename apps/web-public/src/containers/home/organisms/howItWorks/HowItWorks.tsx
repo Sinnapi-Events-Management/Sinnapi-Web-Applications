@@ -39,7 +39,7 @@ export default function HowItWorks() {
                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                         {title}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body1" color="text.secondary">
                         {body}
                       </Typography>
                     </Box>
