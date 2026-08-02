@@ -1,5 +1,6 @@
 import { Grid } from '@sinnapi/ui/atoms';
 import VendorCard from '@/components/molecules/vendorCard';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { VendorListingModel } from '@/lib/types';
 import VendorCardSkeleton from '../atoms/VendorCardSkeleton';
 
@@ -13,9 +14,11 @@ const SPAN = { xs: 12, sm: 6, md: 4, lg: 3 } as const;
 export function VendorsGrid({ vendors }: { vendors: VendorListingModel[] }) {
   return (
     <Grid container spacing={3}>
-      {vendors.map((vendor) => (
+      {vendors.map((vendor, i) => (
         <Grid item {...SPAN} key={vendor.id}>
-          <VendorCard vendor={vendor} categories={vendor.categories} />
+          <ScrollReveal delay={(i % 12) * 60} sx={{ height: '100%' }}>
+            <VendorCard vendor={vendor} categories={vendor.categories} />
+          </ScrollReveal>
         </Grid>
       ))}
     </Grid>

@@ -36,9 +36,7 @@ export default function AuthLayout({
             sx={{ width: '100%', maxWidth: 420, mx: 'auto', flex: 1, justifyContent: 'center' }}
           >
             <Box>
-              <Typography variant="h3" sx={{ fontFamily: '"Fraunces", Georgia, serif' }}>
-                {title}
-              </Typography>
+              <Typography variant="h3">{title}</Typography>
               {subtitle && (
                 <Typography color="text.secondary" sx={{ mt: 1 }}>
                   {subtitle}

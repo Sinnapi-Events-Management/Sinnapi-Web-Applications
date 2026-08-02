@@ -40,6 +40,8 @@ import Reports from '@/pages/reports';
 import Audit from '@/pages/audit';
 import Settings from '@/pages/settings';
 import Retention from '@/pages/retention';
+import ServiceCategories from '@/pages/serviceCategories';
+import ServiceRegions from '@/pages/serviceRegions';
 import Erasure from '@/pages/erasure';
 import Profile from '@/pages/profile';
 import Messages from '@/pages/messages';
@@ -119,6 +121,8 @@ export default function App() {
         <Route path="/audit" element={g('audit.read', <Audit />)} />
         <Route path="/settings" element={g('settings.manage', <Settings />)} />
         <Route path="/retention" element={g('compliance.manage', <Retention />)} />
+        <Route path="/service-categories" element={g('settings.manage', <ServiceCategories />)} />
+        <Route path="/service-regions" element={g('settings.manage', <ServiceRegions />)} />
         <Route path="/erasure" element={g('compliance.manage', <Erasure />)} />
 
         {/* The signed-in admin's own account — never permission-gated: every

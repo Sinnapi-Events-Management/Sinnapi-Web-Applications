@@ -14,10 +14,19 @@ import { DarkMode, LightMode } from '@mui/icons-material';
  * renders a disabled placeholder during SSR/hydration to avoid a markup
  * mismatch, then becomes interactive.
  */
-export type ThemeToggleProps = Omit<IconButtonProps, 'onClick' | 'aria-label'>;
+export type ThemeToggleProps = Omit<IconButtonProps, 'onClick' | 'aria-label'> & {
+  /**
+   * Whether the surface behind the toggle is scrolled to solid/opaque (vs. a
+   * transparent hero overlay). Defaults to `true` for callers on a solid surface.
+   * When `false`, the light-mode brand tint is skipped and the inherited color
+   * (typically white) is kept, since the brand teal is invisible on a dark
+   * transparent backdrop.
+   */
+  scrolled?: boolean;
+};
 
 export const ThemeToggle = forwardRef<HTMLButtonElement, ThemeToggleProps>(function ThemeToggle(
-  { color = 'inherit', ...props },
+  { color = 'inherit', scrolled = true, ...props },
   ref,
 ) {
   const { mode, setMode } = useColorScheme();
@@ -44,7 +53,10 @@ export const ThemeToggle = forwardRef<HTMLButtonElement, ThemeToggleProps>(funct
         aria-label={label}
         onClick={() => setMode(isDark ? 'light' : 'dark')}
         {...rest}
-        sx={[...(Array.isArray(sx) ? sx : [sx]), mode === 'light' && { color: 'primary.main' }]}
+        sx={[
+          ...(Array.isArray(sx) ? sx : [sx]),
+          mode === 'light' && scrolled && { color: 'primary.main' },
+        ]}
       >
         {isDark ? <LightMode /> : <DarkMode />}
       </IconButton>

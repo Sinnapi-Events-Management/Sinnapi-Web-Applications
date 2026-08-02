@@ -1,5 +1,5 @@
 import { escrowPolicy } from '@sinnapi/content';
-import { Box, LegalContent } from '@sinnapi/ui';
+import { Box, LegalContent, fonts } from '@sinnapi/ui';
 import { APP } from '@/lib/config';
 
 // Public (unauthenticated) legal page — shares the structured Escrow Payment
@@ -13,7 +13,7 @@ export default function EscrowPolicy() {
           component="a"
           href={APP.publicUrl}
           sx={{
-            fontFamily: '"Fraunces", serif',
+            fontFamily: fonts.heading,
             fontWeight: 600,
             fontSize: 24,
             color: 'primary.main',

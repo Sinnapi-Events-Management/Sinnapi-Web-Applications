@@ -385,6 +385,30 @@ export type PlanModel = {
   features: string[];
 };
 
+export type ServiceCategoryModel = {
+  id: string;
+  key: string;
+  name: string;
+  parent_id: string | null;
+  /** Embedded via `parent:service_categories!parent_id(name)`; null for top-level categories. */
+  parent: { name: string } | null;
+  icon: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+/** Full category list for the parent-category select — unpaginated, id + name only. */
+export type ServiceCategoryOption = { id: string; name: string };
+
+export type ServiceRegionModel = {
+  id: string;
+  key: string;
+  name: string;
+  scope: string;
+  is_active: boolean;
+  sort_order: number;
+};
+
 /** A single plan plus audit timestamps, for the plan detail page. */
 export type PlanDetailModel = PlanModel & {
   created_at: string;

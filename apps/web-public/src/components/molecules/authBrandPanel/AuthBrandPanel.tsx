@@ -1,7 +1,7 @@
 import type { ElementType } from 'react';
-import Image from 'next/image';
 import { Box, Stack, Typography, Rating } from '@sinnapi/ui/atoms';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { MotionImage } from '@/components/atoms/motionImage';
 import type { LocalImage } from '@/lib/assets';
 
 export type AuthHighlight = { Icon: ElementType; text: string };
@@ -25,8 +25,10 @@ export type AuthBrandPanelProps = {
  * Shares the home/about hero's teal-over-photo language for brand continuity,
  * but is intentionally its own creature: left-aligned editorial copy, a vertical
  * icon *highlights list*, and a foot *trust strip* — none of which the centered
- * AboutHero has. Static image (no Ken Burns) keeps it light; the lone entrance
- * fade is CSS-only and disabled under `prefers-reduced-motion`. Server component.
+ * AboutHero has. No Ken Burns loop (keeps it light) — just a one-shot fade +
+ * scale-in on the photo alongside the copy's own entrance, both CSS-only and
+ * disabled under `prefers-reduced-motion`. Server component (the photo's motion
+ * lives in the small MotionImage client leaf, not here).
  */
 export default function AuthBrandPanel({
   eyebrow,
@@ -49,7 +51,7 @@ export default function AuthBrandPanel({
       }}
     >
       {/* Decorative full-bleed photo → empty alt + aria-hidden. */}
-      <Image
+      <MotionImage
         src={image.src}
         alt=""
         aria-hidden

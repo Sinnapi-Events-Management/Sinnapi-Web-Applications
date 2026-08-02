@@ -1,8 +1,8 @@
 import NextLink from 'next/link';
-import Image from 'next/image';
 import { Box, Container, Stack, Typography, Button } from '@sinnapi/ui/atoms';
 import { SecondaryButton } from '@sinnapi/ui/molecules';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { MotionImage } from '@/components/atoms/motionImage';
 import { IMAGES } from '@/lib/assets';
 
 /**
@@ -19,7 +19,7 @@ export default function JoinFamily() {
         py: { xs: 8, md: 11 },
       }}
     >
-      <Image
+      <MotionImage
         src={IMAGES.ceremonyAisle.src}
         alt=""
         aria-hidden
@@ -43,7 +43,10 @@ export default function JoinFamily() {
         <Typography variant="h3" sx={{ color: 'common.white' }}>
           Join the Sinnapi family
         </Typography>
-        <Typography sx={{ mt: 2, color: withAlpha(common.white, 0.9), maxWidth: 680, mx: 'auto' }}>
+        <Typography
+          variant="body1"
+          sx={{ mt: 2, color: withAlpha(common.white, 0.9), maxWidth: 680, mx: 'auto' }}
+        >
           Whether you&apos;re planning a wedding, a birthday, an end-of-year party, an awards
           ceremony, a burial, or you&apos;re a talented vendor looking to grow — Sinnapi is here to
           support you. Join thousands of satisfied clients and vendors creating unforgettable

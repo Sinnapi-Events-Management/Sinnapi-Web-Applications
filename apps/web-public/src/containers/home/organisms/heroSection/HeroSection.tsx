@@ -4,6 +4,7 @@ import { Box, Container, Grid, Typography, Button, Stack, Chip, Rating } from '@
 import { SecondaryButton } from '@sinnapi/ui/molecules';
 import { Verified } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import { SITE } from '@/lib/config/site';
 import { IMAGES } from '@/lib/assets';
 import { STATS, TRUST_SIGNALS } from './data/heroContent';
@@ -17,7 +18,11 @@ export default function HeroSection() {
         color: 'common.white',
         // Deep teal base shows through while the photo decodes / if it ever fails.
         backgroundColor: 'primary.dark',
-        pt: { xs: 7, md: 12 },
+        // xs: the fixed mobile navbar (search row + toolbar row) renders ~110px
+        // tall, so padding-top must clear that or the chip/heading render underneath
+        // it. Padding (not margin) keeps the full-bleed background photo starting
+        // at this box's own top edge, behind the transparent navbar overlay.
+        pt: { xs: 16, md: 12 },
         pb: { xs: 9, md: 14 },
       }}
     >
@@ -105,7 +110,7 @@ export default function HeroSection() {
           <Grid item xs={12} md={6}>
             <Chip
               icon={<Verified sx={{ color: 'inherit !important' }} fontSize="small" />}
-              label="Uganda's trusted event marketplace"
+              label="Every vendor, vetted. Every event, effortless"
               size="small"
               sx={{
                 mb: 3,
@@ -127,7 +132,13 @@ export default function HeroSection() {
             </Typography>
             <Typography
               variant="h6"
-              sx={{ mt: 2.5, fontWeight: 400, color: withAlpha(common.white, 0.88), maxWidth: 560 }}
+              sx={{
+                mt: 2.5,
+                fontWeight: 400,
+                fontSize: { xs: 20, sm: 25 },
+                color: withAlpha(common.white, 0.88),
+                maxWidth: 560,
+              }}
             >
               {SITE.description}
             </Typography>
@@ -164,7 +175,9 @@ export default function HeroSection() {
               {TRUST_SIGNALS.map((t) => (
                 <Stack key={t} direction="row" spacing={0.75} alignItems="center">
                   <Verified fontSize="small" sx={{ color: 'secondary.light' }} />
-                  <Typography variant="body2">{t}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {t}
+                  </Typography>
                 </Stack>
               ))}
             </Stack>
@@ -181,7 +194,7 @@ export default function HeroSection() {
               }}
             >
               {/* Primary tall image */}
-              <Box
+              <ScrollReveal
                 sx={{
                   position: 'relative',
                   width: '100%',
@@ -190,7 +203,7 @@ export default function HeroSection() {
                   overflow: 'hidden',
                   boxShadow: `0 30px 60px ${withAlpha(common.black, 0.35)}`,
                   border: `1px solid ${withAlpha(common.white, 0.18)}`,
-                  top: { xs: 0, md: 25 },
+                  top: { xs: 0, md: 43 },
                 }}
               >
                 <Image
@@ -201,10 +214,11 @@ export default function HeroSection() {
                   sizes="(max-width: 900px) 90vw, 40vw"
                   style={{ objectFit: 'cover' }}
                 />
-              </Box>
+              </ScrollReveal>
 
               {/* Offset secondary image — hidden on the smallest screens to avoid clutter */}
-              <Box
+              <ScrollReveal
+                delay={150}
                 sx={{
                   display: { xs: 'none', sm: 'block' },
                   position: 'absolute',
@@ -226,13 +240,13 @@ export default function HeroSection() {
                   sizes="200px"
                   style={{ objectFit: 'cover' }}
                 />
-              </Box>
+              </ScrollReveal>
 
               {/* Floating glass proof badge */}
               <Box
                 sx={{
                   position: 'absolute',
-                  top: { xs: 12, md: 33 },
+                  top: { xs: 12, md: 51 },
                   right: { xs: 12, md: -12 },
                   px: 2,
                   py: 1.25,
@@ -249,7 +263,10 @@ export default function HeroSection() {
                   <Rating value={5} readOnly size="small" sx={{ color: 'secondary.light' }} />
                   <Typography sx={{ fontWeight: 700 }}>4.9</Typography>
                 </Stack>
-                <Typography variant="caption" sx={{ color: withAlpha(common.white, 0.85) }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: withAlpha(common.white, 0.85), fontWeight: 700 }}
+                >
                   Avg. rating from verified vendors
                 </Typography>
               </Box>
@@ -309,6 +326,7 @@ export default function HeroSection() {
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       color: withAlpha(common.white, 0.82),
+                      fontWeight: 900,
                     }}
                   >
                     {s.label}

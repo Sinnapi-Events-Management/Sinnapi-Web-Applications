@@ -1,8 +1,8 @@
 import NextLink from 'next/link';
-import Image from 'next/image';
 import { Box, Container, Stack, Typography } from '@sinnapi/ui/atoms';
 import { SecondaryButton } from '@sinnapi/ui/molecules';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { MotionImage } from '@/components/atoms/motionImage';
 import { IMAGES } from '@/lib/assets';
 
 export default function FinalCta() {
@@ -15,7 +15,7 @@ export default function FinalCta() {
         py: { xs: 8, md: 11 },
       }}
     >
-      <Image
+      <MotionImage
         src={IMAGES.ceremonyAisle.src}
         alt=""
         aria-hidden

@@ -37,6 +37,9 @@ import type {
   PlanModel,
   PlanDetailModel,
   PlanKpis,
+  ServiceCategoryModel,
+  ServiceCategoryOption,
+  ServiceRegionModel,
   BookingModel,
   QuotationModel,
   EventModel,
@@ -1335,6 +1338,109 @@ export function useNotificationTemplateStats(search?: string) {
         count(base().eq('is_active', true)),
       ]);
       return { all, email, in_app: inApp, active };
+    },
+  });
+}
+
+// =====================================================================
+// SERVICE CATALOGUE (service_categories, service_regions)
+// =====================================================================
+
+// Case-insensitive "contains" across name + key, with the PostgREST logical
+// operators a user might type stripped so a search term can't rewrite the query.
+function refSearchClause(search: string): string {
+  const s = `%${search.replace(/[%,()]/g, '')}%`;
+  return `name.ilike.${s},key.ilike.${s}`;
+}
+
+// `service_categories` has one FK to itself (parent_id), so the embed needs no
+// disambiguation beyond naming it.
+const SERVICE_CATEGORY_COLUMNS =
+  'id,key,name,parent_id,icon,is_active,sort_order,parent:service_categories!parent_id(name)';
+
+export function useServiceCategoriesAdmin(params: PageParams) {
+  return useQuery(
+    pagedOptions('admin-service-categories', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase
+        .from('service_categories')
+        .select(SERVICE_CATEGORY_COLUMNS, { count: 'exact' });
+      if (f.is_active) q = q.eq('is_active', f.is_active);
+      if (f.parent_id) q = q.eq('parent_id', f.parent_id);
+      if (f.search) q = q.or(refSearchClause(f.search));
+      return paginate<ServiceCategoryModel>(q, params, { field: 'sort_order', ascending: true });
+    }),
+  );
+}
+
+/**
+ * Every category as `{ id, name }`, unpaginated — feeds the parent-category
+ * select, which must offer categories beyond whatever page the admin list is
+ * currently showing.
+ */
+export function useServiceCategoryOptions() {
+  return useQuery({
+    queryKey: ['service-category-options'] as const,
+    queryFn: async (): Promise<ServiceCategoryOption[]> => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('id,name')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ServiceCategoryOption[];
+    },
+  });
+}
+
+/**
+ * One past the highest `sort_order` currently in `service_categories` — the
+ * default offered when creating a new category, so an admin isn't left
+ * guessing a number and doesn't accidentally collide with an existing row's
+ * position. `0` when the table is empty.
+ */
+export function useNextServiceCategorySortOrder() {
+  return useQuery({
+    queryKey: ['service-category-next-sort-order'] as const,
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0]?.sort_order ?? -1) + 1;
+    },
+  });
+}
+
+const SERVICE_REGION_COLUMNS = 'id,key,name,scope,is_active,sort_order';
+
+export function useServiceRegionsAdmin(params: PageParams) {
+  return useQuery(
+    pagedOptions('admin-service-regions', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase.from('service_regions').select(SERVICE_REGION_COLUMNS, { count: 'exact' });
+      if (f.is_active) q = q.eq('is_active', f.is_active);
+      if (f.scope) q = q.eq('scope', f.scope);
+      if (f.search) q = q.or(refSearchClause(f.search));
+      return paginate<ServiceRegionModel>(q, params, { field: 'sort_order', ascending: true });
+    }),
+  );
+}
+
+/** One past the highest `sort_order` currently in `service_regions`. See
+ * `useNextServiceCategorySortOrder` for why this exists. */
+export function useNextServiceRegionSortOrder() {
+  return useQuery({
+    queryKey: ['service-region-next-sort-order'] as const,
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('service_regions')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0]?.sort_order ?? -1) + 1;
     },
   });
 }

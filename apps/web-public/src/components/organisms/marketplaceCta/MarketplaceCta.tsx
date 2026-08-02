@@ -1,8 +1,8 @@
 import NextLink from 'next/link';
-import Image from 'next/image';
 import { Box, Container, Stack, Typography, Button } from '@sinnapi/ui/atoms';
 import { SecondaryButton } from '@sinnapi/ui/molecules';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
+import { MotionImage } from '@/components/atoms/motionImage';
 import { IMAGES, type LocalImage } from '@/lib/assets';
 
 type CtaLink = { label: string; href: string };
@@ -42,7 +42,7 @@ export default function MarketplaceCta({
         py: { xs: 8, md: 11 },
       }}
     >
-      <Image
+      <MotionImage
         src={image.src}
         alt=""
         aria-hidden

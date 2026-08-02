@@ -40,8 +40,8 @@ const BOTTOM_LINKS = [
 ];
 
 const bottomLinkSx = {
-  color: withAlpha(common.white, 0.55),
-  fontSize: '0.8rem',
+  color: withAlpha(common.white, 0.85),
+  fontSize: '1.05rem',
   transition: 'color .2s ease',
   '&:hover': { color: 'common.white' },
 };
@@ -87,7 +87,7 @@ export default function PublicFooter() {
             </Box>
             <Typography
               variant="body2"
-              sx={{ mt: 2.5, color: withAlpha(common.white, 0.7), maxWidth: 320, lineHeight: 1.7 }}
+              sx={{ mt: 2.5, color: withAlpha(common.white, 0.8), maxWidth: 320, lineHeight: 1.7 }}
             >
               {SITE.description}
             </Typography>
@@ -112,8 +112,8 @@ export default function PublicFooter() {
           {Object.entries(FOOTER_NAV).map(([group, links]) => (
             <Grid item xs={6} md={2} key={group}>
               <Typography
-                variant="overline"
-                sx={{ color: withAlpha(common.white, 0.5), letterSpacing: '1px' }}
+                variant="h5"
+                sx={{ color: withAlpha(common.white, 0.9), letterSpacing: '1px' }}
               >
                 {group}
               </Typography>
@@ -124,7 +124,7 @@ export default function PublicFooter() {
                     href={l.href}
                     sx={{
                       color: withAlpha(common.white, 0.72),
-                      fontSize: '0.9rem',
+                      fontSize: '1.02rem',
                       width: 'fit-content',
                       transition: 'color .2s ease',
                       '&:hover': { color: 'secondary.light' },
@@ -140,8 +140,8 @@ export default function PublicFooter() {
           {/* Contact column */}
           <Grid item xs={6} md={2}>
             <Typography
-              variant="overline"
-              sx={{ color: withAlpha(common.white, 0.5), letterSpacing: '1px' }}
+              variant="h5"
+              sx={{ color: withAlpha(common.white, 0.9), letterSpacing: '1px' }}
             >
               Contact
             </Typography>
@@ -186,7 +186,7 @@ export default function PublicFooter() {
           justifyContent="space-between"
           alignItems={{ xs: 'flex-start', sm: 'center' }}
         >
-          <Typography variant="caption" sx={{ color: withAlpha(common.white, 0.55) }}>
+          <Typography variant="body2" sx={{ color: withAlpha(common.white, 0.85) }}>
             © {year} {SITE.name}. Empowering everyone to plan their events seamlessly, wherever they
             are.
           </Typography>

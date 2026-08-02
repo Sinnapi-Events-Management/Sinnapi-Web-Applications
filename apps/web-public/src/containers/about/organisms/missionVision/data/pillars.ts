@@ -24,7 +24,7 @@ export const PILLARS: Pillar[] = [
     anchor: 'vision',
     Icon: Visibility,
     overline: 'Our Vision',
-    title: 'Empowering you to plan seamlessly, wherever you are',
-    body: 'A future where everyone can plan their event in minutes from their location or comfort — supported by smart assistants that surface the very best providers nearest to you.',
+    title: 'Our Vision for the Future',
+    body: 'We look forward to the day when everyone can plan their events in minutes, from wherever is most convenient to them. We’re also building virtual assistants and intelligent automation to anticipate your needs even before you begin planning — taking the legwork of head-hunting off your shoulders, and screening out the very best providers nearest to you.',
   },
 ];

@@ -151,7 +151,10 @@ export default function PublicNavbar() {
                   href={item.href}
                   color="inherit"
                   aria-current={active ? 'page' : undefined}
-                  sx={[{ flexShrink: 0, whiteSpace: 'nowrap' }, active && activeNavSx]}
+                  sx={[
+                    { flexShrink: 0, whiteSpace: 'nowrap', fontSize: '1.25rem' },
+                    active && activeNavSx,
+                  ]}
                 >
                   {item.label}
                 </Button>
@@ -169,11 +172,14 @@ export default function PublicNavbar() {
               href="/apply"
               color="inherit"
               aria-current={applyActive ? 'page' : undefined}
-              sx={[{ flexShrink: 0, whiteSpace: 'nowrap' }, applyActive && activeNavSx]}
+              sx={[
+                { flexShrink: 0, whiteSpace: 'nowrap', fontSize: '1.25rem' },
+                applyActive && activeNavSx,
+              ]}
             >
               Become a Vendor
             </Button>
-            <ThemeToggle />
+            <ThemeToggle scrolled={scrolled} />
             <Button
               component={NextLink}
               href="/sign-in"
@@ -182,6 +188,7 @@ export default function PublicNavbar() {
               sx={{
                 flexShrink: 0,
                 whiteSpace: 'nowrap',
+                fontSize: '1.25rem',
                 ...(transparent ? { borderColor: withAlpha(common.white, 0.6) } : {}),
               }}
             >
@@ -190,14 +197,14 @@ export default function PublicNavbar() {
             <PrimaryButton
               component={NextLink}
               href="/sign-up"
-              sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+              sx={{ flexShrink: 0, whiteSpace: 'nowrap', fontSize: '1.25rem' }}
             >
               Get started
             </PrimaryButton>
           </Stack>
 
           <Box sx={{ flex: 1, display: { lg: 'none' } }} />
-          <ThemeToggle sx={{ display: { lg: 'none' } }} />
+          <ThemeToggle scrolled={scrolled} sx={{ display: { lg: 'none' } }} />
           <IconButton
             color="inherit"
             sx={{ display: { lg: 'none' } }}

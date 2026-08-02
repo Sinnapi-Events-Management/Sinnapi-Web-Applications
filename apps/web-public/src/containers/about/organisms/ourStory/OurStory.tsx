@@ -3,6 +3,7 @@ import { Box, Container, Grid, Stack, Typography } from '@sinnapi/ui/atoms';
 import { CheckCircle } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
 import SectionHeading from '@/components/molecules/sectionHeading';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import { mutedSurface } from '@/lib/sx';
 import { IMAGES } from '@/lib/assets';
 
@@ -24,7 +25,7 @@ export default function OurStory() {
         <Grid container spacing={{ xs: 5, md: 7 }} alignItems="center">
           {/* Editorial image */}
           <Grid item xs={12} md={6}>
-            <Box
+            <ScrollReveal
               sx={{
                 position: 'relative',
                 width: '100%',
@@ -42,7 +43,7 @@ export default function OurStory() {
                 sizes="(max-width: 900px) 90vw, 45vw"
                 style={{ objectFit: 'cover' }}
               />
-            </Box>
+            </ScrollReveal>
           </Grid>
 
           {/* Narrative */}

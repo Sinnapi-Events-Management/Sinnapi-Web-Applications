@@ -1,5 +1,6 @@
 import { Box, Container, Grid, Typography } from '@sinnapi/ui/atoms';
 import VendorCard from '@/components/molecules/vendorCard';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import { mutedSurface } from '@/lib/sx';
 import type { VendorCardModel } from '@/lib/types';
 
@@ -21,9 +22,11 @@ export default function RelatedVendors({ vendors }: { vendors: VendorCardModel[]
           More vendors like this
         </Typography>
         <Grid container spacing={3}>
-          {vendors.map((vendor) => (
+          {vendors.map((vendor, i) => (
             <Grid item xs={12} sm={6} md={3} key={vendor.id}>
-              <VendorCard vendor={vendor} />
+              <ScrollReveal delay={i * 60} sx={{ height: '100%' }}>
+                <VendorCard vendor={vendor} />
+              </ScrollReveal>
             </Grid>
           ))}
         </Grid>

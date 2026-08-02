@@ -84,7 +84,7 @@ export default function NavSearchForm({
           sx={{
             '& .MuiInputBase-input': {
               py: 0.5,
-              fontSize: '0.875rem',
+              fontSize: '1.2rem',
               color: transparent ? 'common.white' : 'text.primary',
             },
           }}
@@ -120,7 +120,7 @@ export default function NavSearchForm({
                   sx={{
                     height: LINE_HEIGHT,
                     lineHeight: `${LINE_HEIGHT}px`,
-                    fontSize: '0.875rem',
+                    fontSize: '1.15rem',
                     color: placeholderColor,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',

@@ -56,12 +56,7 @@ export default function AppShell() {
           component={RouterLink}
           to="/dashboard"
           variant="h5"
-          sx={{
-            fontFamily: '"Fraunces", serif',
-            fontWeight: 600,
-            color: 'primary.main',
-            textDecoration: 'none',
-          }}
+          sx={{ color: 'primary.main', textDecoration: 'none' }}
         >
           {APP.name}
         </Typography>

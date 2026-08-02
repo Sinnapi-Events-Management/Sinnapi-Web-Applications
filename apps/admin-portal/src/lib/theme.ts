@@ -1,4 +1,4 @@
-import { extendTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
+import { extendTheme, palette, fonts, type ThemeOptions } from '@sinnapi/ui/theme';
 
 // Portal design language — denser typography & controls than the marketing site.
 // Colors come from the shared design tokens (single source of truth in @sinnapi/ui/tokens).
@@ -6,20 +6,24 @@ const shared: ThemeOptions = {
   shape: { borderRadius: 8 },
   breakpoints: { values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 } },
   typography: {
-    fontFamily: '"Inter", Helvetica, Arial, sans-serif',
-    h1: {
-      fontFamily: '"Fraunces", Georgia, serif',
-      fontWeight: 600,
-      fontSize: '2.4rem',
-      lineHeight: 1.15,
-    },
-    h2: { fontWeight: 700, fontSize: '2rem', lineHeight: 1.2 },
-    h3: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.25 },
-    h4: { fontWeight: 600, fontSize: '1.25rem' },
-    h5: { fontWeight: 600, fontSize: '1.125rem' },
-    h6: { fontWeight: 600, fontSize: '1rem' },
-    button: { fontWeight: 600, textTransform: 'none', letterSpacing: '0.3px' },
-    overline: { fontWeight: 600, letterSpacing: '1px' },
+    fontFamily: fonts.body,
+    h1: { fontFamily: fonts.heading, fontWeight: 600, fontSize: '2.75rem', lineHeight: 1.15 },
+    h2: { fontFamily: fonts.heading, fontWeight: 700, fontSize: '2.25rem', lineHeight: 1.2 },
+    h3: { fontFamily: fonts.heading, fontWeight: 700, fontSize: '1.75rem', lineHeight: 1.25 },
+    h4: { fontFamily: fonts.heading, fontWeight: 600, fontSize: '1.375rem' },
+    h5: { fontFamily: fonts.heading, fontWeight: 600, fontSize: '1.25rem' },
+    h6: { fontFamily: fonts.heading, fontWeight: 600, fontSize: '1.125rem' },
+    // Cormorant Garamond has a notably smaller x-height than Inter (the
+    // previous body font), so the MUI/Roboto-tuned default body scale reads
+    // visibly smaller at the same nominal size. Body/UI variants are bumped
+    // ~1 step up from MUI's defaults to compensate.
+    body1: { fontSize: '1.25rem', lineHeight: 1.6 },
+    body2: { fontSize: '1.125rem', lineHeight: 1.55 },
+    subtitle1: { fontSize: '1.125rem', lineHeight: 1.5 },
+    subtitle2: { fontSize: '1rem', lineHeight: 1.5, fontWeight: 500 },
+    caption: { fontSize: '1rem', lineHeight: 1.4 },
+    button: { fontSize: '1.25rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.3px' },
+    overline: { fontSize: '1rem', fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
     // Gold (`secondary`) is the portal's default action color — every button
@@ -30,7 +34,23 @@ const shared: ThemeOptions = {
     // white/cream surfaces. Teal (`primary`) is reserved for wayfinding accents.
     MuiButton: {
       defaultProps: { disableElevation: true, color: 'secondary' },
-      styleOverrides: { root: { borderRadius: 8, minHeight: 42 } },
+      styleOverrides: {
+        root: { borderRadius: 8, minHeight: 42 },
+        // MUI hardcodes fontSize per `size` (13px small / 15px large) inside
+        // Button itself, overriding typography.button for anything but the
+        // default medium size — restate it here so every size stays 1.25rem.
+        sizeSmall: { fontSize: '1.25rem' },
+        sizeMedium: { fontSize: '1.25rem' },
+        sizeLarge: { fontSize: '1.25rem' },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: { fontSize: '1.25rem' },
+        sizeSmall: { fontSize: '1.25rem' },
+        sizeMedium: { fontSize: '1.25rem' },
+        sizeLarge: { fontSize: '1.25rem' },
+      },
     },
     MuiCard: { styleOverrides: { root: { borderRadius: 12 } } },
     MuiChip: { styleOverrides: { root: { borderRadius: 999 } } },

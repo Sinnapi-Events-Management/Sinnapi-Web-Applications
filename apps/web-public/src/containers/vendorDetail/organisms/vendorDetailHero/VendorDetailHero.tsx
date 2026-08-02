@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import ShareButton from '@/components/atoms/shareButton';
+import { MotionCoverImage } from '@/components/atoms/motionImage';
 import type { VendorDetailModel } from '@/lib/types';
 
 const PLACEHOLDER_IMAGE = '/placeholder-vendor.svg';
@@ -17,8 +18,8 @@ const PLACEHOLDER_IMAGE = '/placeholder-vendor.svg';
  * with the business name, a verified badge, rating and base city laid over it.
  * Carries the breadcrumb, a back link and the share control so the page frame
  * reads as one editorial banner. Mirrors the event detail hero for cross-page
- * consistency; the cover uses a plain <img> (via Box) so any URL works without
- * remote-image config, and the scrim keeps the white copy legible.
+ * consistency; the cover uses a plain <img> (via MotionCoverImage) so any URL
+ * works without remote-image config, and the scrim keeps the white copy legible.
  */
 export default function VendorDetailHero({ vendor }: { vendor: VendorDetailModel }) {
   const overlayLink = { color: withAlpha(common.white, 0.85), '&:hover': { color: common.white } };
@@ -36,12 +37,7 @@ export default function VendorDetailHero({ vendor }: { vendor: VendorDetailModel
         alignItems: 'flex-end',
       }}
     >
-      <Box
-        component="img"
-        src={cover}
-        alt={vendor.business_name}
-        sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-      />
+      <MotionCoverImage src={cover} alt={vendor.business_name} />
 
       {/* Brand teal scrim — darkest at the bottom where the copy sits. */}
       <Box

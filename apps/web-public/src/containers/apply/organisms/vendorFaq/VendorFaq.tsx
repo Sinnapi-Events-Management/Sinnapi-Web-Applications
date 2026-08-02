@@ -35,9 +35,7 @@ export default function VendorFaq() {
               expandIcon={<ExpandMore />}
               sx={{ px: 0, py: 1, '& .MuiAccordionSummary-content': { my: 1.5 } }}
             >
-              <Typography variant="h6" sx={{ fontSize: '1.05rem' }}>
-                {question}
-              </Typography>
+              <Typography variant="h6">{question}</Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ px: 0, pb: 2.5, pt: 0 }}>
               <Typography variant="body1" color="text.secondary">

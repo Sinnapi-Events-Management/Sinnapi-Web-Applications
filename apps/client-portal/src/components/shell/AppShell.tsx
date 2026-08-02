@@ -54,8 +54,6 @@ export default function AppShell() {
           display: 'block',
           px: 1.5,
           mb: 2,
-          fontFamily: '"Fraunces", serif',
-          fontWeight: 600,
           color: 'primary.main',
           textDecoration: 'none',
         }}

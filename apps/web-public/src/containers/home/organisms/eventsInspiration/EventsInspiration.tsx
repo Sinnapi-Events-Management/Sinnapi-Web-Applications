@@ -2,6 +2,7 @@ import NextLink from 'next/link';
 import { Box, Container, Grid, Stack, Typography, Button } from '@sinnapi/ui/atoms';
 import { ArrowForward } from '@mui/icons-material';
 import EventCard from '@/components/molecules/eventCard';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { EventCardModel } from '@/lib/types';
 
 export default function EventsInspiration({ events }: { events: EventCardModel[] }) {
@@ -27,9 +28,11 @@ export default function EventsInspiration({ events }: { events: EventCardModel[]
         </Button>
       </Stack>
       <Grid container spacing={3}>
-        {events.map((e) => (
+        {events.map((e, i) => (
           <Grid item xs={12} sm={6} md={4} key={e.id}>
-            <EventCard event={e} />
+            <ScrollReveal delay={i * 60} sx={{ height: '100%' }}>
+              <EventCard event={e} />
+            </ScrollReveal>
           </Grid>
         ))}
       </Grid>

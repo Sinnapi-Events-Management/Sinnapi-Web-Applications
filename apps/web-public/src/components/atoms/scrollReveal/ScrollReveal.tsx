@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Box } from '@sinnapi/ui/atoms';
 import type { Theme } from '@sinnapi/ui/theme';
 import type { SxProps } from '@sinnapi/ui/system';
+import { useEntranceMotion } from '@/hooks/useEntranceMotion';
 
 type ScrollRevealProps = {
   children: ReactNode;
@@ -26,31 +27,7 @@ type ScrollRevealProps = {
  * so the copy is never trapped behind an animation that won't run.
  */
 export default function ScrollReveal({ children, delay = 0, y = 24, sx }: ScrollRevealProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced || typeof IntersectionObserver === 'undefined') {
-      setShown(true);
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry], obs) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  const { ref, shown } = useEntranceMotion<HTMLDivElement>();
 
   return (
     <Box

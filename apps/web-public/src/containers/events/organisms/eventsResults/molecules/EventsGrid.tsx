@@ -1,5 +1,6 @@
 import { Grid } from '@sinnapi/ui/atoms';
 import EventCard from '@/components/molecules/eventCard';
+import ScrollReveal from '@/components/atoms/scrollReveal';
 import type { EventCardModel } from '@/lib/types';
 import EventCardSkeleton from '../atoms/EventCardSkeleton';
 
@@ -14,9 +15,11 @@ const SPAN = { xs: 12, sm: 6, md: 4 } as const;
 export function EventsGrid({ events }: { events: EventCardModel[] }) {
   return (
     <Grid container spacing={3}>
-      {events.map((event) => (
+      {events.map((event, i) => (
         <Grid item {...SPAN} key={event.id}>
-          <EventCard event={event} />
+          <ScrollReveal delay={(i % 12) * 60} sx={{ height: '100%' }}>
+            <EventCard event={event} />
+          </ScrollReveal>
         </Grid>
       ))}
     </Grid>
