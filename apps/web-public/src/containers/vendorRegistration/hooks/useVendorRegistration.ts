@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
 import type { UploadedFile } from '@sinnapi/ui/molecules';
+import { useCaptcha } from '@sinnapi/ui/forms';
 import { createBrowserClient } from '@/lib/supabase/browser';
 import {
   INITIAL_VALUES,
@@ -38,15 +39,28 @@ const uid = () =>
   globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
 const sanitize = (name: string) => name.replace(/[^\w.-]+/g, '-').slice(-80);
 
+/** What to tell the applicant when a submit does not go through. */
+export type FailureReason = 'uploading' | 'captcha' | 'generic';
+
 export function useVendorRegistration() {
   const supa = useMemo(() => createBrowserClient(), []);
   const submissionRef = useRef<string>(uid());
+  /**
+   * The application's Turnstile challenge.
+   *
+   * The widget lives on the last step rather than the first: Turnstile tokens
+   * expire after a few minutes, and this form is four steps of typing and file
+   * uploads. A token solved on step one would routinely be dead by the time
+   * anyone reached Submit.
+   */
+  const captcha = useCaptcha();
 
   const [values, setValues] = useState<RegistrationValues>(INITIAL_VALUES);
   const [files, setFiles] = useState<Files>(EMPTY_FILES);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState(0);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
+  const [failure, setFailure] = useState<FailureReason>('generic');
   const [submitted, setSubmitted] = useState(false);
 
   function set<K extends keyof RegistrationValues>(key: K, value: RegistrationValues[K]) {
@@ -166,12 +180,19 @@ export function useVendorRegistration() {
       return;
     }
     if (anyUploading || !supa) {
+      setFailure('uploading');
+      setStatus('error');
+      return;
+    }
+    if (!captcha.token) {
+      setFailure('captcha');
       setStatus('error');
       return;
     }
 
     setStatus('submitting');
     const payload = {
+      captchaToken: captcha.token,
       submissionRef: submissionRef.current,
       businessName: values.businessName,
       applicantType: values.applicantType,
@@ -215,7 +236,14 @@ export function useVendorRegistration() {
 
     const { error } = await supa.functions.invoke('vendor-application', { body: payload });
     if (error) {
+      // 403 is the endpoint refusing the Turnstile token; everything else is a
+      // validation or transport failure, which the generic copy covers.
+      const status = (error as { context?: Response }).context?.status;
+      setFailure(status === 403 ? 'captcha' : 'generic');
       setStatus('error');
+      // Spent on the refused submission either way — the form is still on
+      // screen, so the retry needs its own challenge.
+      captcha.reset();
       return;
     }
     setStatus('idle');
@@ -230,8 +258,11 @@ export function useVendorRegistration() {
     stepCount: STEP_SCHEMAS.length,
     submitting: status === 'submitting',
     submitFailed: status === 'error',
+    failure,
     submitted,
     anyUploading,
+    captcha,
+    canSubmit: captcha.solved && status !== 'submitting' && !anyUploading,
     set,
     setStep,
     next,

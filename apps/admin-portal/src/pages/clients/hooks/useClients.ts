@@ -10,6 +10,7 @@ import type { PageFilters } from '@/lib/table';
 import { useClientStatus } from './useClientStatus';
 import { useClientDelete } from './useClientDelete';
 import { useClientPasswordReset } from './useClientPasswordReset';
+import { useClientConfirmationResend } from './useClientConfirmationResend';
 import { getStatusTabs, getEmptyMessage, type ClientTabValue } from '../schema';
 
 // Clients list (client + event_planner profiles): server-side search + status
@@ -44,12 +45,23 @@ export function useClients() {
   const clientStatus = useClientStatus();
   const remove = useClientDelete();
   const passwordReset = useClientPasswordReset();
+  const confirmationResend = useClientConfirmationResend();
 
   const pageError =
     clientStatus.err ??
     remove.err ??
     passwordReset.err ??
+    confirmationResend.err ??
     (error ? (error instanceof Error ? error.message : 'Failed to load clients.') : null);
+
+  // Both flows feed the one snackbar; only one dialog can be open at a time, so
+  // they can never both have a notice pending.
+  const notice = passwordReset.notice ?? confirmationResend.notice;
+  const clearNotice = useCallback(() => {
+    passwordReset.clearNotice();
+    confirmationResend.clearNotice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     rows: data?.rows ?? [],
@@ -67,8 +79,9 @@ export function useClients() {
     status: clientStatus,
     remove,
     passwordReset,
-    notice: passwordReset.notice,
-    clearNotice: passwordReset.clearNotice,
+    confirmationResend,
+    notice,
+    clearNotice,
     navigate,
     table,
   };

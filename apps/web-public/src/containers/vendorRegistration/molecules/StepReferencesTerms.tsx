@@ -8,6 +8,8 @@ import {
   Link,
   Divider,
 } from '@sinnapi/ui/atoms';
+import { CaptchaField } from '@sinnapi/ui/forms';
+import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { TERMS } from '../data/options';
 import type { RegistrationApi } from '../hooks/useVendorRegistration';
 import type { RegistrationValues } from '../data/schema';
@@ -23,9 +25,16 @@ type TermKey = Extract<
   | 'acceptedFalseInfoRemoval'
 >;
 
-/** Step 4 — optional client references and the required terms & confirmation. */
+/**
+ * Step 4 — optional client references, the required terms & confirmation, and
+ * the human check.
+ *
+ * The CAPTCHA sits on this step rather than the first because its token expires
+ * in minutes and this application takes considerably longer than that to fill
+ * in. Here it is solved moments before Submit.
+ */
 export default function StepReferencesTerms({ api }: Props) {
-  const { values, errors, set, submitting } = api;
+  const { values, errors, set, submitting, captcha } = api;
 
   return (
     <Box>
@@ -81,6 +90,14 @@ export default function StepReferencesTerms({ api }: Props) {
           );
         })}
       </Box>
+
+      <Divider sx={{ my: 3 }} />
+
+      <CaptchaField
+        {...captcha.fieldProps}
+        siteKey={TURNSTILE_SITE_KEY}
+        action="vendor-application"
+      />
     </Box>
   );
 }

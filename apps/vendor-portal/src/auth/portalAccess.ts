@@ -1,3 +1,4 @@
+import { parseUserAgent } from '@sinnapi/utils/userAgent';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -45,6 +46,17 @@ export const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.';
 const UNAVAILABLE_ERROR = 'Sign-in is temporarily unavailable. Please try again.';
 
 /**
+ * Shown when the endpoint rejects the Turnstile token.
+ *
+ * Deliberately not folded into `GENERIC_SIGN_IN_ERROR`: the credentials were
+ * never examined, so telling someone their password was wrong would send them
+ * off resetting one that works. It also has to read as retryable, because the
+ * form has just fetched a fresh challenge and the next attempt may well work.
+ */
+export const CAPTCHA_ERROR =
+  "We couldn't confirm you're human. Please wait a moment and try again.";
+
+/**
  * `allowed` / `denied` are verdicts from the server. `unknown` means we could
  * not reach it, which is deliberately distinct: failing closed is correct when
  * nothing has rendered yet, but signing a working session out because one
@@ -90,6 +102,53 @@ export async function checkPortalAccess(): Promise<PortalAccess> {
   };
 }
 
+/**
+ * Why a session ended. Two of the three are involuntary: `portal_refused` is
+ * the gate saying no to a session that arrived by some route other than the
+ * sign-in form, and `idle_timeout` is this portal closing a session nobody was
+ * using. Telling them apart matters when reading the trail — a burst of
+ * refusals is somebody holding a credential this portal will not accept, and a
+ * run of idle timeouts is unattended screens, neither of which is the same
+ * event as somebody clicking "Sign out".
+ */
+export type SignOutReason = 'user_initiated' | 'portal_refused' | 'idle_timeout';
+
+/**
+ * Record the end of a session, best-effort, while the token is still valid.
+ *
+ * Sign-out is the one auth event with no Edge Function behind it — the browser
+ * simply drops its tokens — so without this call the audit trail can say when
+ * every session began and never when one deliberately ended.
+ *
+ * Three properties worth stating:
+ *
+ *   * It must run BEFORE `supabase.auth.signOut()`. The RPC identifies the
+ *     account from `auth.uid()`, so after the token is gone there is nobody to
+ *     attribute the event to.
+ *   * It is best-effort and never throws. A closed tab, an expired token or a
+ *     failed request all end a session without a row, so a missing sign-out
+ *     means "not a deliberate sign-out", never "still signed in". Failing the
+ *     user's sign-out because the logging failed would be an unambiguous bug.
+ *   * IP and country are read server-side from the request headers; only the
+ *     parsed device fields are sent from here, and the server clamps them. The
+ *     user agent they come from is browser-supplied either way, so this adds no
+ *     trust that was not already being placed in it.
+ */
+export async function logSignOut(reason: SignOutReason = 'user_initiated'): Promise<void> {
+  try {
+    const ua = parseUserAgent(navigator.userAgent);
+    await supabase.rpc('log_sign_out', {
+      p_portal: PORTAL,
+      p_reason: reason,
+      p_device: ua.device,
+      p_os: ua.os,
+      p_browser: ua.browser,
+    });
+  } catch {
+    // Deliberately silent: the user asked to leave, and they are leaving.
+  }
+}
+
 type SignInResponse = {
   session?: { access_token?: string; refresh_token?: string };
 };
@@ -104,20 +163,30 @@ type SignInResponse = {
  * before the tokens are ever handed over, and the endpoint also counts failed
  * attempts for lockout — something a browser-side call cannot do honestly.
  *
+ * `captchaToken` is the Turnstile response the sign-in form solved. The endpoint
+ * redeems it with Cloudflare before it looks at the password at all, so a
+ * submission without one never reaches the credential check.
+ *
  * Resolves to an error string to display, or `null` on success (at which point
  * the session is live and `onAuthStateChange` has fired).
  */
-export async function signInToPortal(email: string, password: string): Promise<string | null> {
+export async function signInToPortal(
+  email: string,
+  password: string,
+  captchaToken: string,
+): Promise<string | null> {
   const { data, error } = await supabase.functions.invoke<SignInResponse>('portal-sign-in', {
-    body: { email, password, portal: PORTAL },
+    body: { email, password, portal: PORTAL, captchaToken },
   });
 
   if (error) {
-    // Every refusal the endpoint makes is a 401, which supabase-js surfaces as
-    // a FunctionsHttpError. Anything else is infrastructure, and saying
-    // "invalid password" to someone whose password was never checked would send
-    // them off resetting a credential that works.
+    // Every credential refusal the endpoint makes is a 401, which supabase-js
+    // surfaces as a FunctionsHttpError. 403 is the CAPTCHA — a different
+    // failure with different advice. Anything else is infrastructure, and
+    // saying "invalid password" to someone whose password was never checked
+    // would send them off resetting a credential that works.
     const status = (error as { context?: Response }).context?.status;
+    if (status === 403) return CAPTCHA_ERROR;
     return status === 401 ? GENERIC_SIGN_IN_ERROR : UNAVAILABLE_ERROR;
   }
 

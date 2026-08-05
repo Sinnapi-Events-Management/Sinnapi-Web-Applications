@@ -57,8 +57,9 @@ export function AuthShowcase({
       <AuthShowcaseBackdrop backdrop={backdrop} />
 
       {/* `textAlign` centres the copy; the rows inside brand, stats and the CTA
-          centre themselves. Children stay full-width — the slide stack holds its
-          slides absolutely, so shrinking it to content would collapse it. */}
+          centre themselves. The card hugs its content vertically — the slide
+          stack is only as tall as the tallest slide — so apps with lean copy
+          get a compact card rather than one padded out to a fixed height. */}
       <AuthGlassCard spacing={{ md: 3, lg: 4 }} sx={{ textAlign: 'center' }}>
         <AuthShowcaseBrand brand={brand} />
         <AuthShowcaseSlides slides={slides} activeIndex={index} />

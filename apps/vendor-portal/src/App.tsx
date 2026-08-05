@@ -1,9 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
+import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { VendorProvider } from '@/vendor/VendorProvider';
 import AppShell from '@/components/shell/AppShell';
 
 import SignIn from '@/pages/auth/signIn';
+import ResetPassword from '@/pages/auth/resetPassword';
 import AuthCallback from '@/pages/auth/authCallback';
 import ChangePassword from '@/pages/auth/changePassword';
 import Terms from '@/pages/terms';
@@ -38,66 +40,75 @@ import NotFound from '@/pages/notFound';
 
 export default function App() {
   return (
-    <Routes>
-      {/* No /sign-up: the `vendor` role is granted only when an application is
+    <>
+      {/* Above the routes on purpose: the idle guard then covers every
+          authenticated page, including the forced password change below,
+          which sits outside the app shell. */}
+      <SessionTimeoutGuard />
+      <Routes>
+        {/* No /sign-up: the `vendor` role is granted only when an application is
           approved (`approve_vendor`), so a self-registered account could never
           get past this portal's gate. Prospective vendors go to the public
           application form — see the sign-in screen's footer link. */}
-      <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/vendor-terms" element={<VendorTerms />} />
-      <Route path="/escrow-policy" element={<EscrowPolicy />} />
-      <Route path="/privacy" element={<Privacy />} />
+        <Route path="/sign-in" element={<SignIn />} />
+        {/* Where `send-password-reset` lands a vendor. Public: the recovery link
+          IS the credential, so requiring a session first would be circular. */}
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/vendor-terms" element={<VendorTerms />} />
+        <Route path="/escrow-policy" element={<EscrowPolicy />} />
+        <Route path="/privacy" element={<Privacy />} />
 
-      {/* Requires a session but sits outside the vendor shell: the forced
+        {/* Requires a session but sits outside the vendor shell: the forced
           password change must be reachable before VendorProvider loads a
           vendor record the applicant may not have finished onboarding yet. */}
-      <Route
-        path="/change-password"
-        element={
-          <ProtectedRoute>
-            <ChangePassword />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        element={
-          <ProtectedRoute>
-            <VendorProvider>
-              <AppShell />
-            </VendorProvider>
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/subscription" element={<Subscription />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/calendar" element={<Calendar />} />
-        <Route path="/bookings" element={<Bookings />} />
-        <Route path="/bookings/:id" element={<BookingDetail />} />
-        <Route path="/quotations" element={<Quotations />} />
-        <Route path="/quotations/:id" element={<QuotationDetail />} />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/public-events" element={<PublicEvents />} />
-        <Route path="/escrow" element={<Escrow />} />
-        <Route path="/payouts" element={<Payouts />} />
-        <Route path="/promotions" element={<Promotions />} />
-        <Route path="/discounts" element={<Discounts />} />
-        <Route path="/reviews" element={<Reviews />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:conversationId" element={<Conversation />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
+        <Route
+          element={
+            <ProtectedRoute>
+              <VendorProvider>
+                <AppShell />
+              </VendorProvider>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/subscription" element={<Subscription />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/bookings" element={<Bookings />} />
+          <Route path="/bookings/:id" element={<BookingDetail />} />
+          <Route path="/quotations" element={<Quotations />} />
+          <Route path="/quotations/:id" element={<QuotationDetail />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/public-events" element={<PublicEvents />} />
+          <Route path="/escrow" element={<Escrow />} />
+          <Route path="/payouts" element={<Payouts />} />
+          <Route path="/promotions" element={<Promotions />} />
+          <Route path="/discounts" element={<Discounts />} />
+          <Route path="/reviews" element={<Reviews />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/:conversationId" element={<Conversation />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }

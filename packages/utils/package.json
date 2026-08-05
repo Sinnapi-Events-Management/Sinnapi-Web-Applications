@@ -6,7 +6,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./constants.ts",
-    "./constants": "./constants.ts"
+    "./constants": "./constants.ts",
+    "./userAgent": "./userAgent.ts"
   },
   "scripts": {
     "lint": "eslint . --ext ts,tsx",

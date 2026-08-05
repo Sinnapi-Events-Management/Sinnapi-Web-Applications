@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { checkPortalAccess } from './portalAccess';
+import { checkPortalAccess, logSignOut, type SignOutReason } from './portalAccess';
 
 type AuthState = {
   session: Session | null;
@@ -9,7 +9,8 @@ type AuthState = {
   /** Role keys the account holds, straight from the portal gate. */
   roles: string[];
   loading: boolean;
-  signOut: () => Promise<void>;
+  /** `reason` is recorded in the audit trail; defaults to a deliberate exit. */
+  signOut: (reason?: SignOutReason) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -82,7 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRoles([]);
       setLoading(false);
       // Refused sessions are revoked, not just hidden: leaving a live token in
-      // localStorage would let the next tab pick it straight back up.
+      // localStorage would let the next tab pick it straight back up. Logged
+      // first, and as an ejection rather than a sign-out: a session this portal
+      // turned away is worth telling apart from one its owner ended.
+      await logSignOut('portal_refused');
       await supabase.auth.signOut();
     }
 
@@ -106,7 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: session?.user ?? null,
     roles,
     loading,
-    signOut: async () => {
+    signOut: async (reason: SignOutReason = 'user_initiated') => {
+      // Before, not after: the RPC identifies the account from `auth.uid()`,
+      // and once the token is gone there is nobody left to attribute the event
+      // to. It never throws, so a failed write cannot trap anyone in the app.
+      await logSignOut(reason);
       await supabase.auth.signOut();
     },
   };

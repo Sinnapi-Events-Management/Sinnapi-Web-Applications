@@ -8,6 +8,7 @@ import ClientsToolbar from './components/organisms/ClientsToolbar';
 import ClientStatusDialog from './components/organisms/ClientStatusDialog';
 import ClientDeleteDialog from './components/organisms/ClientDeleteDialog';
 import ClientPasswordResetDialog from './components/organisms/ClientPasswordResetDialog';
+import ClientConfirmationResendDialog from './components/organisms/ClientConfirmationResendDialog';
 
 export default function Clients() {
   const {
@@ -26,6 +27,7 @@ export default function Clients() {
     status,
     remove,
     passwordReset,
+    confirmationResend,
     notice,
     clearNotice,
     navigate,
@@ -38,6 +40,7 @@ export default function Clients() {
     const cols = getColumns({
       onView: (c) => goToClient(c.id),
       onResetPassword: passwordReset.request,
+      onResendConfirmation: confirmationResend.request,
       onRequestStatusChange: status.request,
       onRequestDelete: remove.request,
     });
@@ -45,7 +48,13 @@ export default function Clients() {
     // actions, so drop the whole column when the admin can't manage.
     return canManage ? cols : cols.filter((c) => c.field !== 'actions');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canManage, passwordReset.request, status.request, remove.request]);
+  }, [
+    canManage,
+    passwordReset.request,
+    confirmationResend.request,
+    status.request,
+    remove.request,
+  ]);
 
   return (
     <>
@@ -96,6 +105,13 @@ export default function Clients() {
         busy={passwordReset.busy}
         onCancel={passwordReset.cancel}
         onConfirm={passwordReset.confirm}
+      />
+
+      <ClientConfirmationResendDialog
+        pending={confirmationResend.pending}
+        busy={confirmationResend.busy}
+        onCancel={confirmationResend.cancel}
+        onConfirm={confirmationResend.confirm}
       />
 
       <Snackbar

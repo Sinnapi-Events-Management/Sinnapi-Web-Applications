@@ -7,3 +7,4 @@ export * from './Drawer';
 export * from './AppBar';
 export * from './LegalContent';
 export * from './authShowcase';
+export * from './sessionTimeout';

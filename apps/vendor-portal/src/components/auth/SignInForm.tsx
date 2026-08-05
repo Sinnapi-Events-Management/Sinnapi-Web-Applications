@@ -1,10 +1,11 @@
 import { Stack, Button, Alert, Link, Typography } from '@sinnapi/ui';
-import { ControlledField, ControlledPasswordField } from '@sinnapi/ui/forms';
+import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi/ui/forms';
 import { APP } from '@/lib/config';
+import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { useSignInForm } from './hooks/useSignInForm';
 
 export default function SignInForm() {
-  const { control, error, loading, submit } = useSignInForm();
+  const { control, error, loading, submit, captcha, canSubmit } = useSignInForm();
 
   return (
     <Stack component="form" spacing={2.5} onSubmit={submit} noValidate>
@@ -22,7 +23,8 @@ export default function SignInForm() {
         label="Password"
         autoComplete="current-password"
       />
-      <Button type="submit" variant="contained" size="large" disabled={loading}>
+      <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="vendor-sign-in" />
+      <Button type="submit" variant="contained" size="large" disabled={!canSubmit}>
         {loading ? 'Signing in…' : 'Sign in'}
       </Button>
 

@@ -1,19 +1,29 @@
 import { useCallback, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { invokeFunction } from '@/lib/functions';
 import type { UserModel } from '@/lib/types';
 
 export type PendingReset = { id: string; name: string; email: string | null };
 
-// Where the recovery link lands: the client sets their new password in the
-// client portal (admins never see it). Must be on the project's Auth redirect
-// allowlist. Falls back to a sensible default if the env isn't set.
-const CLIENT_PORTAL_URL =
-  (import.meta.env.VITE_CLIENT_PORTAL_URL as string | undefined) ?? 'https://app.sinnapi.com';
+const MESSAGES: Record<string, string> = {
+  account_not_found: 'This client no longer exists.',
+  no_email_on_file: 'This client has no email address on file.',
+  reset_email_failed: "The reset email couldn't be sent. Try again shortly.",
+  forbidden: 'You do not have permission to reset passwords.',
+};
 
 /**
- * Confirm-then-reset for a client. Uses Supabase's standard recovery email so
- * the client chooses their own password via a secure link — a better fit than a
- * temporary password, since the client portal has no forced-change guard.
+ * Confirm-then-reset for a client. The client chooses their own password via a
+ * secure link — a better fit than a temporary password, since the client portal
+ * has no forced-change guard.
+ *
+ * Goes through the `send-password-reset` Edge Function rather than
+ * `supabase.auth.resetPasswordForEmail`, which is what this used to call. That
+ * sent GoTrue's built-in template — the last Sinnapi email that didn't use the
+ * branded shell — and always aimed the link at the client portal, which is
+ * wrong for the vendor and staff accounts this same flow can now target. The
+ * function picks the destination from the account's own roles and logs the
+ * send, so an admin causing a credential email to reach someone else leaves a
+ * trace.
  */
 export function useClientPasswordReset() {
   const [pending, setPending] = useState<PendingReset | null>(null);
@@ -33,21 +43,16 @@ export function useClientPasswordReset() {
   const cancel = useCallback(() => setPending(null), []);
 
   const confirm = useCallback(async () => {
-    if (!pending?.email) {
-      setErr('This client has no email on file.');
-      return;
-    }
+    if (!pending) return;
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(pending.email, {
-      redirectTo: `${CLIENT_PORTAL_URL}/reset-password`,
-    });
+    const { error } = await invokeFunction('send-password-reset', { profileId: pending.id });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(MESSAGES[error] ?? error);
       return;
     }
-    setNotice(`A password reset link has been emailed to ${pending.email}.`);
+    setNotice(`A password reset link has been emailed to ${pending.email ?? 'this client'}.`);
     setPending(null);
   }, [pending]);
 

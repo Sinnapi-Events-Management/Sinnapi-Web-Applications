@@ -6,3 +6,5 @@
 export * from './useZodForm';
 export * from './ControlledField';
 export * from './ControlledPasswordField';
+export * from './useCaptcha';
+export * from './CaptchaField';

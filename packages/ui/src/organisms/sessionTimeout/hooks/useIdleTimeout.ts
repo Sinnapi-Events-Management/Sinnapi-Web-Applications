@@ -1,18 +1,25 @@
+'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ACTIVITY_EVENTS,
-  ACTIVITY_THROTTLE_MS,
-  IDLE_TIMEOUT_MS,
-  LAST_ACTIVITY_KEY,
-  TICK_INTERVAL_MS,
-  WARNING_DURATION_MS,
-} from '@/auth/idleConfig';
+  DEFAULT_ACTIVITY_EVENTS,
+  DEFAULT_ACTIVITY_THROTTLE_MS,
+  DEFAULT_TICK_INTERVAL_MS,
+  type IdleTimeoutConfig,
+  type IdleTimeoutState,
+} from '../types';
 
-type IdleTimeout = {
-  /** Milliseconds left in the warning countdown, or `null` when not warning. */
-  warningRemainingMs: number | null;
-  /** Dismiss the warning and restart the idle timer (the user is present). */
-  keepSession: () => void;
+export type UseIdleTimeoutOptions = {
+  /** Only track while a session is held — false on public/auth pages. */
+  enabled: boolean;
+  /**
+   * Must be referentially stable — a module-level constant, or memoised. Every
+   * new object re-runs the effect, and re-running it counts as activity, so an
+   * inline `{ ... }` here would silently reset the timer on every render and
+   * the session would never time out.
+   */
+  config: IdleTimeoutConfig;
+  /** Called once when the warning countdown runs out. */
+  onTimeout: () => void;
 };
 
 /**
@@ -20,15 +27,32 @@ type IdleTimeout = {
  * in localStorage. Every tab computes the same warn/expire window from it, so
  * the warning and the countdown are naturally synchronised across tabs — no
  * message passing needed beyond the `storage` event for instant updates.
+ *
+ * Headless by design: it owns the timing and nothing else, so the dialog that
+ * renders it stays a presentational component and each portal keeps its own
+ * sign-out wiring.
  */
-function readLastActivity(): number {
-  const raw = localStorage.getItem(LAST_ACTIVITY_KEY);
+function readLastActivity(storageKey: string): number {
+  const raw = localStorage.getItem(storageKey);
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) ? parsed : Date.now();
 }
 
-export function useIdleTimeout(enabled: boolean, onTimeout: () => void): IdleTimeout {
+export function useIdleTimeout({
+  enabled,
+  config,
+  onTimeout,
+}: UseIdleTimeoutOptions): IdleTimeoutState {
   const [warningRemainingMs, setWarningRemainingMs] = useState<number | null>(null);
+
+  const {
+    idleMs,
+    warningMs,
+    storageKey,
+    activityEvents = DEFAULT_ACTIVITY_EVENTS,
+    throttleMs = DEFAULT_ACTIVITY_THROTTLE_MS,
+    tickMs = DEFAULT_TICK_INTERVAL_MS,
+  } = config;
 
   // Refs avoid re-subscribing listeners on every render / prop change.
   const warningRef = useRef(false);
@@ -37,9 +61,12 @@ export function useIdleTimeout(enabled: boolean, onTimeout: () => void): IdleTim
   const onTimeoutRef = useRef(onTimeout);
   onTimeoutRef.current = onTimeout;
 
-  const writeActivity = useCallback((t: number) => {
-    localStorage.setItem(LAST_ACTIVITY_KEY, String(t));
-  }, []);
+  const writeActivity = useCallback(
+    (t: number) => {
+      localStorage.setItem(storageKey, String(t));
+    },
+    [storageKey],
+  );
 
   const keepSession = useCallback(() => {
     warningRef.current = false;
@@ -62,8 +89,8 @@ export function useIdleTimeout(enabled: boolean, onTimeout: () => void): IdleTim
 
     const evaluate = () => {
       const now = Date.now();
-      const warnAt = readLastActivity() + IDLE_TIMEOUT_MS;
-      const expireAt = warnAt + WARNING_DURATION_MS;
+      const warnAt = readLastActivity(storageKey) + idleMs;
+      const expireAt = warnAt + warningMs;
 
       if (now >= expireAt) {
         // Fire sign-out once; other tabs follow via Supabase auth state change.
@@ -90,29 +117,29 @@ export function useIdleTimeout(enabled: boolean, onTimeout: () => void): IdleTim
       // user has to explicitly choose "Keep session" or "Log out".
       if (warningRef.current) return;
       const now = Date.now();
-      if (now - lastWriteRef.current < ACTIVITY_THROTTLE_MS) return;
+      if (now - lastWriteRef.current < throttleMs) return;
       lastWriteRef.current = now;
       writeActivity(now);
     };
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === LAST_ACTIVITY_KEY) evaluate();
+      if (e.key === storageKey) evaluate();
     };
 
-    ACTIVITY_EVENTS.forEach((evt) => window.addEventListener(evt, onActivity, { passive: true }));
+    activityEvents.forEach((evt) => window.addEventListener(evt, onActivity, { passive: true }));
     window.addEventListener('storage', onStorage);
     document.addEventListener('visibilitychange', evaluate);
 
     evaluate();
-    const interval = window.setInterval(evaluate, TICK_INTERVAL_MS);
+    const interval = window.setInterval(evaluate, tickMs);
 
     return () => {
       window.clearInterval(interval);
-      ACTIVITY_EVENTS.forEach((evt) => window.removeEventListener(evt, onActivity));
+      activityEvents.forEach((evt) => window.removeEventListener(evt, onActivity));
       window.removeEventListener('storage', onStorage);
       document.removeEventListener('visibilitychange', evaluate);
     };
-  }, [enabled, writeActivity]);
+  }, [enabled, writeActivity, storageKey, idleMs, warningMs, activityEvents, throttleMs, tickMs]);
 
   return { warningRemainingMs, keepSession };
 }

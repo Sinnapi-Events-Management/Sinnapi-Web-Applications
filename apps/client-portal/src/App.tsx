@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
+import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import AppShell from '@/components/shell/AppShell';
 
 import SignIn from '@/pages/auth/signIn';
@@ -31,45 +32,50 @@ import NotFound from '@/pages/notFound';
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public auth routes */}
-      <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/sign-up" element={<SignUp />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/escrow-policy" element={<EscrowPolicy />} />
-      <Route path="/privacy" element={<Privacy />} />
+    <>
+      {/* Above the routes on purpose: the idle guard then covers every
+          authenticated page, including any that sit outside the app shell. */}
+      <SessionTimeoutGuard />
+      <Routes>
+        {/* Public auth routes */}
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/sign-up" element={<SignUp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/escrow-policy" element={<EscrowPolicy />} />
+        <Route path="/privacy" element={<Privacy />} />
 
-      {/* Protected app shell */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/discover" element={<Discover />} />
-        <Route path="/discover/vendors/:slug" element={<VendorDetail />} />
-        <Route path="/bookings" element={<Bookings />} />
-        <Route path="/bookings/:id" element={<BookingDetail />} />
-        <Route path="/quotations" element={<Quotations />} />
-        <Route path="/quotations/compare" element={<CompareQuotes />} />
-        <Route path="/my-events" element={<MyEvents />} />
-        <Route path="/my-events/new" element={<NewEvent />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:conversationId" element={<Conversation />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/escrow" element={<Escrow />} />
-        <Route path="/reviews" element={<Reviews />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
+        {/* Protected app shell */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/discover/vendors/:slug" element={<VendorDetail />} />
+          <Route path="/bookings" element={<Bookings />} />
+          <Route path="/bookings/:id" element={<BookingDetail />} />
+          <Route path="/quotations" element={<Quotations />} />
+          <Route path="/quotations/compare" element={<CompareQuotes />} />
+          <Route path="/my-events" element={<MyEvents />} />
+          <Route path="/my-events/new" element={<NewEvent />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/:conversationId" element={<Conversation />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/escrow" element={<Escrow />} />
+          <Route path="/reviews" element={<Reviews />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }

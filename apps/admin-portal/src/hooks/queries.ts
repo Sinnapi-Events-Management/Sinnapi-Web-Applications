@@ -14,6 +14,7 @@ import {
   type ProfileStatus,
 } from '@/lib/status';
 import type {
+  BlockedAccountModel,
   ProfileModel,
   IntakeListModel,
   IntakeDetailModel,
@@ -1609,5 +1610,48 @@ export function useNotifications() {
       if (lastPage.rows.length === 0 || loaded >= lastPage.total) return undefined;
       return pages.length;
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Security · blocked accounts
+// ---------------------------------------------------------------------------
+
+export type BlockedAccountParams = PageParams & {
+  kind?: string;
+  role?: string;
+  search?: string;
+};
+
+/**
+ * One page of accounts that cannot currently sign in — rate-limiter lockouts
+ * and admin suspensions, unioned server-side.
+ *
+ * An RPC rather than a table select because the lockout half is an aggregate:
+ * "how many denials since the last success inside the window" cannot be
+ * expressed over PostgREST, and re-deriving it in the browser would mean
+ * shipping every attempt row to the client — more personal data over the wire,
+ * for a number the database can produce. It also keeps the page's definition of
+ * "locked" identical to the one `portal_lockout_active` enforces at sign-in.
+ *
+ * Sorting is fixed server-side (locked first, most recent first), so `sort` is
+ * deliberately absent from the params the RPC receives.
+ */
+export function useBlockedAccounts(params: BlockedAccountParams) {
+  return useQuery({
+    queryKey: ['blocked-accounts', params] as const,
+    queryFn: async (): Promise<Paged<BlockedAccountModel>> => {
+      const { data, error } = await supabase.rpc('list_blocked_accounts', {
+        p_kind: params.kind ?? null,
+        p_role: params.role ?? null,
+        p_search: params.search ?? null,
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (BlockedAccountModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
   });
 }

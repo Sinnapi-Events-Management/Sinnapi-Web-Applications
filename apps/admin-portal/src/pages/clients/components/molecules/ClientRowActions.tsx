@@ -11,6 +11,7 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import LockResetIcon from '@mui/icons-material/LockReset';
+import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox';
 import BlockIcon from '@mui/icons-material/Block';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -20,6 +21,7 @@ type Props = {
   client: UserModel;
   onView: (client: UserModel) => void;
   onResetPassword: (client: UserModel) => void;
+  onResendConfirmation: (client: UserModel) => void;
   onRequestStatusChange: (client: UserModel, status: 'active' | 'suspended') => void;
   onRequestDelete: (client: UserModel) => void;
 };
@@ -32,6 +34,7 @@ export default function ClientRowActions({
   client,
   onView,
   onResetPassword,
+  onResendConfirmation,
   onRequestStatusChange,
   onRequestDelete,
 }: Props) {
@@ -39,6 +42,9 @@ export default function ClientRowActions({
   const open = Boolean(anchorEl);
   const name = client.full_name ?? client.email ?? 'client';
   const active = client.status === 'active';
+  // `pending` means the account was self-registered and the email was never
+  // confirmed, which is the only state a new link can help with.
+  const pendingConfirmation = client.status === 'pending';
 
   function openMenu(e: React.MouseEvent<HTMLElement>) {
     e.stopPropagation();
@@ -89,6 +95,19 @@ export default function ClientRowActions({
           </ListItemIcon>
           <ListItemText>Trigger password reset</ListItemText>
         </MenuItem>
+
+        {/* Offered only while the account is pending: the confirmation link
+            expires after 24 hours, so a client who opened the mail late is
+            stuck until support re-issues it. Hidden rather than disabled for a
+            confirmed account — there is nothing left to confirm. */}
+        {pendingConfirmation && (
+          <MenuItem onClick={select(() => onResendConfirmation(client))}>
+            <ListItemIcon>
+              <ForwardToInboxIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Resend confirmation email</ListItemText>
+          </MenuItem>
+        )}
 
         {active ? (
           <MenuItem onClick={select(() => onRequestStatusChange(client, 'suspended'))}>

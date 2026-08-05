@@ -6,9 +6,14 @@ const LINK_EXPIRED =
   'This reset link is invalid or has expired. Ask an administrator to resend it.';
 
 /**
- * Establishes the recovery session from the email link's PKCE `code`. Mirrors
- * the admin-portal flow; the link itself is sent from the admin portal's
- * "Trigger password reset".
+ * Establishes the recovery session from an emailed reset link.
+ *
+ * Two shapes arrive, and only one existed before: `?token_hash=&type=recovery`
+ * from the `send-password-reset` Edge Function, and `?code=` from a
+ * browser-initiated PKCE flow. The token_hash form carries no code because the
+ * link was minted server-side, so this browser never stored a `code_verifier` —
+ * handling only `code` would leave every admin-sent reset link landing on a
+ * page that could not open.
  *
  * Only the session matters here — choosing and writing the new password is
  * `useResetPasswordForm`'s job. `ready` gates the form on a session actually
@@ -22,8 +27,18 @@ export function useResetPassword() {
 
   useEffect(() => {
     const code = params.get('code');
+    const tokenHash = params.get('token_hash');
     (async () => {
-      if (code) {
+      if (tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        if (verifyError) {
+          setError(LINK_EXPIRED);
+          return;
+        }
+      } else if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         // detectSessionInUrl may have already consumed the code; tolerate that
         // as long as a session actually exists.

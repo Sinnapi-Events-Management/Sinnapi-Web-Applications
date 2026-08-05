@@ -1,17 +1,24 @@
 import { Stack, Button, Alert } from '@sinnapi/ui';
-import { ControlledField, ControlledPasswordField } from '@sinnapi/ui/forms';
+import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi/ui/forms';
 import { AuthSwitchPrompt } from '@sinnapi/ui/router';
+import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { PASSWORD_HINT, ROLE_OPTIONS } from './schema';
-import { useSignUpForm } from './hooks/useSignUpForm';
+import type { useSignUpForm } from './hooks/useSignUpForm';
 
-export default function SignUpForm() {
-  const { control, error, loading, submitted, submit } = useSignUpForm();
+/**
+ * The registration fields only.
+ *
+ * Unlike `SignInForm` this does not own its hook: signing up has a second
+ * screen (`CheckInboxPanel`), and the page needs the same state to pick the
+ * heading above whichever one is showing. So `SignUp` holds the state and hands
+ * this component the parts it renders.
+ */
+type Props = Pick<
+  ReturnType<typeof useSignUpForm>,
+  'control' | 'error' | 'loading' | 'submit' | 'captcha' | 'canSubmit'
+>;
 
-  if (submitted)
-    return (
-      <Alert severity="success">Check your email to confirm your account, then sign in.</Alert>
-    );
-
+export default function SignUpForm({ control, error, loading, submit, captcha, canSubmit }: Props) {
   return (
     <Stack component="form" spacing={2.5} onSubmit={submit} noValidate>
       {error && <Alert severity="error">{error}</Alert>}
@@ -37,7 +44,14 @@ export default function SignUpForm() {
         helperText={PASSWORD_HINT}
       />
       <ControlledField name="role" control={control} label="I am a…" options={ROLE_OPTIONS} />
-      <Button type="submit" variant="contained" size="large" disabled={loading}>
+      <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="client-sign-up" />
+      <Button
+        type="submit"
+        variant="contained"
+        size="large"
+        color="secondary"
+        disabled={!canSubmit}
+      >
         {loading ? 'Creating…' : 'Create account'}
       </Button>
       <AuthSwitchPrompt question="Already have an account?" actionLabel="Sign in" to="/sign-in" />
