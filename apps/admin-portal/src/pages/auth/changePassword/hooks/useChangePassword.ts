@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
-/** Minimum length for a self-chosen password. Kept in step with the copy below. */
-const MIN_LENGTH = 10;
+/**
+ * Minimum length for a self-chosen password. 8 is the platform-wide rule —
+ * every portal's sign-up, reset and change flow enforces the same number.
+ */
+const MIN_LENGTH = 8;
 
 /**
  * Drives the forced first-sign-in password change. The user is already

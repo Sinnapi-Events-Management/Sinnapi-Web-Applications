@@ -87,6 +87,8 @@ async function collect() {
   const notify = await importTs('notification-dispatch/emails.ts');
   const triage = await importTs('set-intake-status/emails.ts');
   const promote = await importTs('promote-intake/emails.ts');
+  const signup = await importTs('client-sign-up/emails.ts');
+  const recovery = await importTs('send-password-reset/emails.ts');
 
   // A multi-line, admin-authored rejection reason: it must escape and keep its
   // line breaks when it lands in the applicant's inbox.
@@ -94,7 +96,49 @@ async function collect() {
     'The National ID you uploaded was too blurred to read.\n' +
     "We also couldn't verify the business registration number against URSB records.";
 
+  // Both framings of the same template — the first-send copy and the resend
+  // copy diverge only in their opening line and subject, which is exactly the
+  // kind of difference that goes unnoticed unless the two sit side by side.
+  const CONFIRM_LINK =
+    'https://app.sinnapi.com/auth/callback?token_hash=pkce_2f8c1a94e7b3&type=signup';
+
   return [
+    {
+      name: 'client-confirm-signup',
+      title: 'Client · confirm your email',
+      flow: 'client-sign-up',
+      msg: signup.confirmSignupEmail({
+        fullName: 'Aisha Namubiru',
+        email: 'aisha.namubiru@example.com',
+        confirmUrl: CONFIRM_LINK,
+        expiryHours: 24,
+      }),
+    },
+    {
+      name: 'client-confirm-signup-resend',
+      title: 'Client · confirm your email (resend)',
+      flow: 'client-sign-up',
+      msg: signup.confirmSignupEmail({
+        fullName: 'Aisha Namubiru',
+        email: 'aisha.namubiru@example.com',
+        confirmUrl: CONFIRM_LINK.replace('type=signup', 'type=magiclink'),
+        expiryHours: 24,
+        resend: true,
+      }),
+    },
+    {
+      name: 'client-password-reset',
+      title: 'Account · admin-triggered password reset',
+      flow: 'send-password-reset',
+      msg: recovery.passwordResetEmail({
+        fullName: 'Aisha Namubiru',
+        email: 'aisha.namubiru@example.com',
+        resetUrl:
+          'https://app.sinnapi.com/reset-password?token_hash=pkce_9d41b7c02e5a&type=recovery',
+        portalName: 'Sinnapi',
+        expiryHours: 24,
+      }),
+    },
     {
       name: 'vendor-applicant-confirmation',
       title: 'Vendor · applicant confirmation',

@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
-// Establishes the recovery session from the email link's PKCE `code`, then lets
-// the user set a new password via updateUser.
+const LINK_EXPIRED = 'This reset link is invalid or has expired. Request a new one.';
+
+/**
+ * Establishes the recovery session from an emailed reset link, then lets the
+ * user set a new password via `updateUser`.
+ *
+ * Two link shapes arrive: `?token_hash=&type=recovery` from the
+ * `send-password-reset` Edge Function, and `?code=` from the browser-initiated
+ * PKCE flow behind "Forgot password". The first carries no code — it was minted
+ * server-side, so this browser holds no `code_verifier` — and handling only the
+ * second would leave every admin-sent reset link on a page that cannot open.
+ */
 export function useResetPassword() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -13,15 +23,25 @@ export function useResetPassword() {
 
   useEffect(() => {
     const code = params.get('code');
+    const tokenHash = params.get('token_hash');
     (async () => {
-      if (code) {
+      if (tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        if (verifyError) {
+          setError(LINK_EXPIRED);
+          return;
+        }
+      } else if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         // detectSessionInUrl may have already consumed the code; tolerate that
         // as long as a session actually exists.
         if (error) {
           const { data } = await supabase.auth.getSession();
           if (!data.session) {
-            setError('This reset link is invalid or has expired. Request a new one.');
+            setError(LINK_EXPIRED);
             return;
           }
         }

@@ -15,6 +15,7 @@ import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import PeopleIcon from '@mui/icons-material/People';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import SecurityIcon from '@mui/icons-material/Security';
+import LockPersonIcon from '@mui/icons-material/LockPerson';
 import StarIcon from '@mui/icons-material/Star';
 import InsightsIcon from '@mui/icons-material/Insights';
 import HistoryIcon from '@mui/icons-material/History';
@@ -74,6 +75,15 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Users', to: '/users', icon: PeopleIcon, perm: 'users.read' },
       { label: 'Clients', to: '/clients', icon: Groups2Icon, perm: 'users.read' },
       { label: 'Roles & Permissions', to: '/rbac', icon: SecurityIcon, perm: 'roles.manage' },
+      // Its own permission rather than `users.read`: the page exposes device and
+      // location history, which is a narrower thing to be trusted with than the
+      // rest of the People section.
+      {
+        label: 'Blocked Accounts',
+        to: '/blocked-accounts',
+        icon: LockPersonIcon,
+        perm: 'security.access.read',
+      },
     ],
   },
   {

@@ -5,9 +5,16 @@
 // are never written via arbitrary client SQL. Files are uploaded separately by
 // the browser into the private `application-intake` bucket; this function only
 // stores their paths/urls. No account required to apply.
+//
+// BOT PROTECTION
+// "No account required" is exactly what makes this worth spamming: every accepted
+// submission lands in a reviewer's queue and fires two emails. A Cloudflare
+// Turnstile token from the registration form is redeemed before any of that —
+// see `_shared/turnstile.ts`. Requires TURNSTILE_SECRET in the environment.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, HttpError } from '../_shared/supabase.ts';
 import { sendEmail } from '../_shared/email.ts';
+import { requireCaptcha } from '../_shared/turnstile.ts';
 import { applicantConfirmationEmail, internalNotificationEmail } from './emails.ts';
 
 const YEARS = ['lt_1y', '1_3y', '3_5y', '5_10y', '10y_plus'];
@@ -64,6 +71,8 @@ type Body = {
   acceptedVendorTerms?: boolean;
   acceptedEscrowPolicy?: boolean;
   acceptedFalseInfoRemoval?: boolean;
+  /** Turnstile token from the registration form. */
+  captchaToken?: string;
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -83,6 +92,11 @@ Deno.serve(
 
     const b = (await request.json().catch(() => null)) as Body | null;
     if (!b) throw new HttpError(400, 'invalid_json');
+
+    // Before validation, not after: a rejected application should cost the
+    // caller a solved challenge, and field-level error messages are a map of
+    // the schema that only a verified human has any business reading.
+    await requireCaptcha(request, b.captchaToken);
 
     // --- Required-field validation (mirrors the client zod schema) ---
     req(!!b.submissionRef && UUID_RE.test(b.submissionRef), 'submissionRef');

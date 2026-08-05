@@ -34,7 +34,6 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { NAV_SECTIONS, APP, type NavItem } from '@/lib/config';
 import { useAuth } from '@/auth/AuthProvider';
-import SessionTimeoutDialog from '@/auth/SessionTimeoutDialog';
 import { useAdmin } from '@/admin/AdminProvider';
 import { useProfile, useUnreadCount } from '@/hooks/queries';
 import logo from '@/assets/logo.png';
@@ -295,7 +294,6 @@ export default function AppShell() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
-      <SessionTimeoutDialog />
       <AppBar
         position="fixed"
         color="inherit"

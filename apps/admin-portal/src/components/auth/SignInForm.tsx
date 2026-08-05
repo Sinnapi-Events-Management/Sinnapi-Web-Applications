@@ -1,38 +1,23 @@
-import { useState } from 'react';
-import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
-import { Stack, TextField, Button, Alert, IconButton, InputAdornment, Link } from '@sinnapi/ui';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { supabase } from '@/lib/supabase';
+import { Link as RouterLink } from 'react-router-dom';
+import { Stack, TextField, Button, Alert, Link } from '@sinnapi/ui';
+import { CaptchaField } from '@sinnapi/ui/forms';
+import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
+import PasswordField from './PasswordField';
+import { useSignInForm } from './hooks/useSignInForm';
 
-// Admin sign-in only — accounts are provisioned in the DB (no public sign-up).
+/**
+ * Admin sign-in only — staff accounts are provisioned by `create-staff`, and
+ * there is no public sign-up.
+ *
+ * Structure only: `useSignInForm` owns the submit, the error and the CAPTCHA,
+ * and documents why this form goes through `portal-sign-in` rather than calling
+ * `supabase.auth.signInWithPassword` directly.
+ */
 export default function SignInForm() {
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const returnTo = params.get('returnTo') || '/dashboard';
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const form = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(form.get('email')),
-      password: String(form.get('password')),
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    navigate(decodeURIComponent(returnTo), { replace: true });
-  }
+  const { error, loading, submit, captcha, canSubmit } = useSignInForm();
 
   return (
-    <Stack component="form" spacing={2.5} onSubmit={onSubmit} noValidate>
+    <Stack component="form" spacing={2.5} onSubmit={submit} noValidate>
       {error && <Alert severity="error">{error}</Alert>}
 
       <TextField
@@ -45,31 +30,7 @@ export default function SignInForm() {
       />
 
       <Stack spacing={0.75}>
-        <TextField
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          label="Password"
-          autoComplete="current-password"
-          required
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  onClick={() => setShowPassword((v) => !v)}
-                  edge="end"
-                  size="small"
-                >
-                  {showPassword ? (
-                    <VisibilityOff fontSize="small" />
-                  ) : (
-                    <Visibility fontSize="small" />
-                  )}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
+        <PasswordField />
         <Link
           component={RouterLink}
           to="/forgot-password"
@@ -80,7 +41,15 @@ export default function SignInForm() {
         </Link>
       </Stack>
 
-      <Button type="submit" variant="contained" color="secondary" size="large" disabled={loading}>
+      <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="admin-sign-in" />
+
+      <Button
+        type="submit"
+        variant="contained"
+        color="secondary"
+        size="large"
+        disabled={!canSubmit}
+      >
         {loading ? 'Signing in…' : 'Sign In'}
       </Button>
     </Stack>

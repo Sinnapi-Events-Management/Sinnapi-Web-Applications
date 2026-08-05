@@ -1,10 +1,12 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Stack, TextField, Button, Alert, Link } from '@sinnapi/ui';
+import { CaptchaField } from '@sinnapi/ui/forms';
 import AuthLayout from '@/components/auth/AuthLayout';
+import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { useForgotPassword } from './hooks/useForgotPassword';
 
 export default function ForgotPassword() {
-  const { requestReset, error, loading, sent } = useForgotPassword();
+  const { requestReset, error, loading, sent, captcha, canSubmit } = useForgotPassword();
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,12 +35,17 @@ export default function ForgotPassword() {
               required
               autoFocus
             />
+            <CaptchaField
+              {...captcha.fieldProps}
+              siteKey={TURNSTILE_SITE_KEY}
+              action="admin-forgot-password"
+            />
             <Button
               type="submit"
               variant="contained"
               color="secondary"
               size="large"
-              disabled={loading}
+              disabled={!canSubmit}
             >
               {loading ? 'Sending…' : 'Send reset link'}
             </Button>

@@ -1,0 +1,10 @@
+// Form primitives: react-hook-form bindings over the design system's fields.
+//
+// Deliberately NOT re-exported from the root barrel, for the same reason as
+// `./router` — react-hook-form, zod and @hookform/resolvers are optional peers
+// that only the form-bearing apps install. Import from `@sinnapi/ui/forms`.
+export * from './useZodForm';
+export * from './ControlledField';
+export * from './ControlledPasswordField';
+export * from './useCaptcha';
+export * from './CaptchaField';

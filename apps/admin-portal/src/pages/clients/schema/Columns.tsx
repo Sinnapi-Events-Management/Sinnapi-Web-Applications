@@ -8,6 +8,7 @@ import ClientRowActions from '../components/molecules/ClientRowActions';
 type ColumnHandlers = {
   onView: (client: UserModel) => void;
   onResetPassword: (client: UserModel) => void;
+  onResendConfirmation: (client: UserModel) => void;
   onRequestStatusChange: (client: UserModel, status: 'active' | 'suspended') => void;
   onRequestDelete: (client: UserModel) => void;
 };
@@ -35,6 +36,7 @@ function roleNames(u: UserModel): string[] {
 export const getColumns = ({
   onView,
   onResetPassword,
+  onResendConfirmation,
   onRequestStatusChange,
   onRequestDelete,
 }: ColumnHandlers): DataTableColumn<UserModel>[] => [
@@ -90,6 +92,7 @@ export const getColumns = ({
         client={u}
         onView={onView}
         onResetPassword={onResetPassword}
+        onResendConfirmation={onResendConfirmation}
         onRequestStatusChange={onRequestStatusChange}
         onRequestDelete={onRequestDelete}
       />

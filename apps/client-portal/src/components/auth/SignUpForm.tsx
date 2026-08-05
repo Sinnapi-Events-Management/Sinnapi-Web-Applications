@@ -1,69 +1,60 @@
-import { useState } from 'react';
-import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
-import { Stack, TextField, Button, Alert, Typography, MenuItem } from '@sinnapi/ui';
-import { supabase } from '@/lib/supabase';
+import { Stack, Button, Alert } from '@sinnapi/ui';
+import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi/ui/forms';
+import { AuthSwitchPrompt } from '@sinnapi/ui/router';
+import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
+import { PASSWORD_HINT, ROLE_OPTIONS } from './schema';
+import type { useSignUpForm } from './hooks/useSignUpForm';
 
-export default function SignUpForm() {
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const initialRole = params.get('role') === 'event_planner' ? 'event_planner' : 'client';
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
+/**
+ * The registration fields only.
+ *
+ * Unlike `SignInForm` this does not own its hook: signing up has a second
+ * screen (`CheckInboxPanel`), and the page needs the same state to pick the
+ * heading above whichever one is showing. So `SignUp` holds the state and hands
+ * this component the parts it renders.
+ */
+type Props = Pick<
+  ReturnType<typeof useSignUpForm>,
+  'control' | 'error' | 'loading' | 'submit' | 'captcha' | 'canSubmit'
+>;
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const form = new FormData(e.currentTarget);
-    const { data, error } = await supabase.auth.signUp({
-      email: String(form.get('email')),
-      password: String(form.get('password')),
-      options: {
-        data: { full_name: String(form.get('full_name')), role: String(form.get('role')) },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    if (data.session) {
-      navigate('/dashboard', { replace: true });
-      return;
-    }
-    setDone(true);
-  }
-
-  if (done)
-    return (
-      <Alert severity="success">Check your email to confirm your account, then sign in.</Alert>
-    );
-
+export default function SignUpForm({ control, error, loading, submit, captcha, canSubmit }: Props) {
   return (
-    <Stack component="form" spacing={2.5} onSubmit={onSubmit} noValidate>
+    <Stack component="form" spacing={2.5} onSubmit={submit} noValidate>
       {error && <Alert severity="error">{error}</Alert>}
-      <TextField name="full_name" label="Full name" autoComplete="name" required />
-      <TextField name="email" type="email" label="Email" autoComplete="email" required />
-      <TextField
+      <ControlledField
+        name="fullName"
+        control={control}
+        label="Full name"
+        autoComplete="name"
+        autoFocus
+      />
+      <ControlledField
+        name="email"
+        control={control}
+        type="email"
+        label="Email"
+        autoComplete="email"
+      />
+      <ControlledPasswordField
         name="password"
-        type="password"
+        control={control}
         label="Password"
         autoComplete="new-password"
-        required
-        helperText="At least 8 characters"
+        helperText={PASSWORD_HINT}
       />
-      <TextField name="role" label="I am a…" select defaultValue={initialRole}>
-        <MenuItem value="client">Client (planning my own event)</MenuItem>
-        <MenuItem value="event_planner">Event Planner (managing events professionally)</MenuItem>
-      </TextField>
-      <Button type="submit" variant="contained" size="large" disabled={loading}>
+      <ControlledField name="role" control={control} label="I am a…" options={ROLE_OPTIONS} />
+      <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="client-sign-up" />
+      <Button
+        type="submit"
+        variant="contained"
+        size="large"
+        color="secondary"
+        disabled={!canSubmit}
+      >
         {loading ? 'Creating…' : 'Create account'}
       </Button>
-      <Typography variant="body2" color="text.secondary">
-        Already have an account? <RouterLink to="/sign-in">Sign in</RouterLink>
-      </Typography>
+      <AuthSwitchPrompt question="Already have an account?" actionLabel="Sign in" to="/sign-in" />
     </Stack>
   );
 }

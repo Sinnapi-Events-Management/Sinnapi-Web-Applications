@@ -37,6 +37,10 @@ export const OPERATIONS: Record<OperationKey, OperationConfig> = {
  * "Affected record" column readable instead of exposing raw table names.
  */
 export const ENTITY_LABELS: Record<string, string> = {
+  // Not a table: `entity_type = 'auth'` is what the 0802e logging functions
+  // stamp on sign-in, sign-out and signup rows, which have an account behind
+  // them rather than a record.
+  auth: 'Authentication',
   profiles: 'User profile',
   roles: 'Role',
   role_permissions: 'Role permission',

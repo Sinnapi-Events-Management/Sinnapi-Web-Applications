@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
+import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { AdminProvider } from '@/admin/AdminProvider';
 import AdminGate from '@/admin/AdminGate';
 import RequirePerm from '@/admin/RequirePerm';
@@ -33,6 +34,7 @@ import Users from '@/pages/users';
 import Clients from '@/pages/clients';
 import ClientDetail from '@/pages/clientDetail';
 import Rbac from '@/pages/rbac';
+import BlockedAccounts from '@/pages/blockedAccounts';
 import ReviewsModeration from '@/pages/reviewsModeration';
 import MessagingModeration from '@/pages/messagingModeration';
 import NotificationTemplates from '@/pages/notificationTemplates';
@@ -55,86 +57,99 @@ const g = (perm: string | undefined, el: React.ReactNode) => (
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
+    <>
+      {/* Above the routes on purpose: the idle guard then covers every
+          authenticated page, including the forced password change below,
+          which sits outside the app shell. */}
+      <SessionTimeoutGuard />
+      <Routes>
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* Requires a session but sits outside the admin shell: the forced
+        {/* Requires a session but sits outside the admin shell: the forced
           password change must be reachable before AdminProvider / AdminGate. */}
-      <Route
-        path="/change-password"
-        element={
-          <ProtectedRoute>
-            <ChangePassword />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        element={
-          <ProtectedRoute>
-            <AdminProvider>
-              <AdminGate>
-                <AppShell />
-              </AdminGate>
-            </AdminProvider>
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-
-        <Route path="/applications" element={g('vendor.review', <Applications />)} />
-        <Route path="/applications/:id" element={g('vendor.review', <ApplicationDetail />)} />
-        <Route path="/vendors" element={g('vendor.manage', <Vendors />)} />
-        <Route path="/vendors/:id" element={g('vendor.manage', <VendorDetail />)} />
-        <Route path="/bookings" element={g('bookings.read', <Bookings />)} />
-        <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
-        <Route path="/events" element={g('events.manage', <Events />)} />
-        <Route path="/events/:id" element={g('events.manage', <EventDetail />)} />
-
-        <Route path="/escrow" element={g('escrow.read', <Escrow />)} />
-        <Route path="/payouts" element={g('payout.approve', <Payouts />)} />
-        <Route path="/refunds" element={g('refund.approve', <Refunds />)} />
-        <Route path="/disputes" element={g('dispute.manage', <Disputes />)} />
-        <Route path="/payments" element={g('payments.read', <Payments />)} />
-        <Route path="/ledger" element={g('finance.read', <Ledger />)} />
-        <Route path="/subscriptions" element={g('subscriptions.manage', <Subscriptions />)} />
-        <Route path="/pricing-plans" element={g('plans.manage', <PricingPlans />)} />
-        <Route path="/pricing-plans/:id" element={g('plans.manage', <PlanDetail />)} />
-
-        <Route path="/users" element={g('users.read', <Users />)} />
-        <Route path="/clients" element={g('users.read', <Clients />)} />
-        <Route path="/clients/:id" element={g('users.read', <ClientDetail />)} />
-        <Route path="/rbac" element={g('roles.manage', <Rbac />)} />
-
-        <Route path="/reviews-moderation" element={g('moderation.manage', <ReviewsModeration />)} />
-        <Route path="/messaging" element={g('moderation.manage', <MessagingModeration />)} />
         <Route
-          path="/notification-templates"
-          element={g('settings.manage', <NotificationTemplates />)}
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <ChangePassword />
+            </ProtectedRoute>
+          }
         />
 
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/audit" element={g('audit.read', <Audit />)} />
-        <Route path="/settings" element={g('settings.manage', <Settings />)} />
-        <Route path="/retention" element={g('compliance.manage', <Retention />)} />
-        <Route path="/service-categories" element={g('settings.manage', <ServiceCategories />)} />
-        <Route path="/service-regions" element={g('settings.manage', <ServiceRegions />)} />
-        <Route path="/erasure" element={g('compliance.manage', <Erasure />)} />
+        <Route
+          element={
+            <ProtectedRoute>
+              <AdminProvider>
+                <AdminGate>
+                  <AppShell />
+                </AdminGate>
+              </AdminProvider>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* The signed-in admin's own account — never permission-gated: every
+          <Route path="/applications" element={g('vendor.review', <Applications />)} />
+          <Route path="/applications/:id" element={g('vendor.review', <ApplicationDetail />)} />
+          <Route path="/vendors" element={g('vendor.manage', <Vendors />)} />
+          <Route path="/vendors/:id" element={g('vendor.manage', <VendorDetail />)} />
+          <Route path="/bookings" element={g('bookings.read', <Bookings />)} />
+          <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
+          <Route path="/events" element={g('events.manage', <Events />)} />
+          <Route path="/events/:id" element={g('events.manage', <EventDetail />)} />
+
+          <Route path="/escrow" element={g('escrow.read', <Escrow />)} />
+          <Route path="/payouts" element={g('payout.approve', <Payouts />)} />
+          <Route path="/refunds" element={g('refund.approve', <Refunds />)} />
+          <Route path="/disputes" element={g('dispute.manage', <Disputes />)} />
+          <Route path="/payments" element={g('payments.read', <Payments />)} />
+          <Route path="/ledger" element={g('finance.read', <Ledger />)} />
+          <Route path="/subscriptions" element={g('subscriptions.manage', <Subscriptions />)} />
+          <Route path="/pricing-plans" element={g('plans.manage', <PricingPlans />)} />
+          <Route path="/pricing-plans/:id" element={g('plans.manage', <PlanDetail />)} />
+
+          <Route path="/users" element={g('users.read', <Users />)} />
+          <Route path="/clients" element={g('users.read', <Clients />)} />
+          <Route path="/clients/:id" element={g('users.read', <ClientDetail />)} />
+          <Route path="/rbac" element={g('roles.manage', <Rbac />)} />
+          <Route
+            path="/blocked-accounts"
+            element={g('security.access.read', <BlockedAccounts />)}
+          />
+
+          <Route
+            path="/reviews-moderation"
+            element={g('moderation.manage', <ReviewsModeration />)}
+          />
+          <Route path="/messaging" element={g('moderation.manage', <MessagingModeration />)} />
+          <Route
+            path="/notification-templates"
+            element={g('settings.manage', <NotificationTemplates />)}
+          />
+
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/audit" element={g('audit.read', <Audit />)} />
+          <Route path="/settings" element={g('settings.manage', <Settings />)} />
+          <Route path="/retention" element={g('compliance.manage', <Retention />)} />
+          <Route path="/service-categories" element={g('settings.manage', <ServiceCategories />)} />
+          <Route path="/service-regions" element={g('settings.manage', <ServiceRegions />)} />
+          <Route path="/erasure" element={g('compliance.manage', <Erasure />)} />
+
+          {/* The signed-in admin's own account — never permission-gated: every
             admin can read and edit their own profile and password. */}
-        <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile />} />
 
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:conversationId" element={<Conversation />} />
-        <Route path="/notifications" element={<Notifications />} />
-      </Route>
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/:conversationId" element={<Conversation />} />
+          <Route path="/notifications" element={<Notifications />} />
+        </Route>
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }

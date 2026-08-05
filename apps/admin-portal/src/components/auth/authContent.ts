@@ -1,8 +1,8 @@
+import type { AuthShowcaseSlide } from '@sinnapi/ui';
+
 // Copy for the auth showcase carousel (left panel). Admin-oriented value props —
 // distinct from the marketing site's booking language.
-export type AuthSlide = { title: string; body: string };
-
-export const AUTH_SLIDES: AuthSlide[] = [
+export const AUTH_SLIDES: AuthShowcaseSlide[] = [
   {
     title: 'Command Center',
     body: 'Oversee vendors, bookings and events across the marketplace from one console.',

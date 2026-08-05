@@ -14,6 +14,9 @@ import type { SvgIconComponent } from '@mui/icons-material';
 
 export const APP = {
   name: 'Sinnapi',
+  // Shown as the pill beside the wordmark on auth screens, mirroring the admin
+  // portal's "Admin" badge.
+  tagline: 'Clients',
   publicUrl: import.meta.env.VITE_PUBLIC_URL ?? 'http://localhost:3000',
 };
 

@@ -17,19 +17,19 @@ const shared: ThemeOptions = {
     // previous body font), so the MUI/Roboto-tuned default body scale reads
     // visibly smaller at the same nominal size. Body/UI variants are bumped
     // ~1 step up from MUI's defaults to compensate.
-    body1: { fontSize: '1.125rem', lineHeight: 1.6 },
-    body2: { fontSize: '1rem', lineHeight: 1.55 },
+    body1: { fontSize: '1.25rem', lineHeight: 1.6 },
+    body2: { fontSize: '1.125rem', lineHeight: 1.55 },
     subtitle1: { fontSize: '1.125rem', lineHeight: 1.5 },
     subtitle2: { fontSize: '1rem', lineHeight: 1.5, fontWeight: 500 },
-    caption: { fontSize: '0.875rem', lineHeight: 1.4 },
+    caption: { fontSize: '1.0rem', lineHeight: 1.4 },
     button: { fontSize: '1.25rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.3px' },
-    overline: { fontSize: '0.8125rem', fontWeight: 600, letterSpacing: '1px' },
+    overline: { fontSize: '1rem', fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { borderRadius: 8, minHeight: 42 },
+        root: { borderRadius: 8, minHeight: 42, fontWeight: 800 },
         // MUI hardcodes fontSize per `size` (13px small / 15px large) inside
         // Button itself, overriding typography.button for anything but the
         // default medium size — restate it here so every size stays 1.25rem.

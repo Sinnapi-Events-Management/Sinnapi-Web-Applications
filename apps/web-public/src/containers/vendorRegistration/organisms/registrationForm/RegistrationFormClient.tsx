@@ -3,7 +3,7 @@ import { Box, Paper, Stack, Button, CircularProgress } from '@sinnapi/ui/atoms';
 import { Alert } from '@sinnapi/ui/molecules';
 import { ArrowBack, ArrowForward, Send } from '@mui/icons-material';
 import type { ReferenceOption } from '@/lib/queries';
-import { useVendorRegistration } from '../../hooks/useVendorRegistration';
+import { useVendorRegistration, type FailureReason } from '../../hooks/useVendorRegistration';
 import RegistrationStepper from '../../molecules/RegistrationStepper';
 import RegistrationSuccess from '../../molecules/RegistrationSuccess';
 import StepBusinessOwner from '../../molecules/StepBusinessOwner';
@@ -13,11 +13,19 @@ import StepReferencesTerms from '../../molecules/StepReferencesTerms';
 
 type Props = { categories: ReferenceOption[]; regions: ReferenceOption[] };
 
+/** What the banner says for each way a submit can fail. */
+const SUBMIT_ERRORS: Record<FailureReason, string> = {
+  uploading: 'Please wait for your files to finish uploading, then submit again.',
+  captcha:
+    "We couldn't confirm you're human. The check on the last step has been reset — give it a moment, then submit again.",
+  generic:
+    'Something went wrong submitting your application. Please review your details and try again.',
+};
+
 /** Interactive island: the whole multi-step vendor application. */
 export default function RegistrationFormClient({ categories, regions }: Props) {
   const api = useVendorRegistration();
-  const { step, stepCount, submitting, submitFailed, submitted, anyUploading, next, back, submit } =
-    api;
+  const { step, stepCount, submitting, submitFailed, failure, submitted, next, back, submit } = api;
 
   if (submitted) return <RegistrationSuccess />;
 
@@ -29,9 +37,7 @@ export default function RegistrationFormClient({ categories, regions }: Props) {
 
       {submitFailed && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {anyUploading
-            ? 'Please wait for your files to finish uploading, then submit again.'
-            : 'Something went wrong submitting your application. Please review your details and try again.'}
+          {SUBMIT_ERRORS[failure]}
         </Alert>
       )}
 
@@ -63,7 +69,7 @@ export default function RegistrationFormClient({ categories, regions }: Props) {
             size="large"
             endIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <Send />}
             onClick={submit}
-            disabled={submitting}
+            disabled={!api.canSubmit}
           >
             {submitting ? 'Submitting…' : 'Submit application'}
           </Button>

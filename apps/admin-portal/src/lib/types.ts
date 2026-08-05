@@ -694,3 +694,34 @@ export type MessageModel = {
   created_at: string | null;
   moderation_status: string;
 };
+
+/**
+ * One row of the Blocked Accounts list, from `list_blocked_accounts`.
+ *
+ * Two states share this shape, discriminated by `kind`. A `locked_out` row has
+ * every attempt/device/location field populated and expires on its own at
+ * `locked_until`; a `suspended` row has none of them and expires never. The
+ * nullability below is that difference, not missing data.
+ */
+export type BlockedAccountModel = {
+  kind: 'locked_out' | 'suspended';
+  /** Null when the locked address matches no account — i.e. an attack, not a user. */
+  profile_id: string | null;
+  email: string;
+  full_name: string | null;
+  account_status: string | null;
+  role_keys: string[] | null;
+  /** Which portal the lockout applies to. Null for suspensions, which are global. */
+  portal: string | null;
+  attempt_count: number | null;
+  first_attempt_at: string | null;
+  last_attempt_at: string | null;
+  /** When the lockout lifts by itself. Null for suspensions. */
+  locked_until: string | null;
+  /** Sortable "blocked since" for either kind. */
+  state_since: string | null;
+  last_ip: string | null;
+  last_user_agent: string | null;
+  /** ISO-3166 alpha-2. Null for rows captured before country was recorded. */
+  last_country: string | null;
+};

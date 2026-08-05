@@ -3,6 +3,26 @@
 #                        verification or service-role bearer).
 # verify_jwt = true   -> requires a valid user JWT (RLS + permissions apply).
 
+# The sign-in endpoint itself: the caller has no JWT yet, by definition. It is
+# not unauthenticated in effect — it verifies the password server-side and
+# refuses on its own terms (see supabase/functions/portal-sign-in).
+[functions.portal-sign-in]
+verify_jwt = false
+
+# Client self-registration + confirmation resends. Must stay open to anonymous
+# callers (a visitor creating an account has no JWT). Its one privileged action,
+# `admin_resend`, authenticates itself in-handler against `users.manage`.
+[functions.client-sign-up]
+verify_jwt = false
+
+# Password recovery, both directions. Must stay open to anonymous callers
+# because `action: 'self'` is the admin portal's forgot-password form, which by
+# definition has no JWT; that path is gated on a Turnstile token instead. The
+# privileged `action: 'admin'` path authenticates itself in-handler against
+# `users.manage` — same arrangement as client-sign-up's `admin_resend`.
+[functions.send-password-reset]
+verify_jwt = false
+
 [functions.create-payment]
 verify_jwt = true
 
