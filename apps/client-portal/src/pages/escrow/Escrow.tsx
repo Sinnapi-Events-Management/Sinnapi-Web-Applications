@@ -1,13 +1,20 @@
-import { Card, CardContent, Stack, Typography, Box, Divider } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  Box,
+  Divider,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import EscrowActions from '@/components/escrow/EscrowActions';
 import { formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorNameRefModel, BookingRefModel } from '@/lib/types';
 import { useEscrow } from './hooks/useEscrow';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Escrow() {
   const { rows, isLoading, error } = useEscrow();

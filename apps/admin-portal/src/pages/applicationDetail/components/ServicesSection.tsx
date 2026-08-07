@@ -1,7 +1,6 @@
-import { Stack, Divider } from '@sinnapi/ui';
+import { Stack, Divider, SectionCard } from '@sinnapi/ui';
 import CategoryIcon from '@mui/icons-material/Category';
 import PublicIcon from '@mui/icons-material/Public';
-import SectionCard from '@/components/ui/SectionCard';
 import ChipCloud, { type ChipItem } from '@/components/ui/ChipCloud';
 import { titleize } from '@/lib/config';
 import type { IntakeDetailModel } from '@/lib/types';

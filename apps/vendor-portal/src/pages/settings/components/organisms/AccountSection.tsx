@@ -1,6 +1,5 @@
-import { Card, CardContent, Typography, Divider, Box } from '@sinnapi/ui';
+import { Card, CardContent, Typography, Divider, Box, QueryState } from '@sinnapi/ui';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import QueryState from '@/components/ui/QueryState';
 import { useSettings } from '../../hooks/useSettings';
 import AccountForm from '../molecules/AccountForm';
 
@@ -12,7 +11,7 @@ export default function AccountSection() {
     <Card variant="outlined">
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <AccountCircleIcon color="primary" />
+          <AccountCircleIcon color="secondary" />
           <Typography variant="h6">Account</Typography>
         </Box>
         <Divider sx={{ mb: 2 }} />

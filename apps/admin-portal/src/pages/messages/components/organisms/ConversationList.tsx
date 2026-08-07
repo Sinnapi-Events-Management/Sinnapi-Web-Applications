@@ -1,9 +1,9 @@
 import { Stack, Alert } from '@sinnapi/ui';
-import EmptyState from '@/components/ui/EmptyState';
 import ConversationListItem from '../molecules/ConversationListItem';
 import ConversationListItemSkeleton from '../molecules/ConversationListItemSkeleton';
 import type { ConversationView } from '../../hooks/useMessages';
 import type { ActiveConversationState } from '../../hooks/useActiveConversation';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   rows: ConversationView[];

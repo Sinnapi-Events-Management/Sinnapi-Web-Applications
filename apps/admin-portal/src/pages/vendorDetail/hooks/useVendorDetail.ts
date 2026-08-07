@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { useVendor, useVendorKpis } from '@/hooks/queries';
 import { useVendorStatus } from '@/hooks/useVendorStatus';
 import type { NamedRef, OwnerRef } from '@/lib/types';
@@ -19,6 +20,8 @@ export function useVendorDetail() {
   const { data: vendor, isLoading, error } = useVendor(id);
   const { data: kpis } = useVendorKpis(id);
   const status = useVendorStatus();
+
+  useBreadcrumbTitle(vendor?.business_name);
 
   const owner = firstOf<OwnerRef>(vendor?.owner);
   const category = firstOf<NamedRef>(vendor?.category);

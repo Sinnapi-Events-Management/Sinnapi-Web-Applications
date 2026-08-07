@@ -1,6 +1,5 @@
-import { Typography, IconButton, Tooltip, type DataTableColumn } from '@sinnapi/ui';
+import { Typography, IconButton, Tooltip, type DataTableColumn, StatusChip } from '@sinnapi/ui';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import StatusChip from '@/components/ui/StatusChip';
 import { formatDate } from '@/lib/config';
 import type { IntakeListModel } from '@/lib/types';
 

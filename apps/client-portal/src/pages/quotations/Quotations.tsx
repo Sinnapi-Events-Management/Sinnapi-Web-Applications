@@ -8,16 +8,16 @@ import {
   TableBody,
   Typography,
   Button,
+  PageTitle,
+  QueryState,
+  StatusChip,
 } from '@sinnapi/ui';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorNameSlugRefModel } from '@/lib/types';
 import { useQuotations } from './hooks/useQuotations';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Quotations() {
   const { rows, isLoading, error } = useQuotations();

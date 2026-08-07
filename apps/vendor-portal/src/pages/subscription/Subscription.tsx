@@ -11,11 +11,11 @@ import {
   ListItemText,
   Box,
   Alert,
+  PageTitle,
+  QueryState,
+  StatusChip,
 } from '@sinnapi/ui';
 import CheckIcon from '@mui/icons-material/Check';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
-import StatusChip from '@/components/ui/StatusChip';
 import VendorGate from '@/vendor/VendorGate';
 import { formatMoney, titleize } from '@/lib/config';
 import { useSubscription } from './hooks/useSubscription';
@@ -49,14 +49,14 @@ function PlanGrid({ vendorId }: { vendorId: string }) {
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    borderColor: highlight ? 'primary.main' : 'divider',
+                    borderColor: highlight ? 'secondary.main' : 'divider',
                     borderWidth: highlight ? 2 : 1,
                   }}
                 >
                   <CardContent sx={{ flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="h4">{p.name}</Typography>
-                      {highlight && <Chip size="small" color="primary" label="Popular" />}
+                      {highlight && <Chip size="small" color="secondary" label="Popular" />}
                     </Box>
                     <Typography variant="h5" sx={{ my: 1 }}>
                       {formatMoney(p.price, p.currency)}
@@ -70,7 +70,7 @@ function PlanGrid({ vendorId }: { vendorId: string }) {
                         .map((f) => (
                           <ListItem key={f.feature_key} disableGutters>
                             <ListItemIcon sx={{ minWidth: 30 }}>
-                              <CheckIcon color="primary" fontSize="small" />
+                              <CheckIcon color="secondary" fontSize="small" />
                             </ListItemIcon>
                             <ListItemText primary={titleize(f.feature_key)} />
                           </ListItem>

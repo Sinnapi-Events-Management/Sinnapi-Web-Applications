@@ -4,5 +4,8 @@
 // `web-public` app must never pull them into its module graph.
 export * from './atoms/AppLink';
 export * from './molecules/AuthSwitchPrompt';
+export * from './molecules/StatCard';
+export * from './organisms/EmptyState';
+export * from './organisms/portalShell';
 export * from './hooks/useAppLinkSx';
 export * from './types';

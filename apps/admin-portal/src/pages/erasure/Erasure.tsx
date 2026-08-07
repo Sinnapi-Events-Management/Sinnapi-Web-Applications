@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { DataTable, Alert } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
 import { useErasure } from './hooks/useErasure';
 import { getColumns } from './schema';
 

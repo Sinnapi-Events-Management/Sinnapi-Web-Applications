@@ -1,12 +1,10 @@
-import { Stack, Button, Box } from '@sinnapi/ui';
+import { Stack, Button, Box, PageTitle, QueryState } from '@sinnapi/ui';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import VendorGate from '@/vendor/VendorGate';
 import { usePortfolio } from './hooks/usePortfolio';
 import MediaGallery from './components/molecules/MediaGallery';
 import MediaDialog from './components/organisms/MediaDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function Gallery({ vendorId }: { vendorId: string }) {
   const { rows, isLoading, error, open, openDialog, closeDialog, remove } = usePortfolio(vendorId);

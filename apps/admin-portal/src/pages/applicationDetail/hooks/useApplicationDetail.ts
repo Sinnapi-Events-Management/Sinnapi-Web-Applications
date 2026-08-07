@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApplication } from '@/hooks/queries';
 import { useAdmin } from '@/admin/AdminProvider';
@@ -22,6 +23,8 @@ export function useApplicationDetail() {
   const qc = useQueryClient();
   const { has } = useAdmin();
   const { data: intake, isLoading, error } = useApplication(id);
+
+  useBreadcrumbTitle(intake?.business_name);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   // Email delivery is best-effort on the server: the status change succeeds even

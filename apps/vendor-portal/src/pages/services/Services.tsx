@@ -1,12 +1,10 @@
-import { Grid, Button, Stack } from '@sinnapi/ui';
+import { Grid, Button, Stack, PageTitle, QueryState } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import VendorGate from '@/vendor/VendorGate';
 import { useServices } from './hooks/useServices';
 import ServiceCard from './components/molecules/ServiceCard';
 import ServiceDialog from './components/organisms/ServiceDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function ServicesList({ vendorId }: { vendorId: string }) {
   const { rows, isLoading, error, open, openDialog, closeDialog } = useServices(vendorId);

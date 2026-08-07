@@ -1,6 +1,5 @@
-import { Box, Button, Stack } from '@sinnapi/ui';
+import { Box, Button, Stack, SearchField } from '@sinnapi/ui';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import SearchField from '@/components/ui/SearchField';
 import type { SearchTerm } from '@/hooks/useSearchTerm';
 
 type Props = {

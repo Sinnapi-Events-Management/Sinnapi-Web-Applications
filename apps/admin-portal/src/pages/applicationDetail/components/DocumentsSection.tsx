@@ -1,10 +1,9 @@
-import { Stack, Box, Typography, alpha } from '@sinnapi/ui';
+import { Stack, Box, Typography, alpha, SectionCard } from '@sinnapi/ui';
 import FolderSharedIcon from '@mui/icons-material/FolderShared';
 import BadgeIcon from '@mui/icons-material/Badge';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import BlockIcon from '@mui/icons-material/Block';
-import SectionCard from '@/components/ui/SectionCard';
 
 type DocEntry = {
   label: string;

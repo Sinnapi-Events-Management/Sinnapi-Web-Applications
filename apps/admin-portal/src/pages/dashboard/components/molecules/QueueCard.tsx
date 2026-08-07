@@ -1,6 +1,5 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Card, CardActionArea, Chip, Stack, Typography } from '@sinnapi/ui';
-import IconBadge from '@/components/ui/IconBadge';
+import { Box, Card, CardActionArea, Chip, Stack, Typography, IconBadge } from '@sinnapi/ui';
 import { QUEUE_ICONS, type QueueCardModel } from '../../schema';
 
 type Props = { queue: QueueCardModel };

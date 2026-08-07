@@ -1,6 +1,5 @@
-import { Alert, Box, Button, Divider, FormField, Stack } from '@sinnapi/ui';
+import { Alert, Box, Button, Divider, FormField, Stack, SectionCard } from '@sinnapi/ui';
 import PersonIcon from '@mui/icons-material/PersonOutline';
-import SectionCard from '@/components/ui/SectionCard';
 import { useProfileForm } from '../../hooks/useProfileForm';
 import type { ProfileFormValues } from '../../schema';
 import ControlledField from '../molecules/ControlledField';

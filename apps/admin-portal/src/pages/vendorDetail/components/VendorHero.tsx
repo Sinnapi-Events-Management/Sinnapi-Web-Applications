@@ -1,5 +1,21 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Avatar, Chip, Divider, Button, Rating } from '@sinnapi/ui';
+import {
+  Box,
+  Stack,
+  Typography,
+  Avatar,
+  Chip,
+  Divider,
+  Button,
+  Rating,
+  StatusChip,
+  HeroSurface,
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroAvatarSx,
+  heroWarningSx,
+} from '@sinnapi/ui';
 import PlaceIcon from '@mui/icons-material/Place';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -7,15 +23,6 @@ import CategoryIcon from '@mui/icons-material/Category';
 import EmailIcon from '@mui/icons-material/Email';
 import StarIcon from '@mui/icons-material/Star';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HeroSurface from '@/components/ui/HeroSurface';
-import {
-  heroGhostSx,
-  heroChipSx,
-  heroDividerSx,
-  heroAvatarSx,
-  heroWarningSx,
-} from '@/components/ui/heroSurface.styles';
-import StatusChip from '@/components/ui/StatusChip';
 import type { VendorStatus } from '@/hooks/useVendorStatus';
 import { formatDate } from '@/lib/config';
 import type { NamedRef, OwnerRef, VendorDetailModel } from '@/lib/types';

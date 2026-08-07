@@ -59,7 +59,6 @@ export default function DocumentPreviewDialog({ doc, loading = false, onClose }:
       fullWidth
       maxWidth="md"
       PaperProps={{ sx: { height: { xs: '100%', sm: '88vh' }, borderRadius: { sm: 3 } } }}
-      sx={{ backdropFilter: 'blur(5px)' }}
     >
       {doc && <PreviewHeader doc={doc} onClose={onClose} />}
       <Divider />

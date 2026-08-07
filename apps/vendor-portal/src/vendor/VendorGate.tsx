@@ -1,6 +1,6 @@
 import { Box, CircularProgress } from '@sinnapi/ui';
 import { useVendorContext } from './VendorProvider';
-import EmptyState from '@/components/ui/EmptyState';
+import { EmptyState } from '@sinnapi/ui/router';
 
 // Renders children only when the signed-in user owns a vendor record.
 // Otherwise prompts them to complete onboarding. (Subscription state is

@@ -1,12 +1,12 @@
 import { Stack, Box, Alert, Button, Typography, CircularProgress } from '@sinnapi/ui';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import EmptyState from '@/components/ui/EmptyState';
 import NotificationListItem from '../molecules/NotificationListItem';
 import NotificationListItemSkeleton from '../molecules/NotificationListItemSkeleton';
 import DayGroupHeader from '../molecules/DayGroupHeader';
 import { getEmptyState, type DayGroup, type NotificationTab } from '../../schema';
 import type { NotificationView, PagingState } from '../../hooks/useNotifications';
 import type { ActiveNotificationState } from '../../hooks/useActiveNotification';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   groups: DayGroup<NotificationView>[];

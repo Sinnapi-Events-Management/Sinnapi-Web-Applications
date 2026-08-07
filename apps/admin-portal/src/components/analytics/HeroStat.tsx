@@ -1,6 +1,5 @@
-import { Box, Card, CardContent, Skeleton, Stack, Typography } from '@sinnapi/ui';
+import { Box, Card, CardContent, Skeleton, Stack, Typography, IconBadge } from '@sinnapi/ui';
 import { formatValue, type TrendPoint, type ValueFormat } from '@/lib/analytics';
-import IconBadge from '@/components/ui/IconBadge';
 import TrendBadge from './TrendBadge';
 import Sparkline from './charts/Sparkline';
 

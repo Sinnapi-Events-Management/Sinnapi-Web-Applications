@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { useClient, useClientKpis } from '@/hooks/queries';
 import { useClientStatus } from '@/pages/clients/hooks/useClientStatus';
 import { useClientDelete } from '@/pages/clients/hooks/useClientDelete';
@@ -16,6 +17,8 @@ export function useClientDetail() {
 
   const { data: client, isLoading, error } = useClient(id);
   const { data: kpis } = useClientKpis(id);
+
+  useBreadcrumbTitle(client?.full_name);
 
   const status = useClientStatus();
   const remove = useClientDelete();

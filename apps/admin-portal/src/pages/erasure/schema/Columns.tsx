@@ -1,5 +1,4 @@
-import { TextField, MenuItem, type DataTableColumn } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import { TextField, MenuItem, type DataTableColumn, StatusChip } from '@sinnapi/ui';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { ErasureRequestModel, ProfileRef } from '@/lib/types';

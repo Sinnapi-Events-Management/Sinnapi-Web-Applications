@@ -1,5 +1,4 @@
-import { Stack, Box, Typography } from '@sinnapi/ui';
-import SearchField from '@/components/ui/SearchField';
+import { Stack, Box, Typography, SearchField } from '@sinnapi/ui';
 import TypeFilterChips from '../molecules/TypeFilterChips';
 import type { SearchState, TypeFilter } from '../../hooks/useMessages';
 

@@ -1,9 +1,9 @@
 import { Box } from '@sinnapi/ui';
-import EmptyState from '@/components/ui/EmptyState';
 import { QUEUES, type QueueCardModel } from '../../schema';
 import SectionHeading from '../molecules/SectionHeading';
 import QueueCard from '../molecules/QueueCard';
 import QueueCardSkeleton from '../molecules/QueueCardSkeleton';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   queues: QueueCardModel[];

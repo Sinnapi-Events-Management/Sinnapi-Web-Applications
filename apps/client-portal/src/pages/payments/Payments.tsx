@@ -1,10 +1,17 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatMoney, formatDate, titleize } from '@/lib/config';
 import { usePayments } from './hooks/usePayments';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Payments() {
   const { rows, isLoading, error } = usePayments();

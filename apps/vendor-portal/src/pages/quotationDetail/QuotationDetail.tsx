@@ -8,16 +8,16 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  PageTitle,
+  QueryState,
+  StatusChip,
 } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
 import QuotationBuilder from '@/components/quotation/QuotationBuilder';
 import { formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { ProfileRel } from '@/lib/types';
 import { useQuotationDetail } from './hooks/useQuotationDetail';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function QuotationDetail() {
   const { quotation: q, isLoading, error } = useQuotationDetail();

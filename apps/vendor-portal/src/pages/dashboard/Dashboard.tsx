@@ -1,15 +1,24 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Grid, Card, CardContent, Typography, Button, Stack, Box, Alert } from '@sinnapi/ui';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Stack,
+  Box,
+  Alert,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import StarIcon from '@mui/icons-material/Star';
-import PageTitle from '@/components/ui/PageTitle';
-import StatCard from '@/components/ui/StatCard';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate } from '@/lib/config';
 import { useDashboard } from './hooks/useDashboard';
+import { StatCard } from '@sinnapi/ui/router';
 
 export default function Dashboard() {
   const { vendor, subscription, loading, dash, app } = useDashboard();
@@ -88,6 +97,7 @@ export default function Dashboard() {
         <Grid container spacing={3}>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="Booking requests"
               value={dash.data?.bookingRequests ?? 0}
               to="/bookings"
@@ -96,6 +106,7 @@ export default function Dashboard() {
           </Grid>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="Quote requests"
               value={dash.data?.quoteRequests ?? 0}
               to="/quotations"
@@ -104,6 +115,7 @@ export default function Dashboard() {
           </Grid>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="In escrow"
               value={dash.data?.escrowHeld ?? 0}
               to="/escrow"
@@ -112,6 +124,7 @@ export default function Dashboard() {
           </Grid>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="Reviews"
               value={dash.data?.reviews ?? 0}
               to="/reviews"

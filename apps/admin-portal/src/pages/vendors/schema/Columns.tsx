@@ -1,5 +1,12 @@
-import { Avatar, Box, Rating, Stack, Typography, type DataTableColumn } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import {
+  Avatar,
+  Box,
+  Rating,
+  Stack,
+  Typography,
+  type DataTableColumn,
+  StatusChip,
+} from '@sinnapi/ui';
 import type { VendorStatus } from '@/hooks/useVendorStatus';
 import type { VendorAdminModel } from '@/lib/types';
 import VendorRowActions from '../components/molecules/VendorRowActions';

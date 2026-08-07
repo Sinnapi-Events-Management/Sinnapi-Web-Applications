@@ -13,8 +13,8 @@ import StarOutlineIcon from '@mui/icons-material/StarOutline';
 import ForumIcon from '@mui/icons-material/Forum';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import IconBadge from '@/components/ui/IconBadge';
 import type { NotificationDomain } from '../../schema';
+import { IconBadge } from '@sinnapi/ui';
 
 /**
  * Glyph per domain. Lives beside the badge rather than in the schema so the

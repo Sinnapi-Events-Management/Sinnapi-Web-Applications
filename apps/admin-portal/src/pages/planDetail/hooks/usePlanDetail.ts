@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { usePlan, usePlanKpis } from '@/hooks/queries';
 import { usePlanEdit } from '../../pricingPlans/hooks/usePlanEdit';
 import { usePlanDelete } from '../../pricingPlans/hooks/usePlanDelete';
@@ -14,6 +15,8 @@ export function usePlanDetail() {
   const navigate = useNavigate();
   const { data: plan, isLoading, error } = usePlan(id);
   const { data: kpis } = usePlanKpis(id);
+
+  useBreadcrumbTitle(plan?.name);
   const edit = usePlanEdit();
   const remove = usePlanDelete(() => navigate('/pricing-plans'));
 

@@ -1,16 +1,21 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Chip, Divider, Stack, Typography } from '@sinnapi/ui';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import StarIcon from '@mui/icons-material/Star';
-import HeroSurface from '@/components/ui/HeroSurface';
 import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Stack,
+  Typography,
+  HeroSurface,
   heroGhostSx,
   heroChipSx,
   heroDividerSx,
   heroDangerSx,
-} from '@/components/ui/heroSurface.styles';
+} from '@sinnapi/ui';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import StarIcon from '@mui/icons-material/Star';
 import { formatMoney, titleize } from '@/lib/config';
 import type { PlanDetailModel } from '@/lib/types';
 

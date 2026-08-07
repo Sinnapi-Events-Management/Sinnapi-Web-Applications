@@ -1,22 +1,31 @@
-import { Card, CardContent } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
+import { Card, CardContent, Stack, PageTitle, QueryState } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
 import VendorProfileForm from '@/components/profile/VendorProfileForm';
+import ServiceCoverageCard from './components/organisms/ServiceCoverageCard';
 import { useProfile } from './hooks/useProfile';
 
+/**
+ * Two independent cards, each owning its own read and write. Coverage is kept
+ * out of the profile form because it writes to a different table through an RPC
+ * rather than to a `vendors` column, and folding it in would mean one Save
+ * button committing two unrelated statements with no transaction across them.
+ */
 function ProfileEditor({ vendorId }: { vendorId: string }) {
   const { data, isLoading, error } = useProfile(vendorId);
   return (
-    <QueryState isLoading={isLoading} error={error}>
-      {data && (
-        <Card variant="outlined">
-          <CardContent>
-            <VendorProfileForm vendor={data} />
-          </CardContent>
-        </Card>
-      )}
-    </QueryState>
+    <Stack spacing={3}>
+      <QueryState isLoading={isLoading} error={error}>
+        {data && (
+          <Card variant="outlined">
+            <CardContent>
+              <VendorProfileForm vendor={data} />
+            </CardContent>
+          </Card>
+        )}
+      </QueryState>
+
+      <ServiceCoverageCard vendorId={vendorId} />
+    </Stack>
   );
 }
 

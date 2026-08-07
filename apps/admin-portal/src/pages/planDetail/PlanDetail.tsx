@@ -1,11 +1,11 @@
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
 import { usePlanDetail } from './hooks/usePlanDetail';
 import PlanHero from './components/PlanHero';
 import PlanStats from './components/PlanStats';
 import PlanTabs from './components/PlanTabs';
 import PlanDrawer from '../pricingPlans/components/organisms/PlanDrawer';
 import PlanDeleteDialog from '../pricingPlans/components/organisms/PlanDeleteDialog';
+import { QueryState } from '@sinnapi/ui';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function PlanDetail() {
   const { plan, kpis, isLoading, error, edit, remove } = usePlanDetail();

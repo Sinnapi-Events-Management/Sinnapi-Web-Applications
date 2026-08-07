@@ -26,12 +26,14 @@ import PublicIcon from '@mui/icons-material/Public';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import ChatIcon from '@mui/icons-material/Chat';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import type { SvgIconComponent } from '@mui/icons-material';
+import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
 export const APP = { name: 'Sinnapi', tagline: 'Admin' };
 
-export type NavItem = { label: string; to: string; icon: SvgIconComponent; perm?: string };
-export type NavSection = { title: string; items: NavItem[] };
+// Nav shape is owned by the shared `PortalShell`, so admin, client and vendor
+// configs stay interchangeable. Aliased for readability at the call sites.
+export type NavItem = PortalNavItem;
+export type NavSection = PortalNavSection;
 
 // `perm` undefined = visible to any admin. Otherwise gated by permission key.
 export const NAV_SECTIONS: NavSection[] = [
@@ -118,7 +120,12 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Inbox',
     items: [
       { label: 'Messages', to: '/messages', icon: ChatIcon },
-      { label: 'Notifications', to: '/notifications', icon: NotificationsIcon },
+      {
+        label: 'Notifications',
+        to: '/notifications',
+        icon: NotificationsIcon,
+        badgeKey: 'notifications',
+      },
     ],
   },
   {

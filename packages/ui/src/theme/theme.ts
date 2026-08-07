@@ -16,6 +16,24 @@ declare module '@mui/material/styles' {
   }
 }
 
+/**
+ * Every modal in every Sinnapi surface sits on the same scrim: a 4px blur of
+ * the page behind it. Scoped to Dialog's own backdrop, so Drawers and standalone
+ * `<Backdrop>` overlays keep their own treatment.
+ *
+ * Exported as a fragment because each app builds its own theme (the portals run
+ * denser typography and controls than the marketing site) and so would not
+ * inherit the themes below. Spread it into every `components` block — that is
+ * what keeps one blur radius across four apps instead of four that drift.
+ */
+export const modalOverrides: ThemeOptions['components'] = {
+  MuiDialog: {
+    styleOverrides: {
+      root: { '& > .MuiBackdrop-root': { backdropFilter: 'blur(4px)' } },
+    },
+  },
+};
+
 // Shared, palette-independent options. Component defaults live here so every
 // app gets identical Button/Card/TextField behaviour without per-app overrides.
 const shared: ThemeOptions = {
@@ -80,6 +98,7 @@ const shared: ThemeOptions = {
         sizeLarge: { fontSize: '1.25rem' },
       },
     },
+    ...modalOverrides,
     MuiCard: { styleOverrides: { root: { borderRadius: radius.md } } },
     MuiPaper: { styleOverrides: { rounded: { borderRadius: radius.md } } },
     MuiChip: { styleOverrides: { root: { borderRadius: radius.pill } } },

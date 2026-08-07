@@ -1,6 +1,4 @@
-import { Grid, Card, CardContent, Typography } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
+import { Grid, Card, CardContent, Typography, PageTitle, QueryState } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
 import { useCalendar } from './hooks/useCalendar';
 import BlockDateForm from './components/molecules/BlockDateForm';

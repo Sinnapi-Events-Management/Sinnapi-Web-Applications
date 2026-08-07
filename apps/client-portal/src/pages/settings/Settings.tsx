@@ -1,8 +1,7 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Card, CardContent, Typography, Stack, Divider, Button, Box } from '@sinnapi/ui';
+import { Card, CardContent, Typography, Stack, Divider, Button, Box, PageTitle } from '@sinnapi/ui';
 import SecurityIcon from '@mui/icons-material/Security';
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
-import PageTitle from '@/components/ui/PageTitle';
 
 export default function Settings() {
   return (
@@ -12,7 +11,7 @@ export default function Settings() {
         <Card variant="outlined">
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <SecurityIcon color="primary" />
+              <SecurityIcon color="secondary" />
               <Typography variant="h6">Security</Typography>
             </Box>
             <Divider sx={{ mb: 2 }} />
@@ -28,7 +27,7 @@ export default function Settings() {
         <Card variant="outlined">
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <PrivacyTipIcon color="primary" />
+              <PrivacyTipIcon color="secondary" />
               <Typography variant="h6">Privacy & data</Typography>
             </Box>
             <Divider sx={{ mb: 2 }} />

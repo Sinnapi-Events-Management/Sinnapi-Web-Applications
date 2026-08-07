@@ -1,5 +1,4 @@
-import { Rating, Typography, type DataTableColumn } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import { Rating, Typography, type DataTableColumn, StatusChip } from '@sinnapi/ui';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import type {
   BookingModel,

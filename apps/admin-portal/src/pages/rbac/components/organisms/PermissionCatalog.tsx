@@ -1,8 +1,8 @@
 import { Stack } from '@sinnapi/ui';
-import EmptyState from '@/components/ui/EmptyState';
 import { getPermissionsEmptyState, type GrantFilter } from '../../schema';
 import type { CategoryView } from '../../hooks/useRolePermissions';
 import PermissionCategorySection from './PermissionCategorySection';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   categories: CategoryView[];

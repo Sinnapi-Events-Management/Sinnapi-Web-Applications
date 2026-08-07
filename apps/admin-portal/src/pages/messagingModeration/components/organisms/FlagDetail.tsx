@@ -1,9 +1,7 @@
-import { Stack, Box, Typography, Button, IconButton } from '@sinnapi/ui';
+import { Stack, Box, Typography, Button, IconButton, StatusChip, InfoRow } from '@sinnapi/ui';
 import BlockIcon from '@mui/icons-material/Block';
 import CloseIcon from '@mui/icons-material/Close';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
-import StatusChip from '@/components/ui/StatusChip';
-import InfoRow from '@/components/ui/InfoRow';
 import { formatDateTime, titleize } from '@/lib/config';
 import { reasonMeta } from '../../schema';
 import type { FlagView } from '../../hooks/useMessagingModeration';

@@ -1,6 +1,4 @@
-import { Alert, Box, Snackbar } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
+import { Alert, Box, Snackbar, PageTitle, QueryState } from '@sinnapi/ui';
 import { useProfile } from './hooks/useProfile';
 import ProfileTabs from './components/molecules/ProfileTabs';
 import ProfileSection from './components/organisms/ProfileSection';

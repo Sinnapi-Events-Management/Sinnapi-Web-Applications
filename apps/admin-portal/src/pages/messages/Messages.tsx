@@ -1,5 +1,4 @@
-import { Stack } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Stack, PageTitle } from '@sinnapi/ui';
 import StatusTabs from '@/components/ui/StatusTabs';
 import { useMessages } from './hooks/useMessages';
 import { useActiveConversation } from './hooks/useActiveConversation';

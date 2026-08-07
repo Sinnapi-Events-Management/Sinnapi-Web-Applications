@@ -1,5 +1,20 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Chip, Divider, Button } from '@sinnapi/ui';
+import {
+  Box,
+  Stack,
+  Typography,
+  Chip,
+  Divider,
+  Button,
+  StatusChip,
+  HeroSurface,
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroQuietSx,
+  heroWarningSx,
+  heroDangerSx,
+} from '@sinnapi/ui';
 import type { SxProps } from '@sinnapi/ui';
 import type { Theme } from '@sinnapi/ui/theme';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -10,16 +25,6 @@ import LockIcon from '@mui/icons-material/Lock';
 import PlaceIcon from '@mui/icons-material/Place';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CategoryIcon from '@mui/icons-material/Category';
-import HeroSurface from '@/components/ui/HeroSurface';
-import {
-  heroGhostSx,
-  heroChipSx,
-  heroDividerSx,
-  heroQuietSx,
-  heroWarningSx,
-  heroDangerSx,
-} from '@/components/ui/heroSurface.styles';
-import StatusChip from '@/components/ui/StatusChip';
 import type { EventStatus } from '@/lib/status';
 import { formatDate, titleize } from '@/lib/config';
 import type { EventDetailModel } from '@/lib/types';

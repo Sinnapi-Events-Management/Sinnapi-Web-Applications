@@ -1,9 +1,8 @@
-import { Stack, Button, Alert, Typography, Box, alpha } from '@sinnapi/ui';
+import { Stack, Button, Alert, Typography, Box, alpha, SectionCard } from '@sinnapi/ui';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import SectionCard from '@/components/ui/SectionCard';
 
 type Props = {
   status: string;

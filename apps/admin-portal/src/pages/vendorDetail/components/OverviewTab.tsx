@@ -1,6 +1,7 @@
 import { Grid, Stack, Typography, Link, InfoCard } from '@sinnapi/ui';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import type { NamedRef, OwnerRef, VendorDetailModel } from '@/lib/types';
+import CoverageCard from './CoverageCard';
 
 type Props = {
   vendor: VendorDetailModel;
@@ -75,18 +76,22 @@ export default function OverviewTab({ vendor: v, owner, category }: Props) {
       </Grid>
 
       <Grid item xs={12} md={5}>
-        <InfoCard title="Owner">
-          <Stack spacing={2.5}>
-            <Field label="Name">{owner?.full_name ?? '—'}</Field>
-            <Field label="Email">
-              {owner?.email ? <Link href={`mailto:${owner.email}`}>{owner.email}</Link> : '—'}
-            </Field>
-            <Field label="Phone">
-              {owner?.phone ? <Link href={`tel:${owner.phone}`}>{owner.phone}</Link> : '—'}
-            </Field>
-            <Field label="Slug">{v.slug}</Field>
-          </Stack>
-        </InfoCard>
+        <Stack spacing={3}>
+          <CoverageCard vendorId={v.id} />
+
+          <InfoCard title="Owner">
+            <Stack spacing={2.5}>
+              <Field label="Name">{owner?.full_name ?? '—'}</Field>
+              <Field label="Email">
+                {owner?.email ? <Link href={`mailto:${owner.email}`}>{owner.email}</Link> : '—'}
+              </Field>
+              <Field label="Phone">
+                {owner?.phone ? <Link href={`tel:${owner.phone}`}>{owner.phone}</Link> : '—'}
+              </Field>
+              <Field label="Slug">{v.slug}</Field>
+            </Stack>
+          </InfoCard>
+        </Stack>
       </Grid>
     </Grid>
   );

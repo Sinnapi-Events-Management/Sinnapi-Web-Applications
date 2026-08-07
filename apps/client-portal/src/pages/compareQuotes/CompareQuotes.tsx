@@ -1,12 +1,19 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatMoney, formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorNameSlugRefModel } from '@/lib/types';
 import { useCompareQuotes } from './hooks/useCompareQuotes';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function CompareQuotes() {
   const { rows, isLoading, error } = useCompareQuotes();

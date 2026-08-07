@@ -1,18 +1,26 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Grid, Card, CardContent, Typography, Button, Stack, Box } from '@sinnapi/ui';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Stack,
+  Box,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SearchIcon from '@mui/icons-material/Search';
-import PageTitle from '@/components/ui/PageTitle';
-import StatCard from '@/components/ui/StatCard';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorRefModel } from '@/lib/types';
 import { useDashboard } from './hooks/useDashboard';
+import { StatCard } from '@sinnapi/ui/router';
 
 export default function Dashboard() {
   const { counts, bookings, profile, upcoming } = useDashboard();
@@ -37,6 +45,7 @@ export default function Dashboard() {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="Active bookings"
               value={counts.data?.activeBookings ?? 0}
               to="/bookings"
@@ -45,6 +54,7 @@ export default function Dashboard() {
           </Grid>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="Open quotes"
               value={counts.data?.openQuotes ?? 0}
               to="/quotations"
@@ -53,6 +63,7 @@ export default function Dashboard() {
           </Grid>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="In escrow"
               value={counts.data?.escrowHeld ?? 0}
               to="/escrow"
@@ -61,6 +72,7 @@ export default function Dashboard() {
           </Grid>
           <Grid item xs={6} md={3}>
             <StatCard
+              size="lg"
               label="Unread"
               value={counts.data?.unread ?? 0}
               to="/notifications"

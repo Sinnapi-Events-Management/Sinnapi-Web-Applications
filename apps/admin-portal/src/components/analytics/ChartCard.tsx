@@ -1,4 +1,4 @@
-import SectionCard from '@/components/ui/SectionCard';
+import { SectionCard } from '@sinnapi/ui';
 
 type Accent = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 

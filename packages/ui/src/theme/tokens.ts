@@ -62,6 +62,12 @@ export const palette = {
     text: { primary: '#1A1320', secondary: '#5C5468', disabled: '#A8A0B5' },
     divider: 'rgba(26,19,32,0.12)',
   },
+  // The dark scheme is warm-neutral, not the cool near-black most dark modes
+  // default to: the canvas carries a low-saturation gold tilt (hue ~40°) so the
+  // secondary-forward identity survives the scheme flip instead of only reading
+  // in light mode. Text, dividers and the `contrastText` inks are warmed to the
+  // same family — a cool grey text on a warm canvas is what makes tinted dark
+  // modes look muddy.
   dark: {
     mode: 'dark',
     primary: {
@@ -70,7 +76,7 @@ export const palette = {
       light: '#7FC4C1',
       main: '#3F9BA3',
       dark: '#07504D',
-      contrastText: '#1A1320',
+      contrastText: '#14100B',
     },
     secondary: {
       lightest: '#FEFAEF',
@@ -78,15 +84,15 @@ export const palette = {
       light: '#FADF92',
       main: '#F6D064',
       dark: '#D4A017',
-      contrastText: '#1A1320',
+      contrastText: '#14100B',
     },
     success: { lightest: '#E7F4E8', lighter: '#9FD4A4', main: '#5FB868' },
     warning: { lightest: '#FFF4E3', lighter: '#FFD391', main: '#FFB547' },
     error: { lightest: '#FDE5E5', lighter: '#F59896', main: '#EF5350' },
     info: { lightest: '#E5F6FE', lighter: '#95DBFA', main: '#4FC3F7' },
-    background: { default: '#100B16', paper: '#1A1320' },
-    text: { primary: '#F2F0F4', secondary: '#A8A0B5', disabled: '#5C5468' },
-    divider: 'rgba(242,240,244,0.12)',
+    background: { default: '#14100B', paper: '#1F1811' },
+    text: { primary: '#F3F0E9', secondary: '#B5ADA0', disabled: '#6B6358' },
+    divider: 'rgba(243,240,233,0.12)',
   },
 } as const;
 

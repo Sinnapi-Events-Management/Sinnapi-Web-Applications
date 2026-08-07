@@ -1,0 +1,98 @@
+'use client';
+import type { ReactNode } from 'react';
+import { AppBar, Badge, Box, Divider, IconButton, Toolbar, Tooltip } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import { Link as RouterLink } from 'react-router-dom';
+import { ThemeToggle } from '../../../molecules/ThemeToggle';
+import { chromeTransition, topBarBackground } from './portalShell.styles';
+import { PortalAccountMenu } from './PortalAccountMenu';
+import { PortalBreadcrumbs } from './PortalBreadcrumbs';
+import { PortalViewMenu } from './PortalViewMenu';
+import type { ViewPreferences } from './hooks/useViewPreferences';
+import type { PortalAccount, PortalCrumb } from './types';
+
+export interface PortalTopBarProps {
+  crumbs: PortalCrumb[];
+  account: PortalAccount;
+  view: ViewPreferences;
+  /** Left offset and width reserved for the sidebar, animated on collapse. */
+  sidebarWidth: number;
+  unread?: number;
+  notificationsTo?: string;
+  topBarActions?: ReactNode;
+  onOpenMobileNav: () => void;
+  accountAnchor: HTMLElement | null;
+  onOpenAccount: (e: React.MouseEvent<HTMLElement>) => void;
+  onCloseAccount: () => void;
+}
+
+/** Fixed top bar: nav trigger and breadcrumbs at the leading edge, controls at the trailing edge. */
+export function PortalTopBar({
+  crumbs,
+  account,
+  view,
+  sidebarWidth,
+  unread = 0,
+  notificationsTo,
+  topBarActions,
+  onOpenMobileNav,
+  accountAnchor,
+  onOpenAccount,
+  onCloseAccount,
+}: PortalTopBarProps) {
+  return (
+    <AppBar
+      position="fixed"
+      color="inherit"
+      elevation={0}
+      sx={{
+        borderBottom: 1,
+        borderColor: 'divider',
+        backgroundColor: topBarBackground,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        width: { md: `calc(100% - ${sidebarWidth}px)` },
+        ml: { md: `${sidebarWidth}px` },
+        transition: chromeTransition,
+      }}
+    >
+      <Toolbar sx={{ gap: 1 }}>
+        <IconButton
+          edge="start"
+          sx={{ mr: 0.5, display: { md: 'none' } }}
+          onClick={onOpenMobileNav}
+          aria-label="Open navigation"
+        >
+          <MenuIcon />
+        </IconButton>
+
+        <Box sx={{ minWidth: 0 }}>
+          <PortalBreadcrumbs crumbs={crumbs} />
+        </Box>
+
+        <Box sx={{ flex: 1 }} />
+
+        {topBarActions}
+        <PortalViewMenu view={view} />
+        <ThemeToggle />
+        {notificationsTo && (
+          <Tooltip title="Notifications">
+            <IconButton component={RouterLink} to={notificationsTo} aria-label="Notifications">
+              <Badge color="error" badgeContent={unread}>
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1.25 }} />
+        <PortalAccountMenu
+          account={account}
+          anchorEl={accountAnchor}
+          onOpen={onOpenAccount}
+          onClose={onCloseAccount}
+        />
+      </Toolbar>
+    </AppBar>
+  );
+}

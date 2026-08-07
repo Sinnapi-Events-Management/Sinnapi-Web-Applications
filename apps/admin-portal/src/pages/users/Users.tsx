@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, DataTable, Snackbar } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Alert, DataTable, Snackbar, PageTitle } from '@sinnapi/ui';
 import StatusTabs from '@/components/ui/StatusTabs';
 import { useUsers } from './hooks/useUsers';
 import { getColumns, toFormValues, emptyFormValues } from './schema';

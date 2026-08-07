@@ -1,11 +1,10 @@
-import { Stack, Alert, Typography } from '@sinnapi/ui';
-import SearchField from '@/components/ui/SearchField';
-import EmptyState from '@/components/ui/EmptyState';
+import { Stack, Alert, Typography, SearchField } from '@sinnapi/ui';
 import type { RoleModel } from '@/lib/types';
 import { ROLES_EMPTY } from '../../schema';
 import type { RoleSearchState } from '../../hooks/useRbac';
 import RoleListItem from '../molecules/RoleListItem';
 import RoleListItemSkeleton from '../molecules/RoleListItemSkeleton';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   roles: RoleModel[];

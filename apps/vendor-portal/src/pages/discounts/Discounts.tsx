@@ -1,12 +1,10 @@
-import { Button, Stack } from '@sinnapi/ui';
+import { Button, Stack, PageTitle, QueryState } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import VendorGate from '@/vendor/VendorGate';
 import { useDiscounts } from './hooks/useDiscounts';
 import DiscountsTable from './components/molecules/DiscountsTable';
 import DiscountDialog from './components/organisms/DiscountDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function DiscountsList({ vendorId }: { vendorId: string }) {
   const { rows, isLoading, error, open, openDialog, closeDialog } = useDiscounts(vendorId);

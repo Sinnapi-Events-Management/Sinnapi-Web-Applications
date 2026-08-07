@@ -28,7 +28,7 @@ export default function ReviewResponse({ reviewId, existing }: Props) {
 
   if (existing)
     return (
-      <Box sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'primary.light' }}>
+      <Box sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'secondary.main' }}>
         <Typography variant="caption" color="text.secondary">
           Your response
         </Typography>

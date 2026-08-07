@@ -1,19 +1,25 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Avatar, Chip, Divider, Button } from '@sinnapi/ui';
+import {
+  Box,
+  Stack,
+  Typography,
+  Avatar,
+  Chip,
+  Divider,
+  Button,
+  StatusChip,
+  HeroSurface,
+  heroGhostSx,
+  heroChipSx,
+  heroDividerSx,
+  heroAvatarSx,
+} from '@sinnapi/ui';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import PlaceIcon from '@mui/icons-material/Place';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HeroSurface from '@/components/ui/HeroSurface';
-import {
-  heroGhostSx,
-  heroChipSx,
-  heroDividerSx,
-  heroAvatarSx,
-} from '@/components/ui/heroSurface.styles';
-import StatusChip from '@/components/ui/StatusChip';
 import { formatDate, titleize } from '@/lib/config';
 import type { IntakeDetailModel } from '@/lib/types';
 

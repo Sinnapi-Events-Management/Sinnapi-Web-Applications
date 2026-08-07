@@ -1,5 +1,4 @@
-import { Typography, type DataTableColumn } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import { Typography, type DataTableColumn, StatusChip } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import type { EventInterestModel, EventQuotationModel } from '@/lib/types';
 import VendorRowActions from '../components/molecules/VendorRowActions';

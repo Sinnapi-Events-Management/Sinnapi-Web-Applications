@@ -1,6 +1,4 @@
-import { Alert, Snackbar } from '@sinnapi/ui';
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
+import { Alert, Snackbar, QueryState } from '@sinnapi/ui';
 import { useClientDetail } from './hooks/useClientDetail';
 import ClientHero from './components/ClientHero';
 import ClientStats from './components/ClientStats';
@@ -8,6 +6,7 @@ import ClientTabs from './components/ClientTabs';
 import ClientStatusDialog from '../clients/components/organisms/ClientStatusDialog';
 import ClientDeleteDialog from '../clients/components/organisms/ClientDeleteDialog';
 import ClientPasswordResetDialog from '../clients/components/organisms/ClientPasswordResetDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function ClientDetail() {
   const { client, kpis, isLoading, error, status, remove, passwordReset, navigate } =

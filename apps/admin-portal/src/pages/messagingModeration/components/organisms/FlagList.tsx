@@ -1,9 +1,9 @@
 import { Stack, Alert } from '@sinnapi/ui';
-import EmptyState from '@/components/ui/EmptyState';
 import FlagListItem from '../molecules/FlagListItem';
 import FlagListItemSkeleton from '../molecules/FlagListItemSkeleton';
 import type { FlagView, Selection } from '../../hooks/useMessagingModeration';
 import type { FlagDetailState } from '../../hooks/useFlagDetail';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   rows: FlagView[];

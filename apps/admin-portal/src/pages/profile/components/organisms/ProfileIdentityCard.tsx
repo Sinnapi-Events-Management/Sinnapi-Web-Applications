@@ -1,5 +1,14 @@
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography, alpha } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  Typography,
+  alpha,
+  StatusChip,
+} from '@sinnapi/ui';
 import { titleize } from '@/lib/config';
 import { useAvatarUpload } from '../../hooks/useAvatarUpload';
 import AvatarPicker from '../molecules/AvatarPicker';

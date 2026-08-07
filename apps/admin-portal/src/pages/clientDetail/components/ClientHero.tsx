@@ -1,13 +1,14 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, Avatar, Chip, Divider, Button } from '@sinnapi/ui';
-import PhoneIcon from '@mui/icons-material/Phone';
-import EmailIcon from '@mui/icons-material/Email';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import LockResetIcon from '@mui/icons-material/LockReset';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import HeroSurface from '@/components/ui/HeroSurface';
 import {
+  Box,
+  Stack,
+  Typography,
+  Avatar,
+  Chip,
+  Divider,
+  Button,
+  StatusChip,
+  HeroSurface,
   heroGhostSx,
   heroChipSx,
   heroDividerSx,
@@ -15,8 +16,13 @@ import {
   heroQuietSx,
   heroWarningSx,
   heroDangerSx,
-} from '@/components/ui/heroSurface.styles';
-import StatusChip from '@/components/ui/StatusChip';
+} from '@sinnapi/ui';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { UserModel } from '@/lib/types';

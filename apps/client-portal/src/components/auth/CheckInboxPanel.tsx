@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Link, Stack, Typography } from '@sinnapi/ui';
+import { Alert, Box, Button, IconBadge, Link, Stack, Typography } from '@sinnapi/ui';
 import { CaptchaField } from '@sinnapi/ui/forms';
 import { AppLink } from '@sinnapi/ui/router';
 import MarkEmailUnreadOutlinedIcon from '@mui/icons-material/MarkEmailUnreadOutlined';
@@ -40,20 +40,14 @@ export default function CheckInboxPanel({ email, onUseDifferentEmail }: Props) {
 
   return (
     <Stack spacing={2.5} sx={{ textAlign: 'center' }}>
-      <Box
-        aria-hidden
-        sx={{
-          width: 72,
-          height: 72,
-          mx: 'auto',
-          display: 'grid',
-          placeItems: 'center',
-          borderRadius: '50%',
-          bgcolor: 'secondary.lightest',
-          color: 'primary.main',
-        }}
-      >
-        <MarkEmailUnreadOutlinedIcon sx={{ fontSize: 36 }} />
+      {/* Shared badge rather than a hand-rolled circle: its tint is composed
+          with `alpha()` off `secondary.main`, so it reads as a soft gold wash on
+          both the light and the warm dark canvas — the previous fixed
+          `secondary.lightest` fill would have been near-white in dark mode. */}
+      <Box aria-hidden sx={{ mx: 'auto' }}>
+        <IconBadge accent="secondary" circular size={72} iconSize={36}>
+          <MarkEmailUnreadOutlinedIcon />
+        </IconBadge>
       </Box>
 
       {/* No heading here: `SignUp` swaps AuthLayout's title to "Check your

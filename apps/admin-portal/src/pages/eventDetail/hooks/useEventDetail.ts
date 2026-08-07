@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { useEvent, useEventEngagementKpis } from '@/hooks/queries';
 import type { OwnerRef } from '@/lib/types';
 import { useEventEdit } from '../../events/hooks/useEventEdit';
@@ -24,6 +25,8 @@ export function useEventDetail() {
   const { data: event, isLoading, error } = useEvent(id);
   const { data: kpis } = useEventEngagementKpis(id);
   const poster = firstOf<OwnerRef>(event?.poster);
+
+  useBreadcrumbTitle(event?.title);
 
   const edit = useEventEdit();
   const status = useEventStatus();

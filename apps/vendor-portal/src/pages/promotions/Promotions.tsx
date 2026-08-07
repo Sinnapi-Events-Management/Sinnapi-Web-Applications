@@ -1,12 +1,10 @@
-import { Grid, Button, Stack } from '@sinnapi/ui';
+import { Grid, Button, Stack, PageTitle, QueryState } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import VendorGate from '@/vendor/VendorGate';
 import { usePromotions } from './hooks/usePromotions';
 import PromotionCard from './components/molecules/PromotionCard';
 import PromotionDialog from './components/organisms/PromotionDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function PromotionsList({ vendorId }: { vendorId: string }) {
   const { rows, isLoading, error, open, openDialog, closeDialog } = usePromotions(vendorId);

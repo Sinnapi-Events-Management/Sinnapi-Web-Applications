@@ -1,11 +1,9 @@
-import { Box } from '@sinnapi/ui';
+import { Box, InfoRow, SectionCard } from '@sinnapi/ui';
 import BadgeIcon from '@mui/icons-material/BadgeOutlined';
 import CalendarIcon from '@mui/icons-material/CalendarMonthOutlined';
 import LoginIcon from '@mui/icons-material/LoginOutlined';
 import MailIcon from '@mui/icons-material/MailOutline';
 import ShieldIcon from '@mui/icons-material/ShieldOutlined';
-import SectionCard from '@/components/ui/SectionCard';
-import InfoRow from '@/components/ui/InfoRow';
 import { formatDate, formatDateTime } from '@/lib/config';
 import type { ProfileModel } from '@/lib/types';
 

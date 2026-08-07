@@ -1,6 +1,5 @@
-import { Alert, Box, Button, Divider, Stack } from '@sinnapi/ui';
+import { Alert, Box, Button, Divider, Stack, SectionCard } from '@sinnapi/ui';
 import LockIcon from '@mui/icons-material/LockOutlined';
-import SectionCard from '@/components/ui/SectionCard';
 import { usePasswordForm } from '../../hooks/usePasswordForm';
 import type { PasswordFormValues } from '../../schema';
 import PasswordField from '../molecules/PasswordField';

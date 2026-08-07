@@ -1,5 +1,4 @@
-import { Card, CardContent, Stack, Typography } from '@sinnapi/ui';
-import IconBadge from '@/components/ui/IconBadge';
+import { Card, CardContent, Stack, Typography, IconBadge } from '@sinnapi/ui';
 
 type AccentColor = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 

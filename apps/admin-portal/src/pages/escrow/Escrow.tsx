@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { DataTable, Alert, Button, type DataTableColumn } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
+import { DataTable, Alert, Button, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
 import { formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { EscrowModel, VendorRef, BookingRef } from '@/lib/types';
