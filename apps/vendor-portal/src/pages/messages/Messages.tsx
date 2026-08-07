@@ -1,12 +1,18 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Card, List, ListItemButton, ListItemText, Divider } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  List,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  PageTitle,
+  QueryState,
+} from '@sinnapi/ui';
 import { formatDate, titleize } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorRel } from '@/lib/types';
 import { useMessages } from './hooks/useMessages';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Messages() {
   const { rows, isLoading, error } = useMessages();

@@ -1,6 +1,5 @@
-import { Typography, Box, alpha } from '@sinnapi/ui';
+import { Typography, Box, alpha, SectionCard } from '@sinnapi/ui';
 import StickyNote2Icon from '@mui/icons-material/StickyNote2';
-import SectionCard from '@/components/ui/SectionCard';
 
 /** Internal review notes recorded on the application. */
 export default function NotesSection({ notes }: { notes: string | null }) {

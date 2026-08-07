@@ -1,6 +1,6 @@
-import PageTitle from '@/components/ui/PageTitle';
 import { useDashboard } from './hooks/useDashboard';
 import DashboardWorkspace from './components/organisms/DashboardWorkspace';
+import { PageTitle } from '@sinnapi/ui';
 
 /**
  * The admin landing page. State, permissions and the single overview read all

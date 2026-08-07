@@ -1,4 +1,4 @@
-import { Grid, Box, Typography, Divider, alpha } from '@sinnapi/ui';
+import { Grid, Box, Typography, Divider, alpha, InfoRow, SectionCard } from '@sinnapi/ui';
 import InfoIcon from '@mui/icons-material/Info';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
@@ -13,8 +13,6 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import NumbersIcon from '@mui/icons-material/Numbers';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import SchoolIcon from '@mui/icons-material/School';
-import SectionCard from '@/components/ui/SectionCard';
-import InfoRow from '@/components/ui/InfoRow';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import type { IntakeDetailModel } from '@/lib/types';
 

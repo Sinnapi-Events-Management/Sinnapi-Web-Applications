@@ -1,5 +1,12 @@
-import { Avatar, Box, Chip, Stack, Typography, type DataTableColumn } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import {
+  Avatar,
+  Box,
+  Chip,
+  Stack,
+  Typography,
+  type DataTableColumn,
+  StatusChip,
+} from '@sinnapi/ui';
 import type { UserModel } from '@/lib/types';
 import UserRowActions from '../components/molecules/UserRowActions';
 import { userRoles } from './userForm';

@@ -1,84 +1,59 @@
-import { Grid, Card, CardContent, Typography, Stack, Chip, Box } from '@sinnapi/ui';
-import EventIcon from '@mui/icons-material/Event';
-import PlaceIcon from '@mui/icons-material/Place';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import VendorGate from '@/vendor/VendorGate';
-import ExpressInterestButton from '@/components/events/ExpressInterestButton';
-import { formatDate, titleize } from '@/lib/config';
+import EventsToolbar from './components/organisms/EventsToolbar';
+import EventsResults from './components/organisms/EventsResults';
+import ActiveFilterChips from './components/molecules/ActiveFilterChips';
 import { usePublicEvents } from './hooks/usePublicEvents';
+import { PageTitle } from '@sinnapi/ui';
 
-function EventsList({ vendorId }: { vendorId: string }) {
-  const { events, interestedIds, rows } = usePublicEvents(vendorId);
+/**
+ * The feed, once we know which vendor is looking. Split from the page below
+ * because `usePublicEvents` needs a vendor id and `VendorGate` is what resolves
+ * one — a hook can't be called conditionally inside the gate's render prop.
+ */
+function EventsFeed({ vendorId }: { vendorId: string }) {
+  const {
+    search,
+    filters,
+    facetCounts,
+    events,
+    interestedIds,
+    total,
+    error,
+    isLoading,
+    isRefreshing,
+    isFiltered,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+  } = usePublicEvents(vendorId);
 
   return (
-    <QueryState isLoading={events.isLoading} error={events.error}>
-      {rows.length === 0 ? (
-        <EmptyState
-          title="No public events"
-          description="Open events posted by clients and admins appear here."
-        />
-      ) : (
-        <Grid container spacing={3}>
-          {rows.map((e) => (
-            <Grid item xs={12} sm={6} md={4} key={e.id}>
-              <Card
-                variant="outlined"
-                sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              >
-                <CardContent sx={{ flex: 1 }}>
-                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                    {e.event_type && <Chip size="small" label={titleize(e.event_type)} />}
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={e.source === 'admin' ? 'Inspiration' : 'Open event'}
-                    />
-                  </Stack>
-                  <Typography variant="h6">{e.title}</Typography>
-                  <Stack direction="row" spacing={2} sx={{ color: 'text.secondary', mt: 0.5 }}>
-                    {e.event_date && (
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <EventIcon fontSize="inherit" />
-                        <Typography variant="body2">{formatDate(e.event_date)}</Typography>
-                      </Stack>
-                    )}
-                    {e.location && (
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <PlaceIcon fontSize="inherit" />
-                        <Typography variant="body2">{e.location}</Typography>
-                      </Stack>
-                    )}
-                  </Stack>
-                  {e.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {e.description}
-                    </Typography>
-                  )}
-                </CardContent>
-                <Box sx={{ p: 2, pt: 0 }}>
-                  {e.source === 'client' ? (
-                    <ExpressInterestButton
-                      eventId={e.id}
-                      vendorId={vendorId}
-                      already={interestedIds.has(e.id)}
-                    />
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      Inspiration only
-                    </Typography>
-                  )}
-                </Box>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-    </QueryState>
+    <>
+      <EventsToolbar search={search} filters={filters} facetCounts={facetCounts} />
+
+      <ActiveFilterChips values={filters.values} onRemove={filters.setFacet} />
+
+      <EventsResults
+        events={events}
+        vendorId={vendorId}
+        interestedIds={interestedIds}
+        total={total}
+        error={error}
+        isLoading={isLoading}
+        isRefreshing={isRefreshing}
+        isFiltered={isFiltered}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMore}
+      />
+    </>
   );
 }
 
+/**
+ * Public events. Search, filters, sort and paging all resolve server-side (see
+ * `usePublicEvents`), so this composes the pieces and holds no state itself.
+ */
 export default function PublicEvents() {
   return (
     <>
@@ -86,7 +61,7 @@ export default function PublicEvents() {
         title="Public events"
         subtitle="Express interest in open events posted by clients."
       />
-      <VendorGate>{(vendorId) => <EventsList vendorId={vendorId} />}</VendorGate>
+      <VendorGate>{(vendorId) => <EventsFeed vendorId={vendorId} />}</VendorGate>
     </>
   );
 }

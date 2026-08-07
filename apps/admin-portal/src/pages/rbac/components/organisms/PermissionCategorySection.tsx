@@ -10,9 +10,9 @@ import {
   Collapse,
   Divider,
   Tooltip,
+  IconBadge,
 } from '@sinnapi/ui';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import IconBadge from '@/components/ui/IconBadge';
 import type { CategoryView } from '../../hooks/useRolePermissions';
 import CategoryIcon from '../molecules/CategoryIcon';
 import GrantMeter from '../molecules/GrantMeter';

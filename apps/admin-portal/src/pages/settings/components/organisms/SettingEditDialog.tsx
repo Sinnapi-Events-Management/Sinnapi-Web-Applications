@@ -32,7 +32,6 @@ export default function SettingEditDialog({ setting, busy, err, onClose, onSave 
       fullWidth
       maxWidth="xs"
       PaperProps={{ component: 'form', onSubmit: onSave }}
-      sx={{ backdropFilter: 'blur(6px)' }}
     >
       <DialogTitle>Edit {setting?.key}</DialogTitle>
       <DialogContent>

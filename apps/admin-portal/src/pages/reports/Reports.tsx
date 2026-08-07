@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-import PageTitle from '@/components/ui/PageTitle';
 import { useReports } from './hooks/useReports';
 import type { ReportCategory, ReportPeriod } from './schema';
 import ReportTabs from './components/organisms/ReportTabs';
@@ -7,6 +6,7 @@ import RevenueReportPanel from './components/organisms/RevenueReportPanel';
 import VendorReportPanel from './components/organisms/VendorReportPanel';
 import SubscriptionReportPanel from './components/organisms/SubscriptionReportPanel';
 import OperationsReportPanel from './components/organisms/OperationsReportPanel';
+import { PageTitle } from '@sinnapi/ui';
 
 /** Every report panel shares the same props: the active window + its setter. */
 export type ReportPanelProps = {

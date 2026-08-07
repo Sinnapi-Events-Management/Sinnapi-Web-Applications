@@ -1,9 +1,8 @@
-import { Box, Stack, Typography, Chip, Button, IconButton, Tooltip } from '@sinnapi/ui';
+import { Box, Stack, Typography, Chip, Button, IconButton, Tooltip, IconBadge } from '@sinnapi/ui';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import BadgeIcon from '@mui/icons-material/Badge';
-import IconBadge from '@/components/ui/IconBadge';
 import type { RoleModel } from '@/lib/types';
 import GrantMeter from './GrantMeter';
 

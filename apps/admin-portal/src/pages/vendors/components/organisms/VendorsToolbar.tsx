@@ -1,6 +1,14 @@
-import { Box, Stack, TextField, MenuItem, Switch, FormControlLabel, Button } from '@sinnapi/ui';
+import {
+  Box,
+  Stack,
+  TextField,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  Button,
+  SearchField,
+} from '@sinnapi/ui';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import SearchField from '@/components/ui/SearchField';
 import type { SearchTerm } from '@/hooks/useSearchTerm';
 import type { VendorFilters } from '../../hooks/useVendorFilters';
 import { VISIBILITY_OPTIONS, RATING_OPTIONS } from '../../schema/filters';

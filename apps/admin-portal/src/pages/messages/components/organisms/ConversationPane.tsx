@@ -1,9 +1,8 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Stack, Typography, IconButton, Tooltip, Chip } from '@sinnapi/ui';
+import { Box, Stack, Typography, IconButton, Tooltip, Chip, StatusChip } from '@sinnapi/ui';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import ForumIcon from '@mui/icons-material/Forum';
-import StatusChip from '@/components/ui/StatusChip';
 import MessageThread from '@/components/messaging/MessageThread';
 import MessageComposer from '@/components/messaging/MessageComposer';
 import { useMessageThread } from '@/hooks/useMessageThread';

@@ -1,11 +1,10 @@
-import { Alert } from '@sinnapi/ui';
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
+import { Alert, QueryState } from '@sinnapi/ui';
 import { useVendorDetail } from './hooks/useVendorDetail';
 import VendorHero from './components/VendorHero';
 import VendorStats from './components/VendorStats';
 import VendorTabs from './components/VendorTabs';
 import VendorStatusDialog from '../vendors/components/organisms/VendorStatusDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function VendorDetail() {
   const { vendor, owner, category, kpis, isLoading, error, status } = useVendorDetail();

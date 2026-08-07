@@ -1,4 +1,5 @@
-import { Grid, StatCard } from '@sinnapi/ui';
+import { Grid } from '@sinnapi/ui';
+import { StatCard } from '@sinnapi/ui/router';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';

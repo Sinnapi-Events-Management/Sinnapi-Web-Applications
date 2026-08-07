@@ -2,9 +2,8 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PersonIcon from '@mui/icons-material/Person';
 import NumbersIcon from '@mui/icons-material/Numbers';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
-import SectionCard from '@/components/ui/SectionCard';
-import InfoRow from '@/components/ui/InfoRow';
 import type { IntakeDetailModel } from '@/lib/types';
+import { InfoRow, SectionCard } from '@sinnapi/ui';
 
 /** Bank / payout destination for the applicant. */
 export default function PayoutSection({ a }: { a: IntakeDetailModel }) {

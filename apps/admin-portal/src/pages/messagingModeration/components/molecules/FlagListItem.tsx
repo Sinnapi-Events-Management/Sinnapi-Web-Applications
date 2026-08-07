@@ -1,5 +1,4 @@
-import { Box, Stack, Typography, Checkbox, CardActionArea } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import { Box, Stack, Typography, Checkbox, CardActionArea, StatusChip } from '@sinnapi/ui';
 import { formatDateTime } from '@/lib/config';
 import { reasonMeta } from '../../schema';
 import type { FlagView } from '../../hooks/useMessagingModeration';

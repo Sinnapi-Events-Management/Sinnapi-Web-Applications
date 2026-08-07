@@ -17,7 +17,11 @@ export default function AuthFormPanel({
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: 'secondary.lightest',
+        // The themed canvas, not `secondary.lightest` directly: that token is a
+        // pale tint in BOTH schemes, so hardcoding it would paint a near-white
+        // page in dark mode. `background.default` already resolves to the pale
+        // gold in light and the warm deep tone in dark.
+        bgcolor: 'background.default',
       }}
     >
       <Box sx={{ p: 3 }}>

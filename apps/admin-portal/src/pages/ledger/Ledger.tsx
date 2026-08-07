@@ -1,5 +1,4 @@
-import { DataTable, Alert, Chip, type DataTableColumn } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { DataTable, Alert, Chip, type DataTableColumn, PageTitle } from '@sinnapi/ui';
 import { formatDateTime, formatMoney, titleize } from '@/lib/config';
 import type { LedgerEntryModel } from '@/lib/types';
 import { useLedger } from './hooks/useLedger';

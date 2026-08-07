@@ -1,6 +1,5 @@
-import { Box, Button, MenuItem, Stack, TextField } from '@sinnapi/ui';
+import { Box, Button, MenuItem, Stack, TextField, SearchField } from '@sinnapi/ui';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import SearchField from '@/components/ui/SearchField';
 import type { CategoryFiltersState } from '../../hooks/useServiceCategories';
 
 type Props = {

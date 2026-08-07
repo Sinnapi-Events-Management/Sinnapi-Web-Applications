@@ -1,6 +1,4 @@
-import { DataTable, Alert, type DataTableColumn } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
+import { DataTable, Alert, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { QuotationModel, VendorRef } from '@/lib/types';

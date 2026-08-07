@@ -1,6 +1,4 @@
-import { Alert } from '@sinnapi/ui';
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
+import { Alert, QueryState } from '@sinnapi/ui';
 import { useEventDetail } from './hooks/useEventDetail';
 import EventHero from './components/EventHero';
 import EventStats from './components/EventStats';
@@ -8,6 +6,7 @@ import EventTabs from './components/EventTabs';
 import EventEditDrawer from '../events/components/organisms/EventEditDrawer';
 import EventStatusDialog from '../events/components/organisms/EventStatusDialog';
 import EventDeleteDialog from '../events/components/organisms/EventDeleteDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function EventDetail() {
   const { event, poster, kpis, isLoading, error, edit, status, remove } = useEventDetail();

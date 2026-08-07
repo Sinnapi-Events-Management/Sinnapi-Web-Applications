@@ -1,6 +1,13 @@
-import { Card, CardContent, Box, Typography, Stack } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  CardContent,
+  Box,
+  Typography,
+  Stack,
+  PageTitle,
+  QueryState,
+  alpha,
+} from '@sinnapi/ui';
 import MessageComposer from '@/components/messaging/MessageComposer';
 import { useConversation } from './hooks/useConversation';
 
@@ -31,8 +38,14 @@ export default function Conversation() {
                           px: 1.5,
                           py: 1,
                           borderRadius: 2,
-                          bgcolor: mine ? 'primary.main' : 'grey.100',
-                          color: mine ? 'primary.contrastText' : 'text.primary',
+                          // Own messages carry the portal's action colour; the
+                          // incoming bubble is a translucent ink wash rather
+                          // than a fixed grey, so it stays a subtle step off the
+                          // card in both the light and the warm dark scheme.
+                          bgcolor: mine
+                            ? 'secondary.main'
+                            : (t) => alpha(t.palette.text.primary, 0.07),
+                          color: mine ? 'secondary.contrastText' : 'text.primary',
                         }}
                       >
                         <Typography variant="body2">{m.body}</Typography>

@@ -1,7 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Grid, Stack, Alert } from '@sinnapi/ui';
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
+import { Grid, Stack, Alert, QueryState } from '@sinnapi/ui';
 import { useApplicationDetail } from './hooks/useApplicationDetail';
 
 // react-pdf / pdfjs is heavy — only load it when a document is actually opened.
@@ -16,6 +14,7 @@ import DocumentsSection from './components/DocumentsSection';
 import PayoutSection from './components/PayoutSection';
 import LinksSection from './components/LinksSection';
 import RejectDialog from './components/RejectDialog';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function ApplicationDetail() {
   const {

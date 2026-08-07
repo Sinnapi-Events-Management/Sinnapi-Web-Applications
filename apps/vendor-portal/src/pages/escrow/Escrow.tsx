@@ -1,13 +1,20 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
 import { formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { BookingRel } from '@/lib/types';
 import { useEscrow } from './hooks/useEscrow';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function EscrowTable({ vendorId }: { vendorId: string }) {
   const { rows, isLoading, error } = useEscrow(vendorId);

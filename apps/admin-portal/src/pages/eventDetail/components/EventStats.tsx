@@ -1,4 +1,5 @@
-import { Grid, StatCard } from '@sinnapi/ui';
+import { Grid } from '@sinnapi/ui';
+import { StatCard } from '@sinnapi/ui/router';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import DoDisturbOnOutlinedIcon from '@mui/icons-material/DoDisturbOnOutlined';

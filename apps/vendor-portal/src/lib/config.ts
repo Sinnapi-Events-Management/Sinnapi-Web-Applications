@@ -17,7 +17,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
-import type { SvgIconComponent } from '@mui/icons-material';
+import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
 export const APP = {
   name: 'Sinnapi',
@@ -25,31 +25,76 @@ export const APP = {
   publicUrl: import.meta.env.VITE_PUBLIC_URL ?? 'http://localhost:3000',
 };
 
-type NavItem = { label: string; to: string; icon: SvgIconComponent };
+// Nav shape is owned by the shared `PortalShell`, so admin, client and vendor
+// configs stay interchangeable. Aliased for readability at the call sites.
+export type NavItem = PortalNavItem;
+export type NavSection = PortalNavSection;
 
-export const PORTAL_NAV: NavItem[] = [
-  { label: 'Dashboard', to: '/dashboard', icon: DashboardIcon },
-  { label: 'Bookings', to: '/bookings', icon: EventNoteIcon },
-  { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon },
-  { label: 'Templates', to: '/templates', icon: DescriptionIcon },
-  { label: 'Calendar', to: '/calendar', icon: CalendarMonthIcon },
-  { label: 'Services', to: '/services', icon: DesignServicesIcon },
-  { label: 'Portfolio', to: '/portfolio', icon: CollectionsIcon },
-  { label: 'Public Events', to: '/public-events', icon: CelebrationIcon },
-  { label: 'Escrow', to: '/escrow', icon: AccountBalanceIcon },
-  { label: 'Payouts', to: '/payouts', icon: PaymentsIcon },
-  { label: 'Promotions', to: '/promotions', icon: LocalOfferIcon },
-  { label: 'Discounts', to: '/discounts', icon: DiscountIcon },
-  { label: 'Reviews', to: '/reviews', icon: StarIcon },
-  { label: 'Analytics', to: '/analytics', icon: InsightsIcon },
-  { label: 'Messages', to: '/messages', icon: ChatIcon },
-  { label: 'Notifications', to: '/notifications', icon: NotificationsIcon },
-];
-
-export const ACCOUNT_NAV: NavItem[] = [
-  { label: 'Business Profile', to: '/profile', icon: StorefrontIcon },
-  { label: 'Subscription', to: '/subscription', icon: WorkspacePremiumIcon },
-  { label: 'Settings', to: '/settings', icon: SettingsIcon },
+/**
+ * Sidebar groups, mirroring admin's sectioned nav. Nineteen destinations is far
+ * too many for a flat list, so they're grouped by the job at hand: winning work,
+ * maintaining the public listing, getting paid, and growing demand.
+ */
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Overview',
+    items: [
+      { label: 'Dashboard', to: '/dashboard', icon: DashboardIcon },
+      { label: 'Calendar', to: '/calendar', icon: CalendarMonthIcon },
+    ],
+  },
+  {
+    title: 'Bookings & Quotes',
+    items: [
+      { label: 'Bookings', to: '/bookings', icon: EventNoteIcon },
+      { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon },
+      { label: 'Templates', to: '/templates', icon: DescriptionIcon },
+    ],
+  },
+  {
+    title: 'Listing',
+    items: [
+      { label: 'Services', to: '/services', icon: DesignServicesIcon },
+      { label: 'Portfolio', to: '/portfolio', icon: CollectionsIcon },
+      { label: 'Public Events', to: '/public-events', icon: CelebrationIcon },
+    ],
+  },
+  {
+    title: 'Finance',
+    items: [
+      { label: 'Escrow', to: '/escrow', icon: AccountBalanceIcon },
+      { label: 'Payouts', to: '/payouts', icon: PaymentsIcon },
+    ],
+  },
+  {
+    title: 'Growth',
+    items: [
+      { label: 'Promotions', to: '/promotions', icon: LocalOfferIcon },
+      { label: 'Discounts', to: '/discounts', icon: DiscountIcon },
+      { label: 'Reviews', to: '/reviews', icon: StarIcon },
+      { label: 'Analytics', to: '/analytics', icon: InsightsIcon },
+    ],
+  },
+  {
+    title: 'Inbox',
+    items: [
+      { label: 'Messages', to: '/messages', icon: ChatIcon },
+      {
+        label: 'Notifications',
+        to: '/notifications',
+        icon: NotificationsIcon,
+        badgeKey: 'notifications',
+      },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      { label: 'Business Profile', to: '/profile', icon: StorefrontIcon },
+      { label: 'Subscription', to: '/subscription', icon: WorkspacePremiumIcon },
+      { label: 'Settings', to: '/settings', icon: SettingsIcon },
+    ],
+  },
 ];
 
 export function formatMoney(

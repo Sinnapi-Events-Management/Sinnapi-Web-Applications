@@ -1,5 +1,4 @@
-import { Alert, Snackbar, Stack } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Alert, Snackbar, Stack, PageTitle } from '@sinnapi/ui';
 import StatusTabs from '@/components/ui/StatusTabs';
 import { useMessagingModeration } from './hooks/useMessagingModeration';
 import { useFlagDetail } from './hooks/useFlagDetail';

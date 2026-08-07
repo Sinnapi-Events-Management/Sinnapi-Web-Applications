@@ -1,7 +1,6 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Divider, Stack, Typography } from '@sinnapi/ui';
+import { Box, Button, Divider, Stack, Typography, SectionCard } from '@sinnapi/ui';
 import HistoryIcon from '@mui/icons-material/History';
-import SectionCard from '@/components/ui/SectionCard';
 import type { ActivityModel } from '../../schema';
 import ActivityItem from '../molecules/ActivityItem';
 import ActivityItemSkeleton from '../molecules/ActivityItemSkeleton';

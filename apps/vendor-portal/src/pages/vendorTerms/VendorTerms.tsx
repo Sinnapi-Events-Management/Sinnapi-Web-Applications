@@ -6,7 +6,14 @@ import { APP } from '@/lib/config';
 // content and the `LegalContent` renderer with the public site.
 export default function VendorTerms() {
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', bgcolor: 'grey.50' }}>
+    <Box
+      sx={{
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+      }}
+    >
       <Box sx={{ p: 3 }}>
         <Box
           component="a"

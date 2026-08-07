@@ -1,6 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { one } from '@/lib/rel';
 import type {
+  EventSearchFilters,
+  EventSearchPage,
+  EventFacetCounts,
+  ServiceRegionModel,
   ProfileModel,
   MyApplicationModel,
   VendorBookingModel,
@@ -207,20 +218,170 @@ export function useBlockedDates(vendorId?: string) {
   });
 }
 
-export function usePublicEvents() {
-  return useQuery({
-    queryKey: ['public-events'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('events')
-        .select('id,title,event_type,event_date,location,source,description')
-        .eq('status', 'published')
-        .eq('is_public', true)
-        .is('deleted_at', null)
-        .order('event_date', { ascending: false })
-        .limit(50);
-      return (data ?? []) as PublicEventModel[];
+/**
+ * Re-raises a cancelled request as a real `AbortError`.
+ *
+ * PostgREST catches an aborted fetch and hands it back as an ordinary
+ * `{ error }` result rather than rejecting, so a superseded request would
+ * otherwise surface as a genuine failure — a red error panel every time someone
+ * changes a filter mid-flight. TanStack Query only treats a rejection as a
+ * cancellation, so the abort has to be thrown, not returned.
+ *
+ * Call it after the await and before inspecting `error`.
+ */
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException('Request aborted', 'AbortError');
+}
+
+// ---------- Public events ----------
+
+/**
+ * How many event cards the feed pulls per "View more". Deliberately small: a
+ * vendor scanning for work reads the first few briefs carefully and abandons
+ * the rest, so paying the transfer for fifty of them up front buys nothing. The
+ * RPC clamps anything above 48.
+ */
+export const EVENT_PAGE_SIZE = 8;
+
+/** The filter arguments shared by the feed query and the facet counts. */
+function toEventRpcArgs(filters: EventSearchFilters) {
+  return {
+    p_q: filters.q ?? null,
+    p_type: filters.type ?? null,
+    p_source: filters.source ?? null,
+    p_location: filters.location ?? null,
+    p_budget_min: filters.budgetMin ?? null,
+    p_budget_max: filters.budgetMax ?? null,
+    p_when: filters.when ?? null,
+  };
+}
+
+/** A `search_events_public` row: the card model plus the window count. */
+type EventSearchRow = PublicEventModel & { total_count: number };
+
+/**
+ * Projects a result row onto the card model, dropping the window count that
+ * rides along on every row. Spelled out rather than spread so the shape a card
+ * receives is stated once, here at the data boundary, instead of being whatever
+ * the RPC happens to return.
+ */
+function toEventCard(row: EventSearchRow): PublicEventModel {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    event_type: row.event_type,
+    event_date: row.event_date,
+    location: row.location,
+    budget_min: row.budget_min,
+    budget_max: row.budget_max,
+    currency: row.currency,
+    cover_image_url: row.cover_image_url,
+    source: row.source,
+  };
+}
+
+/**
+ * One page of the public-events feed.
+ *
+ * Search, occasion, town, date band, budget, sort and paging all resolve inside
+ * `search_events_public` — the same read the public site's events grid makes,
+ * and one whose predicate (`status = 'published' and is_public and deleted_at
+ * is null`) is exactly what this page was filtering for by hand.
+ *
+ * `total` rides on every row as a window count over the filtered set before
+ * limit/offset, so "N of M" is the real total rather than the length of the
+ * page in hand.
+ */
+async function searchPublicEvents(
+  filters: EventSearchFilters,
+  { offset, signal }: { offset: number; signal: AbortSignal },
+): Promise<EventSearchPage> {
+  const { data, error } = await supabase
+    .rpc('search_events_public', {
+      ...toEventRpcArgs(filters),
+      p_sort: filters.sort ?? 'soonest',
+      p_limit: EVENT_PAGE_SIZE,
+      p_offset: offset,
+    })
+    .abortSignal(signal);
+  throwIfAborted(signal);
+  if (error) throw error;
+
+  const rows = (data ?? []) as EventSearchRow[];
+  return {
+    events: rows.map(toEventCard),
+    total: rows[0]?.total_count ?? 0,
+    offset,
+  };
+}
+
+/**
+ * The paginated events feed, as an infinite query whose cursor is the row
+ * offset. `total` comes back on every page, so "is there more" is a comparison
+ * rather than a guess about whether a short page means the end.
+ *
+ * `keepPreviousData` keeps the current cards on screen while a new filter's
+ * page lands (the page dims them via `isRefreshing`) instead of collapsing the
+ * feed into skeletons on every keystroke.
+ *
+ * `signal` is forwarded to PostgREST so a page superseded mid-flight — the
+ * vendor changed a filter before it landed — is actually cancelled rather than
+ * left to arrive and be discarded. Reading it off the context is also what arms
+ * TanStack Query's cancellation: it only aborts a fetch whose queryFn consumed
+ * the signal.
+ */
+export function usePublicEventSearch(filters: EventSearchFilters) {
+  return useInfiniteQuery({
+    queryKey: ['public-events', 'search', filters],
+    queryFn: ({ pageParam, signal }) => searchPublicEvents(filters, { offset: pageParam, signal }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.offset + lastPage.events.length;
+      // An empty page ends the list even if `total` disagrees, so a count that
+      // shifts between requests can't leave "View more" fetching forever.
+      if (lastPage.events.length === 0 || loaded >= lastPage.total) return undefined;
+      return loaded;
     },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Result counts for every occasion, source, town and date band under the
+ * current filters, so each dropdown can label itself ("Wedding (24)") and
+ * disable the options that lead nowhere. Each facet ignores its own selection —
+ * see `count_event_facets_public`.
+ *
+ * Towns are passed in rather than grouped out of the data: `events.location` is
+ * free text, so the RPC counts each curated token by containment, the same way
+ * the filter itself matches.
+ *
+ * The RPC arguments double as the cache key, which is what keeps `sort` out of
+ * it: `toEventRpcArgs` never sends a sort, and re-ordering the feed cannot
+ * change a count — so a re-sort reuses these results instead of refetching them.
+ */
+export function usePublicEventFacetCounts(filters: EventSearchFilters, locations: string[]) {
+  const args = { ...toEventRpcArgs(filters), p_locations: locations };
+  return useQuery({
+    queryKey: ['public-events', 'facets', args],
+    queryFn: async ({ signal }): Promise<EventFacetCounts> => {
+      const { data, error } = await supabase
+        .rpc('count_event_facets_public', args)
+        .abortSignal(signal);
+      throwIfAborted(signal);
+      if (error) throw error;
+      return (
+        (data ?? []) as { facet: keyof EventFacetCounts; key: string; count: number }[]
+      ).reduce(
+        (acc, row) => {
+          if (acc[row.facet]) acc[row.facet][row.key] = Number(row.count);
+          return acc;
+        },
+        { type: {}, source: {}, location: {}, when: {} } as EventFacetCounts,
+      );
+    },
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -425,5 +586,73 @@ export function useUnreadCount() {
         .is('read_at', null);
       return count ?? 0;
     },
+  });
+}
+
+// ---------- Service coverage ----------
+
+/**
+ * The regions a vendor can declare coverage for. Reference data that changes
+ * rarely and is world-readable (`ref_read_regions`), so it's cached for the
+ * session rather than refetched per visit to the profile.
+ */
+export function useServiceRegions() {
+  return useQuery({
+    queryKey: ['service-regions'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_regions')
+        .select('key,name,scope')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ServiceRegionModel[];
+    },
+  });
+}
+
+/**
+ * The regions this vendor currently covers, as reference keys.
+ *
+ * Returned as keys rather than join-table ids because that is what both the
+ * picker and `set_vendor_service_regions` speak — the row ids are an
+ * implementation detail of the join table and never leave the database.
+ */
+export function useVendorCoverage(vendorId?: string) {
+  return useQuery({
+    queryKey: ['v-coverage', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_service_regions')
+        .select('service_regions(key)')
+        .eq('vendor_id', vendorId!);
+      if (error) throw error;
+      return ((data ?? []) as { service_regions: { key: string } | { key: string }[] | null }[])
+        .map((row) => one(row.service_regions)?.key)
+        .filter((key): key is string => Boolean(key));
+    },
+  });
+}
+
+/**
+ * Replaces this vendor's coverage with `keys`.
+ *
+ * Goes through `set_vendor_service_regions` rather than issuing a delete and an
+ * insert from here: coverage is a set, and a failure between two client-side
+ * statements would leave the vendor with less coverage than they started with.
+ */
+export function useSetVendorCoverage(vendorId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (keys: string[]) => {
+      const { error } = await supabase.rpc('set_vendor_service_regions', {
+        p_vendor_id: vendorId,
+        p_keys: keys,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['v-coverage', vendorId] }),
   });
 }

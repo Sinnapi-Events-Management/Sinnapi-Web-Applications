@@ -1,5 +1,4 @@
-import { Card, CardContent, Box } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Card, CardContent, Box, PageTitle } from '@sinnapi/ui';
 import MessageThread from '@/components/messaging/MessageThread';
 import MessageComposer from '@/components/messaging/MessageComposer';
 import { useConversation } from './hooks/useConversation';

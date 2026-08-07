@@ -1,8 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type {
-  VendorCardModel,
   VendorDetailModel,
+  VendorMediaModel,
+  VendorSearchCardModel,
+  VendorSearchFilters,
+  VendorSearchPage,
+  VendorFacetCounts,
+  FilterRefModel,
   BookingListModel,
   BookingDetailModel,
   QuotationListModel,
@@ -19,24 +30,207 @@ import type {
 const VENDOR_CARD =
   'id,slug,business_name,base_city,primary_image_url,profile_image_url,starting_price,starting_price_currency,avg_rating,review_count,is_featured';
 
+/**
+ * Re-raises a cancelled request as a real `AbortError`.
+ *
+ * PostgREST catches an aborted fetch and hands it back as an ordinary
+ * `{ error }` result rather than rejecting, so a superseded request would
+ * otherwise surface as a genuine failure — a red error panel every time someone
+ * changes a filter mid-flight. TanStack Query only treats a rejection as a
+ * cancellation, so the abort has to be thrown, not returned.
+ *
+ * Call it after the await and before inspecting `error`.
+ */
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException('Request aborted', 'AbortError');
+}
+
 // ---------- Vendors ----------
-export function useVendors(q?: string) {
+
+/**
+ * How many cards Discover pulls per "View more". Small on purpose: the grid is
+ * image-heavy, and the marketplace is large enough that a first paint holding
+ * the whole catalogue would cost seconds of transfer and decode for rows nobody
+ * scrolls to. The RPC clamps anything above 48.
+ */
+export const VENDOR_PAGE_SIZE = 8;
+
+/** The filter arguments shared by the grid query and the facet counts. */
+function toVendorRpcArgs(filters: VendorSearchFilters) {
+  return {
+    p_q: filters.q ?? null,
+    p_category: filters.category ?? null,
+    p_region: filters.region ?? null,
+    p_price_min: filters.priceMin ?? null,
+    p_price_max: filters.priceMax ?? null,
+    p_min_rating: filters.minRating ?? null,
+  };
+}
+
+/** A `search_vendors_public` row: the card model plus the window count. */
+type VendorSearchRow = VendorSearchCardModel & { total_count: number };
+
+/**
+ * Projects a result row onto the card model, dropping the window count that
+ * rides along on every row. Spelled out rather than spread so the shape a card
+ * receives is stated once, here at the data boundary, instead of being whatever
+ * the RPC happens to return.
+ */
+function toVendorCard(row: VendorSearchRow): VendorSearchCardModel {
+  return {
+    id: row.id,
+    slug: row.slug,
+    business_name: row.business_name,
+    base_city: row.base_city,
+    biography: row.biography,
+    primary_image_url: row.primary_image_url,
+    profile_image_url: row.profile_image_url,
+    starting_price: row.starting_price,
+    starting_price_currency: row.starting_price_currency,
+    avg_rating: row.avg_rating,
+    review_count: row.review_count,
+    is_featured: row.is_featured,
+    categories: row.categories ?? [],
+  };
+}
+
+/**
+ * One page of the discovery grid.
+ *
+ * Search, category, region, price, rating, sort and paging all resolve inside
+ * `search_vendors_public`, against the whole marketplace. The previous approach
+ * — pull 36 rows, narrow them in the browser — could not be made correct here:
+ * category and region live in join tables (`vendor_services`,
+ * `vendor_service_regions`) that a card row never carries, so those filters
+ * would silently do nothing, and price/rating would apply to whichever rows
+ * happened to arrive first rather than to the catalogue.
+ *
+ * `total` rides on every row as a window count over the filtered set before
+ * limit/offset, so "N of M" is the real total and there is no second count
+ * query to fall out of sync with the page.
+ */
+async function searchVendors(
+  filters: VendorSearchFilters,
+  { offset, signal }: { offset: number; signal: AbortSignal },
+): Promise<VendorSearchPage> {
+  const { data, error } = await supabase
+    .rpc('search_vendors_public', {
+      ...toVendorRpcArgs(filters),
+      p_sort: filters.sort ?? 'recommended',
+      p_exclude_featured: false,
+      p_limit: VENDOR_PAGE_SIZE,
+      p_offset: offset,
+    })
+    .abortSignal(signal);
+  throwIfAborted(signal);
+  if (error) throw error;
+
+  const rows = (data ?? []) as VendorSearchRow[];
+  return {
+    vendors: rows.map(toVendorCard),
+    total: rows[0]?.total_count ?? 0,
+    offset,
+  };
+}
+
+/**
+ * The paginated discovery grid, as an infinite query whose cursor is the row
+ * offset. `total` comes back on every page, so "is there more" is a comparison
+ * rather than a guess about whether a short page means the end.
+ *
+ * `keepPreviousData` is what makes filtering feel instant instead of flickery:
+ * switching a facet keeps the current cards on screen (the page dims them via
+ * `isRefreshing`) rather than unmounting the grid into skeletons and snapping
+ * the page height around. The first load has no previous data, so it still gets
+ * a proper loading state.
+ *
+ * `signal` is forwarded to PostgREST so a page superseded mid-flight — the
+ * client changed a filter before it landed — is actually cancelled rather than
+ * left to arrive and be discarded. Reading it off the context is also what arms
+ * TanStack Query's cancellation: it only aborts a fetch whose queryFn consumed
+ * the signal.
+ */
+export function useVendorSearch(filters: VendorSearchFilters) {
+  return useInfiniteQuery({
+    queryKey: ['vendors', 'search', filters],
+    queryFn: ({ pageParam, signal }) => searchVendors(filters, { offset: pageParam, signal }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.offset + lastPage.vendors.length;
+      // An empty page ends the list even if `total` disagrees, so a count that
+      // shifts between requests can't leave "View more" fetching forever.
+      if (lastPage.vendors.length === 0 || loaded >= lastPage.total) return undefined;
+      return loaded;
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Result counts for every category and region option under the current
+ * filters, so each dropdown can label itself ("Photographer (24)") and disable
+ * the options that lead nowhere. Each facet ignores its own selection — see
+ * `count_vendor_facets_public` — so the counts answer "what would I get if I
+ * switched to this", not "what am I already looking at".
+ *
+ * The RPC arguments double as the cache key, which is what keeps `sort` out of
+ * it: `toVendorRpcArgs` never sends a sort, and re-ordering the grid cannot
+ * change a count — so a re-sort reuses these results instead of refetching them.
+ */
+export function useVendorFacetCounts(filters: VendorSearchFilters) {
+  const args = toVendorRpcArgs(filters);
   return useQuery({
-    queryKey: ['vendors', 'list', q ?? ''],
-    queryFn: async () => {
-      let query = supabase
-        .from('vendors')
-        .select(VENDOR_CARD)
-        .eq('status', 'active')
-        .eq('visibility', 'public')
-        .is('deleted_at', null)
-        .order('is_featured', { ascending: false })
-        .order('avg_rating', { ascending: false })
-        .limit(36);
-      if (q) query = query.ilike('business_name', `%${q}%`);
-      const { data, error } = await query;
+    queryKey: ['vendors', 'facets', args],
+    queryFn: async ({ signal }): Promise<VendorFacetCounts> => {
+      const { data, error } = await supabase
+        .rpc('count_vendor_facets_public', args)
+        .abortSignal(signal);
+      throwIfAborted(signal);
       if (error) throw error;
-      return (data ?? []) as VendorCardModel[];
+      return (
+        (data ?? []) as { facet: keyof VendorFacetCounts; key: string; count: number }[]
+      ).reduce(
+        (acc, row) => {
+          if (acc[row.facet]) acc[row.facet][row.key] = Number(row.count);
+          return acc;
+        },
+        { category: {}, region: {} } as VendorFacetCounts,
+      );
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Category and region options for the discovery filters, read from the same
+ * reference tables the admin portal maintains rather than hard-coded here — a
+ * category an admin adds or retires shows up without a client-portal release.
+ * Both are world-readable (`ref_read_categories` / `ref_read_regions`) and
+ * change rarely, so they are cached for the session.
+ */
+export function useFilterRefData() {
+  return useQuery({
+    queryKey: ['filter-ref-data'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const [categories, regions] = await Promise.all([
+        supabase
+          .from('service_categories')
+          .select('key,name')
+          .eq('is_active', true)
+          .order('name', { ascending: true }),
+        supabase
+          .from('service_regions')
+          .select('key,name')
+          .eq('is_active', true)
+          .order('name', { ascending: true }),
+      ]);
+      if (categories.error) throw categories.error;
+      if (regions.error) throw regions.error;
+      return {
+        categories: (categories.data ?? []) as FilterRefModel[],
+        regions: (regions.data ?? []) as FilterRefModel[],
+      };
     },
   });
 }
@@ -55,6 +249,36 @@ export function useVendor(slug: string) {
         .maybeSingle();
       if (error) throw error;
       return (data as VendorDetailModel) ?? null;
+    },
+  });
+}
+
+/**
+ * A public vendor's portfolio — the gallery on the vendor detail page.
+ *
+ * Ordered the way the vendor curated it: the primary shot first, then their own
+ * `sort_order`, with `created_at` breaking ties so the sequence is stable across
+ * refetches (the lightbox indexes into this array, so an unstable order would
+ * move the image out from under an open viewer).
+ *
+ * `vmedia_read` exposes these rows to anon and authenticated alike for public
+ * vendors, so no session is required.
+ */
+export function useVendorMedia(vendorId: string | undefined) {
+  return useQuery({
+    queryKey: ['vendor-media', vendorId],
+    enabled: Boolean(vendorId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_media')
+        .select('id,media_type,url,caption,is_primary,sort_order')
+        .eq('vendor_id', vendorId)
+        .is('deleted_at', null)
+        .order('is_primary', { ascending: false })
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as VendorMediaModel[];
     },
   });
 }

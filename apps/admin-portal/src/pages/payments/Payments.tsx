@@ -1,6 +1,4 @@
-import { DataTable, Alert, type DataTableColumn } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
+import { DataTable, Alert, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import type { PaymentModel } from '@/lib/types';
 import { usePayments } from './hooks/usePayments';

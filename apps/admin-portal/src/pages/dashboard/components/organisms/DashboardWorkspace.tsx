@@ -1,6 +1,5 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Stack, Typography } from '@sinnapi/ui';
-import EmptyState from '@/components/ui/EmptyState';
 import type { AnalyticsPeriod } from '@/lib/analytics';
 import type { DashboardModel, DashboardTab, SectionKey, TabDef } from '../../schema';
 import DashboardToolbar from './DashboardToolbar';
@@ -9,6 +8,7 @@ import OverviewPanel from './OverviewPanel';
 import SubscriptionsSection from './SubscriptionsSection';
 import FinanceSection from './FinanceSection';
 import GrowthSection from './GrowthSection';
+import { EmptyState } from '@sinnapi/ui/router';
 
 type Props = {
   period: AnalyticsPeriod;

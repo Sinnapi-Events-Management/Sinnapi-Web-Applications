@@ -8,11 +8,11 @@ import {
   Stack,
   TextField,
   Typography,
+  IconBadge,
 } from '@sinnapi/ui';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
-import IconBadge from './IconBadge';
 
 type ConfirmColor = 'primary' | 'secondary' | 'error' | 'success';
 
@@ -79,7 +79,6 @@ export default function ConfirmDialog({
       onClose={busy ? undefined : onClose}
       fullWidth
       maxWidth="xs"
-      slotProps={{ backdrop: { sx: { backdropFilter: 'blur(6px)' } } }}
       PaperProps={{ component: 'form', onSubmit: handleSubmit, sx: { borderRadius: 4 } }}
     >
       <DialogContent sx={{ px: { xs: 3, sm: 4 }, pt: 4, pb: 2, textAlign: 'center' }}>

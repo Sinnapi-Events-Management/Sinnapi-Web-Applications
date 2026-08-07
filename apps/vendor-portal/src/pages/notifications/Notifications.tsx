@@ -1,11 +1,18 @@
-import { Card, List, ListItem, ListItemText, Divider, Button } from '@sinnapi/ui';
+import {
+  Card,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  Button,
+  PageTitle,
+  QueryState,
+} from '@sinnapi/ui';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate, titleize } from '@/lib/config';
 import { useNotifications } from './hooks/useNotifications';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Notifications() {
   const { rows, isLoading, error, busy, markAll } = useNotifications();
@@ -41,7 +48,7 @@ export default function Notifications() {
                   {i > 0 && <Divider />}
                   <ListItem sx={{ bgcolor: n.read_at ? 'transparent' : 'action.hover' }}>
                     {!n.read_at && (
-                      <FiberManualRecordIcon color="primary" sx={{ fontSize: 10, mr: 1 }} />
+                      <FiberManualRecordIcon color="secondary" sx={{ fontSize: 10, mr: 1 }} />
                     )}
                     <ListItemText
                       primary={n.title || titleize(n.trigger_key)}

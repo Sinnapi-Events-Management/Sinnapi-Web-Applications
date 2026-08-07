@@ -23,7 +23,7 @@ export default function MediaGallery({ rows, onRemove }: Props) {
             title={m.caption ?? m.media_type}
             actionIcon={
               <IconButton
-                sx={{ color: 'white' }}
+                sx={{ color: 'common.white' }}
                 onClick={() => onRemove(m.id)}
                 aria-label="Delete"
               >

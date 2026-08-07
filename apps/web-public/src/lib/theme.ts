@@ -1,5 +1,5 @@
 'use client';
-import { extendTheme, palette, type ThemeOptions } from '@sinnapi/ui/theme';
+import { extendTheme, modalOverrides, palette, type ThemeOptions } from '@sinnapi/ui/theme';
 import { fontStacks } from './fonts';
 
 // Marketing-site design language. Colors come from the shared design tokens
@@ -51,6 +51,8 @@ const shared: ThemeOptions = {
     overline: { fontSize: '0.95rem', fontWeight: 600, letterSpacing: '1px' },
   },
   components: {
+    // Shared across all four apps: the 4px-blurred modal scrim.
+    ...modalOverrides,
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {

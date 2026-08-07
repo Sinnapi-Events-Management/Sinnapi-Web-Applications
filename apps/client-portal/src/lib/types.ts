@@ -46,6 +46,78 @@ export type VendorDetailModel = VendorCardModel & {
   years_in_operation: string | null;
 };
 
+/**
+ * One portfolio item from `vendor_media`. `media_type` is the DB enum, so the
+ * two values are exhaustive. `url` is nullable in the table (a row can exist
+ * with only a storage path), so anything without one is dropped before render.
+ */
+export type VendorMediaModel = {
+  id: string;
+  media_type: 'image' | 'video';
+  url: string | null;
+  caption: string | null;
+  is_primary: boolean;
+  sort_order: number;
+};
+
+/**
+ * A row from `search_vendors_public` — the card model plus the categories the
+ * vendor sells under. `categories` is the primary category and every active
+ * service category, already de-duplicated and alphabetised by the RPC; it is
+ * always an array, never null.
+ */
+export type VendorSearchCardModel = VendorCardModel & {
+  biography: string | null;
+  categories: string[];
+};
+
+/** Orderings `search_vendors_public` whitelists. Anything else falls back server-side. */
+export type VendorSortKey =
+  | 'recommended'
+  | 'rating'
+  | 'reviews'
+  | 'price_asc'
+  | 'price_desc'
+  | 'newest';
+
+/**
+ * Everything that narrows the discovery grid, in the numeric form the RPC
+ * takes. Band tokens ('8m_plus', '4_5') are resolved to these bounds in
+ * `pages/discover/schema/filters.ts`, so the grid and the facet counts can
+ * never disagree about what a band means.
+ */
+export type VendorSearchFilters = {
+  q?: string;
+  category?: string;
+  region?: string;
+  priceMin?: number;
+  priceMax?: number;
+  minRating?: number;
+  sort?: VendorSortKey;
+};
+
+/** One page of the discovery grid, plus the size of the whole filtered set. */
+export type VendorSearchPage = {
+  vendors: VendorSearchCardModel[];
+  total: number;
+  offset: number;
+};
+
+/**
+ * Result counts per facet option under the current filters. Absent keys mean
+ * zero — read through `?? 0` rather than expecting an entry per option.
+ */
+export type VendorFacetCounts = {
+  category: Record<string, number>;
+  region: Record<string, number>;
+};
+
+/** A reference-table row backing a filter dropdown (`service_categories`/`service_regions`). */
+export type FilterRefModel = {
+  key: string;
+  name: string;
+};
+
 // ---------- Bookings ----------
 export type BookingListModel = {
   id: string;

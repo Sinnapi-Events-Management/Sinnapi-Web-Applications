@@ -140,14 +140,65 @@ export type BlockedDateModel = {
   source: string | null;
 };
 
+/**
+ * A row from `search_events_public` — everything an event card renders. The
+ * poster's identity is deliberately absent from the RPC's projection, so a
+ * vendor browsing open work sees the brief, not the client behind it.
+ */
 export type PublicEventModel = {
   id: string;
   title: string;
+  description: string | null;
   event_type: string | null;
   event_date: string | null;
   location: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string | null;
+  cover_image_url: string | null;
   source: 'admin' | 'client' | string;
-  description: string | null;
+};
+
+/** Orderings `search_events_public` whitelists. Anything else falls back server-side. */
+export type EventSortKey = 'soonest' | 'newest' | 'budget_asc' | 'budget_desc';
+
+/**
+ * Everything that narrows the public-events feed, in the form the RPC takes.
+ *
+ * `when` is the odd one out: it stays a token ('this_month') rather than being
+ * resolved to dates here, because the bands are relative to `current_date` and
+ * the only clock that matters is the database's. Resolving them in the browser
+ * would bake a stale "today" into every cache key and drift for anyone whose
+ * device clock or timezone disagrees.
+ */
+export type EventSearchFilters = {
+  q?: string;
+  type?: string;
+  source?: string;
+  location?: string;
+  budgetMin?: number;
+  budgetMax?: number;
+  when?: string;
+  sort?: EventSortKey;
+};
+
+/** One page of the events feed, plus the size of the whole filtered set. */
+export type EventSearchPage = {
+  events: PublicEventModel[];
+  total: number;
+  offset: number;
+};
+
+/**
+ * Result counts per facet option under the current filters. Absent keys mean
+ * zero — read through `?? 0` rather than expecting an entry per option.
+ * Budget is not counted: it's a continuous range, not a discrete key.
+ */
+export type EventFacetCounts = {
+  type: Record<string, number>;
+  source: Record<string, number>;
+  location: Record<string, number>;
+  when: Record<string, number>;
 };
 
 export type EventInterestModel = {
@@ -264,4 +315,11 @@ export type VendorProfileEditModel = {
   website: string | null;
   starting_price: number | null;
   starting_price_currency: string | null;
+};
+
+/** A row from the `service_regions` reference table, as the coverage picker lists it. */
+export type ServiceRegionModel = {
+  key: string;
+  name: string;
+  scope: string;
 };

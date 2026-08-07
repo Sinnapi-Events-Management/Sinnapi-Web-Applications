@@ -1,7 +1,6 @@
-import { Stack, Typography } from '@sinnapi/ui';
+import { Stack, Typography, SectionCard } from '@sinnapi/ui';
 import TipsIcon from '@mui/icons-material/TipsAndUpdatesOutlined';
 import CheckIcon from '@mui/icons-material/CheckCircleOutline';
-import SectionCard from '@/components/ui/SectionCard';
 
 /**
  * Standing guidance for an account that can approve payouts and read every

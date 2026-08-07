@@ -1,13 +1,21 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody, Typography } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Typography,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { ProfileRel } from '@/lib/types';
 import { useQuotations } from './hooks/useQuotations';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function QuotesTable({ vendorId }: { vendorId: string }) {
   const { navigate, rows, isLoading, error } = useQuotations(vendorId);

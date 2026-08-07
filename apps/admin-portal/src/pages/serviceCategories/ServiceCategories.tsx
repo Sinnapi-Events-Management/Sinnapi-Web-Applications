@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
-import { DataTable, Alert, Button } from '@sinnapi/ui';
+import { DataTable, Alert, Button, PageTitle } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
-import PageTitle from '@/components/ui/PageTitle';
 import type { ServiceCategoryModel } from '@/lib/types';
 import { useServiceCategories } from './hooks/useServiceCategories';
 import { getColumns } from './schema';

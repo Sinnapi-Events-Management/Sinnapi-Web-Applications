@@ -1,12 +1,19 @@
-import { Stack, Card, CardContent, Typography, Rating, Box } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Stack,
+  Card,
+  CardContent,
+  Typography,
+  Rating,
+  Box,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorNameSlugRefModel } from '@/lib/types';
 import { useReviews } from './hooks/useReviews';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Reviews() {
   const { rows, isLoading, error } = useReviews();

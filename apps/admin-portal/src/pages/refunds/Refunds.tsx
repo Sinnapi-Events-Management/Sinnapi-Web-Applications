@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { DataTable, Alert, Button, type DataTableColumn } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
+import { DataTable, Alert, Button, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
 import { formatMoney, formatDate, titleize } from '@/lib/config';
 import type { RefundModel } from '@/lib/types';
 import { useRefunds } from './hooks/useRefunds';

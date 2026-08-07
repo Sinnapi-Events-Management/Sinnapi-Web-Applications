@@ -1,8 +1,7 @@
-import { Card, CardContent, Typography, Stack, Divider, Button, Box } from '@sinnapi/ui';
+import { Card, CardContent, Typography, Stack, Divider, Button, Box, PageTitle } from '@sinnapi/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
-import PageTitle from '@/components/ui/PageTitle';
 import VendorGate from '@/vendor/VendorGate';
 import BankAccountForm from '@/components/bank/BankAccountForm';
 import AccountSection from './components/organisms/AccountSection';
@@ -17,7 +16,7 @@ export default function Settings() {
         <Card variant="outlined">
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <AccountBalanceIcon color="primary" />
+              <AccountBalanceIcon color="secondary" />
               <Typography variant="h6">Payout bank account</Typography>
             </Box>
             <Divider sx={{ mb: 2 }} />
@@ -28,7 +27,7 @@ export default function Settings() {
         <Card variant="outlined">
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <PrivacyTipIcon color="primary" />
+              <PrivacyTipIcon color="secondary" />
               <Typography variant="h6">Privacy &amp; data</Typography>
             </Box>
             <Divider sx={{ mb: 2 }} />

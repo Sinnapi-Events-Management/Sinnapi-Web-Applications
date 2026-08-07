@@ -1,6 +1,4 @@
-import { Card, CardContent, Typography } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
+import { Card, CardContent, Typography, PageTitle, QueryState } from '@sinnapi/ui';
 import ProfileForm from '@/components/profile/ProfileForm';
 import { useProfile } from './hooks/useProfile';
 

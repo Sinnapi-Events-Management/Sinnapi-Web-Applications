@@ -1,5 +1,4 @@
-import { Stack, Box, Typography, Button } from '@sinnapi/ui';
-import SearchField from '@/components/ui/SearchField';
+import { Stack, Box, Typography, Button, SearchField } from '@sinnapi/ui';
 import type { GrantFilter } from '../../schema';
 import type { PermissionSearchState } from '../../hooks/useRolePermissions';
 import GrantFilterChips from '../molecules/GrantFilterChips';

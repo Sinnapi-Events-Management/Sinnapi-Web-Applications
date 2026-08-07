@@ -1,12 +1,20 @@
-import { Card, Table, TableHead, TableRow, TableCell, TableBody, Typography } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Card,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Typography,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorRefModel } from '@/lib/types';
 import { useBookings } from './hooks/useBookings';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function Bookings() {
   const { rows, isLoading, error, openBooking } = useBookings();

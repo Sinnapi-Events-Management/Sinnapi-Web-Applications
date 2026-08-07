@@ -9,10 +9,10 @@ import {
   Alert,
   Button,
   Box,
+  PageTitle,
+  QueryState,
+  StatusChip,
 } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import QueryState from '@/components/ui/QueryState';
-import StatusChip from '@/components/ui/StatusChip';
 import { APP } from '@/lib/config';
 import { useOnboarding } from './hooks/useOnboarding';
 

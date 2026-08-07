@@ -1,5 +1,14 @@
-export { lightTheme, darkTheme, type AppTheme } from './theme';
+export { lightTheme, darkTheme, modalOverrides, type AppTheme } from './theme';
 export { palette, radius, fonts, brand, common, gradientStops } from './tokens';
+
+// The portal design language (admin / client / vendor) — denser and
+// secondary-forward, as opposed to the marketing themes above.
+export {
+  createPortalTheme,
+  portalThemeBase,
+  portalLightPalette,
+  portalDarkPalette,
+} from './portal';
 
 // Color-mode (dark/light) infrastructure built on MUI's CSS-variables provider.
 export { ColorModeProvider, ColorSchemeScript } from './ColorMode';

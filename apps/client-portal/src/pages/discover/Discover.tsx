@@ -1,12 +1,30 @@
-import { Grid, Paper, TextField, Button, Box } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import QueryState from '@/components/ui/QueryState';
-import VendorCard from '@/components/vendor/VendorCard';
+import DiscoverToolbar from './components/organisms/DiscoverToolbar';
+import DiscoverResults from './components/organisms/DiscoverResults';
+import ActiveFilterChips from './components/molecules/ActiveFilterChips';
+import { PRICE_OPTIONS, RATING_OPTIONS } from './schema/filters';
 import { useDiscover } from './hooks/useDiscover';
+import { PageTitle } from '@sinnapi/ui';
 
+/**
+ * Vendor discovery. Search, filters, sort and paging all resolve server-side
+ * (see `useDiscover`), so this composes three pieces and holds no state itself.
+ */
 export default function Discover() {
-  const { q, setQ, search, vendors } = useDiscover();
+  const {
+    search,
+    filters,
+    options,
+    facetCounts,
+    vendors,
+    total,
+    error,
+    isLoading,
+    isRefreshing,
+    isFiltered,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+  } = useDiscover();
 
   return (
     <>
@@ -14,32 +32,36 @@ export default function Discover() {
         title="Discover vendors"
         subtitle="Search verified providers, then request a quote or book."
       />
-      <Paper
-        variant="outlined"
-        component="form"
-        onSubmit={search}
-        sx={{ p: 2, mb: 3, display: 'flex', gap: 2 }}
-      >
-        <TextField value={q} onChange={(e) => setQ(e.target.value)} label="Search vendors" />
-        <Box>
-          <Button type="submit" variant="contained" sx={{ height: 40 }}>
-            Search
-          </Button>
-        </Box>
-      </Paper>
-      <QueryState isLoading={vendors.isLoading} error={vendors.error}>
-        {(vendors.data ?? []).length === 0 ? (
-          <EmptyState title="No vendors found" description="Try a different search term." />
-        ) : (
-          <Grid container spacing={3}>
-            {(vendors.data ?? []).map((v) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={v.id}>
-                <VendorCard vendor={v} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </QueryState>
+
+      <DiscoverToolbar
+        search={search}
+        filters={filters}
+        options={options}
+        facetCounts={facetCounts}
+      />
+
+      <ActiveFilterChips
+        values={filters.values}
+        options={{
+          category: options.categories,
+          region: options.regions,
+          price: PRICE_OPTIONS,
+          rating: RATING_OPTIONS,
+        }}
+        onRemove={filters.setFacet}
+      />
+
+      <DiscoverResults
+        vendors={vendors}
+        total={total}
+        error={error}
+        isLoading={isLoading}
+        isRefreshing={isRefreshing}
+        isFiltered={isFiltered}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMore}
+      />
     </>
   );
 }

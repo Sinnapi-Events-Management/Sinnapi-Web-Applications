@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, DataTable, Snackbar } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Alert, DataTable, Snackbar, PageTitle } from '@sinnapi/ui';
 import { useBlockedAccounts } from './hooks/useBlockedAccounts';
 import { getColumns, rowKey } from './schema';
 import BlockedToolbar from './components/organisms/BlockedToolbar';

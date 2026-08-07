@@ -12,11 +12,11 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  IconBadge,
 } from '@sinnapi/ui';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import IconBadge from '@/components/ui/IconBadge';
 import type { RoleModel } from '@/lib/types';
 import type { CopyPermissionsState } from '../../hooks/useCopyPermissions';
 
@@ -67,7 +67,6 @@ export default function CopyPermissionsDialog({ copy, target }: Props) {
       onClose={copy.close}
       fullWidth
       maxWidth="xs"
-      slotProps={{ backdrop: { sx: { backdropFilter: 'blur(6px)' } } }}
       PaperProps={{ sx: { borderRadius: 4 } }}
     >
       <DialogTitle sx={{ pb: 1 }}>

@@ -1,6 +1,5 @@
-import { Stack, Button } from '@sinnapi/ui';
+import { Stack, Button, PageTitle } from '@sinnapi/ui';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
-import PageTitle from '@/components/ui/PageTitle';
 import StatusTabs from '@/components/ui/StatusTabs';
 import { useNotifications } from './hooks/useNotifications';
 import { useActiveNotification } from './hooks/useActiveNotification';

@@ -1,5 +1,4 @@
-import { Box, Typography } from '@sinnapi/ui';
-import InfoRow from '@/components/ui/InfoRow';
+import { Box, Typography, InfoRow } from '@sinnapi/ui';
 import { titleize } from '@/lib/config';
 
 type Props = {

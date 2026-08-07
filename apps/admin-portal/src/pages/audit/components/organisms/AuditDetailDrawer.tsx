@@ -1,8 +1,15 @@
 import { useRef } from 'react';
-import { Box, Divider, Drawer, IconButton, Stack, Typography } from '@sinnapi/ui';
+import {
+  Box,
+  Divider,
+  Drawer,
+  IconButton,
+  Stack,
+  Typography,
+  IconBadge,
+  InfoRow,
+} from '@sinnapi/ui';
 import CloseIcon from '@mui/icons-material/Close';
-import IconBadge from '@/components/ui/IconBadge';
-import InfoRow from '@/components/ui/InfoRow';
 import { formatDateTime } from '@/lib/config';
 import type { AuditLogModel } from '@/lib/types';
 import { changedFields, describeAction, entityLabel, entitySummary } from '../../schema/presenter';

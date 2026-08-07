@@ -1,5 +1,4 @@
-import { Alert, DataTable } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Alert, DataTable, PageTitle } from '@sinnapi/ui';
 import { useAudit } from './hooks/useAudit';
 import { columns } from './schema';
 import AuditToolbar from './components/organisms/AuditToolbar';

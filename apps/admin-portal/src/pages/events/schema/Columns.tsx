@@ -1,5 +1,4 @@
-import { Box, Typography, type DataTableColumn } from '@sinnapi/ui';
-import StatusChip from '@/components/ui/StatusChip';
+import { Box, Typography, type DataTableColumn, StatusChip } from '@sinnapi/ui';
 import { formatDate, titleize } from '@/lib/config';
 import type { EventStatus } from '@/lib/status';
 import type { EventModel } from '@/lib/types';

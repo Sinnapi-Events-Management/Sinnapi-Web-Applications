@@ -1,5 +1,4 @@
-import { Card, CardContent } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Card, CardContent, PageTitle } from '@sinnapi/ui';
 import EventForm from '@/components/event/EventForm';
 
 export default function NewEvent() {

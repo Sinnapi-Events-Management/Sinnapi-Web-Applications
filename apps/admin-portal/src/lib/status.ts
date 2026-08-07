@@ -1,51 +1,8 @@
-type ChipColor = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
-
-const MAP: Record<string, ChipColor> = {
-  requested: 'info',
-  confirmed: 'secondary',
-  in_progress: 'secondary',
-  completed: 'success',
-  cancelled: 'error',
-  declined: 'error',
-  draft: 'default',
-  sent: 'info',
-  accepted: 'success',
-  revised: 'warning',
-  expired: 'default',
-  initiated: 'default',
-  funded: 'info',
-  held: 'info',
-  release_requested: 'warning',
-  admin_review: 'warning',
-  payout_approved: 'secondary',
-  paid_out: 'success',
-  disputed: 'error',
-  refunded: 'error',
-  partially_refunded: 'warning',
-  failed: 'error',
-  pending: 'warning',
-  processing: 'info',
-  succeeded: 'success',
-  trialing: 'info',
-  active: 'success',
-  grace: 'warning',
-  suspended: 'error',
-  published: 'success',
-  hidden: 'default',
-  removed: 'error',
-  // event lifecycle
-  closed: 'warning',
-  archived: 'default',
-  // vendor application intake
-  submitted: 'info',
-  reviewing: 'warning',
-  approved: 'success',
-  rejected: 'error',
-};
-
-export function statusColor(status: string): ChipColor {
-  return MAP[status] ?? 'default';
-}
+// The status → chip-colour map is shared by all three portals and lives in
+// @sinnapi/ui (see `statusColor`), so a `confirmed` booking cannot read teal in
+// one portal and gold in another. Re-exported here so admin's existing
+// `@/lib/status` call sites keep working. The enums below are admin-only.
+export { statusColor, type StatusChipColor } from '@sinnapi/ui';
 
 /**
  * The `profile_status` enum, in lifecycle order. Authoritative source for the

@@ -1,5 +1,4 @@
-import { Box, Stack, Typography } from '@sinnapi/ui';
-import IconBadge from '@/components/ui/IconBadge';
+import { Box, Stack, Typography, IconBadge } from '@sinnapi/ui';
 import type { ActivityModel } from '../../schema';
 
 type Props = { entry: ActivityModel };

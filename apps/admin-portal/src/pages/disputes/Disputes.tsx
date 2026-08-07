@@ -11,9 +11,9 @@ import {
   MenuItem,
   Stack,
   type DataTableColumn,
+  PageTitle,
+  StatusChip,
 } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { DisputeModel, BookingRef } from '@/lib/types';

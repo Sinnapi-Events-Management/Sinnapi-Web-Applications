@@ -1,10 +1,9 @@
-import { Grid, Box, Stack, Typography, Avatar, alpha } from '@sinnapi/ui';
+import { Grid, Box, Stack, Typography, Avatar, alpha, SectionCard } from '@sinnapi/ui';
 import ContactsIcon from '@mui/icons-material/Contacts';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EventIcon from '@mui/icons-material/Event';
 import CelebrationIcon from '@mui/icons-material/Celebration';
-import SectionCard from '@/components/ui/SectionCard';
 import { formatDate } from '@/lib/config';
 import type { IntakeReferee } from '@/lib/types';
 

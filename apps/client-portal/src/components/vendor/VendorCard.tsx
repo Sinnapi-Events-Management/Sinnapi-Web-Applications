@@ -8,6 +8,7 @@ import {
   Stack,
   Rating,
   Box,
+  alpha,
 } from '@sinnapi/ui';
 import PlaceIcon from '@mui/icons-material/Place';
 import { formatMoney } from '@/lib/config';
@@ -38,7 +39,9 @@ export default function VendorCard({ vendor }: { vendor: VendorCardData }) {
           height="160"
           image={vendor.primary_image_url ?? vendor.profile_image_url ?? '/placeholder-vendor.svg'}
           alt={vendor.business_name}
-          sx={{ bgcolor: 'grey.100' }}
+          // Letterbox fill behind the photo — a translucent ink wash rather than
+          // a fixed grey, so it recedes on the warm dark canvas too.
+          sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.07) }}
         />
         <CardContent>
           <Typography variant="h6" noWrap>

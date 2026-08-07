@@ -1,5 +1,4 @@
-import { Box } from '@sinnapi/ui';
-import SearchField from '@/components/ui/SearchField';
+import { Box, SearchField } from '@sinnapi/ui';
 import type { SearchTerm } from '@/hooks/useSearchTerm';
 
 type ApplicationsToolbarProps = {

@@ -1,4 +1,4 @@
-import { Stack, Box, Typography, Link, alpha } from '@sinnapi/ui';
+import { Stack, Box, Typography, Link, alpha, SectionCard } from '@sinnapi/ui';
 import LanguageIcon from '@mui/icons-material/Language';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
@@ -6,7 +6,6 @@ import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShareIcon from '@mui/icons-material/Share';
-import SectionCard from '@/components/ui/SectionCard';
 import type { IntakeDetailModel } from '@/lib/types';
 
 function hostname(url: string): string {

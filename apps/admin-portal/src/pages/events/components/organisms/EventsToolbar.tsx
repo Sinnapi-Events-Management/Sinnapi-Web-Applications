@@ -1,6 +1,5 @@
-import { Box, Stack, TextField, MenuItem, Button, Typography } from '@sinnapi/ui';
+import { Box, Stack, TextField, MenuItem, Button, Typography, SearchField } from '@sinnapi/ui';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import SearchField from '@/components/ui/SearchField';
 import type { SearchTerm } from '@/hooks/useSearchTerm';
 import type { EventFilters } from '../../hooks/useEventFilters';
 import { SOURCE_OPTIONS, PUBLIC_OPTIONS } from '../../schema';

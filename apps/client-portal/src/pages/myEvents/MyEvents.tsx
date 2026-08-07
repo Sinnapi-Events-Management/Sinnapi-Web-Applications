@@ -1,12 +1,20 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Grid, Card, CardContent, Typography, Button, Stack, Chip } from '@sinnapi/ui';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Stack,
+  Chip,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
 import { formatDate, titleize } from '@/lib/config';
 import { useMyEvents } from './hooks/useMyEvents';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function MyEvents() {
   const { rows, isLoading, error } = useMyEvents();

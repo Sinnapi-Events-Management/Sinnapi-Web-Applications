@@ -1,5 +1,4 @@
-import { Stack, Typography } from '@sinnapi/ui';
-import IconBadge from '@/components/ui/IconBadge';
+import { Stack, Typography, IconBadge } from '@sinnapi/ui';
 import type { AuditLogModel } from '@/lib/types';
 import { describeAction } from '../../schema/presenter';
 

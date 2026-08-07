@@ -1,13 +1,22 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Grid, Card, CardContent, Typography, Stack, Button, Divider, Box } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
-import EmptyState from '@/components/ui/EmptyState';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Stack,
+  Button,
+  Divider,
+  Box,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { VendorRefModel } from '@/lib/types';
 import { useBookingDetail } from './hooks/useBookingDetail';
+import { EmptyState } from '@sinnapi/ui/router';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (

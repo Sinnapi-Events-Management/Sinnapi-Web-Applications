@@ -1,5 +1,4 @@
-import { Alert } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { Alert, PageTitle } from '@sinnapi/ui';
 import StatusTabs from '@/components/ui/StatusTabs';
 import { useNotificationTemplates } from './hooks/useNotificationTemplates';
 import TemplatesSummary from './components/organisms/TemplatesSummary';

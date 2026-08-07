@@ -1,4 +1,10 @@
-import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
@@ -1653,5 +1659,78 @@ export function useBlockedAccounts(params: BlockedAccountParams) {
       return { rows, total: Number(rows[0]?.total_count ?? 0) };
     },
     placeholderData: keepPreviousData,
+  });
+}
+
+// ---------- Vendor service coverage ----------
+
+/**
+ * The active regions a vendor can be given coverage for, ordered as the
+ * reference table lists them. Reference data, so cached for the session.
+ *
+ * Deliberately separate from `useServiceRegionsAdmin`, which is the paged,
+ * filterable read behind the Service Regions admin table — that one answers
+ * "manage the reference list", this one answers "what can I tick".
+ */
+export function useServiceRegionOptions() {
+  return useQuery({
+    queryKey: ['service-region-options'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_regions')
+        .select('id,key,name,scope,is_active,sort_order')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ServiceRegionModel[];
+    },
+  });
+}
+
+/**
+ * The regions a vendor currently covers, as reference keys. Readable by staff
+ * since 0806 widened `vsr_read` to include `vendor.manage` — before that this
+ * returned nothing for any vendor who wasn't already public.
+ */
+export function useVendorCoverage(vendorId: string) {
+  return useQuery({
+    queryKey: ['vendor-coverage', vendorId],
+    enabled: Boolean(vendorId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_service_regions')
+        .select('service_regions(key)')
+        .eq('vendor_id', vendorId);
+      if (error) throw error;
+      return ((data ?? []) as { service_regions: { key: string } | { key: string }[] | null }[])
+        .map((row) =>
+          Array.isArray(row.service_regions) ? row.service_regions[0] : row.service_regions,
+        )
+        .map((region) => region?.key)
+        .filter((key): key is string => Boolean(key));
+    },
+  });
+}
+
+/**
+ * Replaces a vendor's coverage with `keys`.
+ *
+ * Goes through `set_vendor_service_regions`, which authorises staff by
+ * `vendor.manage` — the table's own write policy is owner-only, so a direct
+ * insert from here would be rejected by RLS. The RPC also applies the delete
+ * and the insert as one unit, which two statements from the browser could not.
+ */
+export function useSetVendorCoverage(vendorId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (keys: string[]) => {
+      const { error } = await supabase.rpc('set_vendor_service_regions', {
+        p_vendor_id: vendorId,
+        p_keys: keys,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vendor-coverage', vendorId] }),
   });
 }

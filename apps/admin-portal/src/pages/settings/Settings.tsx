@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { DataTable, Alert } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
+import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
 import { useSettings } from './hooks/useSettings';
 import { getColumns } from './schema';
 import SettingEditDialog from './components/organisms/SettingEditDialog';

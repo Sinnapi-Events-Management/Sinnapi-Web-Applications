@@ -1,4 +1,3 @@
-import PageTitle from '@/components/ui/PageTitle';
 import { useRbac } from './hooks/useRbac';
 import { useRolePermissions } from './hooks/useRolePermissions';
 import { useCopyPermissions } from './hooks/useCopyPermissions';
@@ -7,6 +6,7 @@ import RbacWorkspace from './components/organisms/RbacWorkspace';
 import RolesPanel from './components/organisms/RolesPanel';
 import RolePermissionsPane from './components/organisms/RolePermissionsPane';
 import CopyPermissionsDialog from './components/organisms/CopyPermissionsDialog';
+import { PageTitle } from '@sinnapi/ui';
 
 /**
  * Roles & permissions — a master–detail editor over the `role_permissions`

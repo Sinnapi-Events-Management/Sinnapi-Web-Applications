@@ -1,12 +1,20 @@
-import { Stack, Card, CardContent, Typography, Rating, Button, Alert } from '@sinnapi/ui';
-import PageTitle from '@/components/ui/PageTitle';
-import EmptyState from '@/components/ui/EmptyState';
-import StatusChip from '@/components/ui/StatusChip';
-import QueryState from '@/components/ui/QueryState';
+import {
+  Stack,
+  Card,
+  CardContent,
+  Typography,
+  Rating,
+  Button,
+  Alert,
+  PageTitle,
+  QueryState,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatDate, titleize } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { ReviewRef } from '@/lib/types';
 import { useReviewsModeration } from './hooks/useReviewsModeration';
+import { EmptyState } from '@sinnapi/ui/router';
 
 export default function ReviewsModeration() {
   const { rows, isLoading, error, busy, err, removeReview, dismiss } = useReviewsModeration();
