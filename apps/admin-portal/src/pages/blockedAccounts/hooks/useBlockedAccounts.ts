@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useBlockedAccounts as useBlockedAccountsQuery } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
 import { useBlockedFilters } from './useBlockedFilters';

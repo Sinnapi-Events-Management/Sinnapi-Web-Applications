@@ -123,6 +123,18 @@ export function formatDate(value: string | null | undefined): string {
   });
 }
 
+/** Date plus wall-clock time, for audit-style trails where the hour matters. */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function titleize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }

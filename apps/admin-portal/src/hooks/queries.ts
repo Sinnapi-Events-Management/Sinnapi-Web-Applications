@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
+import { applyFilters, paginate, type PageParams, type Paged } from '@sinnapi/ui';
 import {
   INTAKE_STATUSES,
   VENDOR_STATUSES,

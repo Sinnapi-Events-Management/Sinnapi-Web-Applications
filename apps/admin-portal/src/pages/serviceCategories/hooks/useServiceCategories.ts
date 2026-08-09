@@ -5,10 +5,10 @@ import {
   useServiceCategoryOptions,
   useNextServiceCategorySortOrder,
 } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { supabase } from '@/lib/supabase';
-import type { PageFilters } from '@/lib/table';
+import type { PageFilters } from '@sinnapi/ui';
 import type { ServiceCategoryModel } from '@/lib/types';
 import { useCategoryEdit } from './useCategoryEdit';
 import { useCategoryDelete } from './useCategoryDelete';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, Paper, Tabs, Tab, DataTable, Alert } from '@sinnapi/ui';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import {
   useClientBookings,
   useClientEvents,

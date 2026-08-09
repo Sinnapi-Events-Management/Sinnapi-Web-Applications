@@ -4,11 +4,11 @@ import {
   useNotificationTemplates as useNotificationTemplatesQuery,
   useNotificationTemplateStats,
 } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useStatusFilter, ALL_STATUSES } from '@/hooks/useStatusFilter';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { supabase } from '@/lib/supabase';
-import type { PageFilters } from '@/lib/table';
+import type { PageFilters } from '@sinnapi/ui';
 import {
   NOTIFICATION_CHANNELS,
   buildChannelTabs,

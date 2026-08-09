@@ -1,5 +1,5 @@
 import { Box, Button, DialogContent, DialogActions, Alert, Stack } from '@sinnapi/ui';
-import { ControlledField } from '@sinnapi/ui/forms';
+import { ControlledField, ControlledDateRangeField } from '@sinnapi/ui/forms';
 import { DISCOUNT_TYPE_OPTIONS } from '../../schema';
 import { useDiscountForm } from '../../hooks/useDiscountForm';
 
@@ -53,22 +53,18 @@ export default function DiscountForm({ vendorId, onCancel, onSuccess }: Props) {
             label="Max uses (optional)"
             inputProps={{ min: 1 }}
           />
-          <Stack direction="row" spacing={2} alignItems="flex-start">
-            <ControlledField
-              name="starts_at"
-              control={control}
-              type="date"
-              label="Starts"
-              InputLabelProps={{ shrink: true }}
-            />
-            <ControlledField
-              name="ends_at"
-              control={control}
-              type="date"
-              label="Ends"
-              InputLabelProps={{ shrink: true }}
-            />
-          </Stack>
+          {/* One control for what is one decision: the window the code is live.
+              The calendar constrains the end to the start, so the schema's
+              "end on or after start" rule is now a backstop rather than a
+              message vendors routinely see. */}
+          <ControlledDateRangeField
+            fromName="starts_at"
+            toName="ends_at"
+            control={control}
+            label="Valid between"
+            placeholder="Select the discount window"
+            helperText="The dates this code can be redeemed, inclusive."
+          />
         </Stack>
       </DialogContent>
       <DialogActions>

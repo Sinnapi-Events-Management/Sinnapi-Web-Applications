@@ -6,7 +6,7 @@ import {
   type SubscriptionAdminFilters,
   type SubscriptionAdminParams,
 } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useStatusFilter, ALL_STATUSES } from '@/hooks/useStatusFilter';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { SUBSCRIPTION_STATUSES } from '@/lib/status';

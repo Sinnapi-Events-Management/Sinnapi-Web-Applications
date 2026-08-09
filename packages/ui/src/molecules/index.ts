@@ -15,6 +15,7 @@ export * from './Menu';
 export * from './Stepper';
 export * from './SpeedDial';
 export * from './Autocomplete';
+export * from './datePicker';
 export * from './ImageList';
 export * from './ThemeToggle';
 // Portal primitives — shared by admin, client and vendor. (`StatCard` and

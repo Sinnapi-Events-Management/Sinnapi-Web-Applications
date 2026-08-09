@@ -5,7 +5,7 @@ import {
   useApplicationCounts,
   type IntakeAdminParams,
 } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useStatusFilter, ALL_STATUSES } from '@/hooks/useStatusFilter';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { INTAKE_STATUSES } from '@/lib/status';

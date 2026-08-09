@@ -1,0 +1,1 @@
+export { compareQuoteColumns } from './Columns';

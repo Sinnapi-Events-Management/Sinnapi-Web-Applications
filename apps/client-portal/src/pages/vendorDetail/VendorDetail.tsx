@@ -1,11 +1,10 @@
 import { Grid, Box, Divider, QueryState } from '@sinnapi/ui';
-import BackButton from '@/components/ui/BackButton';
 import VendorHeadline from './components/molecules/VendorHeadline';
 import VendorReviews from './components/molecules/VendorReviews';
 import VendorMediaSection from './components/organisms/VendorMediaSection';
 import VendorBookingPanel from './components/organisms/VendorBookingPanel';
 import { useVendorDetail } from './hooks/useVendorDetail';
-import { EmptyState } from '@sinnapi/ui/router';
+import { BackButton, EmptyState } from '@sinnapi/ui/router';
 
 /**
  * A single vendor's public profile: who they are, the work they've shown, and

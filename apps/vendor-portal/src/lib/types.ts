@@ -57,11 +57,30 @@ export type VendorBookingDetailModel = {
   reference_no: string | null;
   status: string;
   event_date: string | null;
+  /** Postgres `time` values ("14:00:00"); either end may be absent. */
+  start_time: string | null;
+  end_time: string | null;
   amount: number | null;
   currency: string | null;
   location: string | null;
   payment_type: string | null;
+  cancellation_reason: string | null;
+  completed_at: string | null;
+  created_at: string;
   profiles: ProfileContactRel | ProfileContactRel[] | null;
+};
+
+/**
+ * One entry of a booking's status trail. Written by a trigger on insert and on
+ * every status change, so a booking always has at least its `requested` row.
+ * `from_status` is null on that first entry.
+ */
+export type BookingStatusEventModel = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  occurred_at: string;
 };
 
 export type VendorQuotationModel = {

@@ -1,5 +1,6 @@
 import { Controller, type Control } from 'react-hook-form';
 import { Box, FormControlLabel, Stack, Switch } from '@sinnapi/ui';
+import { ControlledDateField } from '@sinnapi/ui/forms';
 import {
   CURRENCY_OPTIONS,
   EVENT_TYPE_OPTIONS,
@@ -34,13 +35,9 @@ export default function EventFormFields({ control }: Props) {
         label="Event type"
         options={EVENT_TYPE_OPTIONS}
       />
-      <ControlledField
-        name="event_date"
-        control={control}
-        label="Date"
-        type="date"
-        InputLabelProps={{ shrink: true }}
-      />
+      {/* An admin edits events that have already happened as well as ones still
+          to come, so this calendar stays unbounded in both directions. */}
+      <ControlledDateField name="event_date" control={control} label="Date" />
       <ControlledField name="location" control={control} label="Location" />
 
       <Stack direction="row" spacing={1.5} alignItems="flex-start">

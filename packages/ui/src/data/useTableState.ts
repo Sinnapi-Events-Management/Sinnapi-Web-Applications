@@ -1,6 +1,7 @@
+'use client';
 import { useMemo, useState } from 'react';
-import type { SortModel } from '@sinnapi/ui';
-import type { PageParams } from '@/lib/table';
+import type { SortModel } from '../organisms/DataTable';
+import type { PageParams } from './table';
 
 export type TableState = {
   /** Params to hand to a paginated query. */
@@ -20,6 +21,8 @@ export type TableState = {
  * Owns page / pageSize / sort state for a server-paginated table. Keeps page
  * hooks tiny: read `params` for the query, spread `controls` onto <DataTable/>.
  * Changing sort or page size resets to the first page.
+ *
+ * Shared by all three portals so a list behaves the same wherever it lives.
  */
 export function useTableState(opts?: { pageSize?: number; sort?: SortModel }): TableState {
   const [page, setPage] = useState(0);

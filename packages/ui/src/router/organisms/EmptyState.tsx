@@ -10,6 +10,12 @@ export type EmptyStateProps = {
   /** Both `ctaLabel` and `ctaHref` must be set for the action to render. */
   ctaLabel?: string;
   ctaHref?: LinkProps['to'];
+  /**
+   * Drop the outlined surface, for when this sits inside one already — most
+   * often as a <DataTable /> `emptyMessage`, where the table's own Paper would
+   * otherwise be double-bordered. The copy and CTA are unchanged.
+   */
+  embedded?: boolean;
 };
 
 /**
@@ -24,9 +30,21 @@ export function EmptyState({
   description,
   ctaLabel,
   ctaHref,
+  embedded = false,
 }: EmptyStateProps) {
   return (
-    <Paper variant="outlined" sx={{ textAlign: 'center', py: 8, px: 2, color: 'text.secondary' }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        textAlign: 'center',
+        py: embedded ? 4 : 8,
+        px: 2,
+        color: 'text.secondary',
+        // Embedded: keep the copy and CTA, shed the surface so the host's
+        // border (a DataTable's Paper) isn't doubled up.
+        ...(embedded && { border: 'none', bgcolor: 'transparent' }),
+      }}
+    >
       {/* `text.disabled` rather than a fixed grey, so the glyph stays legible
           against the warm dark canvas instead of vanishing into it. */}
       <InboxIcon sx={{ fontSize: 44, color: 'text.disabled' }} />

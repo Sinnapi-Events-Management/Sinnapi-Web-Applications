@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useAuditLogs } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useAuditFilters } from './useAuditFilters';
 import { useAuditDetail } from './useAuditDetail';
 

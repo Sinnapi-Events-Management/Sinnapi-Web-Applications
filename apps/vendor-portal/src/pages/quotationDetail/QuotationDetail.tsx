@@ -1,26 +1,13 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Divider,
-  Box,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
+import { Card, CardContent, Typography, PageTitle, QueryState, StatusChip } from '@sinnapi/ui';
 import QuotationBuilder from '@/components/quotation/QuotationBuilder';
-import { formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { ProfileRel } from '@/lib/types';
 import { useQuotationDetail } from './hooks/useQuotationDetail';
+import QuotationLineItems from './components/molecules/QuotationLineItems';
 import { EmptyState } from '@sinnapi/ui/router';
 
 export default function QuotationDetail() {
-  const { quotation: q, isLoading, error } = useQuotationDetail();
+  const { quotation: q, isLoading, error, isEditable } = useQuotationDetail();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -49,38 +36,17 @@ export default function QuotationDetail() {
           )}
           <Card variant="outlined">
             <CardContent>
-              {['requested', 'draft', 'revised'].includes(q.status) ? (
-                <>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Build & send quote
-                  </Typography>
-                  <QuotationBuilder quotationId={q.id} currency={q.currency ?? undefined} />
-                </>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {isEditable ? 'Build & send quote' : 'Quote sent'}
+              </Typography>
+              {isEditable ? (
+                <QuotationBuilder quotationId={q.id} currency={q.currency ?? undefined} />
               ) : (
-                <>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Quote sent
-                  </Typography>
-                  <Table size="small">
-                    <TableBody>
-                      {(q.quotation_items ?? []).map((it) => (
-                        <TableRow key={it.id}>
-                          <TableCell>{it.description}</TableCell>
-                          <TableCell align="right">
-                            {it.quantity} × {formatMoney(it.unit_price, q.currency)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatMoney(it.line_total, q.currency)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <Divider sx={{ my: 2 }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Typography variant="h6">Total: {formatMoney(q.total, q.currency)}</Typography>
-                  </Box>
-                </>
+                <QuotationLineItems
+                  items={q.quotation_items ?? []}
+                  total={q.total}
+                  currency={q.currency}
+                />
               )}
             </CardContent>
           </Card>

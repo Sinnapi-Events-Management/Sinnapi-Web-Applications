@@ -1,5 +1,5 @@
 import { Stack, Button, Alert } from '@sinnapi/ui';
-import { ControlledField } from '@sinnapi/ui/forms';
+import { ControlledField, ControlledDateField } from '@sinnapi/ui/forms';
 import { useEventForm } from './hooks/useEventForm';
 
 export default function EventForm() {
@@ -10,12 +10,13 @@ export default function EventForm() {
       {error && <Alert severity="error">{error}</Alert>}
       <ControlledField name="title" control={control} label="Event title" autoFocus />
       <ControlledField name="event_type" control={control} label="Event type (e.g. Wedding)" />
-      <ControlledField
+      {/* An event is posted for vendors to bid on, so only future dates make
+          sense — the field itself stays optional, as the schema has it. */}
+      <ControlledDateField
         name="event_date"
         control={control}
-        type="date"
-        label="Event date"
-        InputLabelProps={{ shrink: true }}
+        label="Event date (optional)"
+        disablePast
       />
       <ControlledField name="location" control={control} label="Location" />
       <ControlledField

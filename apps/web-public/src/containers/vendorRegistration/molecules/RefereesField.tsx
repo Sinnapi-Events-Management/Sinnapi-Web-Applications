@@ -1,4 +1,5 @@
 import { Box, Grid, TextField, Button, IconButton, Typography, Paper } from '@sinnapi/ui/atoms';
+import { DateField } from '@sinnapi/ui/molecules';
 import { Add, DeleteOutline } from '@mui/icons-material';
 import type { RegistrationApi } from '../hooks/useVendorRegistration';
 
@@ -60,15 +61,16 @@ export default function RefereesField({ api }: Props) {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
+              {/* A reference is work already delivered, so this date is always
+                  in the past — the calendar says so rather than leaving the
+                  applicant to discover it. */}
+              <DateField
                 label="Event date"
-                type="date"
-                fullWidth
                 size="small"
                 disabled={submitting}
-                InputLabelProps={{ shrink: true }}
+                disableFuture
                 value={r.eventDate ?? ''}
-                onChange={(e) => updateReferee(i, { eventDate: e.target.value })}
+                onChange={(next) => updateReferee(i, { eventDate: next })}
               />
             </Grid>
             <Grid item xs={12}>

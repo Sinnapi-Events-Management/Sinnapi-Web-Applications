@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Stack, Button, Alert } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
+import { hasBookingResponseActions } from './bookingActions';
 
 export default function BookingResponseActions({
   bookingId,
@@ -16,6 +17,8 @@ export default function BookingResponseActions({
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ['v-booking', bookingId] });
+    // The status trail gains a row on every accept/decline/complete.
+    qc.invalidateQueries({ queryKey: ['v-booking-history', bookingId] });
     qc.invalidateQueries({ queryKey: ['v-bookings'] });
     qc.invalidateQueries({ queryKey: ['v-dashboard'] });
   }
@@ -71,7 +74,7 @@ export default function BookingResponseActions({
             </Button>
           </>
         )}
-        {['confirmed', 'in_progress'].includes(status) && (
+        {status !== 'requested' && hasBookingResponseActions(status) && (
           <Button variant="contained" color="success" disabled={busy} onClick={complete}>
             Mark completed
           </Button>

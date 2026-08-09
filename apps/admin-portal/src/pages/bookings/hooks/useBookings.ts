@@ -1,5 +1,5 @@
 import { useBookingsAdmin } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 
 export function useBookings() {
   const table = useTableState({ sort: { field: 'event_date', direction: 'desc' } });

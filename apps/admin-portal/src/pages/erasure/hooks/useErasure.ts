@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useErasureRequests } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 
 export function useErasure() {

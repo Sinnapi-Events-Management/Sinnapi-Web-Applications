@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { PageFilters } from '@/lib/table';
+import type { PageFilters } from '@sinnapi/ui';
 
 /** Sentinel for the unfiltered tab. Never written to the URL or the query. */
 export const ALL_STATUSES = 'all';

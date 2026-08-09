@@ -1,5 +1,5 @@
 import { useLedger as useLedgerQuery } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 
 export function useLedger() {
   const table = useTableState({ sort: { field: 'occurred_at', direction: 'desc' } });

@@ -5,6 +5,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query';
+import { paginate, type PageParams, type Paged } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import type {
   VendorDetailModel,
@@ -16,6 +17,7 @@ import type {
   FilterRefModel,
   BookingListModel,
   BookingDetailModel,
+  BookingStatusEventModel,
   QuotationListModel,
   MyEventModel,
   EscrowModel,
@@ -43,6 +45,28 @@ const VENDOR_CARD =
  */
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException('Request aborted', 'AbortError');
+}
+
+// Shared react-query options for a server-paginated list: the page params are
+// part of the key (so each page/sort caches independently) and the previous
+// page stays visible while the next one loads.
+//
+// The pagination contract itself (`PageParams`/`Paged`/`paginate`) is shared
+// across all three portals from `@sinnapi/ui`. Only this thin react-query
+// binding is portal-local, since the design system does not depend on
+// react-query.
+function pagedOptions<Row>(
+  key: readonly unknown[],
+  params: PageParams,
+  fetcher: () => Promise<Paged<Row>>,
+) {
+  return {
+    // The list's own key stays the prefix, so existing broad invalidations
+    // (`invalidateQueries({ queryKey: ['bookings'] })`) still match every page.
+    queryKey: [...key, params.page, params.pageSize, params.sort, params.filters] as const,
+    queryFn: fetcher,
+    placeholderData: keepPreviousData,
+  };
 }
 
 // ---------- Vendors ----------
@@ -284,16 +308,43 @@ export function useVendorMedia(vendorId: string | undefined) {
 }
 
 // ---------- Bookings ----------
-export function useBookings() {
+const BOOKING_LIST_SELECT =
+  'id,reference_no,status,event_date,amount,currency,vendor_id,vendors(business_name,slug,primary_image_url)';
+
+/** Statuses the dashboard treats as "still happening". */
+const ACTIVE_BOOKING_STATUSES = ['requested', 'confirmed', 'in_progress'];
+
+/** One page of the client's bookings, ordered by event date unless re-sorted. */
+export function useBookings(params: PageParams) {
+  return useQuery(
+    pagedOptions(['bookings'], params, () =>
+      paginate<BookingListModel>(
+        supabase.from('bookings').select(BOOKING_LIST_SELECT, { count: 'exact' }),
+        params,
+        { field: 'event_date', ascending: false },
+      ),
+    ),
+  );
+}
+
+/**
+ * The dashboard's "upcoming" strip — the few active bookings it previews.
+ *
+ * A separate query from the paginated list on purpose: the dashboard wants a
+ * fixed handful filtered by status, which the list's page/sort state has no
+ * bearing on. Filtering and limiting happen server-side rather than by pulling
+ * every booking down and slicing five off the front.
+ */
+export function useUpcomingBookings(limit = 5) {
   return useQuery({
-    queryKey: ['bookings'],
+    queryKey: ['bookings', 'upcoming', limit],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select(
-          'id,reference_no,status,event_date,amount,currency,vendor_id,vendors(business_name,slug,primary_image_url)',
-        )
-        .order('event_date', { ascending: false });
+        .select(BOOKING_LIST_SELECT)
+        .in('status', ACTIVE_BOOKING_STATUSES)
+        .order('event_date', { ascending: false })
+        .limit(limit);
       if (error) throw error;
       return (data ?? []) as BookingListModel[];
     },
@@ -315,21 +366,68 @@ export function useBooking(id: string) {
   });
 }
 
-// ---------- Quotations ----------
-export function useQuotations() {
+/**
+ * A booking's status trail, oldest first — the order it reads in as a timeline.
+ * The table is append-only and trigger-written, so this needs no invalidation
+ * of its own: it is refetched alongside the booking whenever a status changes.
+ */
+export function useBookingStatusHistory(id: string) {
   return useQuery({
-    queryKey: ['quotations'],
+    queryKey: ['booking-history', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('quotations')
-        .select(
-          'id,reference_no,status,total,currency,valid_until,created_at,vendor_id,vendors(business_name,slug)',
-        )
-        .order('created_at', { ascending: false });
+        .from('booking_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('booking_id', id)
+        .order('occurred_at', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as QuotationListModel[];
+      return (data ?? []) as BookingStatusEventModel[];
     },
+    enabled: !!id,
   });
+}
+
+// ---------- Quotations ----------
+const QUOTATION_LIST_SELECT =
+  'id,reference_no,status,total,currency,valid_until,created_at,vendor_id,vendors(business_name,slug)';
+
+/**
+ * Quotes that are worth putting side by side: a draft or an expired quote is
+ * not a live offer, so the comparison view never sees them.
+ */
+const COMPARABLE_QUOTE_STATUSES = ['sent', 'accepted', 'revised'];
+
+/** One page of the client's quotations, newest first unless re-sorted. */
+export function useQuotations(params: PageParams) {
+  return useQuery(
+    pagedOptions(['quotations'], params, () =>
+      paginate<QuotationListModel>(
+        supabase.from('quotations').select(QUOTATION_LIST_SELECT, { count: 'exact' }),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
+  );
+}
+
+/**
+ * One page of comparable quotes. The status narrowing happens server-side, so
+ * the row count driving pagination counts only the quotes actually shown —
+ * filtering the current page in the browser would have made "N rows" a lie.
+ */
+export function useComparableQuotations(params: PageParams) {
+  return useQuery(
+    pagedOptions(['quotations', 'comparable'], params, () =>
+      paginate<QuotationListModel>(
+        supabase
+          .from('quotations')
+          .select(QUOTATION_LIST_SELECT, { count: 'exact' })
+          .in('status', COMPARABLE_QUOTE_STATUSES),
+        params,
+        { field: 'total', ascending: true },
+      ),
+    ),
+  );
 }
 
 // ---------- Events ----------
@@ -365,19 +463,24 @@ export function useEscrow() {
   });
 }
 
-export function usePayments() {
-  return useQuery({
-    queryKey: ['payments'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('id,purpose,amount,currency,status,provider,provider_method,paid_at,created_at')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data ?? []) as PaymentModel[];
-    },
-  });
+/**
+ * One page of the client's payment history. Previously capped at 50 rows with
+ * no way to reach the rest; pagination replaces the cap.
+ */
+export function usePayments(params: PageParams) {
+  return useQuery(
+    pagedOptions(['payments'], params, () =>
+      paginate<PaymentModel>(
+        supabase
+          .from('payments')
+          .select('id,purpose,amount,currency,status,provider,provider_method,paid_at,created_at', {
+            count: 'exact',
+          }),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
+  );
 }
 
 // ---------- Messaging ----------

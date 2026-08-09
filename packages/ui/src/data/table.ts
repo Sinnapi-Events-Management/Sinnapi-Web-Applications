@@ -1,9 +1,14 @@
-import type { SortModel } from '@sinnapi/ui';
+import type { SortModel } from '../organisms/DataTable';
 
-// Shared contract for every server-paginated admin list. Queries receive
-// `PageParams` (zero-based page, size, optional sort) and return a `Paged`
-// result carrying the current page's rows plus the total row count so the
-// DataTable can render server-driven pagination.
+// Shared contract for every server-paginated list in the platform — admin,
+// client and vendor alike. Queries receive `PageParams` (zero-based page, size,
+// optional sort) and return a `Paged` result carrying the current page's rows
+// plus the total row count so <DataTable /> can render server-driven pagination.
+//
+// Deliberately free of any Supabase or react-query import: the helpers describe
+// the *shape* they need structurally, so this module stays a plain contract the
+// three portals (and any future surface) can share.
+
 /**
  * Column → value equality filters applied server-side before pagination. An
  * `undefined`/empty value means "no filter on this column", so an unfiltered
@@ -75,7 +80,8 @@ type PageQuery = {
 /**
  * Apply server-side ordering + range to a `select(..., { count: 'exact' })`
  * query and normalise the response into a `Paged` result. This is the single
- * place the range/count wiring lives so every admin list behaves identically.
+ * place the range/count wiring lives so every list in every portal behaves
+ * identically.
  */
 export async function paginate<Row>(
   query: PageQuery,

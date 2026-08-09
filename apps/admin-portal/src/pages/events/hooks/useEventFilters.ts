@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import type { IsoDateRange } from '@sinnapi/ui';
 import type { EventAdminFilters } from '@/hooks/queries';
 import { isValidPublic, isValidSource } from '../schema/filters';
 
@@ -24,8 +25,10 @@ export type EventFilters = {
   values: EventFilterValues;
   setSource: (next: string) => void;
   setPublic: (next: string) => void;
-  setDateFrom: (next: string) => void;
-  setDateTo: (next: string) => void;
+  /** The event-date range, written to both URL params at once. */
+  setDateRange: (next: IsoDateRange) => void;
+  /** The same two params, shaped for the range picker. */
+  dateRange: IsoDateRange;
   /** Typed fragment to merge into the query's `EventAdminFilters`. */
   query: Pick<EventAdminFilters, 'source' | 'isPublic' | 'dateFrom' | 'dateTo'>;
   /** True when any of source / public / date is narrowing the list. */
@@ -76,8 +79,29 @@ export function useEventFilters(opts?: { onChange?: () => void }): EventFilters 
 
   const setSource = useCallback((next: string) => setParam(SOURCE_PARAM, next), [setParam]);
   const setPublic = useCallback((next: string) => setParam(PUBLIC_PARAM, next), [setParam]);
-  const setDateFrom = useCallback((next: string) => setParam(FROM_PARAM, next), [setParam]);
-  const setDateTo = useCallback((next: string) => setParam(TO_PARAM, next), [setParam]);
+
+  /**
+   * Both ends land in one history entry. Two `setParam` calls would push an
+   * intermediate URL pairing the new start with the old end — a state the list
+   * would query, and the back button would return to.
+   */
+  const setDateRange = useCallback(
+    (next: IsoDateRange) => {
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (next.from) params.set(FROM_PARAM, next.from);
+          else params.delete(FROM_PARAM);
+          if (next.to) params.set(TO_PARAM, next.to);
+          else params.delete(TO_PARAM);
+          return params;
+        },
+        { replace: true },
+      );
+      onChange?.();
+    },
+    [setSearchParams, onChange],
+  );
 
   const reset = useCallback(() => {
     setSearchParams(
@@ -101,12 +125,17 @@ export function useEventFilters(opts?: { onChange?: () => void }): EventFilters 
     [source, isPublic, dateFrom, dateTo],
   );
 
+  const dateRange = useMemo<IsoDateRange>(
+    () => ({ from: dateFrom, to: dateTo }),
+    [dateFrom, dateTo],
+  );
+
   return {
     values: { source, isPublic, dateFrom, dateTo },
     setSource,
     setPublic,
-    setDateFrom,
-    setDateTo,
+    setDateRange,
+    dateRange,
     query,
     isActive: Boolean(source || isPublic || dateFrom || dateTo),
     reset,

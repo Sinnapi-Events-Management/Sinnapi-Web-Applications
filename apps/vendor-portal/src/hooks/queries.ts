@@ -5,6 +5,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query';
+import { paginate, type PageParams, type Paged } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
 import type {
@@ -16,6 +17,7 @@ import type {
   MyApplicationModel,
   VendorBookingModel,
   VendorBookingDetailModel,
+  BookingStatusEventModel,
   VendorQuotationModel,
   QuotationDetailModel,
   TemplateModel,
@@ -37,6 +39,28 @@ import type {
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
+
+// Shared react-query options for a server-paginated list: the page params are
+// part of the key (so each page/sort caches independently) and the previous
+// page stays visible while the next one loads. The list's own key stays the
+// prefix, so existing broad invalidations (`['v-bookings']`) still match every
+// page of every vendor.
+//
+// The pagination contract itself (`PageParams`/`Paged`/`paginate`) is shared
+// across all three portals from `@sinnapi/ui`. Only this thin react-query
+// binding is portal-local, since the design system does not depend on
+// react-query.
+function pagedOptions<Row>(
+  key: readonly unknown[],
+  params: PageParams,
+  fetcher: () => Promise<Paged<Row>>,
+) {
+  return {
+    queryKey: [...key, params.page, params.pageSize, params.sort, params.filters] as const,
+    queryFn: fetcher,
+    placeholderData: keepPreviousData,
+  };
+}
 
 export function useProfile() {
   return useQuery({
@@ -76,21 +100,23 @@ export function useMyApplication() {
   });
 }
 
-export function useVendorBookings(vendorId?: string) {
+/** One page of the vendor's bookings, by event date unless re-sorted. */
+export function useVendorBookings(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-bookings', vendorId],
+    ...pagedOptions(['v-bookings', vendorId], params, () =>
+      paginate<VendorBookingModel>(
+        supabase
+          .from('bookings')
+          .select(
+            'id,reference_no,status,event_date,amount,currency,client_id,profiles:client_id(full_name)',
+            { count: 'exact' },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'event_date', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(
-          'id,reference_no,status,event_date,amount,currency,client_id,profiles:client_id(full_name)',
-        )
-        .eq('vendor_id', vendorId!)
-        .order('event_date', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as VendorBookingModel[];
-    },
   });
 }
 
@@ -109,21 +135,44 @@ export function useVendorBooking(id: string) {
   });
 }
 
-export function useVendorQuotations(vendorId?: string) {
+/**
+ * A booking's status trail, oldest first — the order it reads in as a timeline.
+ * Keyed under the booking so `BookingResponseActions` can invalidate it with the
+ * same `['v-booking', id]`-shaped refresh it already does after a status write.
+ */
+export function useVendorBookingStatusHistory(id: string) {
   return useQuery({
-    queryKey: ['v-quotations', vendorId],
-    enabled: !!vendorId,
+    queryKey: ['v-booking-history', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('quotations')
-        .select(
-          'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,profiles:client_id(full_name)',
-        )
-        .eq('vendor_id', vendorId!)
-        .order('created_at', { ascending: false });
+        .from('booking_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('booking_id', id)
+        .order('occurred_at', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as VendorQuotationModel[];
+      return (data ?? []) as BookingStatusEventModel[];
     },
+    enabled: !!id,
+  });
+}
+
+/** One page of the vendor's quote requests, newest first unless re-sorted. */
+export function useVendorQuotations(vendorId: string | undefined, params: PageParams) {
+  return useQuery({
+    ...pagedOptions(['v-quotations', vendorId], params, () =>
+      paginate<VendorQuotationModel>(
+        supabase
+          .from('quotations')
+          .select(
+            'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,profiles:client_id(full_name)',
+            { count: 'exact' },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
+    enabled: !!vendorId,
   });
 }
 
@@ -399,35 +448,42 @@ export function useMyInterests(vendorId?: string) {
   });
 }
 
-export function useVendorEscrow(vendorId?: string) {
+/** One page of escrow activity for the vendor's bookings (read-only). */
+export function useVendorEscrow(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-escrow', vendorId],
+    ...pagedOptions(['v-escrow', vendorId], params, () =>
+      paginate<EscrowModel>(
+        supabase
+          .from('escrow_transactions')
+          .select(
+            'id,status,gross_amount,commission_amount,net_payout_amount,currency,bookings(reference_no)',
+            { count: 'exact' },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('escrow_transactions')
-        .select(
-          'id,status,gross_amount,commission_amount,net_payout_amount,currency,bookings(reference_no)',
-        )
-        .eq('vendor_id', vendorId!)
-        .order('created_at', { ascending: false });
-      return (data ?? []) as EscrowModel[];
-    },
   });
 }
 
-export function useVendorPayouts(vendorId?: string) {
+/** One page of the vendor's payout history, newest request first. */
+export function useVendorPayouts(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-payouts', vendorId],
+    ...pagedOptions(['v-payouts', vendorId], params, () =>
+      paginate<PayoutModel>(
+        supabase
+          .from('payouts')
+          .select('id,amount,currency,status,provider,approved_at,completed_at,created_at', {
+            count: 'exact',
+          })
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('payouts')
-        .select('id,amount,currency,status,provider,approved_at,completed_at,created_at')
-        .eq('vendor_id', vendorId!)
-        .order('created_at', { ascending: false });
-      return (data ?? []) as PayoutModel[];
-    },
   });
 }
 
@@ -447,19 +503,23 @@ export function usePromotions(vendorId?: string) {
   });
 }
 
-export function useDiscounts(vendorId?: string) {
+/** One page of the vendor's discount codes, newest first unless re-sorted. */
+export function useDiscounts(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-discounts', vendorId],
+    ...pagedOptions(['v-discounts', vendorId], params, () =>
+      paginate<DiscountModel>(
+        supabase
+          .from('discounts')
+          .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active', {
+            count: 'exact',
+          })
+          .eq('vendor_id', vendorId!)
+          .is('deleted_at', null),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('discounts')
-        .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active')
-        .eq('vendor_id', vendorId!)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      return (data ?? []) as DiscountModel[];
-    },
   });
 }
 

@@ -1,3 +1,4 @@
+'use client';
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +13,9 @@ import { useNavigate } from 'react-router-dom';
  * at all, leaving a dead button), so those visits are sent to `fallback`
  * instead. The check is read at click time rather than at render, since the
  * entry a component was mounted under can be replaced beneath it.
+ *
+ * Lives outside the root barrel because it depends on react-router-dom — import
+ * from `@sinnapi/ui/router`.
  */
 export function useGoBack(fallback: string) {
   const navigate = useNavigate();
