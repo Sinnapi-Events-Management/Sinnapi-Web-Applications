@@ -36,6 +36,7 @@ import type {
   PermissionModel,
   EscrowModel,
   PayoutModel,
+  ReconciliationExceptionModel,
   RefundModel,
   DisputeModel,
   PaymentModel,
@@ -779,7 +780,7 @@ export function useEscrowAdmin(params: PageParams) {
         supabase
           .from('escrow_transactions')
           .select(
-            'id,status,gross_amount,commission_amount,net_payout_amount,currency,client_confirmed_at,vendors(business_name),bookings(reference_no)',
+            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,psp_fee_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,timers_frozen_at,currency,client_confirmed_at,vendors(business_name),bookings(reference_no)',
             { count: 'exact' },
           ),
         params,
@@ -796,13 +797,50 @@ export function usePayoutsAdmin(params: PageParams) {
         supabase
           .from('payouts')
           .select(
-            'id,amount,currency,status,requested_by,approved_by,created_at,vendors(business_name)',
+            'id,kind,escrow_id,amount,currency,status,settlement_method,settlement_reference,destination_label,proof_path,blocked_reason,notes,requested_by,recorded_by,recorded_at,approved_by,settled_at,created_at,vendors(business_name)',
             { count: 'exact' },
           ),
         params,
         { field: 'created_at', ascending: false },
       ),
     ),
+  );
+}
+
+/**
+ * The reconciliation exception queue: everything the nightly sweeps found that
+ * did not agree, newest activity first.
+ *
+ * Open items are what Finance works; resolved ones stay for the audit trail.
+ * Nothing here has been auto-corrected — the sweeps only ever file.
+ */
+export function useReconciliationExceptions(params: PageParams, openOnly = true) {
+  // Folded into `filters` rather than into the key string: pagedOptions already
+  // includes filters in the query key, so the two views cache separately while
+  // the base key stays 'admin-reconciliation' — which is what invalidation
+  // after a resolve matches on.
+  const scoped: PageParams = {
+    ...params,
+    // PageFilters values are strings (they become PostgREST equality filters),
+    // hence the string form rather than the boolean.
+    filters: { ...(params.filters ?? {}), scope: openOnly ? 'open' : 'all' },
+  };
+  return useQuery(
+    pagedOptions('admin-reconciliation', scoped, () => {
+      const query = supabase
+        .from('reconciliation_exceptions')
+        .select(
+          'id,kind,status,severity,detail,expected,actual,occurrences,escrow_id,payment_id,payout_id,first_seen_at,last_seen_at',
+          { count: 'exact' },
+        );
+      return paginate<ReconciliationExceptionModel>(
+        openOnly ? query.in('status', ['open', 'investigating']) : query,
+        // The original params: `openOnly` is a cache-key concern, not a
+        // column filter, so it must not reach applyFilters.
+        params,
+        { field: 'last_seen_at', ascending: false },
+      );
+    }),
   );
 }
 

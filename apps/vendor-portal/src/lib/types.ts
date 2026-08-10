@@ -225,22 +225,47 @@ export type EventInterestModel = {
   status: string;
 };
 
+/**
+ * Escrow as the vendor sees it.
+ *
+ * `agreed_amount` is what they actually receive — commission and the
+ * processing fee are charged on top of it to the client, so `gross_amount`
+ * (what the client paid) is deliberately larger and is shown only as context.
+ * The two tranches always sum back to the agreed amount.
+ */
 export type EscrowModel = {
   id: string;
   status: string;
   gross_amount: number | null;
   commission_amount: number | null;
   net_payout_amount: number | null;
+  agreed_amount: number | null;
+  advance_amount: number | null;
+  balance_amount: number | null;
+  advance_release_due_at: string | null;
+  advance_released_at: string | null;
+  auto_release_due_at: string | null;
   currency: string | null;
   bookings: BookingRel | BookingRel[] | null;
 };
 
+/**
+ * A payout tranche. Settlement is manual — Sinnapi's finance team transfers by
+ * bank, mobile money, merchant or cash and records the method and reference
+ * here, so `settlement_reference` is what a vendor reconciles against their
+ * own statement.
+ */
 export type PayoutModel = {
   id: string;
+  kind: string;
   amount: number | null;
   currency: string | null;
   status: string;
   provider: string | null;
+  settlement_method: string | null;
+  settlement_reference: string | null;
+  settled_at: string | null;
+  blocked_reason: string | null;
   approved_at: string | null;
   completed_at: string | null;
   created_at: string;

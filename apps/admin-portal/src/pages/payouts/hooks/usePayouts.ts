@@ -4,51 +4,44 @@ import { usePayoutsAdmin } from '@/hooks/queries';
 import { useTableState } from '@sinnapi/ui';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
+import type { PayoutModel } from '@/lib/types';
+import { settlementError } from './useSettlementForm';
 
+/**
+ * The payout queue.
+ *
+ * Settlement is manual: Finance transfers the money out of band, records it
+ * with a reference and proof, and a *different* Finance admin approves that
+ * record — which is the step that closes the ledger and notifies the vendor.
+ *
+ * The previous version invoked a `psp-payout` edge function that disbursed
+ * automatically and completed the payout in one call. That function is gone:
+ * it bypassed the second pair of eyes and assumed a payout API Sinnapi does
+ * not operate.
+ */
 export function usePayouts() {
   const qc = useQueryClient();
   const { has } = useAdmin();
   const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
   const { data, isLoading, isFetching, error } = usePayoutsAdmin(table.params);
+
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /** The payout whose settlement is being recorded, if any. */
+  const [settling, setSettling] = useState<PayoutModel | null>(null);
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ['admin-payouts'] });
+    qc.invalidateQueries({ queryKey: ['admin-escrow'] });
   }
 
-  // maker-checker: approver must differ from the requester (enforced in the RPC)
-  async function approve(id: string) {
+  async function run(id: string, fn: string) {
     setBusy(id);
     setErr(null);
-    const { error } = await supabase.rpc('approve_payout', { p_payout_id: id });
+    const { error: rpcError } = await supabase.rpc(fn, { p_payout_id: id });
     setBusy(null);
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-    refresh();
-  }
-
-  // disbursement runs server-side in the psp-payout Edge Function (uses the
-  // audited bank-decrypt RPC); we invoke it with the caller's JWT.
-  async function process(id: string) {
-    setBusy(id);
-    setErr(null);
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const res = await fetch(`${import.meta.env.VITE_FUNCTIONS_URL}/psp-payout`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session?.access_token ?? ''}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ payoutId: id }),
-    });
-    setBusy(null);
-    if (!res.ok) {
-      setErr((await res.json().catch(() => ({})))?.error ?? 'Payout failed');
+    if (rpcError) {
+      setErr(settlementError(rpcError));
       return;
     }
     refresh();
@@ -63,8 +56,16 @@ export function usePayouts() {
     has,
     busy,
     err,
-    approve,
-    process,
+    clearError: () => setErr(null),
     table,
+
+    /** Optional pre-approval before the money is sent. */
+    approve: (id: string) => run(id, 'approve_payout'),
+    /** The checker step: closes the ledger and notifies the vendor. */
+    approveSettlement: (id: string) => run(id, 'approve_payout_settlement'),
+
+    settling,
+    openSettlement: setSettling,
+    closeSettlement: () => setSettling(null),
   };
 }

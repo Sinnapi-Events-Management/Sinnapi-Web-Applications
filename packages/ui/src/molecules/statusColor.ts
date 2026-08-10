@@ -40,6 +40,9 @@ const MAP: Record<string, StatusChipColor> = {
   initiated: 'default',
   funded: 'info',
   held: 'info',
+  // Funded and waiting on the advance date — healthy and in flight.
+  awaiting_advance: 'info',
+  advance_released: 'secondary',
   release_requested: 'warning',
   admin_review: 'warning',
   payout_approved: 'secondary',
@@ -47,6 +50,14 @@ const MAP: Record<string, StatusChipColor> = {
   disputed: 'error',
   refunded: 'error',
   partially_refunded: 'warning',
+  // payouts / refunds — settlement is manual, so 'recorded' is a real state
+  // meaning one admin has evidenced it and a second has yet to sign it off.
+  settlement_recorded: 'warning',
+  // reconciliation exceptions
+  open: 'error',
+  investigating: 'warning',
+  resolved: 'success',
+  ignored: 'default',
   // payments
   failed: 'error',
   pending: 'warning',

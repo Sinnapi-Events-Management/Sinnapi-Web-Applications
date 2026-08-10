@@ -456,7 +456,7 @@ export function useVendorEscrow(vendorId: string | undefined, params: PageParams
         supabase
           .from('escrow_transactions')
           .select(
-            'id,status,gross_amount,commission_amount,net_payout_amount,currency,bookings(reference_no)',
+            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,currency,bookings(reference_no)',
             { count: 'exact' },
           )
           .eq('vendor_id', vendorId!),
@@ -475,9 +475,12 @@ export function useVendorPayouts(vendorId: string | undefined, params: PageParam
       paginate<PayoutModel>(
         supabase
           .from('payouts')
-          .select('id,amount,currency,status,provider,approved_at,completed_at,created_at', {
-            count: 'exact',
-          })
+          .select(
+            'id,kind,amount,currency,status,provider,settlement_method,settlement_reference,settled_at,blocked_reason,approved_at,completed_at,created_at',
+            {
+              count: 'exact',
+            },
+          )
           .eq('vendor_id', vendorId!),
         params,
         { field: 'created_at', ascending: false },

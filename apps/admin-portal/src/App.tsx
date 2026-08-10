@@ -27,6 +27,7 @@ import Refunds from '@/pages/refunds';
 import Disputes from '@/pages/disputes';
 import Payments from '@/pages/payments';
 import Ledger from '@/pages/ledger';
+import Reconciliation from '@/pages/reconciliation';
 import Subscriptions from '@/pages/subscriptions';
 import PricingPlans from '@/pages/pricingPlans';
 import PlanDetail from '@/pages/planDetail';
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="/disputes" element={g('dispute.manage', <Disputes />)} />
           <Route path="/payments" element={g('payments.read', <Payments />)} />
           <Route path="/ledger" element={g('finance.read', <Ledger />)} />
+          <Route path="/reconciliation" element={g('finance.reconcile', <Reconciliation />)} />
           <Route path="/subscriptions" element={g('subscriptions.manage', <Subscriptions />)} />
           <Route path="/pricing-plans" element={g('plans.manage', <PricingPlans />)} />
           <Route path="/pricing-plans/:id" element={g('plans.manage', <PlanDetail />)} />

@@ -21,6 +21,10 @@ import type {
   QuotationListModel,
   MyEventModel,
   EscrowModel,
+  EscrowDetailModel,
+  EscrowQuoteModel,
+  EscrowEventModel,
+  EscrowPayoutModel,
   PaymentModel,
   ConversationModel,
   MessageModel,
@@ -454,7 +458,7 @@ export function useEscrow() {
       const { data, error } = await supabase
         .from('escrow_transactions')
         .select(
-          'id,status,gross_amount,net_payout_amount,currency,booking_id,bookings(reference_no),vendors(business_name)',
+          'id,status,gross_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,auto_release_due_at,currency,booking_id,bookings(reference_no),vendors(business_name)',
         )
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -606,6 +610,168 @@ export function useUnreadCount() {
       return count ?? 0;
     },
   });
+}
+
+// ---------- Escrow detail ----------
+
+/**
+ * The escrow behind one booking, or null when the client has not funded it yet.
+ *
+ * Keyed by booking rather than escrow id because that is what the caller has:
+ * the booking page offers escrow before an escrow row exists.
+ */
+export function useBookingEscrow(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['booking-escrow', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('escrow_transactions')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as EscrowDetailModel) ?? null;
+    },
+    enabled: !!bookingId,
+  });
+}
+
+/**
+ * What funding this booking would cost, priced by the same server function
+ * that performs the charge.
+ *
+ * Deliberately not computed in the browser: commission and the processing fee
+ * are charged on top of the agreed amount, and a preview that disagreed with
+ * the charge by even a rounding step would be a trust problem on a money
+ * screen. The rail matters because the fee rate differs per provider/method.
+ */
+export function useEscrowQuote(
+  bookingId: string | undefined,
+  provider: 'pesapal' | 'paypal',
+  method: 'mtn_momo' | 'airtel_money' | 'card',
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ['escrow-quote', bookingId, provider, method],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('escrow_price_booking', {
+          p_booking_id: bookingId!,
+          p_provider: provider,
+          p_method: method,
+        })
+        .maybeSingle();
+      if (error) throw error;
+      return (data as EscrowQuoteModel) ?? null;
+    },
+    enabled: enabled && !!bookingId,
+  });
+}
+
+/** An escrow's append-only history, newest first. */
+export function useEscrowEvents(escrowId: string | undefined) {
+  return useQuery({
+    queryKey: ['escrow-events', escrowId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('escrow_events')
+        .select('id,event_type,amount,metadata,occurred_at')
+        .eq('escrow_id', escrowId!)
+        .order('occurred_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as EscrowEventModel[];
+    },
+    enabled: !!escrowId,
+  });
+}
+
+/**
+ * The tranches paid out to the vendor. Clients can see that their vendor was
+ * paid and how — the visible half of the escrow promise — but never the
+ * destination account, which stays encrypted behind an audited RPC.
+ */
+export function useEscrowPayouts(escrowId: string | undefined) {
+  return useQuery({
+    queryKey: ['escrow-payouts', escrowId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payouts')
+        .select(
+          'id,kind,status,amount,currency,settlement_method,settlement_reference,settled_at,created_at',
+        )
+        .eq('escrow_id', escrowId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as EscrowPayoutModel[];
+    },
+    enabled: !!escrowId,
+  });
+}
+
+/**
+ * Open the hosted PSP checkout for a booking.
+ *
+ * Every figure is derived server-side inside the edge function from the
+ * booking being paid for; the browser sends only which booking and which rail.
+ * Card details are entered on the provider's own pages and never reach Sinnapi.
+ */
+export function useStartEscrowPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      bookingId: string;
+      provider: 'pesapal' | 'paypal';
+      method: 'mtn_momo' | 'airtel_money' | 'card';
+    }) => {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: input,
+      });
+      if (error) {
+        // The function returns a typed reason in the body; surface that rather
+        // than the generic "Edge Function returned a non-2xx status code".
+        const detail = await readFunctionError(error);
+        throw new Error(detail);
+      }
+      return data as { paymentId: string; escrowId: string; checkoutUrl: string };
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['booking-escrow', vars.bookingId] });
+      qc.invalidateQueries({ queryKey: ['payments'] });
+    },
+  });
+}
+
+/** Human-readable reasons for the failures the escrow RPCs can raise. */
+const ESCROW_ERRORS: Record<string, string> = {
+  booking_not_confirmed: 'This booking has not been confirmed by the vendor yet.',
+  advance_terms_not_accepted: 'Please approve the payment schedule before paying.',
+  booking_amount_not_set: 'This booking has no agreed amount yet.',
+  escrow_already_active: 'This booking has already been funded.',
+  paypal_requires_card: 'PayPal only supports card payments.',
+  booking_not_completed: 'You can confirm the service once the booking is marked complete.',
+  forbidden: 'You do not have permission to do that.',
+  refund_already_in_progress: 'A refund is already being processed for this booking.',
+};
+
+export function escrowErrorMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error ?? '');
+  for (const [key, message] of Object.entries(ESCROW_ERRORS)) {
+    if (raw.includes(key)) return message;
+  }
+  return raw || 'Something went wrong. Please try again.';
+}
+
+async function readFunctionError(error: unknown): Promise<string> {
+  const context = (error as { context?: Response })?.context;
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json();
+      if (body?.error) return String(body.error);
+    } catch {
+      /* body already consumed or not JSON — fall through */
+    }
+  }
+  return error instanceof Error ? error.message : 'payment_failed';
 }
 
 // ---------- Generic RPC mutation helper ----------

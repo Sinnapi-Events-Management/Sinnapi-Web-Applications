@@ -4,6 +4,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { formatMoney } from '@/lib/config';
 import { useQuotationForm } from './hooks/useQuotationForm';
 import QuotationLineItem from './components/molecules/QuotationLineItem';
+import AdvanceTermsFields from './components/molecules/AdvanceTermsFields';
 
 type Props = {
   quotationId: string;
@@ -12,8 +13,19 @@ type Props = {
 
 // Builds quotation line items and sends them via the send_quotation RPC.
 export default function QuotationBuilder({ quotationId, currency = 'UGX' }: Props) {
-  const { control, error, busy, fields, itemsError, total, addItem, removeItem, submit } =
-    useQuotationForm(quotationId);
+  const {
+    control,
+    error,
+    busy,
+    fields,
+    itemsError,
+    total,
+    advanceRate,
+    advanceDays,
+    addItem,
+    removeItem,
+    submit,
+  } = useQuotationForm(quotationId);
 
   return (
     <Stack component="form" onSubmit={submit} noValidate spacing={2}>
@@ -46,6 +58,14 @@ export default function QuotationBuilder({ quotationId, currency = 'UGX' }: Prop
         />
         <Typography variant="h6">Total: {formatMoney(total, currency)}</Typography>
       </Box>
+
+      <AdvanceTermsFields
+        control={control}
+        total={total}
+        currency={currency}
+        rate={advanceRate}
+        daysBefore={advanceDays}
+      />
 
       <Button type="submit" variant="contained" disabled={busy} sx={{ alignSelf: 'flex-end' }}>
         {busy ? 'Sending…' : 'Send quote'}

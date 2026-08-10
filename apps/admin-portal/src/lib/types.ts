@@ -275,27 +275,78 @@ export type AdminUserRoleRow = {
 
 // --- escrow / payouts / refunds / payments / ledger -------------------------
 
+/**
+ * Escrow as Finance sees it.
+ *
+ * Commission and the processing fee are charged on top of the agreed amount,
+ * so `gross_amount` (what the client paid) is always the largest figure and
+ * `agreed_amount` is what the vendor is owed across both tranches.
+ */
 export type EscrowModel = {
   id: string;
   status: string;
   gross_amount: number | null;
   commission_amount: number | null;
   net_payout_amount: number | null;
+  agreed_amount: number | null;
+  psp_fee_amount: number | null;
+  advance_amount: number | null;
+  balance_amount: number | null;
+  advance_release_due_at: string | null;
+  advance_released_at: string | null;
+  auto_release_due_at: string | null;
+  timers_frozen_at: string | null;
   currency: string | null;
   client_confirmed_at: string | null;
   vendors: VendorRef | VendorRef[] | null;
   bookings: BookingRef | BookingRef[] | null;
 };
 
+/**
+ * A payout tranche awaiting manual settlement.
+ *
+ * Sinnapi runs no payout API: Finance transfers by bank, mobile money,
+ * merchant or cash and evidences it here. `recorded_by` and `approved_by` are
+ * the two halves of the maker-checker control and must never be the same
+ * person — enforced by a table constraint and re-checked in the RPC.
+ */
 export type PayoutModel = {
   id: string;
+  kind: string;
+  escrow_id: string | null;
   amount: number | null;
   currency: string | null;
   status: string;
+  settlement_method: string | null;
+  settlement_reference: string | null;
+  destination_label: string | null;
+  proof_path: string | null;
+  blocked_reason: string | null;
+  notes: string | null;
   requested_by: string | null;
+  recorded_by: string | null;
+  recorded_at: string | null;
   approved_by: string | null;
+  settled_at: string | null;
   created_at: string | null;
   vendors: VendorRef | VendorRef[] | null;
+};
+
+/** An item in the reconciliation exception queue. Nothing here auto-corrects. */
+export type ReconciliationExceptionModel = {
+  id: string;
+  kind: string;
+  status: string;
+  severity: string;
+  detail: string | null;
+  expected: number | null;
+  actual: number | null;
+  occurrences: number;
+  escrow_id: string | null;
+  payment_id: string | null;
+  payout_id: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
 };
 
 export type RefundModel = {

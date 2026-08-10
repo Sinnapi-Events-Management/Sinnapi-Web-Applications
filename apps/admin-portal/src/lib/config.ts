@@ -10,6 +10,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import GavelIcon from '@mui/icons-material/Gavel';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import RuleIcon from '@mui/icons-material/Rule';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import PeopleIcon from '@mui/icons-material/People';
@@ -62,6 +63,12 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Disputes', to: '/disputes', icon: GavelIcon, perm: 'dispute.manage' },
       { label: 'Payments', to: '/payments', icon: ReceiptLongIcon, perm: 'payments.read' },
       { label: 'Ledger', to: '/ledger', icon: MenuBookIcon, perm: 'finance.read' },
+      {
+        label: 'Reconciliation',
+        to: '/reconciliation',
+        icon: RuleIcon,
+        perm: 'finance.reconcile',
+      },
       {
         label: 'Subscriptions',
         to: '/subscriptions',

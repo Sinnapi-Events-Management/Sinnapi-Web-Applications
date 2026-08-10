@@ -14,3 +14,4 @@ export * from './SectionCard';
 export * from './HeroSurface';
 export * from './heroSurface.styles';
 export * from './MessageComposer';
+export * from './EscrowJourney';

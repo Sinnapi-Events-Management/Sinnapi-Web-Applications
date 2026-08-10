@@ -143,6 +143,12 @@ export type BookingDetailModel = {
   amount: number | null;
   currency: string | null;
   payment_type: string | null;
+  /** Advance schedule agreed on the quotation; null on older bookings. */
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  /** The client's explicit consent — escrow cannot be funded without it. */
+  advance_terms_accepted_at: string | null;
   cancellation_reason: string | null;
   completed_at: string | null;
   created_at: string;
@@ -193,10 +199,98 @@ export type EscrowModel = {
   status: string;
   gross_amount: number | null;
   net_payout_amount: number | null;
+  agreed_amount: number | null;
+  advance_amount: number | null;
+  balance_amount: number | null;
+  advance_release_due_at: string | null;
+  auto_release_due_at: string | null;
   currency: string | null;
   booking_id: string | null;
   bookings: BookingRefModel | BookingRefModel[] | null;
   vendors: VendorNameRefModel | VendorNameRefModel[] | null;
+};
+
+/**
+ * The full escrow record behind a booking.
+ *
+ * Commission and the processing fee are charged on top of the agreed amount,
+ * so `gross_amount` (what the client paid) is deliberately larger than
+ * `agreed_amount` (what the vendor receives). The two tranches always sum back
+ * to the agreed amount.
+ */
+export type EscrowDetailModel = {
+  id: string;
+  status: string;
+  currency: string | null;
+  agreed_amount: number | null;
+  commission_rate: number | null;
+  commission_amount: number | null;
+  psp_fee_rate: number | null;
+  psp_fee_amount: number | null;
+  gross_amount: number | null;
+  advance_rate: number | null;
+  advance_amount: number | null;
+  balance_amount: number | null;
+  advance_release_due_at: string | null;
+  advance_released_at: string | null;
+  balance_released_at: string | null;
+  auto_release_due_at: string | null;
+  client_confirmed_at: string | null;
+  released_at: string | null;
+  timers_frozen_at: string | null;
+  failure_reason: string | null;
+  attempt_no: number | null;
+  booking_id: string | null;
+  created_at: string;
+};
+
+/**
+ * A priced-but-not-yet-charged escrow quote. Returned by the `escrow_price_booking`
+ * RPC so the checkout preview and the actual charge come from one calculation.
+ */
+export type EscrowQuoteModel = {
+  agreed_amount: number;
+  commission_rate: number;
+  commission_amount: number;
+  psp_fee_rate: number;
+  psp_fee_amount: number;
+  gross_amount: number;
+  advance_rate: number;
+  advance_amount: number;
+  balance_amount: number;
+  currency: string;
+  advance_release_days_before: number;
+  advance_release_due_at: string;
+};
+
+/** One step of an escrow's append-only history, as the client sees it. */
+export type EscrowEventModel = {
+  id: string;
+  event_type: string;
+  amount: number | null;
+  metadata: Record<string, unknown> | null;
+  occurred_at: string;
+};
+
+/** A tranche paid out to the vendor. Settlement is manual and evidenced. */
+export type EscrowPayoutModel = {
+  id: string;
+  kind: string;
+  status: string;
+  amount: number | null;
+  currency: string | null;
+  settlement_method: string | null;
+  settlement_reference: string | null;
+  settled_at: string | null;
+  created_at: string;
+};
+
+/** The advance schedule agreed on the quotation and carried to the booking. */
+export type AdvanceTermsModel = {
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  advance_terms_accepted_at: string | null;
 };
 
 export type PaymentModel = {

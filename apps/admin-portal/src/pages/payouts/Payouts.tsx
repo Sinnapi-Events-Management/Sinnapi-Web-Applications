@@ -1,92 +1,50 @@
 import { useMemo } from 'react';
-import {
-  DataTable,
-  Alert,
-  Button,
-  Stack,
-  type DataTableColumn,
-  PageTitle,
-  StatusChip,
-} from '@sinnapi/ui';
-import { formatMoney, formatDate } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { PayoutModel, VendorRef } from '@/lib/types';
+import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
 import { usePayouts } from './hooks/usePayouts';
+import { payoutColumns } from './schema';
+import RecordSettlementDialog from './components/organisms/RecordSettlementDialog';
 
+/**
+ * The payout queue. Layout only — `usePayouts` owns the reads and the two
+ * maker-checker writes, and the columns own their own rendering.
+ */
 export default function Payouts() {
-  const { rows, total, isLoading, isFetching, error, has, busy, err, approve, process, table } =
-    usePayouts();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    has,
+    busy,
+    err,
+    clearError,
+    approve,
+    approveSettlement,
+    openSettlement,
+    settling,
+    closeSettlement,
+    table,
+  } = usePayouts();
 
-  const columns = useMemo<DataTableColumn<PayoutModel>[]>(
-    () => [
-      {
-        field: 'vendor',
-        headerName: 'Vendor',
-        render: (p) => one<VendorRef>(p.vendors)?.business_name ?? '—',
-      },
-      {
-        field: 'amount',
-        headerName: 'Amount',
-        align: 'right',
-        sortable: true,
-        render: (p) => <strong>{formatMoney(p.amount, p.currency)}</strong>,
-      },
-      {
-        field: 'created_at',
-        headerName: 'Requested',
-        sortable: true,
-        render: (p) => formatDate(p.created_at),
-      },
-      {
-        field: 'status',
-        headerName: 'Status',
-        sortable: true,
-        render: (p) => <StatusChip status={p.status} />,
-      },
-      {
-        field: 'action',
-        headerName: 'Action',
-        align: 'right',
-        render: (p) => (
-          <Stack direction="row" spacing={1} justifyContent="flex-end">
-            {has('payout.approve') && p.status === 'requested' && (
-              <Button
-                size="small"
-                variant="contained"
-                disabled={busy === p.id}
-                onClick={() => approve(p.id)}
-              >
-                Approve
-              </Button>
-            )}
-            {has('payout.process') && p.status === 'approved' && (
-              <Button
-                size="small"
-                variant="outlined"
-                disabled={busy === p.id}
-                onClick={() => process(p.id)}
-              >
-                Process
-              </Button>
-            )}
-          </Stack>
-        ),
-      },
-    ],
-    [has, busy, approve, process],
+  const columns = useMemo(
+    () => payoutColumns({ has, busy, approve, approveSettlement, openSettlement }),
+    [has, busy, approve, approveSettlement, openSettlement],
   );
 
   return (
     <>
       <PageTitle
         title="Payouts"
-        subtitle="Approve (Finance) then process disbursement. Approver must differ from requester."
+        subtitle="Transfer the money, record it with a reference and receipt, then have a second Finance admin approve. Recorder and approver must differ."
       />
+
       {(err || error) && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={err ? clearError : undefined}>
           {err ?? (error instanceof Error ? error.message : 'Failed to load payouts.')}
         </Alert>
       )}
+
       <DataTable
         columns={columns}
         rows={rows}
@@ -96,6 +54,8 @@ export default function Payouts() {
         emptyMessage="No payouts yet."
         {...table.controls}
       />
+
+      <RecordSettlementDialog payout={settling} onClose={closeSettlement} />
     </>
   );
 }

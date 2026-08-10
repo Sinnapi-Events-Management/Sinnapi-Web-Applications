@@ -3,7 +3,7 @@ import { BackButton, EmptyState } from '@sinnapi/ui/router';
 import BookingHero from './components/organisms/BookingHero';
 import BookingFactsCard from './components/organisms/BookingFactsCard';
 import BookingTimelineCard from './components/organisms/BookingTimelineCard';
-import BookingPaymentCard from './components/organisms/BookingPaymentCard';
+import BookingEscrowCard from './components/organisms/BookingEscrowCard';
 import BookingNextStepsCard from './components/organisms/BookingNextStepsCard';
 import { useBookingDetail } from './hooks/useBookingDetail';
 
@@ -41,7 +41,7 @@ export default function BookingDetail() {
             </Grid>
             <Grid item xs={12} md={5}>
               <Stack spacing={3}>
-                <BookingPaymentCard booking={booking} />
+                <BookingEscrowCard booking={booking} />
                 <BookingNextStepsCard canReview={canReview} />
               </Stack>
             </Grid>

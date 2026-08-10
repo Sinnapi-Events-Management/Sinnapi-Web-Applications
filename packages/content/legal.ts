@@ -312,7 +312,7 @@ export const vendorTerms: LegalDocument = {
       body: [
         {
           type: 'paragraph',
-          text: "All Booking payments are processed through Sinnapi's escrow system. Vendors agree to: (a) provide and maintain accurate bank account details; (b) accept that funds will only be released following confirmed service delivery; (c) pay applicable platform transaction fees as disclosed at booking; (d) not request or accept direct payments from Clients for Platform-facilitated Bookings.",
+          text: "All Booking payments are processed through Sinnapi's escrow system. Vendors agree to: (a) provide and maintain accurate payout details, without which Sinnapi cannot settle amounts owed; (b) accept that their fee is released in two instalments — the advance on the schedule they proposed and the Client accepted, and the balance following confirmed service delivery; (c) accept that platform transaction fees are charged to the Client in addition to the Vendor's fee, so the Vendor receives the agreed amount in full; (d) accept that settlement is made by bank transfer, mobile money, merchant transfer or cash, and is recorded on the Platform with a reference; (e) not request or accept direct payments from Clients for Platform-facilitated Bookings.",
         },
       ],
     },
@@ -442,7 +442,7 @@ export const clientTerms: LegalDocument = {
       body: [
         {
           type: 'paragraph',
-          text: 'Clients agree to: (a) make full payment through the Platform escrow system — partial payments or payments outside the Platform are not permitted; (b) not charge back or dispute payments through their financial institution unless Sinnapi’s dispute process has been exhausted; (c) accept that platform transaction fees are non-refundable; (d) ensure payment methods are valid and have sufficient funds at the time of booking.',
+          text: 'Clients agree to: (a) make payment in full through the Platform escrow system — payments outside the Platform are not permitted; (b) accept that the total charged comprises the amount agreed with the Vendor plus the platform transaction fee and the payment processing fee, all itemised before payment; (c) accept the advance release schedule agreed with the Vendor, under which part of the Vendor’s fee is released before the event; (d) not charge back or dispute payments through their financial institution unless Sinnapi’s dispute process has been exhausted; (e) accept that whether fees are refundable depends on the reason for the refund, as set out in the Escrow Payment Policy; (f) ensure payment methods are valid and have sufficient funds at the time of booking.',
         },
       ],
     },
@@ -530,11 +530,14 @@ export const escrowPolicy: LegalDocument = {
         {
           type: 'list',
           items: [
-            "Client initiates a Booking and pays the agreed amount to Sinnapi's escrow account.",
+            'The Vendor proposes an advance schedule with their quotation, stating what percentage of their fee is released before the event and how many days beforehand.',
+            'The Client accepts that schedule explicitly before any payment is taken.',
+            "The Client pays the agreed amount plus the platform transaction fee and the payment processing fee into Sinnapi's escrow account.",
             'Sinnapi confirms receipt and notifies the Vendor of the confirmed Booking and secured payment.',
+            'On the agreed date before the event, Sinnapi releases the advance instalment to the Vendor. The balance remains held.',
             'The Vendor delivers the agreed services on the date and terms specified in the Booking.',
-            'The Client confirms satisfactory delivery through the Platform within 48 hours of the event date.',
-            'Sinnapi releases the funds to the Vendor within 3–5 business days of confirmed delivery.',
+            'The Client confirms satisfactory delivery through the Platform.',
+            'Sinnapi releases the balance to the Vendor within 3–5 business days of confirmed delivery.',
           ],
         },
       ],
@@ -544,7 +547,7 @@ export const escrowPolicy: LegalDocument = {
       body: [
         {
           type: 'paragraph',
-          text: 'Sinnapi charges a platform transaction fee on all escrow-processed bookings. This fee is disclosed at the time of booking and deducted from the total amount before release to the Vendor. The applicable fee rate is displayed on the Platform at sinnapi.com/pricing.',
+          text: 'Sinnapi charges a platform transaction fee on all escrow-processed bookings, together with the fee charged by the payment provider. Both are added to the amount agreed with the Vendor rather than deducted from it: the Client pays the agreed amount plus these fees, and the Vendor receives the amount agreed with the Client in full. Every component is itemised before the Client confirms payment, and the applicable rates are displayed on the Platform at sinnapi.com/pricing.',
         },
       ],
     },
@@ -558,8 +561,9 @@ export const escrowPolicy: LegalDocument = {
         {
           type: 'list',
           items: [
-            'The Client confirms satisfactory service delivery through the Platform.',
-            '48 hours elapse after the event date without the Client raising a dispute.',
+            'The agreed advance date is reached, in respect of the advance instalment only.',
+            'The Client confirms satisfactory service delivery through the Platform, in respect of the balance.',
+            'The confirmation window elapses after the event without the Client confirming or raising a dispute, in which case the Booking is referred to Sinnapi for review before any balance is released.',
             "Sinnapi resolves a dispute in the Vendor's favour.",
           ],
         },
@@ -580,6 +584,14 @@ export const escrowPolicy: LegalDocument = {
             "Sinnapi resolves a dispute in the Client's favour.",
             'Both parties mutually agree in writing to cancel the Booking.',
           ],
+        },
+        {
+          type: 'paragraph',
+          text: 'What is returned depends on the reason for the refund. Where the Vendor is at fault — cancellation, non-delivery, or a dispute resolved in the Client\u2019s favour — the platform transaction fee is refunded alongside the Vendor\u2019s fee. Where a Booking is cancelled at the Client\u2019s election, the platform transaction fee is retained. The payment processing fee charged by the payment provider is recoverable only where that provider reverses it.',
+        },
+        {
+          type: 'paragraph',
+          text: 'A refund can only draw on funds Sinnapi is still holding. Where an advance instalment has already been released to the Vendor under the schedule the Client accepted, any amount owed beyond the funds still held is recovered from the Vendor and is subject to Sinnapi\u2019s dispute resolution process.',
         },
       ],
     },

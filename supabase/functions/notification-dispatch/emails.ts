@@ -1,15 +1,19 @@
-// Email content for outbox-driven notifications. The dispatcher works in
-// machine trigger keys (`booking.status`, `payment.status`, …); this module is
-// the single place that turns one into recipient-facing copy, so the handler
-// never emits a raw key into a subject line or body.
+// Email content for outbox-driven notifications.
 //
-// Deep links: web-public has no per-record dashboard route yet, so every CTA
-// points at the real `/sign-in` page. Once record routes exist, give each
-// entry below a `path` and build the URL from the payload's aggregate id.
+// Two paths converge here:
+//
+//   * Templated triggers (everything escrow and payment related) carry their
+//     copy in `notification_templates`, so Support can reword without a
+//     deploy. `templatedEmail` wraps that copy in the branded shell.
+//   * Legacy `*.status` triggers still use the static table below.
+//
+// Either way the dispatcher never emits a raw trigger key into a subject line
+// or body — it is meaningless to the recipient and an interpolation risk.
 import {
   APP_NAME,
   PUBLIC_SITE_URL,
   emailButton,
+  emailDataTable,
   emailLayout,
   emailParagraph,
   emailText,
@@ -18,21 +22,12 @@ import {
 } from '../_shared/emailTemplate.ts';
 
 interface TriggerCopy {
-  /** Subject line, already recipient-facing. */
   subject: string;
-  /** Card headline. */
   heading: string;
-  /** Lead paragraph. */
   body: string;
-  /** CTA label. */
   cta: string;
 }
 
-/**
- * Copy for every trigger the dispatcher routes. KEEP IN SYNC with `ROUTES` in
- * `index.ts` — a trigger missing here falls back to generic account copy
- * rather than leaking the key.
- */
 const TRIGGER_COPY: Record<string, TriggerCopy> = {
   'vendor.application.status': {
     subject: 'Update on your vendor application',
@@ -51,18 +46,6 @@ const TRIGGER_COPY: Record<string, TriggerCopy> = {
     heading: 'Your quotation was updated',
     body: 'A quotation you are involved in has been updated. Sign in to review the terms and respond.',
     cta: 'View my quotation',
-  },
-  'escrow.status': {
-    subject: 'Update on your escrow funds',
-    heading: 'Your escrow status changed',
-    body: 'The escrow holding funds for your event has changed status. Sign in to review the transaction.',
-    cta: 'View escrow details',
-  },
-  'payment.status': {
-    subject: 'Update on your payment',
-    heading: 'Your payment status changed',
-    body: 'There has been an update to one of your payments. Sign in to review the transaction and its receipt.',
-    cta: 'View my payment',
   },
   'subscription.status': {
     subject: 'Update on your subscription',
@@ -97,29 +80,76 @@ const FALLBACK: TriggerCopy = {
   cta: 'Sign in',
 };
 
-/** Where notification CTAs send the recipient. */
 const SIGN_IN_URL = `${PUBLIC_SITE_URL.replace(/\/$/, '')}/sign-in`;
 
+/** Portal roots, so a money email can link straight at the thing it is about. */
+const PORTAL_URL: Record<string, string> = {
+  client: (Deno.env.get('CLIENT_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
+  vendor: (Deno.env.get('VENDOR_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
+  admin: (Deno.env.get('ADMIN_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
+};
+
 /**
- * Build the branded notification email for a trigger key. Unknown keys get
- * generic account copy — never the raw key, which is both meaningless to the
- * recipient and an unescaped-interpolation risk.
+ * Where a given audience should land for an escrow event. Clients and vendors
+ * care about the booking; Finance cares about the escrow record itself.
  */
+export function deepLink(audience: string, payload: Record<string, unknown>): string {
+  const root = PORTAL_URL[audience] ?? PUBLIC_SITE_URL;
+  const bookingId = payload.booking_id as string | undefined;
+  const escrowId = payload.escrow_id as string | undefined;
+
+  if (audience === 'admin' && escrowId) return `${root}/escrow/${escrowId}`;
+  if (bookingId) return `${root}/bookings/${bookingId}`;
+  return `${root}/`;
+}
+
 export function notificationEmail(to: string, triggerKey: string): EmailMessage {
   const copy = TRIGGER_COPY[triggerKey] ?? FALLBACK;
-
   const text = emailText([copy.body, '', `${copy.cta}: ${SIGN_IN_URL}`]);
-
   const html = emailLayout({
     heading: copy.heading,
     preheader: copy.body,
     body: [emailParagraph(escapeHtml(copy.body)), emailButton(SIGN_IN_URL, copy.cta)].join('\n'),
   });
+  return { to, subject: `${APP_NAME}: ${copy.subject}`, text, html };
+}
+
+/**
+ * Wrap already-rendered template copy in the branded shell.
+ *
+ * The body arrives as plain text with newlines (that is what a Support user
+ * types into the template editor), so it is escaped and split into paragraphs
+ * rather than being trusted as HTML.
+ */
+export function templatedEmail(opts: {
+  to: string;
+  subject: string;
+  body: string;
+  ctaUrl: string;
+  ctaLabel: string;
+  facts?: Array<[string, string]>;
+}): EmailMessage {
+  const paragraphs = opts.body
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const blocks = [
+    ...paragraphs.map((p) => emailParagraph(escapeHtml(p).replace(/\n/g, '<br />'))),
+    ...(opts.facts?.length
+      ? [emailDataTable(opts.facts.map(([k, v]) => ({ label: k, value: v })))]
+      : []),
+    emailButton(opts.ctaUrl, opts.ctaLabel),
+  ];
 
   return {
-    to,
-    subject: `${APP_NAME}: ${copy.subject}`,
-    text,
-    html,
+    to: opts.to,
+    subject: `${APP_NAME}: ${opts.subject}`,
+    text: emailText([...paragraphs, '', `${opts.ctaLabel}: ${opts.ctaUrl}`]),
+    html: emailLayout({
+      heading: opts.subject,
+      preheader: paragraphs[0] ?? opts.subject,
+      body: blocks.join('\n'),
+    }),
   };
 }

@@ -35,6 +35,10 @@ export function useQuotationForm(quotationId: string) {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
+  // Watched so the advance preview stays in step with what the vendor types,
+  // for the same reason the total is derived rather than stored.
+  const advanceRate = useWatch({ control, name: 'advance_rate' });
+  const advanceDays = useWatch({ control, name: 'advance_release_days_before' });
 
   const submit = handleSubmit(async (values) => {
     setError(null);
@@ -58,6 +62,8 @@ export function useQuotationForm(quotationId: string) {
     /** The array-level message, e.g. every row was removed. */
     itemsError: errors.items?.root?.message ?? errors.items?.message,
     total: quotationTotal(items ?? []),
+    advanceRate: advanceRate ?? '0',
+    advanceDays: advanceDays ?? '0',
     addItem: () => append(emptyQuotationItem),
     removeItem: remove,
     submit,
