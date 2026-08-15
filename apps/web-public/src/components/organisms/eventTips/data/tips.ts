@@ -42,8 +42,13 @@ export type EventTip = {
   body: string;
   audience: TipAudience;
   /**
-   * Occasion tokens (matching the DB `event_type`) this tip is most relevant to.
-   * Omitted = broadly applicable; the selector surfaces type matches first.
+   * Occasion keys (`event_types.key`) this tip is most relevant to. Omitted =
+   * broadly applicable; the selector surfaces type matches first.
+   *
+   * Curated editorial mapping, so it stays a literal list rather than being
+   * fetched — but the keys must exist in `event_types` or the tip simply never
+   * leads. They drifted once already: `corporate`, `product_launch` and
+   * `concert` were tokens no event has ever carried.
    */
   eventTypes?: string[];
 };
@@ -111,7 +116,7 @@ export const EVENT_TIPS: EventTip[] = [
     title: 'Budget for the kwanjula and the wedding',
     body: 'A Ugandan wedding is several events, not one. The introduction (kwanjula) can cost as much as the church day — plan both as separate budgets from the start.',
     audience: 'local',
-    eventTypes: ['wedding', 'anniversary'],
+    eventTypes: ['wedding', 'introduction', 'anniversary'],
   },
   {
     id: 'time-your-trip',
@@ -148,7 +153,7 @@ export const EVENT_TIPS: EventTip[] = [
     title: 'Hire a professional MC',
     body: 'A great master of ceremonies keeps the programme flowing, reads the room, works in multiple languages and quietly handles the hiccups guests never see.',
     audience: 'local',
-    eventTypes: ['wedding', 'graduation', 'anniversary', 'corporate'],
+    eventTypes: ['wedding', 'introduction', 'graduation', 'anniversary', 'company_event'],
   },
   {
     id: 'run-of-show',
@@ -156,7 +161,7 @@ export const EVENT_TIPS: EventTip[] = [
     title: 'Build a detailed run-of-show',
     body: 'Map the agenda minute by minute and share it with every supplier. A clear timeline keeps speakers, AV and catering in sync from doors open to close.',
     audience: 'international',
-    eventTypes: ['corporate', 'conference', 'product_launch', 'concert'],
+    eventTypes: ['company_event', 'conference', 'company_launch', 'fundraising'],
   },
   {
     id: 'go-regional',

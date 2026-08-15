@@ -33,7 +33,7 @@ const columns: DataTableColumn<BookingModel>[] = [
 ];
 
 export default function Bookings() {
-  const { rows, total, isLoading, isFetching, error, table } = useBookings();
+  const { rows, total, isLoading, isFetching, error, table, viewBooking } = useBookings();
 
   return (
     <>
@@ -50,6 +50,7 @@ export default function Bookings() {
         rowCount={total}
         loading={isLoading || isFetching}
         emptyMessage="No bookings yet."
+        onRowClick={(b) => viewBooking(b.id)}
         {...table.controls}
       />
     </>

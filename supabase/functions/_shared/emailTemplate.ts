@@ -305,8 +305,12 @@ export function emailFallbackLink(href: string): string {
  * Progressive enhancements only. Gmail strips <style> in forwarded/clipped
  * messages, so nothing structural may live here — every rule below is a
  * refinement on top of markup that already renders correctly without it.
+ *
+ * Exported because `./newsletterTemplate.ts` builds a second shell (marketing
+ * rather than transactional) and must inherit exactly these resets. A forked
+ * copy would drift, and the drift would only ever show up in somebody's Outlook.
  */
-function headStyles(): string {
+export function emailHeadStyles(): string {
   return `
     /* Client resets */
     body { margin:0 !important; padding:0 !important; width:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
@@ -432,7 +436,7 @@ export function emailLayout(opts: {
     <o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch>
   </o:OfficeDocumentSettings></xml></noscript>
   <![endif]-->
-  <style type="text/css">${headStyles()}</style>
+  <style type="text/css">${emailHeadStyles()}</style>
 </head>
 <body class="sn-body" style="margin:0;padding:0;width:100%;background:${c.bgDefault};font-family:${emailFonts.body}">
   ${preheader}

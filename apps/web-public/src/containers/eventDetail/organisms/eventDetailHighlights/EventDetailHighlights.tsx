@@ -34,10 +34,10 @@ export default function EventDetailHighlights({ event }: { event: EventCardModel
       value: titleize(event.location),
     },
     budget && { icon: <Payments fontSize="small" />, label: 'Budget', value: budget },
-    event.event_type && {
+    (event.event_type_name || event.event_type) && {
       icon: <LocalOffer fontSize="small" />,
       label: 'Occasion',
-      value: titleize(event.event_type),
+      value: event.event_type_name ?? titleize(event.event_type ?? ''),
     },
   ].filter(Boolean) as Highlight[];
 

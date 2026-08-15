@@ -15,6 +15,7 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import PeopleIcon from '@mui/icons-material/People';
 import Groups2Icon from '@mui/icons-material/Groups2';
+import BadgeIcon from '@mui/icons-material/Badge';
 import SecurityIcon from '@mui/icons-material/Security';
 import LockPersonIcon from '@mui/icons-material/LockPerson';
 import StarIcon from '@mui/icons-material/Star';
@@ -27,6 +28,8 @@ import PublicIcon from '@mui/icons-material/Public';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import ChatIcon from '@mui/icons-material/Chat';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CampaignIcon from '@mui/icons-material/Campaign';
+import ContactMailIcon from '@mui/icons-material/ContactMail';
 import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
 export const APP = { name: 'Sinnapi', tagline: 'Admin' };
@@ -83,6 +86,19 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Users', to: '/users', icon: PeopleIcon, perm: 'users.read' },
       { label: 'Clients', to: '/clients', icon: Groups2Icon, perm: 'users.read' },
+      // The vendor ACCOUNT, not the listing — Operations → Vendors owns the
+      // shopfront. Labelled "Vendor Accounts" rather than "Vendors" precisely
+      // because the two are easy to confuse: a sidebar with the same word twice
+      // would reproduce, in the navigation, the ambiguity this page exists to
+      // resolve. Gated on `users.read` like its two siblings above, since what
+      // it exposes is a person's account and the three People lists should be
+      // grantable as one thing.
+      {
+        label: 'Vendor Accounts',
+        to: '/vendor-accounts',
+        icon: BadgeIcon,
+        perm: 'users.read',
+      },
       { label: 'Roles & Permissions', to: '/rbac', icon: SecurityIcon, perm: 'roles.manage' },
       // Its own permission rather than `users.read`: the page exposes device and
       // location history, which is a narrower thing to be trusted with than the
@@ -108,6 +124,21 @@ export const NAV_SECTIONS: NavSection[] = [
       // },
     ],
   },
+  // Its own section rather than an entry under Content & Moderation: those
+  // pages act on things customers wrote, this one sends things to customers.
+  // They are opposite directions of travel and are granted separately.
+  {
+    title: 'Marketing',
+    items: [
+      { label: 'Newsletters', to: '/newsletters', icon: CampaignIcon, perm: 'marketing.manage' },
+      {
+        label: 'Subscribers',
+        to: '/newsletters/subscribers',
+        icon: ContactMailIcon,
+        perm: 'marketing.manage',
+      },
+    ],
+  },
   {
     title: 'System',
     items: [
@@ -126,7 +157,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Inbox',
     items: [
-      { label: 'Messages', to: '/messages', icon: ChatIcon },
+      { label: 'Messages', to: '/messages', icon: ChatIcon, badgeKey: 'messages' },
       {
         label: 'Notifications',
         to: '/notifications',
@@ -148,6 +179,12 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Service Regions',
         to: '/service-regions',
         icon: PublicIcon,
+        perm: 'settings.manage',
+      },
+      {
+        label: 'Event Types',
+        to: '/event-types',
+        icon: CelebrationIcon,
         perm: 'settings.manage',
       },
     ],

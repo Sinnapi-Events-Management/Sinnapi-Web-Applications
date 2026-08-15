@@ -1,36 +1,27 @@
-import { Link as RouterLink } from 'react-router-dom';
-import {
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Stack,
-  Chip,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import AddIcon from '@mui/icons-material/Add';
-import { formatDate, titleize } from '@/lib/config';
-import { useMyEvents } from './hooks/useMyEvents';
+import { Button, PageTitle, QueryState } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
+import AddIcon from '@mui/icons-material/Add';
+import { useMyEvents } from './hooks/useMyEvents';
+import { useEventCreate } from './hooks/useEventCreate';
+import MyEventsGrid from './components/organisms/MyEventsGrid';
+import EventCreateDrawer from './components/organisms/EventCreateDrawer';
 
 export default function MyEvents() {
   const { rows, isLoading, error } = useMyEvents();
-  const action = (
-    <Button component={RouterLink} to="/my-events/new" variant="contained" startIcon={<AddIcon />}>
-      Post an event
-    </Button>
-  );
+  const create = useEventCreate();
 
   return (
     <>
       <PageTitle
         title="My Events"
         subtitle="Events you've posted for vendors to bid on."
-        action={action}
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={create.open}>
+            Post an event
+          </Button>
+        }
       />
+
       <QueryState isLoading={isLoading} error={error}>
         {rows.length === 0 ? (
           <EmptyState
@@ -38,35 +29,19 @@ export default function MyEvents() {
             description="Post an event so vendors can express interest."
           />
         ) : (
-          <Grid container spacing={3}>
-            {rows.map((e) => (
-              <Grid item xs={12} sm={6} md={4} key={e.id}>
-                <Card variant="outlined" sx={{ height: '100%' }}>
-                  <CardContent>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      sx={{ mb: 1 }}
-                    >
-                      {e.event_type ? (
-                        <Chip size="small" label={titleize(e.event_type)} />
-                      ) : (
-                        <span />
-                      )}
-                      <StatusChip status={e.status} />
-                    </Stack>
-                    <Typography variant="h6">{e.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(e.event_date)} · {e.location ?? '—'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          <MyEventsGrid events={rows} />
         )}
       </QueryState>
+
+      {/* Outside QueryState on purpose: posting stays available while the list
+          is still loading or has failed to load. */}
+      <EventCreateDrawer
+        open={create.isOpen}
+        busy={create.busy}
+        err={create.err}
+        onClose={create.close}
+        onSave={create.save}
+      />
     </>
   );
 }

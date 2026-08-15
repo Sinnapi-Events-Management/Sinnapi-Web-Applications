@@ -10,60 +10,8 @@ import {
   Typography,
 } from '@sinnapi/ui';
 import CloseIcon from '@mui/icons-material/Close';
-import MessageComposer from '@/components/messaging/MessageComposer';
-import { useMessages } from '@/hooks/queries';
-import { useAuth } from '@/auth/AuthProvider';
+import EmbeddedThread from '@/components/messaging/EmbeddedThread';
 import type { ChatTarget } from '../../hooks/useVendorChat';
-
-/**
- * The message thread. Split into its own component so `useMessages` only runs
- * with a resolved conversation id (the drawer renders it once the thread is
- * ready), keeping the hook call unconditional and valid.
- */
-function ChatThread({ conversationId }: { conversationId: string }) {
-  const { user } = useAuth();
-  const { data, isLoading } = useMessages(conversationId);
-  const messages = data ?? [];
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'grid', placeItems: 'center', flex: 1 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (messages.length === 0) {
-    return (
-      <Typography color="text.secondary" sx={{ m: 'auto', textAlign: 'center' }}>
-        No messages yet. Say hello 👋
-      </Typography>
-    );
-  }
-
-  return (
-    <Stack spacing={1} sx={{ flex: 1 }}>
-      {messages.map((m) => {
-        const mine = m.sender_id === user?.id;
-        return (
-          <Box key={m.id} sx={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-            <Box
-              sx={{
-                px: 1.5,
-                py: 1,
-                borderRadius: 2,
-                bgcolor: mine ? 'primary.main' : 'grey.100',
-                color: mine ? 'primary.contrastText' : 'text.primary',
-              }}
-            >
-              <Typography variant="body2">{m.body}</Typography>
-            </Box>
-          </Box>
-        );
-      })}
-    </Stack>
-  );
-}
 
 function initials(name: string | null): string {
   if (!name) return 'V';
@@ -88,7 +36,13 @@ type Props = {
 /**
  * Right-hand drawer holding the event-scoped vendor⇄admin chat. Opening it
  * never leaves the event page, and every message posted here is attached to the
- * conversation the RPC scoped to this event + vendor.
+ * conversation the RPC scoped to this event and vendor.
+ *
+ * The thread itself is `EmbeddedThread`, so this drawer picked up day dividers,
+ * timestamps, delivery state, attachments, typing and live delivery when the
+ * hand-rolled bubble list it used to hold was removed. The header stays local —
+ * it names the vendor *and* the event, which is context no generic thread
+ * header carries.
  */
 export default function VendorChatDrawer({
   open,
@@ -126,36 +80,25 @@ export default function VendorChatDrawer({
       </Stack>
       <Divider />
 
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          p: 2,
-          overflowY: 'auto',
-        }}
-      >
-        {error && <Alert severity="error">{error}</Alert>}
-        {loading || !conversationId ? (
-          !error && (
-            <Box sx={{ display: 'grid', placeItems: 'center', flex: 1 }}>
-              <CircularProgress />
-            </Box>
-          )
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', p: 2 }}>
+        {error ? (
+          <Alert severity="error">{error}</Alert>
+        ) : loading || !conversationId ? (
+          <Box sx={{ display: 'grid', placeItems: 'center', flex: 1 }}>
+            <CircularProgress />
+          </Box>
         ) : (
-          <ChatThread conversationId={conversationId} />
+          // Keyed on the conversation so switching vendors from the event page
+          // remounts the thread rather than animating one history into another.
+          <EmbeddedThread
+            key={conversationId}
+            conversationId={conversationId}
+            counterpartyName={target?.businessName ?? 'Vendor'}
+            counterpartyType="vendor_admin"
+            fill
+          />
         )}
       </Box>
-
-      {conversationId && (
-        <>
-          <Divider />
-          <Box sx={{ p: 2 }}>
-            <MessageComposer conversationId={conversationId} />
-          </Box>
-        </>
-      )}
     </Drawer>
   );
 }

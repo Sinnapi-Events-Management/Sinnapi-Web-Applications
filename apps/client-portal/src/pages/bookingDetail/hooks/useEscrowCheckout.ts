@@ -47,11 +47,16 @@ export const PAYMENT_RAILS: Array<PaymentRail & { label: string; caption: string
  * money to PayPal genuinely changes the total, and the preview has to say so
  * before the client commits.
  */
-export function useEscrowCheckout(bookingId: string | undefined, enabled: boolean) {
+export function useEscrowCheckout(
+  bookingId: string | undefined,
+  enabled: boolean,
+  /** The client's chosen advance, or null to price at the booking's terms. */
+  advanceRate: number | null = null,
+) {
   const [railIndex, setRailIndex] = useState(0);
   const rail = PAYMENT_RAILS[railIndex];
 
-  const quote = useEscrowQuote(bookingId, rail.provider, rail.method, enabled);
+  const quote = useEscrowQuote(bookingId, rail.provider, rail.method, enabled, advanceRate);
   const start = useStartEscrowPayment();
 
   async function pay() {
@@ -74,6 +79,12 @@ export function useEscrowCheckout(bookingId: string | undefined, enabled: boolea
     rail,
     quote: quote.data ?? null,
     isQuoting: quote.isLoading,
+    /**
+     * A re-price of figures already on screen — a rail switch or a new
+     * advance. Distinct from `isQuoting`, which is the first load and the
+     * only one that deserves skeletons.
+     */
+    isRepricing: quote.isFetching && !quote.isLoading,
     quoteError: quote.error,
     pay,
     isPaying: start.isPending,

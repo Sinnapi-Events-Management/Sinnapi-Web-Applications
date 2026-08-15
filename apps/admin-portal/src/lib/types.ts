@@ -140,6 +140,42 @@ export type VendorAdminModel = {
   created_at: string | null;
 };
 
+// --- vendor accounts (People → Vendors) --------------------------------------
+// One row per vendor OWNER ACCOUNT, from `search_vendor_accounts` (0810b). This
+// is the person, not the shopfront: `VendorAdminModel` above is the listing.
+//
+// Every vendor-side field is nullable because the account can outlive — or
+// precede — the listing. A promotion that provisioned the account and then
+// failed before `approve_vendor` produces exactly that row, and it is the one
+// an operator most needs to see.
+
+export type VendorAccountModel = {
+  profile_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  account_status: string;
+  /** Operator justification for the current non-active state. Internal only. */
+  status_reason: string | null;
+  status_changed_at: string | null;
+  /** Non-null only while suspended — the instant the hold lifts by itself. */
+  suspended_until: string | null;
+  /**
+   * Null means the vendor has never signed in. That is the whole basis of the
+   * "resend credentials" affordance: the one-time password from promotion is
+   * never stored, so an account stuck here has no way in that support can
+   * recover any other way.
+   */
+  last_login_at: string | null;
+  created_at: string | null;
+  vendor_id: string | null;
+  business_name: string | null;
+  vendor_status: string | null;
+  vendor_visibility: string | null;
+  /** When the public application was submitted; null if they never came through intake. */
+  applied_at: string | null;
+};
+
 export type OwnerRef = {
   full_name: string | null;
   email: string | null;
@@ -451,6 +487,27 @@ export type ServiceCategoryModel = {
 /** Full category list for the parent-category select — unpaginated, id + name only. */
 export type ServiceCategoryOption = { id: string; name: string };
 
+/**
+ * A managed event type (`event_types`) — the occasion vocabulary every portal
+ * and the public site filter by. Unlike a service category these don't nest, so
+ * there is no `parent_id`.
+ */
+export type EventTypeModel = {
+  id: string;
+  key: string;
+  name: string;
+  icon: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+/**
+ * An event type as a form select entry. `is_active` rides along so the picker
+ * can mark a retired type rather than silently offering it — an event already
+ * pointing at one must keep showing it (see `useEventTypeSelectOptions`).
+ */
+export type EventTypeOption = { id: string; name: string; is_active: boolean };
+
 export type ServiceRegionModel = {
   id: string;
   key: string;
@@ -497,6 +554,87 @@ export type QuotationModel = {
   vendors: VendorRef | VendorRef[] | null;
 };
 
+/** A party to a booking, as much of them as the console shows inline. */
+export type BookingPartyModel = {
+  id: string;
+  name: string | null;
+  /** Present on the vendor only — the public listing slug. */
+  slug?: string | null;
+  email: string | null;
+  phone: string | null;
+};
+
+/** The escrow behind a booking, flattened by `get_booking_admin`. */
+export type BookingEscrowModel = {
+  id: string;
+  status: string;
+  currency: string | null;
+  gross_amount: number | null;
+  agreed_amount: number | null;
+  commission_amount: number | null;
+  psp_fee_amount: number | null;
+  advance_rate: number | null;
+  advance_amount: number | null;
+  balance_amount: number | null;
+  advance_release_due_at: string | null;
+  advance_released_at: string | null;
+  balance_released_at: string | null;
+  timers_frozen_at: string | null;
+};
+
+/**
+ * One booking, fully resolved for the console — the shape `get_booking_admin`
+ * returns. The three optional halves are genuinely optional: a booking can be
+ * placed without a quotation behind it, without an event to hang off, and
+ * without anyone having funded it yet.
+ */
+export type BookingAdminModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  /** Postgres `time` values ("14:00:00"); either end may be absent. */
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  currency: string | null;
+  amount: number | null;
+  payment_type: string | null;
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  advance_terms_accepted_at: string | null;
+  /** Resolved to a name by the RPC, not a bare id. */
+  advance_terms_accepted_by: string | null;
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+  vendor: BookingPartyModel;
+  client: BookingPartyModel;
+  event: { id: string; title: string | null } | null;
+  escrow: BookingEscrowModel | null;
+  /** Same shape as `get_event_quotation`, so `downloadQuotationPdf` renders it. */
+  quotation: QuotationDocument | null;
+};
+
+/**
+ * One entry on a booking's merged activity trail. `kind` groups the four
+ * sources the server unions together; `detail` is already the sentence to
+ * render. `actor` is null for the entries no human caused — a webhook
+ * confirming funding, the cron releasing an advance.
+ */
+export type BookingActivityModel = {
+  kind: 'status' | 'note' | 'escrow' | 'payment' | 'admin';
+  label: string;
+  detail: string | null;
+  actor: string | null;
+  amount: number | null;
+  currency: string | null;
+  occurred_at: string;
+};
+
 export type EventModel = {
   id: string;
   title: string;
@@ -514,7 +652,13 @@ export type EventDetailModel = {
   source: string;
   title: string;
   description: string | null;
-  event_type: string | null;
+  event_type_id: string | null;
+  /**
+   * The managed type behind `event_type_id`, embedded via
+   * `event_type:event_types(key,name)`. `key` is the token every filter and
+   * facet count is built from; `name` is what gets rendered.
+   */
+  event_type: { key: string; name: string } | null;
   event_date: string | null;
   location: string | null;
   budget_min: number | null;
@@ -708,34 +852,49 @@ export type ErasureRequestModel = {
 
 // --- inbox ------------------------------------------------------------------
 
-/** Newest message of a conversation, embedded for the inbox row preview. */
-export type MessagePreviewRef = {
-  body: string | null;
-  created_at: string | null;
-  sender_id: string | null;
-};
-
+/**
+ * One row of `get_my_conversations()` (migration 0815f).
+ *
+ * The counterparty is resolved server-side. `profiles_self_read` does grant
+ * admins profile access, so this portal *could* have joined for a name — but
+ * the old select instead embedded `vendors(business_name)` and fell back to
+ * `titleize(type)`, which is why a client support thread has always rendered
+ * as the literal string "Client Admin" in this inbox.
+ *
+ * The RPC also folds in the newest-message preview and the unread count, both
+ * of which used to cost a separate query: the preview came from a limit-1
+ * lateral embed on `messages` per row, and the unread state from a second
+ * fetch of `conversation_participants`.
+ *
+ * `is_observer` is true for threads visible only through `moderation.manage` —
+ * the admin is not a participant, so they can read but not yet reply.
+ */
 export type ConversationModel = {
   id: string;
   type: string;
   subject: string | null;
-  last_message_at: string | null;
   status: string;
+  vendor_id: string | null;
   created_at: string | null;
-  vendors: VendorRef | VendorRef[] | null;
-  // PostgREST caps this embed at the single newest message (see useConversations),
-  // so it is an array of at most one — never the full thread.
-  messages: MessagePreviewRef[] | null;
-};
-
-/**
- * The signed-in admin's own participant row. `last_read_at` is what the unread
- * badge is derived from; RLS always lets a profile read its own rows.
- */
-export type ConversationReadStateModel = {
-  conversation_id: string;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_message_sender_id: string | null;
+  counterparty_id: string | null;
+  counterparty_name: string | null;
+  counterparty_avatar_url: string | null;
+  unread_count: number;
   last_read_at: string | null;
   is_muted: boolean;
+  is_observer: boolean;
+};
+
+export type MessageAttachmentModel = {
+  id: string;
+  storage_path: string;
+  file_name: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  scan_status: string;
 };
 
 export type MessageModel = {
@@ -743,7 +902,10 @@ export type MessageModel = {
   sender_id: string | null;
   body: string | null;
   created_at: string | null;
+  edited_at: string | null;
+  is_system: boolean;
   moderation_status: string;
+  message_attachments: MessageAttachmentModel[] | null;
 };
 
 /**
@@ -775,4 +937,104 @@ export type BlockedAccountModel = {
   last_user_agent: string | null;
   /** ISO-3166 alpha-2. Null for rows captured before country was recorded. */
   last_country: string | null;
+};
+
+// =====================================================================
+// MARKETING — newsletter campaigns, consent, suppression
+// =====================================================================
+
+export type NewsletterAudience = 'clients' | 'vendors';
+export type MarketingTopic = 'client_updates' | 'vendor_updates';
+
+/** One row of the campaign list. `blocks` is omitted — the list never renders it. */
+export type NewsletterCampaignModel = {
+  id: string;
+  title: string;
+  subject: string;
+  preheader: string | null;
+  audience: NewsletterAudience;
+  topic: MarketingTopic;
+  status: string;
+  scheduled_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  error: string | null;
+  recipient_count: number;
+  sent_count: number;
+  failed_count: number;
+  created_at: string;
+};
+
+/** The campaign as the composer edits it — the list row plus its body. */
+export type NewsletterCampaignDetail = NewsletterCampaignModel & {
+  blocks: unknown;
+  attested_by: string | null;
+  attested_at: string | null;
+};
+
+/**
+ * One candidate recipient, from `admin_newsletter_audience`.
+ *
+ * `eligible` is decided server-side; `reason` says why not when it is false, so
+ * the picker can grey a row and explain it rather than silently omitting the
+ * person and leaving an operator to wonder where their audience went.
+ */
+export type NewsletterAudienceRow = {
+  profile_id: string;
+  full_name: string;
+  email: string;
+  status: string;
+  eligible: boolean;
+  reason: 'suppressed' | 'pending' | 'unsubscribed' | 'none' | null;
+  total_count: number;
+};
+
+export type NewsletterAudienceCounts = {
+  total: number;
+  eligible: number;
+  suppressed: number;
+  no_consent: number;
+};
+
+/** What `admin_newsletter_queue` reports back, shown in the send confirmation. */
+export type NewsletterQueueResult = {
+  queued: number;
+  skipped_suppressed: number;
+  skipped_no_consent: number;
+  imported: number;
+};
+
+export type NewsletterStats = {
+  total: number;
+  queued: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  complained: number;
+  failed: number;
+  unsubscribed: number;
+};
+
+/** One row of the subscriber register. */
+export type MarketingSubscriptionModel = {
+  id: string;
+  email: string;
+  topic: MarketingTopic;
+  status: string;
+  source: string;
+  consent_text: string | null;
+  consent_at: string | null;
+  confirmed_at: string | null;
+  unsubscribed_at: string | null;
+  created_at: string;
+};
+
+export type EmailSuppressionModel = {
+  id: string;
+  email: string;
+  reason: string;
+  detail: string | null;
+  created_at: string;
 };

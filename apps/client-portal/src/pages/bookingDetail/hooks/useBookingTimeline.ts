@@ -1,19 +1,6 @@
 import { useMemo } from 'react';
+import { remainingLifecycle, type StatusTimelineStep } from '@sinnapi/ui';
 import { useBookingStatusHistory } from '@/hooks/queries';
-import { remainingLifecycle } from '../utils/lifecycle';
-
-/**
- * A step on the rendered trail. `done` entries are drawn from real history rows
- * and carry a timestamp; the rest are projections of where the booking is headed
- * and carry none.
- */
-export type TimelineStep = {
-  key: string;
-  status: string;
-  occurredAt: string | null;
-  reason: string | null;
-  done: boolean;
-};
 
 /**
  * The booking's status trail as steps to render: what has happened, then what is
@@ -29,8 +16,8 @@ export type TimelineStep = {
 export function useBookingTimeline(bookingId: string, status: string | undefined) {
   const { data, isLoading, error } = useBookingStatusHistory(bookingId);
 
-  const steps = useMemo<TimelineStep[]>(() => {
-    const done: TimelineStep[] = (data ?? []).map((e) => ({
+  const steps = useMemo<StatusTimelineStep[]>(() => {
+    const done: StatusTimelineStep[] = (data ?? []).map((e) => ({
       key: e.id,
       status: e.to_status,
       occurredAt: e.occurred_at,

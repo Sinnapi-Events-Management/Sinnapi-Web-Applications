@@ -1,9 +1,15 @@
 'use client';
 import { Chip, Stack, Typography } from '@sinnapi/ui/atoms';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
+import type { FilterOption } from '@/lib/types';
 import { useEventsFilters } from '../../../hooks/useEventsFilters';
 import { RESULTS_ANCHOR_ID } from '../../../hooks/useEventsSearchInput';
-import { QUICK_FILTERS } from '../data/quickFilters';
+
+/**
+ * How many occasions get a shortcut. The row is a fast path, not a second copy
+ * of the dropdown, so it stops well short of the full vocabulary.
+ */
+const QUICK_FILTER_COUNT = 5;
 
 /**
  * Popular-occasion shortcuts under the search pill.
@@ -17,9 +23,14 @@ import { QUICK_FILTERS } from '../data/quickFilters';
  * the toolbar already owns the exhaustive list, and these are one-tap entry
  * points into it. Tapping an active one clears it, so a shortcut is never a
  * one-way door.
+ *
+ * Which occasions appear is the admin's `sort_order` rather than a hand-picked
+ * list. The hardcoded one had gone stale — "Corporate" and "Concerts" were
+ * tokens no event has ever carried, so those two chips filtered the grid down
+ * to nothing every single time they were tapped.
  */
-export default function HeroQuickFilters() {
-  const { params, setFacet } = useEventsFilters();
+export default function HeroQuickFilters({ typeOptions }: { typeOptions: FilterOption[] }) {
+  const { params, setFacet } = useEventsFilters(typeOptions);
 
   const apply = (type: string) => {
     setFacet('type', params.type === type ? '' : type);
@@ -27,6 +38,10 @@ export default function HeroQuickFilters() {
       .getElementById(RESULTS_ANCHOR_ID)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  // No occasions configured (or the reference read failed): drop the row rather
+  // than leave a "Popular:" label standing on its own.
+  if (typeOptions.length === 0) return null;
 
   return (
     <Stack
@@ -39,16 +54,16 @@ export default function HeroQuickFilters() {
       <Typography variant="body2" sx={{ color: withAlpha(common.white, 0.7), mr: 0.5, py: 0.5 }}>
         Popular:
       </Typography>
-      {QUICK_FILTERS.map((quick) => {
-        const isActive = params.type === quick.type;
+      {typeOptions.slice(0, QUICK_FILTER_COUNT).map((quick) => {
+        const isActive = params.type === quick.value;
         return (
           <Chip
-            key={quick.type}
+            key={quick.value}
             label={quick.label}
             clickable
             size="small"
             aria-pressed={isActive}
-            onClick={() => apply(quick.type)}
+            onClick={() => apply(quick.value)}
             sx={{
               color: 'common.white',
               bgcolor: withAlpha(common.white, isActive ? 0.3 : 0.12),

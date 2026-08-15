@@ -18,7 +18,7 @@ export default function ResetPassword() {
         {error && (
           <>
             <Alert severity="error">{error}</Alert>
-            <AppLink to="/sign-in" variant="body2" sx={{ textAlign: 'center' }}>
+            <AppLink to="/sign-in" variant="body2" sx={{ alignSelf: 'center', fontWeight: 600 }}>
               Back to sign in
             </AppLink>
           </>

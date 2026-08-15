@@ -73,6 +73,82 @@ const importTs = async (rel) => import(await loadTs(resolve(FUNCTIONS, rel)));
 // glyphs (l/1/I, 0/O) the monospace chip exists to disambiguate.
 const PORTAL = 'https://admin.sinnapi.com';
 
+/**
+ * A campaign body exercising every block type, in the shape the admin
+ * composer stores them (`newsletter_campaigns.blocks`). Deliberately awkward:
+ * an ampersand and an apostrophe that must escape, a rich-text document with
+ * nested marks and a link, and an ordered list — the four things most likely
+ * to render differently once they reach Outlook.
+ */
+const NEWSLETTER_BLOCKS = [
+  {
+    type: 'hero',
+    eyebrow: 'December edition',
+    title: 'Five vendors worth booking before December',
+    subtitle:
+      'Peak season pricing lands in three weeks. Here is who still has dates, and what they cost today.',
+    ctaLabel: 'Browse availability',
+    ctaHref: 'https://sinnapi.com/vendors',
+  },
+  {
+    type: 'richText',
+    doc: {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Hello — ' },
+            { type: 'text', marks: [{ type: 'bold' }], text: 'December fills fast.' },
+            {
+              type: 'text',
+              text: ' Last year the top-rated caterers & décor teams were fully booked by the 12th. If you are planning anything between mid-December and mid-January, now is the moment to lock a date.',
+            },
+          ],
+        },
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Start with ' },
+            {
+              type: 'text',
+              marks: [{ type: 'link', attrs: { href: 'https://sinnapi.com/vendors' } }],
+              text: 'the vendor directory',
+            },
+            { type: 'text', text: ', or reply to this email and we will shortlist for you.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    type: 'articleCard',
+    tag: 'Vendor spotlight',
+    title: "Bella's Bloom & Banquet Co.",
+    excerpt:
+      'Twelve years of weddings in Kampala, and the only florist on Sinnapi holding a 5.0 average across 40+ reviews.',
+    href: 'https://sinnapi.com/vendors/bellas-bloom',
+    linkLabel: 'See their work',
+  },
+  {
+    type: 'quote',
+    text: 'They turned a car park into a garden. I still get asked about it.',
+    attribution: 'Aisha, bride, Kampala',
+  },
+  { type: 'heading', text: 'How to lock a December date' },
+  {
+    type: 'list',
+    ordered: true,
+    items: [
+      'Shortlist three vendors and request quotes on the same day.',
+      'Accept the quote you want — the date is held the moment you do.',
+      'Fund the advance into escrow; the vendor is only paid once you confirm.',
+    ],
+  },
+  { type: 'divider' },
+  { type: 'button', label: 'Start planning', href: 'https://sinnapi.com/sign-up' },
+];
+
 const APPLICANT = {
   ownerFullName: 'Nakato Rebecca Ssemwanga',
   ownerEmail: 'rebecca@bellaevents.co.ug',
@@ -89,6 +165,9 @@ async function collect() {
   const promote = await importTs('promote-intake/emails.ts');
   const signup = await importTs('client-sign-up/emails.ts');
   const recovery = await importTs('send-password-reset/emails.ts');
+  const marketing = await importTs('_shared/marketingEmails.ts');
+  const campaign = await importTs('newsletter-dispatch/emails.ts');
+  const blocks = await importTs('_shared/newsletterBlocks.ts');
 
   // A multi-line, admin-authored rejection reason: it must escape and keep its
   // line breaks when it lands in the applicant's inbox.
@@ -216,6 +295,39 @@ async function collect() {
       flow: 'notification-dispatch',
       msg: notify.notificationEmail('client@example.com', key),
     })),
+    {
+      name: 'marketing-confirm-subscription',
+      title: 'Marketing · confirm subscription (double opt-in)',
+      flow: '_shared/marketingEmails',
+      msg: marketing.confirmSubscriptionEmail({
+        fullName: 'Aisha Namubiru',
+        email: 'aisha.namubiru@example.com',
+        topic: 'client_updates',
+        confirmUrl: marketing.confirmSubscriptionUrl('nZ8kQ2_wV5tR-xB1yH3jL7pC'),
+        expiryDays: 7,
+      }),
+    },
+    // The two campaign audiences render through the same shell but carry
+    // different "why you're getting this" copy in the footer, which is the one
+    // line most worth eyeballing side by side.
+    ...['clients', 'vendors'].map((audience) => {
+      const body = blocks.renderBlocks(NEWSLETTER_BLOCKS);
+      return {
+        name: `newsletter-${audience}`,
+        title: `Newsletter · ${audience}`,
+        flow: 'newsletter-dispatch',
+        msg: campaign.campaignMessage({
+          campaignId: '00000000-0000-0000-0000-000000000000',
+          subject: 'Five vendors worth booking before December',
+          preheader: 'Plus what December pricing looks like this year.',
+          audience,
+          bodyHtml: body.html,
+          bodyText: body.text,
+          to: 'aisha.namubiru@example.com',
+          unsubscribeToken: 'nZ8kQ2_wV5tR-xB1yH3jL7pC',
+        }),
+      };
+    }),
   ];
 }
 

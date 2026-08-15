@@ -10,7 +10,7 @@ import { useShellBanner } from './hooks/useShellBanner';
  * vendor's config plus the onboarding/subscription banner.
  */
 export default function AppShell() {
-  const { brand, sections, account, badges } = useAppShell();
+  const { brand, sections, account, badges, messages, notifications } = useAppShell();
   const banner = useShellBanner();
 
   return (
@@ -20,7 +20,8 @@ export default function AppShell() {
       sections={sections}
       account={account}
       badges={badges}
-      notificationsTo="/notifications"
+      messages={messages}
+      notifications={notifications}
       banner={banner && <ShellBanner {...banner} />}
     />
   );

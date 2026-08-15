@@ -8,7 +8,7 @@ import { useAppShell } from './hooks/useAppShell';
  * the client's config.
  */
 export default function AppShell() {
-  const { brand, sections, account, badges } = useAppShell();
+  const { brand, sections, account, badges, messages, notifications } = useAppShell();
 
   return (
     <PortalShell
@@ -17,7 +17,8 @@ export default function AppShell() {
       sections={sections}
       account={account}
       badges={badges}
-      notificationsTo="/notifications"
+      messages={messages}
+      notifications={notifications}
     />
   );
 }

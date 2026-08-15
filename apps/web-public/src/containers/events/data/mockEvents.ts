@@ -6,6 +6,12 @@ import type { EventCardModel } from '@/lib/types';
  * see migration 20260618000005). The container falls back to these only when
  * the live query returns nothing, so wiring real data later needs no UI change.
  * Cover URLs point at the locally hosted marketing photography in /public/images.
+ *
+ * Occasions use the keys and names an admin actually seeds in `event_types`
+ * (migration 20260814000001) — mock data that invents tokens the database has
+ * never held teaches the wrong lesson about what the UI has to handle. The
+ * concert is deliberately untyped: it is the one occasion outside the seeded
+ * vocabulary, and it doubles as coverage for an event posted without one.
  */
 export const MOCK_EVENTS: EventCardModel[] = [
   {
@@ -14,6 +20,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'A lakeside white-and-greenery celebration. Looking for a decorator, caterer and live band to bring the day together.',
     event_type: 'wedding',
+    event_type_name: 'Wedding',
     event_date: '2026-09-12',
     location: 'kampala',
     budget_min: 8_000_000,
@@ -28,6 +35,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'Rust and candlelight tablescapes with draped chiavari chairs — a curated look to inspire your own reception styling.',
     event_type: 'wedding',
+    event_type_name: 'Wedding',
     event_date: '2026-10-04',
     location: 'wakiso',
     budget_min: null,
@@ -41,7 +49,8 @@ export const MOCK_EVENTS: EventCardModel[] = [
     title: 'Corporate end-of-year gala — 350 pax',
     description:
       'Annual awards dinner needing full AV, stage design, MC and plated catering at a five-star venue.',
-    event_type: 'corporate',
+    event_type: 'company_event',
+    event_type_name: 'Company Event',
     event_date: '2026-12-06',
     location: 'kampala',
     budget_min: 20_000_000,
@@ -56,6 +65,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'Private rooftop dinner for 40 friends. Seeking a caterer, florist and a photographer for the evening.',
     event_type: 'birthday',
+    event_type_name: 'Birthday',
     event_date: '2026-08-23',
     location: 'entebbe',
     budget_min: 3_000_000,
@@ -70,6 +80,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'Daytime garden brunch for a university graduate. Decor, pastry table and a photo booth wanted.',
     event_type: 'graduation',
+    event_type_name: 'Graduation',
     event_date: '2026-07-19',
     location: 'mukono',
     budget_min: 1_200_000,
@@ -84,6 +95,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'Soft balloon arches, dessert grazing and gentle florals — inspiration for a modern baby shower.',
     event_type: 'baby_shower',
+    event_type_name: 'Baby Shower',
     event_date: '2026-09-28',
     location: 'kampala',
     budget_min: 800_000,
@@ -98,6 +110,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'A 50th anniversary dinner for the family. Looking for an elegant decorator and a string quartet.',
     event_type: 'anniversary',
+    event_type_name: 'Anniversary',
     event_date: '2026-11-15',
     location: 'jinja',
     budget_min: 5_000_000,
@@ -111,7 +124,8 @@ export const MOCK_EVENTS: EventCardModel[] = [
     title: 'Open-air concert & food festival',
     description:
       'Weekend live-music festival seeking stage, sound, security and a roster of food vendors.',
-    event_type: 'concert',
+    event_type: null,
+    event_type_name: null,
     event_date: '2026-10-31',
     location: 'nationwide',
     budget_min: 40_000_000,
@@ -125,7 +139,8 @@ export const MOCK_EVENTS: EventCardModel[] = [
     title: 'Tech product launch — invite only',
     description:
       'Evening launch for 150 guests with branded staging, lighting and canapés. Photographer & videographer needed.',
-    event_type: 'product_launch',
+    event_type: 'company_launch',
+    event_type_name: 'Company Launch',
     event_date: '2026-08-08',
     location: 'kampala',
     budget_min: 12_000_000,
@@ -140,6 +155,7 @@ export const MOCK_EVENTS: EventCardModel[] = [
     description:
       'Two-day conference for 500 delegates. Requires AV, breakout staging, catering and on-site coordination.',
     event_type: 'conference',
+    event_type_name: 'Conference',
     event_date: '2026-09-05',
     location: 'mbarara',
     budget_min: 25_000_000,

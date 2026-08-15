@@ -4,11 +4,14 @@ import { useCompareQuotes } from './hooks/useCompareQuotes';
 import { compareQuoteColumns } from './schema';
 
 export default function CompareQuotes() {
-  const { rows, total, isLoading, isFetching, error, table } = useCompareQuotes();
+  const { rows, total, isLoading, isFetching, error, table, openQuotation } = useCompareQuotes();
 
   return (
     <>
-      <PageTitle title="Compare quotations" subtitle="Side-by-side comparison of vendor quotes." />
+      <PageTitle
+        title="Compare quotations"
+        subtitle="Side-by-side comparison of vendor quotes. Open one to see what it covers."
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -22,6 +25,7 @@ export default function CompareQuotes() {
         getRowId={(q) => q.id}
         rowCount={total}
         loading={isLoading || isFetching}
+        onRowClick={(q) => openQuotation(q.id)}
         emptyMessage={
           <EmptyState
             embedded

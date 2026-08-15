@@ -22,6 +22,10 @@ const PRICING = ['fixed', 'hourly', 'custom', 'combination'];
 const LEAD = ['same_week', '1_2_weeks', '2_4_weeks', '1_3_months', '3_plus_months'];
 const APPLICANT = ['individual', 'registered_business'];
 
+/** Canonical wording, used when the browser did not send its own copy. */
+const MARKETING_CONSENT_FALLBACK =
+  'I would like to receive Sinnapi vendor updates, business tips and platform news by email.';
+
 type Referee = {
   fullName?: string;
   phone?: string;
@@ -71,6 +75,15 @@ type Body = {
   acceptedVendorTerms?: boolean;
   acceptedEscrowPolicy?: boolean;
   acceptedFalseInfoRemoval?: boolean;
+  /**
+   * Newsletter opt-in. Optional and separate from the four required terms
+   * above — GDPR Art.7(2) requires consent to be "clearly distinguishable from
+   * the other matters", so it must never be bundled into an acceptance the
+   * applicant has to give in order to proceed.
+   */
+  marketingConsent?: boolean;
+  /** The exact sentence shown beside the checkbox, kept as Art.7(1) evidence. */
+  marketingConsentText?: string;
   /** Turnstile token from the registration form. */
   captchaToken?: string;
 };
@@ -210,6 +223,38 @@ Deno.serve(
       businessName: clean(b.businessName)!,
       submissionRef: b.submissionRef!,
     };
+
+    // --- Newsletter opt-in (single, with the full evidence set) -------------
+    //
+    // Single opt-in rather than the double opt-in used for client sign-up. A
+    // vendor application is a commercial onboarding by a business that is
+    // already in an operational email relationship with us, and control of the
+    // address is proved later anyway — approval mails credentials to it. What
+    // makes single opt-in defensible here is the record: the exact wording, the
+    // IP, the user agent and the timestamp all land on the subscription row.
+    //
+    // Best-effort for the same reason as everything else past this point: the
+    // application is persisted, and an optional checkbox must not fail it.
+    if (b.marketingConsent === true) {
+      const { error: consentErr } = await supa.rpc('marketing_capture_consent', {
+        p_email: b.ownerEmail!.trim().toLowerCase(),
+        p_topic: 'vendor_updates',
+        p_source: 'vendor_application',
+        p_consent_text: String(b.marketingConsentText ?? MARKETING_CONSENT_FALLBACK).slice(0, 500),
+        p_ip: ip,
+        p_user_agent: userAgent,
+        p_double_opt_in: false,
+      });
+      if (consentErr) {
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            message: 'marketing_consent_failed',
+            detail: consentErr.message,
+          }),
+        );
+      }
+    }
 
     const internalInbox = clean(Deno.env.get('VENDOR_APPLICATIONS_INBOX'));
 

@@ -42,10 +42,20 @@ export function useEscrowActions(bookingId: string | undefined, escrowId: string
     error,
     clearError: () => setError(null),
 
-    /** Records consent to the advance schedule. Required before any charge. */
-    acceptAdvanceTerms: async () => {
-      await run('accept_advance_terms', { p_booking_id: bookingId });
-    },
+    /**
+     * Records consent to the advance schedule, and fixes the rate it was
+     * given for. One call, because a consent stored apart from the figure it
+     * was given for is consent to nothing in particular. Null means the
+     * client accepted the vendor's proposal unchanged.
+     *
+     * Returns whether it stuck, so a caller that charges next can stop rather
+     * than send the client to a payment page the server will refuse.
+     */
+    acceptAdvanceTerms: (advanceRate: number | null = null) =>
+      run('accept_advance_terms', {
+        p_booking_id: bookingId,
+        p_advance_rate: advanceRate,
+      }),
 
     /** The client's half of the release; a Finance admin still approves it. */
     confirmRelease: async () => {

@@ -82,24 +82,55 @@ const FALLBACK: TriggerCopy = {
 
 const SIGN_IN_URL = `${PUBLIC_SITE_URL.replace(/\/$/, '')}/sign-in`;
 
+/**
+ * Read an env var without assuming a Deno global.
+ *
+ * Same guard as `_shared/emailTemplate.ts`. This module is I/O-free content
+ * only, and `scripts/preview-emails.mjs` loads it under Node to render every
+ * template to disk — a bare `Deno.env` reference at module scope throws there
+ * on import and takes the whole preview run down with it, not just this file's
+ * templates.
+ */
+function env(key: string): string | undefined {
+  return (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno?.env.get(
+    key,
+  );
+}
+
 /** Portal roots, so a money email can link straight at the thing it is about. */
 const PORTAL_URL: Record<string, string> = {
-  client: (Deno.env.get('CLIENT_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
-  vendor: (Deno.env.get('VENDOR_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
-  admin: (Deno.env.get('ADMIN_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
+  client: (env('CLIENT_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
+  vendor: (env('VENDOR_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
+  admin: (env('ADMIN_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(/\/$/, ''),
 };
 
 /**
- * Where a given audience should land for an escrow event. Clients and vendors
- * care about the booking; Finance cares about the escrow record itself.
+ * Where a given audience should land for the event. Clients and vendors care
+ * about the booking; Finance cares about the escrow record itself.
+ *
+ * Ordered most-specific-first, and every branch names a route that actually
+ * exists in the portal it points at: only the admin portal has `/escrow/:id`,
+ * and the two consumer portals reach an escrow through its booking.
  */
 export function deepLink(audience: string, payload: Record<string, unknown>): string {
   const root = PORTAL_URL[audience] ?? PUBLIC_SITE_URL;
-  const bookingId = payload.booking_id as string | undefined;
-  const escrowId = payload.escrow_id as string | undefined;
+  const id = (key: string) => {
+    const value = payload[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  };
 
+  const escrowId = id('escrow_id');
   if (audience === 'admin' && escrowId) return `${root}/escrow/${escrowId}`;
+
+  const bookingId = id('booking_id');
   if (bookingId) return `${root}/bookings/${bookingId}`;
+
+  const quotationId = id('quotation_id');
+  if (quotationId) return `${root}/quotations/${quotationId}`;
+
+  const conversationId = id('conversation_id');
+  if (conversationId) return `${root}/messages/${conversationId}`;
+
   return `${root}/`;
 }
 

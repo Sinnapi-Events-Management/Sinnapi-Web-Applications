@@ -7,8 +7,10 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { APP, NAV_SECTIONS } from '@/lib/config';
 import { useAuth } from '@/auth/AuthProvider';
-import { useProfile, useUnreadCount } from '@/hooks/queries';
+import { useProfile } from '@/hooks/queries';
 import { useVendorContext } from '@/vendor/VendorProvider';
+import { useTopBarMessages } from './useTopBarMessages';
+import { useTopBarNotifications } from './useTopBarNotifications';
 
 // Served from `public/`, so the paths are absolute rather than bundled imports.
 const BRAND: PortalBrand = {
@@ -30,8 +32,14 @@ export function useAppShell() {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { data: profile } = useProfile();
-  const { data: unread = 0 } = useUnreadCount();
   const { vendor } = useVendorContext();
+
+  // These own the always-on messaging subscription, mounted here rather than on
+  // the inbox page so a message arriving while the vendor is on their bookings
+  // still lights the badges. Without it they would only ever be correct on the
+  // page that already shows the messages.
+  const messages = useTopBarMessages();
+  const notifications = useTopBarNotifications();
 
   const name = vendor?.business_name ?? profile?.full_name ?? user?.email ?? 'You';
   const email = profile?.email ?? user?.email ?? '';
@@ -59,7 +67,12 @@ export function useAppShell() {
     [name, email, vendor?.primary_image_url, profile?.avatar_url, signOut, navigate],
   );
 
-  const badges = useMemo(() => ({ notifications: unread }), [unread]);
+  // The sidebar's own badges. Same two numbers the top bar shows, read from the
+  // feeds rather than fetched again, so the two can never disagree.
+  const badges = useMemo(
+    () => ({ notifications: notifications.unread, messages: messages.unread }),
+    [notifications.unread, messages.unread],
+  );
 
-  return { brand: BRAND, sections: NAV_SECTIONS, account, badges };
+  return { brand: BRAND, sections: NAV_SECTIONS, account, badges, messages, notifications };
 }

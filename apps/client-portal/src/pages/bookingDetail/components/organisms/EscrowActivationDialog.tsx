@@ -1,45 +1,45 @@
-import { useState } from 'react';
 import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
-  MoneyBreakdown,
-  Skeleton,
   Stack,
   Typography,
 } from '@sinnapi/ui';
-import LockIcon from '@mui/icons-material/Lock';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { useEscrowCheckout } from '../../hooks/useEscrowCheckout';
+import { formatMoney } from '@/lib/config';
+import { useEscrowActivation } from '../../hooks/useEscrowActivation';
 import PaymentRailPicker from '../molecules/PaymentRailPicker';
 import AdvanceTermsPanel from '../molecules/AdvanceTermsPanel';
+import AdvanceRateControl from '../molecules/AdvanceRateControl';
+import AdvanceConsentCheckbox from '../molecules/AdvanceConsentCheckbox';
+import EscrowCostBreakdown from '../molecules/EscrowCostBreakdown';
 import type { BookingDetailModel } from '@/lib/types';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   booking: BookingDetailModel;
-  /** True until the client has consented to the advance schedule. */
+  /** True until the client has consented to an advance schedule. */
   needsAdvanceApproval: boolean;
-  onAcceptTerms: () => Promise<void>;
+  onAcceptTerms: (advanceRate: number | null) => Promise<boolean>;
   isAcceptingTerms: boolean;
   acceptError: string | null;
 };
 
 /**
- * The escrow checkout: agree the schedule, pick a rail, see the real total,
+ * The escrow checkout: choose the advance, pick a rail, see the real total,
  * then hand off to the provider.
  *
- * Consent and payment are one dialog but two explicit steps. The client is
- * agreeing to two separate things — that money may reach the vendor before the
- * event, and that they will pay more than the price they negotiated — and
- * neither should be something they discover after the fact.
+ * Layout only — `useEscrowActivation` owns the pricing, the chosen rate and
+ * the rule about when the client may proceed. Three explicit steps in one
+ * dialog, because the client is agreeing to three separate things: how much
+ * money may reach the vendor before the event, how they are paying, and that
+ * the total is more than the price they negotiated. None of them should be
+ * something they discover afterwards.
  */
 export default function EscrowActivationDialog({
   open,
@@ -50,20 +50,27 @@ export default function EscrowActivationDialog({
   isAcceptingTerms,
   acceptError,
 }: Props) {
-  const [agreed, setAgreed] = useState(false);
-  const checkout = useEscrowCheckout(booking.id, open);
-  const { quote, rail, rails, railIndex, setRailIndex, isQuoting, pay, isPaying, payError } =
-    checkout;
+  const {
+    quote,
+    rail,
+    rails,
+    railIndex,
+    setRailIndex,
+    isQuoting,
+    isRepricing,
+    pay,
+    isPaying,
+    payError,
+    advance,
+    canEditAdvance,
+    agreed,
+    setAgreed,
+    blocked,
+    currency,
+  } = useEscrowActivation({ booking, open, needsAdvanceApproval, onAcceptTerms });
 
-  const currency = quote?.currency ?? booking.currency;
-  const blocked = needsAdvanceApproval && !agreed;
-
-  async function handlePay() {
-    // Record consent first: the charge itself refuses without it, so doing it
-    // in this order means a client can never reach the PSP and bounce back.
-    if (needsAdvanceApproval) await onAcceptTerms();
-    await pay();
-  }
+  const limit = quote?.advance_rate_limit ?? null;
+  const isEditable = canEditAdvance && limit != null && !isPaying;
 
   return (
     <Dialog open={open} onClose={isPaying ? undefined : onClose} maxWidth="sm" fullWidth>
@@ -79,6 +86,18 @@ export default function EscrowActivationDialog({
               releaseDueAt={quote.advance_release_due_at}
               currency={currency}
               note={booking.advance_terms_note}
+              isRepricing={isRepricing}
+              control={
+                isEditable ? (
+                  <AdvanceRateControl
+                    control={advance.form.control}
+                    limit={limit}
+                    value={advance.sliderValue}
+                    onChange={advance.setRate}
+                    disabled={isPaying}
+                  />
+                ) : undefined
+              }
             />
           )}
 
@@ -98,65 +117,22 @@ export default function EscrowActivationDialog({
             <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.25 }}>
               What you pay
             </Typography>
-            {isQuoting || !quote ? (
-              <Stack spacing={1}>
-                <Skeleton height={22} />
-                <Skeleton height={22} />
-                <Skeleton height={22} />
-                <Skeleton height={32} />
-              </Stack>
-            ) : (
-              <MoneyBreakdown
-                currency={currency ?? 'UGX'}
-                lines={[
-                  {
-                    label: 'Agreed with your vendor',
-                    amount: quote.agreed_amount,
-                    hint: 'The full amount your vendor receives. Sinnapi does not take a cut of this.',
-                  },
-                  {
-                    label: `Sinnapi service fee (${Number(quote.commission_rate)}%)`,
-                    amount: quote.commission_amount,
-                    additive: true,
-                    hint: 'What it costs to hold your money securely, mediate any issues, and guarantee the vendor is paid.',
-                  },
-                  {
-                    label: `Processing fee (${Number(quote.psp_fee_rate)}%)`,
-                    amount: quote.psp_fee_amount,
-                    additive: true,
-                    hint: `Charged by ${rail.label} to process the payment. This varies by payment method.`,
-                  },
-                ]}
-                total={{ label: 'Total to pay', amount: quote.gross_amount }}
-                footnote={
-                  <Stack direction="row" spacing={0.75} alignItems="center">
-                    <LockIcon sx={{ fontSize: 14 }} />
-                    <span>
-                      Your card or wallet details are entered on {rail.label}&rsquo;s own secure
-                      page and never reach Sinnapi.
-                    </span>
-                  </Stack>
-                }
-              />
-            )}
+            <EscrowCostBreakdown
+              quote={quote}
+              currency={currency}
+              railLabel={rail.label}
+              isLoading={isQuoting}
+              isRepricing={isRepricing}
+            />
           </Box>
 
           {needsAdvanceApproval && (
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  disabled={isPaying}
-                />
-              }
-              label={
-                <Typography variant="body2">
-                  I agree to this payment schedule, including the advance being released to my
-                  vendor before the event.
-                </Typography>
-              }
-              sx={{ alignItems: 'flex-start', m: 0, '& .MuiCheckbox-root': { pt: 0 } }}
+            <AdvanceConsentCheckbox
+              checked={agreed}
+              onChange={setAgreed}
+              disabled={isPaying}
+              advanceAmount={quote?.advance_amount ?? null}
+              currency={currency}
             />
           )}
 
@@ -170,18 +146,13 @@ export default function EscrowActivationDialog({
         </Button>
         <Button
           variant="contained"
-          onClick={handlePay}
+          onClick={pay}
           disabled={blocked || isQuoting || isPaying || isAcceptingTerms || !quote}
           startIcon={<OpenInNewIcon />}
         >
-          {isPaying ? 'Opening…' : `Pay ${quote ? formatTotal(quote.gross_amount, currency) : ''}`}
+          {isPaying ? 'Opening…' : `Pay ${quote ? formatMoney(quote.gross_amount, currency) : ''}`}
         </Button>
       </DialogActions>
     </Dialog>
   );
-}
-
-function formatTotal(amount: number | null, currency: string | null): string {
-  if (amount == null) return '';
-  return `${currency ?? 'UGX'} ${new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(amount)}`;
 }

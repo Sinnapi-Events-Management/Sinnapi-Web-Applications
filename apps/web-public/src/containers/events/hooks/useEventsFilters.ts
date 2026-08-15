@@ -12,6 +12,7 @@ import {
   type EventsSearchParams,
 } from '../utils/searchParams';
 import { DEFAULT_SORT } from '../utils/options';
+import type { FilterOption } from '@/lib/types';
 
 /**
  * The events page's filter state, held in the URL.
@@ -31,8 +32,15 @@ import { DEFAULT_SORT } from '../utils/options';
  * Discrete choices (a facet, a sort, clearing) `push`, so Back undoes exactly
  * one decision. Typing `replace`s, so a ten-character search doesn't bury the
  * previous page under ten history entries.
+ *
+ * `typeOptions` is the occasion vocabulary the page's Server Component fetched
+ * from `event_types` and threaded down. It arrives as a prop rather than being
+ * fetched here because every caller already sits under a component the server
+ * rendered — one read at the top beats three client fetches, and it is what
+ * lets the server and the browser agree on the parsed params (and therefore on
+ * the query key) from the very first paint.
  */
-export function useEventsFilters() {
+export function useEventsFilters(typeOptions: FilterOption[]) {
   const searchParams = useSearchParams();
 
   // `toString()` rather than the object: a new URLSearchParams instance arrives
@@ -43,8 +51,9 @@ export function useEventsFilters() {
     () =>
       parseEventsSearchParams(
         Object.fromEntries(new URLSearchParams(search)) as EventsSearchParams,
+        typeOptions,
       ),
-    [search],
+    [search, typeOptions],
   );
 
   const commit = useCallback((next: EventsSearchParams, mode: 'push' | 'replace') => {

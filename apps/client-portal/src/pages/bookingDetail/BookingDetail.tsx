@@ -4,6 +4,7 @@ import BookingHero from './components/organisms/BookingHero';
 import BookingFactsCard from './components/organisms/BookingFactsCard';
 import BookingTimelineCard from './components/organisms/BookingTimelineCard';
 import BookingEscrowCard from './components/organisms/BookingEscrowCard';
+import BookingActionsCard from './components/organisms/BookingActionsCard';
 import BookingNextStepsCard from './components/organisms/BookingNextStepsCard';
 import { useBookingDetail } from './hooks/useBookingDetail';
 
@@ -41,6 +42,7 @@ export default function BookingDetail() {
             </Grid>
             <Grid item xs={12} md={5}>
               <Stack spacing={3}>
+                <BookingActionsCard booking={booking} />
                 <BookingEscrowCard booking={booking} />
                 <BookingNextStepsCard canReview={canReview} />
               </Stack>

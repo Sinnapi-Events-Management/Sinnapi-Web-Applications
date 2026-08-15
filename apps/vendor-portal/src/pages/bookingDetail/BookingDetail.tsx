@@ -42,11 +42,7 @@ export default function BookingDetail() {
             </Grid>
             <Grid item xs={12} md={5}>
               <Stack spacing={3}>
-                <BookingActionsCard
-                  bookingId={booking.id}
-                  status={booking.status}
-                  needsResponse={needsResponse}
-                />
+                <BookingActionsCard booking={booking} needsResponse={needsResponse} />
                 <BookingPaymentCard booking={booking} />
                 <BookingClientCard client={client} />
               </Stack>

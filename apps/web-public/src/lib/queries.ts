@@ -107,20 +107,42 @@ export async function getAllVendorSlugs(): Promise<string[]> {
   return (data ?? []).map((v: { slug: string }) => v.slug);
 }
 
+/**
+ * Public event columns. The occasion is embedded rather than selected, because
+ * `events` holds only `event_type_id` now — the vocabulary lives in the
+ * `event_types` table an admin manages (migration 20260814000001).
+ */
+const EVENT_CARD_COLS =
+  'id,title,description,event_type:event_types(key,name),event_date,location,budget_min,budget_max,currency,cover_image_url,source';
+
+/** The embedded row PostgREST returns for `event_type:event_types(key,name)`. */
+type EventRow = Omit<EventCardModel, 'event_type' | 'event_type_name'> & {
+  event_type: { key: string; name: string } | null;
+};
+
+/**
+ * Flattens the embedded occasion onto the card model, so a table read and the
+ * RPC reads below hand callers the identical shape — `event_type` the key,
+ * `event_type_name` the label. Without this the two paths would disagree and
+ * every consumer would have to know which one produced its event.
+ */
+function toEventCard(row: EventRow): EventCardModel {
+  const { event_type: type, ...rest } = row;
+  return { ...rest, event_type: type?.key ?? null, event_type_name: type?.name ?? null };
+}
+
 export async function getEvents(limit = 24): Promise<EventCardModel[]> {
   const supa = createPublicClient();
   if (!supa) return [];
   const { data } = await supa
     .from('events')
-    .select(
-      'id,title,description,event_type,event_date,location,budget_min,budget_max,currency,cover_image_url,source',
-    )
+    .select(EVENT_CARD_COLS)
     .eq('status', 'published')
     .eq('is_public', true)
     .is('deleted_at', null)
     .order('event_date', { ascending: false })
     .limit(limit);
-  return (data ?? []) as EventCardModel[];
+  return ((data ?? []) as unknown as EventRow[]).map(toEventCard);
 }
 
 export async function getEventById(id: string): Promise<EventCardModel | null> {
@@ -128,15 +150,13 @@ export async function getEventById(id: string): Promise<EventCardModel | null> {
   if (!supa) return null;
   const { data } = await supa
     .from('events')
-    .select(
-      'id,title,description,event_type,event_date,location,budget_min,budget_max,currency,cover_image_url,source',
-    )
+    .select(EVENT_CARD_COLS)
     .eq('id', id)
     .eq('status', 'published')
     .eq('is_public', true)
     .is('deleted_at', null)
     .maybeSingle();
-  return (data as EventCardModel) ?? null;
+  return data ? toEventCard(data as unknown as EventRow) : null;
 }
 
 /** {key,name} pairs for a reference lookup (categories/regions). */
@@ -149,6 +169,30 @@ export async function getServiceCategories(): Promise<ReferenceOption[]> {
   const { data } = await supa
     .from('service_categories')
     .select('key,name')
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as ReferenceOption[];
+}
+
+/**
+ * The occasions the events page can filter by, straight from `event_types`.
+ *
+ * Replaces a hardcoded `EVENT_TYPES` list that had already drifted from what
+ * the admin portal writes — it offered `corporate`, `concert` and
+ * `product_launch`, which nothing has ever written, while missing
+ * `introduction`, `company_event` and `fundraising`, which are the occasions a
+ * visitor is actually browsing for. Picking one of the phantom tokens returned
+ * an empty grid with no explanation.
+ *
+ * Active types only: this is a picker, and a retired occasion has no business
+ * in it. `key` is the token `search_events_public` matches and the URL carries.
+ */
+export async function getEventTypes(): Promise<ReferenceOption[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa
+    .from('event_types')
+    .select('key,name')
+    .eq('is_active', true)
     .order('sort_order', { ascending: true });
   return (data ?? []) as ReferenceOption[];
 }

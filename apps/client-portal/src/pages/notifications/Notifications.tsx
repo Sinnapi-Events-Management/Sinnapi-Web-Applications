@@ -1,66 +1,75 @@
-import {
-  Card,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Button,
-  PageTitle,
-  QueryState,
-} from '@sinnapi/ui';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import { Button, PageTitle, Snackbar, Alert } from '@sinnapi/ui';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
-import { formatDate, titleize } from '@/lib/config';
+import {
+  NotificationsSummary,
+  NotificationTabs,
+  NotificationsWorkspace,
+  NotificationDetailPane,
+  buildNotificationTabs,
+} from '@sinnapi/ui/notifications';
 import { useNotifications } from './hooks/useNotifications';
-import { EmptyState } from '@sinnapi/ui/router';
+import { resolveTarget } from './schema';
+import NotificationsMasterColumn from './components/organisms/NotificationsMasterColumn';
 
 export default function Notifications() {
-  const { rows, isLoading, error, busy, markAll } = useNotifications();
+  const page = useNotifications();
+  const { feed, counts, actions, active } = page;
 
   return (
     <>
       <PageTitle
         title="Notifications"
+        subtitle="Updates about your bookings, quotes, payments and messages."
         action={
-          rows.length > 0 ? (
+          counts.unread > 0 ? (
             <Button
-              onClick={markAll}
-              disabled={busy}
+              onClick={actions.markAll}
+              disabled={actions.markingAll}
               startIcon={<DoneAllIcon />}
               variant="outlined"
             >
-              Mark all read
+              {actions.markingAll ? 'Marking…' : 'Mark all read'}
             </Button>
           ) : undefined
         }
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="You're all caught up"
-            description="Notifications about bookings, quotes, and payments appear here."
+
+      <NotificationsSummary counts={counts} loading={page.countsLoading} />
+
+      <NotificationTabs
+        options={buildNotificationTabs(counts)}
+        value={feed.tab}
+        onChange={feed.setTab}
+        loadingCounts={page.countsLoading}
+      />
+
+      <NotificationsWorkspace
+        master={<NotificationsMasterColumn page={page} />}
+        detailOpen={!!active.active}
+        onCloseDetail={active.close}
+        detail={
+          <NotificationDetailPane
+            notification={active.active}
+            onClose={active.close}
+            target={active.active ? resolveTarget(active.active) : null}
+            onOpenTarget={page.openTarget}
+            onMarkUnread={page.toggleRead}
+            busy={actions.busy}
           />
-        ) : (
-          <Card variant="outlined">
-            <List disablePadding>
-              {rows.map((n, i) => (
-                <div key={n.id}>
-                  {i > 0 && <Divider />}
-                  <ListItem sx={{ bgcolor: n.read_at ? 'transparent' : 'action.hover' }}>
-                    {!n.read_at && (
-                      <FiberManualRecordIcon color="secondary" sx={{ fontSize: 10, mr: 1 }} />
-                    )}
-                    <ListItemText
-                      primary={n.title || titleize(n.trigger_key)}
-                      secondary={`${n.body ? `${n.body} · ` : ''}${formatDate(n.created_at)}`}
-                    />
-                  </ListItem>
-                </div>
-              ))}
-            </List>
-          </Card>
-        )}
-      </QueryState>
+        }
+      />
+
+      {/* A failed read-state write must not pass silently — the row would snap
+          back on the next refetch with no explanation. */}
+      <Snackbar
+        open={!!actions.error}
+        autoHideDuration={6000}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" variant="filled">
+          Could not update that notification. Please try again.
+        </Alert>
+      </Snackbar>
     </>
   );
 }

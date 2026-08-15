@@ -135,8 +135,7 @@ async function dispatchAddressed(supa: Supa, trigger: string, payload: Payload):
     title,
     body,
     data: {
-      escrow_id: enriched.escrow_id ?? null,
-      booking_id: enriched.booking_id ?? null,
+      ...pickReferences(enriched),
       audience,
       url: deepLink(audience, enriched),
     },
@@ -253,6 +252,45 @@ async function enrich(supa: Supa, payload: Payload): Promise<Payload> {
 
   if (out.method) out.method = humanise(String(out.method));
 
+  return out;
+}
+
+/**
+ * The record ids a notification is *about*, lifted out of the payload and kept.
+ *
+ * The stored `data` used to be `{escrow_id, booking_id, audience, url}`, which
+ * made every in-app row unable to name anything else it concerned — a
+ * `message.received` row knew its conversation only for as long as this function
+ * ran, and the portals could do no better than link to the inbox root. The rest
+ * of the enriched payload is deliberately *not* spread in: it carries rendered
+ * copy, names and money strings meant for the templates, and none of that
+ * belongs in a machine-readable reference block.
+ *
+ * Keys absent from the payload are written as null rather than omitted, so a
+ * consumer can probe a stable shape instead of guessing which producer it has.
+ */
+const REFERENCE_KEYS = [
+  'booking_id',
+  'escrow_id',
+  'conversation_id',
+  'quotation_id',
+  'payment_id',
+  'payout_id',
+  'refund_id',
+  'dispute_id',
+  'subscription_id',
+  'review_id',
+  'event_id',
+  'vendor_id',
+  'client_id',
+] as const;
+
+function pickReferences(payload: Payload): Payload {
+  const out: Payload = {};
+  for (const key of REFERENCE_KEYS) {
+    const value = payload[key];
+    out[key] = typeof value === 'string' && value.length > 0 ? value : null;
+  }
   return out;
 }
 

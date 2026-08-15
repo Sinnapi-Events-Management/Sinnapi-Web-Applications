@@ -3,6 +3,7 @@ import { Box, Container, Typography, Chip } from '@sinnapi/ui/atoms';
 import { CalendarMonth } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import { IMAGES } from '@/lib/assets';
+import type { FilterOption } from '@/lib/types';
 import HeroSearchForm from './molecules/HeroSearchForm';
 import HeroQuickFilters from './molecules/HeroQuickFilters';
 
@@ -15,10 +16,11 @@ import HeroQuickFilters from './molecules/HeroQuickFilters';
  *
  * Stays a Server Component with a `priority` image so the LCP isn't gated behind
  * client JS — only the two interactive islands inside it (the search pill and
- * the quick filters) ship any. It takes no props: both islands read the current
- * filters straight from the URL, so the hero has nothing to thread through.
+ * the quick filters) ship any. Both islands read the current *filters* straight
+ * from the URL, so the only thing threaded through is the occasion vocabulary
+ * the quick-filter chips are built from — reference data, not state.
  */
-export default function EventsHero() {
+export default function EventsHero({ typeOptions }: { typeOptions: FilterOption[] }) {
   return (
     <Box
       sx={{
@@ -122,8 +124,8 @@ export default function EventsHero() {
           or budget — then sign in to express interest.
         </Typography>
 
-        <HeroSearchForm />
-        <HeroQuickFilters />
+        <HeroSearchForm typeOptions={typeOptions} />
+        <HeroQuickFilters typeOptions={typeOptions} />
       </Container>
     </Box>
   );

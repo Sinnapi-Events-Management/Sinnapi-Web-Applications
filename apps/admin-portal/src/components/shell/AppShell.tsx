@@ -7,7 +7,7 @@ import { useAppShell } from './hooks/useAppShell';
  * three portals share one layout; this file only supplies admin's config.
  */
 export default function AppShell() {
-  const { brand, sections, account, can, badges } = useAppShell();
+  const { brand, sections, account, can, badges, messages, notifications } = useAppShell();
 
   return (
     <PortalShell
@@ -17,7 +17,8 @@ export default function AppShell() {
       account={account}
       can={can}
       badges={badges}
-      notificationsTo="/notifications"
+      messages={messages}
+      notifications={notifications}
     />
   );
 }

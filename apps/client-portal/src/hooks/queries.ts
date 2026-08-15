@@ -7,6 +7,8 @@ import {
 } from '@tanstack/react-query';
 import { paginate, type PageParams, type Paged } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
+import { readFunctionError } from '@/lib/functions';
+import { fetchLatestDeletionRequest } from '@/lib/accountApi';
 import type {
   VendorDetailModel,
   VendorMediaModel,
@@ -19,7 +21,10 @@ import type {
   BookingDetailModel,
   BookingStatusEventModel,
   QuotationListModel,
+  QuotationDetailModel,
+  QuotationStatusEventModel,
   MyEventModel,
+  EventTypeOption,
   EscrowModel,
   EscrowDetailModel,
   EscrowQuoteModel,
@@ -27,9 +32,11 @@ import type {
   EscrowPayoutModel,
   PaymentModel,
   ConversationModel,
+  EngagedVendorModel,
   MessageModel,
   ReviewModel,
   NotificationModel,
+  NotificationPage,
   ProfileModel,
 } from '@/lib/types';
 
@@ -434,6 +441,54 @@ export function useComparableQuotations(params: PageParams) {
   );
 }
 
+/**
+ * One quotation, fully resolved: the vendor behind it, its priced lines and the
+ * event it was requested for.
+ *
+ * Line items come back with the row rather than as a second read because a
+ * quote without its breakdown is not a quote — there is no state of the detail
+ * page that shows the total alone, so splitting them would only add a spinner.
+ */
+export function useQuotation(id: string) {
+  return useQuery({
+    queryKey: ['quotation', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotations')
+        .select(
+          '*,vendors(business_name,slug,primary_image_url),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date)',
+        )
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as QuotationDetailModel) ?? null;
+    },
+    enabled: !!id,
+  });
+}
+
+/**
+ * A quotation's status trail, oldest first — the order it reads in as a
+ * timeline. The table is append-only and trigger-written, so this needs no
+ * invalidation of its own: it is refetched alongside the quotation whenever a
+ * status changes.
+ */
+export function useQuotationStatusHistory(id: string) {
+  return useQuery({
+    queryKey: ['quotation-history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotation_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('quotation_id', id)
+        .order('occurred_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as QuotationStatusEventModel[];
+    },
+    enabled: !!id,
+  });
+}
+
 // ---------- Events ----------
 export function useMyEvents() {
   return useQuery({
@@ -441,11 +496,38 @@ export function useMyEvents() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id,title,event_type,event_date,location,status,source')
+        .select('id,title,event_date,location,status,source,event_type:event_types(key,name)')
         .eq('source', 'client')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as MyEventModel[];
+      return (data ?? []) as unknown as MyEventModel[];
+    },
+  });
+}
+
+/**
+ * The occasions a client can file an event under, in the order an admin put
+ * them in.
+ *
+ * Only active types: this list is a picker for *new* events, so a retired
+ * occasion has no business appearing in it. Reference data that changes about
+ * as often as the admin edits it, so it's cached for the session rather than
+ * refetched per drawer open — `staleTime: Infinity` with the query invalidated
+ * only by a fresh page load, which is the same bargain the vendor filter
+ * reference data makes.
+ */
+export function useEventTypeOptions() {
+  return useQuery({
+    queryKey: ['event-type-options'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('id,name')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as EventTypeOption[];
     },
   });
 }
@@ -488,27 +570,98 @@ export function usePayments(params: PageParams) {
 }
 
 // ---------- Messaging ----------
-export function useConversations() {
+
+/** Query keys the realtime subscription invalidates. Kept here so the hook that
+ *  owns the websocket and the hooks that own the data cannot drift apart. */
+export const MESSAGING_KEYS = {
+  conversations: ['conversations'] as const,
+  unread: ['conversation-unread'] as const,
+  unreadTotal: ['unread-messages'] as const,
+  thread: (id: string) => ['messages', id] as const,
+};
+
+// PostgREST infers a row type from the *literal* text of the select, so this
+// must stay a single string literal — concatenating it widens the type to
+// `string` and the query starts returning `GenericStringError[]`.
+const MESSAGE_SELECT =
+  'id,sender_id,body,created_at,edited_at,is_system,moderation_status,message_attachments(id,storage_path,file_name,mime_type,size_bytes,scan_status)';
+
+/**
+ * The inbox, counterparty and unread count already resolved.
+ *
+ * One RPC rather than a select plus a second unread query: the counterparty
+ * name is not readable from the browser at all (see `ConversationModel`), and
+ * once the server is resolving that it may as well return the count it is
+ * already positioned to compute. Ordering is applied inside the function.
+ */
+export function useConversations({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: MESSAGING_KEYS.conversations,
+    // The inbox always wants this; the top bar's preview panel only wants it
+    // once the user opens the panel. Same key either way, so the page finds a
+    // warm cache when the panel got there first.
+    enabled,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('id,type,subject,last_message_at,status,vendors(business_name)')
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+      const { data, error } = await supabase.rpc('get_my_conversations');
       if (error) throw error;
       return (data ?? []) as ConversationModel[];
     },
   });
 }
 
+/** Single number for the sidebar badge. */
+export function useUnreadMessageCount() {
+  return useQuery({
+    queryKey: MESSAGING_KEYS.unreadTotal,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_unread_message_count');
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+  });
+}
+
+/**
+ * Vendors this client has actually engaged, merged from bookings and
+ * quotations.
+ *
+ * This is the candidate list for "message a vendor" from the inbox. It is
+ * deliberately not every vendor on the platform: a picker over the full
+ * marketplace is a search problem that Discover already solves properly, and
+ * the overwhelmingly common case is wanting to reach someone you are already
+ * dealing with.
+ */
+export function useEngagedVendors() {
+  return useQuery({
+    queryKey: ['engaged-vendors'],
+    queryFn: async () => {
+      const sel = 'vendor:vendor_id(id,business_name,profile_image_url,slug)';
+      const [bookings, quotations] = await Promise.all([
+        supabase.from('bookings').select(sel).is('deleted_at', null),
+        supabase.from('quotations').select(sel),
+      ]);
+
+      // A client with five bookings from one vendor should see them once.
+      const byId = new Map<string, EngagedVendorModel>();
+      for (const row of [...(bookings.data ?? []), ...(quotations.data ?? [])]) {
+        const v = (row as { vendor: EngagedVendorModel | EngagedVendorModel[] | null }).vendor;
+        const vendor = Array.isArray(v) ? v[0] : v;
+        if (vendor?.id) byId.set(vendor.id, vendor);
+      }
+      return [...byId.values()].sort((a, b) => a.business_name.localeCompare(b.business_name));
+    },
+  });
+}
+
 export function useMessages(conversationId: string) {
   return useQuery({
-    queryKey: ['messages', conversationId],
+    queryKey: MESSAGING_KEYS.thread(conversationId),
+    // The inbox mounts this before a thread is picked; don't fetch on an empty id.
+    enabled: !!conversationId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('messages')
-        .select('id,sender_id,body,created_at,moderation_status')
+        .select(MESSAGE_SELECT)
         .eq('conversation_id', conversationId)
         .is('deleted_at', null)
         .order('created_at', { ascending: true });
@@ -533,17 +686,109 @@ export function useReviews() {
   });
 }
 
+export const NOTIFICATIONS_PAGE_SIZE = 25;
+
+const NOTIFICATION_SELECT = 'id,trigger_key,title,body,data,channel,read_at,created_at';
+
+/**
+ * The notification feed, paged.
+ *
+ * Infinite rather than a flat `limit(50)`: the feed is the client's whole
+ * history with the platform and a fixed cap silently hid the tail of it. The
+ * exact `count` rides along on every page so the summary tiles and tab badges
+ * can describe the entire feed while only the first page is in hand.
+ */
 export function useNotifications() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['notifications'],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<NotificationPage> => {
+      const from = pageParam * NOTIFICATIONS_PAGE_SIZE;
+      const { data, count, error } = await supabase
+        .from('notifications')
+        .select(NOTIFICATION_SELECT, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, from + NOTIFICATIONS_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: (data ?? []) as NotificationModel[], total: count ?? 0 };
+    },
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.rows.length, 0);
+      // Stop on a short page too: `total` can shrink under us if rows are
+      // purged between requests, and an empty page would otherwise loop.
+      if (lastPage.rows.length === 0 || loaded >= lastPage.total) return undefined;
+      return pages.length;
+    },
+  });
+}
+
+/**
+ * The newest few notifications, for the top bar's preview panel.
+ *
+ * A separate query from the paged feed rather than a read of its first page:
+ * that one is an infinite query with an exact `count`, and mounting it in the
+ * shell would put the whole feed — and its paging state — behind every screen
+ * in the portal to render six rows. Prefixed under `['notifications']` so the
+ * feed's existing invalidations refresh this too.
+ */
+export function useRecentNotifications(
+  limit: number,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: ['notifications', 'recent', limit],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id,trigger_key,title,body,read_at,created_at')
+        .select(NOTIFICATION_SELECT)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(limit);
       if (error) throw error;
       return (data ?? []) as NotificationModel[];
+    },
+  });
+}
+
+/** Flip one notification's read state. `read_at = null` puts it back to unread. */
+export function useSetNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, read }: { ids: string[]; read: boolean }) => {
+      if (ids.length === 0) return;
+      // A direct update rather than `mark_notification_read`: that RPC only
+      // stamps, and marking something back to unread is half of what makes
+      // opening a notification a reversible act. RLS (`notif_update`) already
+      // confines the write to the caller's own rows.
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: read ? new Date().toISOString() : null })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      // Both keys: the feed drives the page, `unread` the sidebar badge.
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['notifications'] }),
+        qc.invalidateQueries({ queryKey: ['unread'] }),
+      ]);
+    },
+  });
+}
+
+/** Stamp every unread notification for the signed-in user. */
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('mark_all_notifications_read');
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['notifications'] }),
+        qc.invalidateQueries({ queryKey: ['unread'] }),
+      ]);
     },
   });
 }
@@ -558,12 +803,30 @@ export function useProfile() {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('id,full_name,email,phone,avatar_url,locale,preferred_currency,mfa_enabled')
+        .select(
+          'id,full_name,email,phone,avatar_url,locale,preferred_currency,mfa_enabled,created_at',
+        )
         .eq('id', user.id)
         .maybeSingle();
       if (error) throw error;
       return (data as ProfileModel) ?? null;
     },
+  });
+}
+
+/** Query key for the erasure request, so the settings page can invalidate it after filing one. */
+export const DELETION_REQUEST_KEY = ['deletion-request'] as const;
+
+/**
+ * The account's latest right-to-erasure request, if it has ever made one.
+ *
+ * Read on the settings page to decide whether to offer the request button or
+ * report the state of the request already in the compliance queue.
+ */
+export function useLatestDeletionRequest() {
+  return useQuery({
+    queryKey: DELETION_REQUEST_KEY,
+    queryFn: fetchLatestDeletionRequest,
   });
 }
 
@@ -650,21 +913,33 @@ export function useEscrowQuote(
   provider: 'pesapal' | 'paypal',
   method: 'mtn_momo' | 'airtel_money' | 'card',
   enabled = true,
+  /**
+   * The advance the client has chosen, or null to price at whatever the
+   * booking already carries. Re-pricing on the server rather than splitting
+   * the total in the browser is what keeps this preview identical to the
+   * charge `activate_escrow` will make.
+   */
+  advanceRate: number | null = null,
 ) {
   return useQuery({
-    queryKey: ['escrow-quote', bookingId, provider, method],
+    queryKey: ['escrow-quote', bookingId, provider, method, advanceRate],
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('escrow_price_booking', {
           p_booking_id: bookingId!,
           p_provider: provider,
           p_method: method,
+          p_advance_rate: advanceRate,
         })
         .maybeSingle();
       if (error) throw error;
       return (data as EscrowQuoteModel) ?? null;
     },
     enabled: enabled && !!bookingId,
+    // Changing the advance or the rail re-queries. Holding the previous quote
+    // while the new one lands keeps the figures on screen instead of dropping
+    // the client back to skeletons on every adjustment.
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -748,6 +1023,8 @@ const ESCROW_ERRORS: Record<string, string> = {
   booking_amount_not_set: 'This booking has no agreed amount yet.',
   escrow_already_active: 'This booking has already been funded.',
   paypal_requires_card: 'PayPal only supports card payments.',
+  advance_rate_out_of_range: 'That advance is outside what your vendor agreed to.',
+  advance_rate_above_platform_max: 'That advance is above what Sinnapi allows.',
   booking_not_completed: 'You can confirm the service once the booking is marked complete.',
   forbidden: 'You do not have permission to do that.',
   refund_already_in_progress: 'A refund is already being processed for this booking.',
@@ -759,19 +1036,6 @@ export function escrowErrorMessage(error: unknown): string {
     if (raw.includes(key)) return message;
   }
   return raw || 'Something went wrong. Please try again.';
-}
-
-async function readFunctionError(error: unknown): Promise<string> {
-  const context = (error as { context?: Response })?.context;
-  if (context && typeof context.json === 'function') {
-    try {
-      const body = await context.json();
-      if (body?.error) return String(body.error);
-    } catch {
-      /* body already consumed or not JSON — fall through */
-    }
-  }
-  return error instanceof Error ? error.message : 'payment_failed';
 }
 
 // ---------- Generic RPC mutation helper ----------

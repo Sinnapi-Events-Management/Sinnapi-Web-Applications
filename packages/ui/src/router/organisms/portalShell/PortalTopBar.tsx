@@ -1,16 +1,21 @@
 'use client';
 import type { ReactNode } from 'react';
-import { AppBar, Badge, Box, Divider, IconButton, Toolbar, Tooltip } from '@mui/material';
+import { AppBar, Box, Divider, IconButton, Toolbar } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import { Link as RouterLink } from 'react-router-dom';
 import { ThemeToggle } from '../../../molecules/ThemeToggle';
 import { chromeTransition, topBarBackground } from './portalShell.styles';
 import { PortalAccountMenu } from './PortalAccountMenu';
 import { PortalBreadcrumbs } from './PortalBreadcrumbs';
+import { PortalMessagesMenu } from './PortalMessagesMenu';
+import { PortalNotificationsMenu } from './PortalNotificationsMenu';
 import { PortalViewMenu } from './PortalViewMenu';
 import type { ViewPreferences } from './hooks/useViewPreferences';
-import type { PortalAccount, PortalCrumb } from './types';
+import type {
+  PortalAccount,
+  PortalCrumb,
+  PortalMessagesFeed,
+  PortalNotificationsFeed,
+} from './types';
 
 export interface PortalTopBarProps {
   crumbs: PortalCrumb[];
@@ -18,8 +23,8 @@ export interface PortalTopBarProps {
   view: ViewPreferences;
   /** Left offset and width reserved for the sidebar, animated on collapse. */
   sidebarWidth: number;
-  unread?: number;
-  notificationsTo?: string;
+  messages?: PortalMessagesFeed;
+  notifications?: PortalNotificationsFeed;
   topBarActions?: ReactNode;
   onOpenMobileNav: () => void;
   accountAnchor: HTMLElement | null;
@@ -33,8 +38,8 @@ export function PortalTopBar({
   account,
   view,
   sidebarWidth,
-  unread = 0,
-  notificationsTo,
+  messages,
+  notifications,
   topBarActions,
   onOpenMobileNav,
   accountAnchor,
@@ -76,15 +81,13 @@ export function PortalTopBar({
         {topBarActions}
         <PortalViewMenu view={view} />
         <ThemeToggle />
-        {notificationsTo && (
-          <Tooltip title="Notifications">
-            <IconButton component={RouterLink} to={notificationsTo} aria-label="Notifications">
-              <Badge color="error" badgeContent={unread}>
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
-        )}
+
+        {/* Messages before notifications: a message is addressed to you by a
+            person and a notification is not, so it earns the position closer to
+            the account menu the eye lands on last. */}
+        {messages && <PortalMessagesMenu feed={messages} />}
+        {notifications && <PortalNotificationsMenu feed={notifications} />}
+
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1.25 }} />
         <PortalAccountMenu
           account={account}

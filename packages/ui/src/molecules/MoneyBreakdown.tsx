@@ -19,6 +19,12 @@ export type MoneyLine = {
 export type MoneyBreakdownProps = {
   lines: MoneyLine[];
   total?: { label: string; amount: number | string | null | undefined; hint?: string };
+  /**
+   * Lines below the total that split it rather than build it — e.g. how a
+   * payment is scheduled once made. Kept separate from `lines` so nothing
+   * under the total can ever read as another charge on top of it.
+   */
+  afterTotal?: MoneyLine[];
   currency?: string;
   /** Optional note under the total — e.g. what protects the money. */
   footnote?: ReactNode;
@@ -36,6 +42,7 @@ export type MoneyBreakdownProps = {
 export function MoneyBreakdown({
   lines,
   total,
+  afterTotal,
   currency = 'UGX',
   footnote,
   dense,
@@ -45,32 +52,7 @@ export function MoneyBreakdown({
   return (
     <Stack spacing={gap}>
       {lines.map((line) => (
-        <Stack
-          key={line.label}
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          sx={{ opacity: line.muted ? 0.7 : 1 }}
-        >
-          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {line.label}
-            </Typography>
-            {line.hint && (
-              <Tooltip title={line.hint}>
-                <InfoOutlinedIcon
-                  sx={{ fontSize: 15, color: 'text.disabled', cursor: 'help' }}
-                  aria-label={line.hint}
-                />
-              </Tooltip>
-            )}
-          </Stack>
-          <Box sx={{ flex: 1 }} />
-          <Typography variant="body2" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
-            {line.additive && '+ '}
-            {formatAmount(line.amount, currency)}
-          </Typography>
-        </Stack>
+        <BreakdownRow key={line.label} line={line} currency={currency} />
       ))}
 
       {total && (
@@ -104,11 +86,45 @@ export function MoneyBreakdown({
         </>
       )}
 
+      {afterTotal && afterTotal.length > 0 && (
+        <Stack spacing={dense ? 0.5 : 0.75} sx={{ pt: 0.25 }}>
+          {afterTotal.map((line) => (
+            <BreakdownRow key={line.label} line={line} currency={currency} />
+          ))}
+        </Stack>
+      )}
+
       {footnote && (
         <Typography variant="caption" color="text.secondary" sx={{ pt: 0.5 }}>
           {footnote}
         </Typography>
       )}
+    </Stack>
+  );
+}
+
+/** One label-to-amount row. Shared by the build-up lines and the split below. */
+function BreakdownRow({ line, currency }: { line: MoneyLine; currency: string }) {
+  return (
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ opacity: line.muted ? 0.7 : 1 }}>
+      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {line.label}
+        </Typography>
+        {line.hint && (
+          <Tooltip title={line.hint}>
+            <InfoOutlinedIcon
+              sx={{ fontSize: 15, color: 'text.disabled', cursor: 'help' }}
+              aria-label={line.hint}
+            />
+          </Tooltip>
+        )}
+      </Stack>
+      <Box sx={{ flex: 1 }} />
+      <Typography variant="body2" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
+        {line.additive && '+ '}
+        {formatAmount(line.amount, currency)}
+      </Typography>
     </Stack>
   );
 }

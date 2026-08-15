@@ -70,6 +70,7 @@ import { sendEmail, PUBLIC_SITE_URL } from '../_shared/email.ts';
 import { verifyCaptcha, clientIp } from '../_shared/turnstile.ts';
 import { parseUserAgent } from '../_shared/userAgent.ts';
 import { confirmSignupEmail } from './emails.ts';
+import { confirmSubscriptionEmail, confirmSubscriptionUrl } from '../_shared/marketingEmails.ts';
 
 const ACTIONS = ['signup', 'resend', 'admin_resend'] as const;
 type Action = (typeof ACTIONS)[number];
@@ -91,7 +92,23 @@ type Body = {
   profileId?: string;
   /** Turnstile token. Required for `signup` and browser-driven `resend`. */
   captchaToken?: string;
+  /** Newsletter opt-in. Absent or false means no consent was given. */
+  marketingConsent?: boolean;
+  /**
+   * The exact sentence rendered beside the checkbox. Stored verbatim as the
+   * Art.7(1) evidence: the wording on the sign-up page will be rewritten over
+   * the years, and "they agreed to whatever the page says today" is not a
+   * defence. Sent by the client so the record matches what was on screen; the
+   * server falls back to a canonical copy if it is missing.
+   */
+  marketingConsentText?: string;
 };
+
+/** Days a double opt-in link stays live — mirrors the DB's 7-day expiry. */
+const MARKETING_CONFIRM_EXPIRY_DAYS = 7;
+
+const MARKETING_CONSENT_FALLBACK =
+  'I would like to receive Sinnapi newsletters, planning tips and occasional offers by email.';
 
 const CLIENT_PORTAL_URL = (Deno.env.get('CLIENT_PORTAL_URL') ?? PUBLIC_SITE_URL).replace(
   /\/+$/,
@@ -414,6 +431,57 @@ Deno.serve(
     }
 
     await record('sent', email, null, userId);
+
+    // ── Newsletter opt-in (optional, and never allowed to fail the signup) ──
+    //
+    // Double opt-in: public self-registration is exactly the surface somebody
+    // uses to sign another person's address up, so the address itself has to
+    // confirm before it counts. The subscription lands `pending` and only the
+    // clicked link makes it `subscribed`.
+    //
+    // Kept entirely out of the success path on purpose. The account exists and
+    // its confirmation email has already gone; a marketing subscription that
+    // failed to record is a subscription the person can make again in one
+    // click, whereas an exception here would roll a real account back over an
+    // optional checkbox.
+    if (b?.marketingConsent === true) {
+      try {
+        const { data: captured, error: consentErr } = await admin.rpc('marketing_capture_consent', {
+          p_email: email,
+          p_topic: 'client_updates',
+          p_source: 'client_signup',
+          p_consent_text: String(b?.marketingConsentText ?? MARKETING_CONSENT_FALLBACK).slice(
+            0,
+            500,
+          ),
+          p_profile_id: userId,
+          p_ip: clientIp(req),
+          p_user_agent: req.headers.get('user-agent'),
+          p_double_opt_in: true,
+        });
+        if (consentErr) throw new Error(consentErr.message);
+
+        const token = (captured as Array<{ consent_token: string | null }> | null)?.[0]
+          ?.consent_token;
+        if (token) {
+          await sendEmail(
+            confirmSubscriptionEmail({
+              fullName,
+              email,
+              topic: 'client_updates',
+              confirmUrl: confirmSubscriptionUrl(token),
+              expiryDays: MARKETING_CONFIRM_EXPIRY_DAYS,
+            }),
+          );
+        }
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : 'unknown';
+        console.error(
+          JSON.stringify({ level: 'error', message: 'marketing_consent_failed', detail }),
+        );
+      }
+    }
+
     return json(req, { ok: true, email }, 200);
   }),
 );

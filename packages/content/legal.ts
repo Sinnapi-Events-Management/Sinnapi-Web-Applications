@@ -31,6 +31,21 @@ export interface LegalSection {
   body: LegalBlock[];
 }
 
+/**
+ * The DOM id a section heading is rendered under.
+ *
+ * Shared by the renderer (which stamps it) and the table of contents (which
+ * links to it), so the anchor is derived from the heading in one place and the
+ * two cannot disagree — a nav whose links silently scroll nowhere is the usual
+ * result of each side slugifying for itself.
+ */
+export function legalSectionId(heading: string): string {
+  return `section-${heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')}`;
+}
+
 /** A complete legal document, ready to render. */
 export interface LegalDocument {
   title: string;

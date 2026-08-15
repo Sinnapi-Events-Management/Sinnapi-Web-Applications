@@ -5,17 +5,19 @@ import type { EventFacetCounts } from '@/lib/types';
 import FacetSelect from '../molecules/FacetSelect';
 import type { EventFilters } from '../../hooks/useEventFilters';
 import {
-  EVENT_TYPE_OPTIONS,
   LOCATION_OPTIONS,
   WHEN_OPTIONS,
   BUDGET_OPTIONS,
   SOURCE_OPTIONS,
   SORT_OPTIONS,
+  type FilterOption,
 } from '../../schema/filters';
 
 type EventsToolbarProps = {
   search: SearchTerm;
   filters: EventFilters;
+  /** Occasions from `event_types` — fetched, so they arrive as a prop. */
+  typeOptions: FilterOption[];
   facetCounts?: EventFacetCounts;
 };
 
@@ -66,7 +68,12 @@ const FILTER_GRID_SX = {
  * flushes the pending debounce instead of making them wait it out — and mobile
  * keyboards only offer a search action key inside a form.
  */
-export default function EventsToolbar({ search, filters, facetCounts }: EventsToolbarProps) {
+export default function EventsToolbar({
+  search,
+  filters,
+  typeOptions,
+  facetCounts,
+}: EventsToolbarProps) {
   const showClear = filters.isActive || Boolean(search.input);
 
   const clearAll = () => {
@@ -121,9 +128,12 @@ export default function EventsToolbar({ search, filters, facetCounts }: EventsTo
             label="Occasion"
             value={filters.values.type}
             onChange={(next) => filters.setFacet('type', next)}
-            options={EVENT_TYPE_OPTIONS}
+            options={typeOptions}
             counts={facetCounts?.type}
             anyLabel="Any occasion"
+            // Nothing to choose from until the vocabulary lands; an empty
+            // dropdown that still opens reads as "no occasions exist".
+            disabled={typeOptions.length === 0}
           />
 
           <FacetSelect

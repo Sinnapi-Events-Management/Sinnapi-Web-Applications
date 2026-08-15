@@ -94,7 +94,14 @@ export type EventCardModel = {
   id: string;
   title: string;
   description: string | null;
+  /**
+   * The occasion's key (`event_types.key`) — the snake_case token the URL, the
+   * query keys and the facet counts are built from. Stays the identifier, never
+   * the copy: an admin renaming an occasion must not invalidate a bookmark.
+   */
   event_type: string | null;
+  /** The occasion as an admin named it, and the only thing worth rendering. */
+  event_type_name: string | null;
   event_date: string | null;
   location: string | null;
   budget_min: number | null;

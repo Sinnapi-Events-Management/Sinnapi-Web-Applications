@@ -1,37 +1,27 @@
 import { vendorTerms } from '@sinnapi/content';
-import { Box, LegalContent, fonts } from '@sinnapi/ui';
+import { LegalPageLayout } from '@sinnapi/ui';
+import { BackButton } from '@sinnapi/ui/router';
 import { APP } from '@/lib/config';
 
-// Public (unauthenticated) legal page — shares the structured Vendor Terms
-// content and the `LegalContent` renderer with the public site.
+/**
+ * Public (unauthenticated) legal route rendering the Vendor Terms.
+ *
+ * The page is the document plus this portal's name — chrome, hero, table of
+ * contents and body all belong to the shared `LegalPageLayout`, so every legal
+ * page in both portals stays identical without seven copies of the shell.
+ *
+ * The route is public, so "back" cannot assume a portal to return to: a visitor
+ * who followed a link here has no in-app history, and `BackButton` sends that
+ * case to the sign-in screen instead of walking them out of the app. Someone who
+ * arrived from the settings page lands back on it.
+ */
 export default function VendorTerms() {
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: 'background.default',
-      }}
-    >
-      <Box sx={{ p: 3 }}>
-        <Box
-          component="a"
-          href={APP.publicUrl}
-          sx={{
-            fontFamily: fonts.heading,
-            fontWeight: 600,
-            fontSize: 24,
-            color: 'primary.main',
-            textDecoration: 'none',
-          }}
-        >
-          {APP.name}
-        </Box>
-      </Box>
-      <Box component="main" sx={{ flex: 1 }}>
-        <LegalContent document={vendorTerms} />
-      </Box>
-    </Box>
+    <LegalPageLayout
+      document={vendorTerms}
+      brandName={APP.name}
+      brandHref={APP.publicUrl}
+      headerAction={<BackButton fallback="/sign-in" />}
+    />
   );
 }

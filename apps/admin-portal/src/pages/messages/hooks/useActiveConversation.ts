@@ -1,53 +1,52 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { ConversationView } from './useMessages';
+import { useCallback, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useThreadControls } from '@/hooks/messaging/useThreadControls';
+import type { AdminConversationView } from '@/hooks/messaging/useConversationViews';
 
 /**
- * UI state for the master–detail inbox: which conversation is open in the thread
- * pane, plus the read receipt that follows from opening it.
+ * Which conversation is open in the thread pane.
  *
- * Kept separate from `useMessages` so the list's data/filter logic stays free of
- * presentation state. Opening a thread stamps `last_read_at` through the
- * SECURITY DEFINER `mark_conversation_read` RPC (the browser has no UPDATE
- * policy on `conversation_participants`), then refreshes the read-state query so
- * the unread badge clears. Each conversation is stamped at most once per mount —
- * re-opening an already-read thread writes nothing.
+ * THE OPEN THREAD LIVES IN THE URL now, rather than in component state. The
+ * pane already linked out to `/messages/:id` for a "full view" that rendered a
+ * different, thinner page; routing the selection instead means that link is the
+ * same inbox with the thread selected, deep links from a report or an
+ * escalation land somewhere useful, and the selection survives a refresh.
+ *
+ * Marking read moved to `useThreadControls`, fired when the newest message is
+ * actually on screen rather than when the pane mounts — see `MessageThread`'s
+ * `onReachBottom`. Stamping a thread read because it loaded, while the operator
+ * sits at the top of a long history, is how an unread queue stops meaning
+ * anything.
  */
-export function useActiveConversation(rows: ConversationView[]) {
-  const qc = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const marked = useRef<Set<string>>(new Set());
+export function useActiveConversation(rows: AdminConversationView[]) {
+  const navigate = useNavigate();
+  const { conversationId } = useParams();
+  const controls = useThreadControls();
 
-  const active = useMemo(() => rows.find((c) => c.id === activeId) ?? null, [rows, activeId]);
+  const active = useMemo(
+    () => rows.find((c) => c.id === conversationId) ?? null,
+    [rows, conversationId],
+  );
 
-  // Never leave the thread pane pointing at a row that has been filtered away.
-  useEffect(() => {
-    if (activeId && !rows.some((c) => c.id === activeId)) setActiveId(null);
-  }, [rows, activeId]);
+  const open = useCallback(
+    (id: string) => {
+      // Re-arms the read stamp, so re-opening a thread that has moved on since
+      // the last visit records the new read point.
+      controls.resetMark(id);
+      navigate(`/messages/${id}`);
+    },
+    [navigate, controls],
+  );
 
-  useEffect(() => {
-    if (!active?.unread || marked.current.has(active.id)) return;
-    const id = active.id;
-    marked.current.add(id);
-    let cancelled = false;
-    void supabase.rpc('mark_conversation_read', { p_conversation_id: id }).then(({ error }) => {
-      if (cancelled) return;
-      // A failed stamp is not worth interrupting the admin — just allow a retry
-      // on the next open rather than leaving the id in the "already done" set.
-      if (error) marked.current.delete(id);
-      else qc.invalidateQueries({ queryKey: ['conversation-read-state'] });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [active, qc]);
+  const close = useCallback(() => navigate('/messages'), [navigate]);
 
-  const open = useCallback((id: string) => setActiveId(id), []);
-  const close = useCallback(() => setActiveId(null), []);
-  const isOpen = useCallback((id: string) => id === activeId, [activeId]);
-
-  return { activeId, active, open, close, isOpen };
+  return {
+    activeId: conversationId ?? null,
+    active,
+    open,
+    close,
+    isOpen: useCallback((id: string) => id === conversationId, [conversationId]),
+  };
 }
 
 export type ActiveConversationState = ReturnType<typeof useActiveConversation>;

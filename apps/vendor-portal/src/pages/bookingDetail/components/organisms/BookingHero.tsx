@@ -10,7 +10,7 @@ import {
   heroDividerSx,
 } from '@sinnapi/ui';
 import type { ProfileContactRel, VendorBookingDetailModel } from '@/lib/types';
-import HeroMetaStrip from '../molecules/HeroMetaStrip';
+import BookingHeroMeta from '../molecules/BookingHeroMeta';
 
 type Props = {
   booking: VendorBookingDetailModel;
@@ -50,7 +50,7 @@ export default function BookingHero({ booking: b, client, timeWindow }: Props) {
       <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Box sx={{ position: 'relative' }}>
-        <HeroMetaStrip booking={b} timeWindow={timeWindow} />
+        <BookingHeroMeta booking={b} timeWindow={timeWindow} />
       </Box>
     </HeroSurface>
   );

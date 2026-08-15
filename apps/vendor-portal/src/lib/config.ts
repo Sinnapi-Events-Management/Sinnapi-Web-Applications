@@ -78,7 +78,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Inbox',
     items: [
-      { label: 'Messages', to: '/messages', icon: ChatIcon },
+      { label: 'Messages', to: '/messages', icon: ChatIcon, badgeKey: 'messages' },
       {
         label: 'Notifications',
         to: '/notifications',
@@ -90,7 +90,10 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Account',
     items: [
-      { label: 'Business Profile', to: '/profile', icon: StorefrontIcon },
+      // "Profile", not "Business Profile": the page now carries the vendor's own
+      // name and photo alongside the listing, so the narrower label would send
+      // someone looking for their own details to Settings, where they no longer are.
+      { label: 'Profile', to: '/profile', icon: StorefrontIcon },
       { label: 'Subscription', to: '/subscription', icon: WorkspacePremiumIcon },
       { label: 'Settings', to: '/settings', icon: SettingsIcon },
     ],

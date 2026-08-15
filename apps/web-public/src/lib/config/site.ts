@@ -73,21 +73,13 @@ export const SERVICE_REGIONS = [
 ];
 
 /**
- * Occasion tokens for the events grid. These are matched against
- * `events.event_type` exactly, so they must stay snake_case and in step with
- * what the admin portal writes — a label can change, a value cannot.
+ * Occasions are deliberately not listed here. They live in the `event_types`
+ * table an admin manages (migration 20260814000001) and are fetched by the
+ * events page — `getEventTypes` in `lib/queries`. The hardcoded copy that used
+ * to sit here had already drifted from what the portals write, offering
+ * `corporate`, `concert` and `product_launch` (which nothing has ever written)
+ * while missing `introduction`, `company_event` and `fundraising`.
  */
-export const EVENT_TYPES = [
-  'wedding',
-  'birthday',
-  'corporate',
-  'graduation',
-  'baby_shower',
-  'anniversary',
-  'concert',
-  'conference',
-  'product_launch',
-];
 
 /**
  * Towns the events grid offers as a location facet.

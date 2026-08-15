@@ -1,7 +1,6 @@
-import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Paper, Typography } from '@sinnapi/ui';
-import ChatIcon from '@mui/icons-material/Chat';
+import { Box, Paper, Typography } from '@sinnapi/ui';
 import VendorActions from '@/components/vendor/VendorActions';
+import MessageVendorButton from '@/components/vendor/MessageVendorButton';
 import { formatMoney } from '@/lib/config';
 import type { VendorDetailModel } from '@/lib/types';
 
@@ -24,15 +23,9 @@ export default function VendorBookingPanel({ vendor }: { vendor: VendorDetailMod
         </Box>
       )}
       <VendorActions vendorId={vendor.id} />
-      <Button
-        component={RouterLink}
-        to="/messages"
-        fullWidth
-        startIcon={<ChatIcon />}
-        sx={{ mt: 1.5 }}
-      >
-        Message vendor
-      </Button>
+      <Box sx={{ mt: 1.5 }}>
+        <MessageVendorButton vendorId={vendor.id} />
+      </Box>
     </Paper>
   );
 }

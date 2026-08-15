@@ -1,39 +1,43 @@
 import { Stack, PageTitle } from '@sinnapi/ui';
+import { InboxLayout, InboxToolbar, ConversationListPanel } from '@sinnapi/ui/messaging';
 import StatusTabs from '@/components/ui/StatusTabs';
-import { useMessages } from './hooks/useMessages';
-import { useActiveConversation } from './hooks/useActiveConversation';
+import { useMessagesPage } from './hooks/useMessagesPage';
 import { buildInboxTabs } from './schema';
 import InboxSummary from './components/organisms/InboxSummary';
-import InboxToolbar from './components/organisms/InboxToolbar';
-import InboxWorkspace from './components/organisms/InboxWorkspace';
-import ConversationList from './components/organisms/ConversationList';
 import ConversationPane from './components/organisms/ConversationPane';
 
+/**
+ * The Sinnapi operator inbox.
+ *
+ * The list, rows, toolbar and master–detail shell now come from
+ * `@sinnapi/ui/messaging` — they were built here first and were promoted so the
+ * client and vendor portals stopped shipping 59-line stubs against the same
+ * data. What stays local is what is genuinely operator-only: the KPI tiles, the
+ * status tabs including `blocked`, and the observer/participant handling in the
+ * thread pane.
+ */
 export default function Messages() {
-  const {
-    rows,
-    counts,
-    isLoading,
-    countsLoading,
-    error,
-    tab,
-    setTab,
-    typeFilter,
-    search,
-    isFiltered,
-  } = useMessages();
-
-  const active = useActiveConversation(rows);
+  const { inbox, active } = useMessagesPage();
 
   const master = (
     <Stack spacing={2}>
-      <InboxToolbar search={search} typeFilter={typeFilter} resultCount={rows.length} />
-      <ConversationList
-        rows={rows}
-        isLoading={isLoading}
-        error={error}
-        isFiltered={isFiltered}
-        active={active}
+      <InboxToolbar
+        search={inbox.search}
+        audience="admin"
+        typeFilter={inbox.typeFilter}
+        resultCount={inbox.rows.length}
+      />
+      <ConversationListPanel
+        rows={inbox.rows}
+        audience="admin"
+        isLoading={inbox.isLoading}
+        error={inbox.error}
+        activeId={active.activeId}
+        onOpen={active.open}
+        isFiltered={inbox.isFiltered}
+        onClearFilters={inbox.clearAll}
+        emptyTitle="No conversations yet"
+        emptyDescription="Vendor, client and support threads appear here as they are opened."
       />
     </Stack>
   );
@@ -45,17 +49,17 @@ export default function Messages() {
         subtitle="Vendor and client conversations handled by the Sinnapi team."
       />
 
-      <InboxSummary counts={counts} loading={countsLoading} />
+      <InboxSummary counts={inbox.counts} loading={inbox.countsLoading} />
 
       <StatusTabs
-        options={buildInboxTabs(counts)}
-        value={tab}
-        onChange={setTab}
-        loadingCounts={countsLoading}
+        options={buildInboxTabs(inbox.counts)}
+        value={inbox.tab}
+        onChange={inbox.setTab}
+        loadingCounts={inbox.countsLoading}
         ariaLabel="Filter conversations by status"
       />
 
-      <InboxWorkspace
+      <InboxLayout
         master={master}
         detailOpen={!!active.active}
         onCloseDetail={active.close}

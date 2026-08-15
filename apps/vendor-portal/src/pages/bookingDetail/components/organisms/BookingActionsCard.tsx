@@ -1,13 +1,13 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Button, Divider, Stack, SectionCard } from '@sinnapi/ui';
+import { BookingActionDialog, Button, Divider, Stack, SectionCard } from '@sinnapi/ui';
 import BoltIcon from '@mui/icons-material/Bolt';
 import ChatIcon from '@mui/icons-material/Chat';
-import BookingResponseActions from '@/components/booking/BookingResponseActions';
-import { hasBookingResponseActions } from '@/components/booking/bookingActions';
+import type { VendorBookingDetailModel } from '@/lib/types';
+import { useBookingActions } from '../../hooks/useBookingActions';
+import BookingActionButtons from '../molecules/BookingActionButtons';
 
 type Props = {
-  bookingId: string;
-  status: string;
+  booking: VendorBookingDetailModel;
   /**
    * Whether the booking is still waiting on this vendor. An untouched request
    * is the one thing on the page that needs doing, so the panel takes the
@@ -17,17 +17,15 @@ type Props = {
 };
 
 /**
- * What the vendor can do about this booking: the status write that applies to
+ * What the vendor can do about this booking: the status writes that apply to
  * its current state, plus the way to reach the client without one.
  *
- * `BookingResponseActions` owns the RPC calls, its own busy/error state, and the
- * cache invalidation that follows — this card only decides where it sits and how
- * loudly it asks for attention.
+ * `useBookingActions` owns the RPCs, the gating, the in-flight state and the
+ * cache invalidation; `BookingActionDialog` owns the confirmation. This card
+ * only decides where they sit and how loudly they ask for attention.
  */
-export default function BookingActionsCard({ bookingId, status, needsResponse }: Props) {
-  // A settled booking — completed, cancelled, declined — has no status write
-  // left, and messaging is then the only thing this card offers.
-  const canRespond = hasBookingResponseActions(status);
+export default function BookingActionsCard({ booking, needsResponse }: Props) {
+  const actions = useBookingActions(booking);
 
   return (
     <SectionCard
@@ -37,9 +35,15 @@ export default function BookingActionsCard({ bookingId, status, needsResponse }:
       subtitle={needsResponse ? 'This request is waiting on you' : undefined}
     >
       <Stack spacing={2}>
-        {canRespond && (
+        {/* A settled booking — completed, cancelled, declined — has no status
+            write left, and messaging is then the only thing this card offers. */}
+        {actions.hasActions && (
           <>
-            <BookingResponseActions bookingId={bookingId} status={status} />
+            <BookingActionButtons
+              actions={actions.actions}
+              isBusy={actions.isBusy}
+              onSelect={actions.request}
+            />
             <Divider />
           </>
         )}
@@ -53,6 +57,17 @@ export default function BookingActionsCard({ bookingId, status, needsResponse }:
           Message client
         </Button>
       </Stack>
+
+      <BookingActionDialog
+        action={actions.pending}
+        reference={booking.reference_no}
+        reason={actions.reason}
+        onReasonChange={actions.setReason}
+        busy={actions.isBusy}
+        error={actions.error}
+        onConfirm={actions.confirm}
+        onCancel={actions.cancel}
+      />
     </SectionCard>
   );
 }

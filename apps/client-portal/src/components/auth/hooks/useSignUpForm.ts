@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useZodForm, useCaptcha } from '@sinnapi/ui/forms';
 import { signUpClient } from '@/auth/signUpApi';
-import { signUpSchema, emptySignUpValues, toSignUpRole } from '../schema';
+import { signUpSchema, emptySignUpValues, toSignUpRole, MARKETING_CONSENT_TEXT } from '../schema';
 
 /**
  * Account creation state machine.
@@ -41,7 +41,7 @@ export function useSignUpForm() {
     defaultValues: emptySignUpValues(toSignUpRole(params.get('role'))),
   });
 
-  const submit = handleSubmit(async ({ fullName, email, password, role }) => {
+  const submit = handleSubmit(async ({ fullName, email, password, role, marketingConsent }) => {
     setError(null);
     if (!captcha.token) return;
 
@@ -51,6 +51,11 @@ export function useSignUpForm() {
       password,
       role,
       captchaToken: captcha.token,
+      marketingConsent,
+      // The wording travels with the answer rather than being looked up on the
+      // server: the consent record has to say what THIS person was shown, and
+      // the copy on this form will be rewritten long before the record expires.
+      marketingConsentText: MARKETING_CONSENT_TEXT,
     });
     if (!result.ok) {
       setError(result.error);

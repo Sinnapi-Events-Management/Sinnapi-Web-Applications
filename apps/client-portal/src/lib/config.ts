@@ -57,7 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Inbox',
     items: [
-      { label: 'Messages', to: '/messages', icon: ChatIcon },
+      { label: 'Messages', to: '/messages', icon: ChatIcon, badgeKey: 'messages' },
       {
         label: 'Notifications',
         to: '/notifications',

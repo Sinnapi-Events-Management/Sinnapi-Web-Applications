@@ -1,0 +1,54 @@
+-- =====================================================================
+-- Sinnapi — 0813a Quotations: the `voided` state
+--
+-- WHAT WAS MISSING
+-- `quotation_status` carries seven values and every one of them describes the
+-- *offer*: where it is in the request → build → send → answer cycle, or how it
+-- ended. None of them says "this is withdrawn".
+--
+--   requested  the client asked
+--   draft      the vendor is building
+--   sent       the offer is live
+--   revised    the client asked for changes
+--   accepted   the client said yes
+--   declined   the client said no to the terms
+--   expired    valid_until passed with no answer
+--
+-- A client who no longer needs the service, or a vendor who can no longer
+-- honour a price they quoted, had two bad options: `declined` — which says the
+-- client rejected the vendor's terms, and is a lie when the vendor is the one
+-- pulling out or when the event itself was cancelled — or `expired`, which
+-- claims a clock ran out that did not. Both put a false reason in
+-- `quotation_status_history`, which is the record either party quotes back in a
+-- dispute.
+--
+-- `voided` is the honest eighth value: the quotation was withdrawn by one of
+-- its two parties before it was answered. It is terminal, and it is distinct
+-- from `declined` precisely because "you turned my price down" and "this is off"
+-- are different facts about the same row.
+--
+-- WHY THE ENUM IS ALONE IN THIS FILE
+-- `alter type ... add value` is committed here so 0813b can reference 'voided'
+-- as a literal in the function bodies it creates. Postgres will not let a value
+-- added in one transaction be used by that same transaction; splitting the
+-- files is what keeps both halves replayable in any order a fresh database is
+-- built in.
+-- =====================================================================
+
+alter type quotation_status add value if not exists 'voided';
+
+-- ---------------------------------------------------------------------
+-- quotation_status_history.reason
+--
+-- The booking trail has carried a reason since 0618j and the console, the
+-- client page and the vendor page all render it. The quotation trail never
+-- had the column, so a quotation transition could only ever be "it became
+-- sent" with no room for why.
+--
+-- Voiding is the transition that makes the absence untenable: it is the one
+-- move where the other party is owed an explanation, and burying it in the
+-- `metadata` jsonb would leave every reader digging a text field out of a
+-- blob that no other row uses.
+-- ---------------------------------------------------------------------
+alter table public.quotation_status_history
+  add column if not exists reason text;

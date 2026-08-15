@@ -32,7 +32,7 @@ export default function ClientDetail() {
             </Alert>
           )}
           <ClientStats kpis={kpis} />
-          <ClientTabs clientId={client.id} />
+          <ClientTabs clientId={client.id} clientName={client.full_name} />
 
           <ClientStatusDialog
             pending={status.pending}

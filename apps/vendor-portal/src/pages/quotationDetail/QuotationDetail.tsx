@@ -1,55 +1,78 @@
-import { Card, CardContent, Typography, PageTitle, QueryState, StatusChip } from '@sinnapi/ui';
-import QuotationBuilder from '@/components/quotation/QuotationBuilder';
-import { one } from '@/lib/rel';
-import type { ProfileRel } from '@/lib/types';
+import { Box, Grid, Stack, QueryState } from '@sinnapi/ui';
+import { BackButton, EmptyState } from '@sinnapi/ui/router';
+import QuotationHero from './components/organisms/QuotationHero';
+import QuotationRequestCard from './components/organisms/QuotationRequestCard';
+import QuotationQuoteCard from './components/organisms/QuotationQuoteCard';
+import QuotationFactsCard from './components/organisms/QuotationFactsCard';
+import QuotationTimelineCard from './components/organisms/QuotationTimelineCard';
+import QuotationActionsCard from './components/organisms/QuotationActionsCard';
 import { useQuotationDetail } from './hooks/useQuotationDetail';
-import QuotationLineItems from './components/molecules/QuotationLineItems';
-import { EmptyState } from '@sinnapi/ui/router';
 
+/**
+ * A single quotation as the vendor sees it: who asked, what they asked for,
+ * what was quoted back, and what can still be done about it.
+ *
+ * The wide column is the work — the brief, then the quote, then the record. The
+ * narrow one is the state: what can be done to it and how it got here. That is
+ * the same split the client's page uses, which is deliberate; the two sides are
+ * looking at one object and should recognise each other's screen.
+ *
+ * Layout only — `useQuotationDetail` owns the reads and each section owns its
+ * own content.
+ */
 export default function QuotationDetail() {
-  const { quotation: q, isLoading, error, isEditable } = useQuotationDetail();
+  const {
+    quotationId,
+    quotation,
+    client,
+    event,
+    items,
+    isPriced,
+    isEditable,
+    isLapsed,
+    isLoading,
+    error,
+  } = useQuotationDetail();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
-      {!q ? (
+      <Box sx={{ mb: 2 }}>
+        <BackButton fallback="/quotations" />
+      </Box>
+
+      {!quotation ? (
         <EmptyState
           title="Quotation not found"
+          description="This quote request may have been removed."
           ctaLabel="Back to quotations"
           ctaHref="/quotations"
         />
       ) : (
         <>
-          <PageTitle
-            title={`Quote ${q.reference_no}`}
-            subtitle={one<ProfileRel>(q.profiles)?.full_name ?? undefined}
-            action={<StatusChip status={q.status} size="medium" />}
-          />
-          {q.request_details && (
-            <Card variant="outlined" sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="overline" color="text.secondary">
-                  Client request
-                </Typography>
-                <Typography>{q.request_details}</Typography>
-              </CardContent>
-            </Card>
-          )}
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                {isEditable ? 'Build & send quote' : 'Quote sent'}
-              </Typography>
-              {isEditable ? (
-                <QuotationBuilder quotationId={q.id} currency={q.currency ?? undefined} />
-              ) : (
-                <QuotationLineItems
-                  items={q.quotation_items ?? []}
-                  total={q.total}
-                  currency={q.currency}
+          <QuotationHero quotation={quotation} client={client} event={event} isPriced={isPriced} />
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={7}>
+              <Stack spacing={3}>
+                {quotation.request_details && (
+                  <QuotationRequestCard requestDetails={quotation.request_details} />
+                )}
+                <QuotationQuoteCard
+                  quotation={quotation}
+                  items={items}
+                  isEditable={isEditable}
+                  isPriced={isPriced}
                 />
-              )}
-            </CardContent>
-          </Card>
+                <QuotationFactsCard quotation={quotation} client={client} event={event} />
+              </Stack>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Stack spacing={3}>
+                <QuotationActionsCard quotation={quotation} isLapsed={isLapsed} />
+                <QuotationTimelineCard quotationId={quotationId} status={quotation.status} />
+              </Stack>
+            </Grid>
+          </Grid>
         </>
       )}
     </QueryState>

@@ -13,12 +13,12 @@ import type { QuotationItemModel } from '@/lib/types';
 export const getLineItemColumns = (
   currency: string | null,
 ): SimpleTableColumn<QuotationItemModel>[] => [
-  { field: 'description', headerName: 'Item', render: (it) => it.description },
+  { field: 'description', headerName: 'Item', render: (it) => it.description ?? '—' },
   {
     field: 'quantity',
     headerName: 'Qty × Unit price',
     align: 'right',
-    render: (it) => `${it.quantity} × ${formatMoney(it.unit_price, currency)}`,
+    render: (it) => `${it.quantity ?? 1} × ${formatMoney(it.unit_price, currency)}`,
   },
   {
     field: 'line_total',

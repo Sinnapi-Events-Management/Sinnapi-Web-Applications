@@ -55,6 +55,22 @@ export const TERMS: { key: string; label: string; href?: string }[] = [
   },
 ];
 
+/**
+ * The newsletter opt-in, kept apart from `TERMS` on purpose.
+ *
+ * GDPR Art.7(2) requires consent to be "clearly distinguishable from the other
+ * matters" it is presented alongside — an opt-in bundled into a block of
+ * acceptances somebody must tick to proceed is not freely given, and is not
+ * valid consent. So this is a separate, optional, unticked box below a divider,
+ * and the application submits perfectly well without it.
+ *
+ * The wording is sent to the server verbatim and stored on the subscription row
+ * as the Art.7(1) record. Changing this string changes what future subscribers
+ * agreed to — existing records keep the sentence they were actually shown.
+ */
+export const MARKETING_CONSENT_TEXT =
+  'I would like to receive Sinnapi vendor updates, business tips and platform news by email.';
+
 // Upload constraints — mirror the `application-intake` bucket's allowed types.
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
 export const DOC_ACCEPT = 'image/jpeg,image/png,application/pdf';

@@ -5,13 +5,13 @@ import { quotationColumns } from './schema';
 import CompareQuotesAction from './components/molecules/CompareQuotesAction';
 
 export default function Quotations() {
-  const { rows, total, isLoading, isFetching, error, table } = useQuotations();
+  const { rows, total, isLoading, isFetching, error, table, openQuotation } = useQuotations();
 
   return (
     <>
       <PageTitle
         title="Quotations"
-        subtitle="Review and compare quotes from vendors."
+        subtitle="Open a quote to see what it covers, then accept, send it back or void it."
         action={<CompareQuotesAction />}
       />
 
@@ -27,6 +27,7 @@ export default function Quotations() {
         getRowId={(q) => q.id}
         rowCount={total}
         loading={isLoading || isFetching}
+        onRowClick={(q) => openQuotation(q.id)}
         emptyMessage={
           <EmptyState
             embedded

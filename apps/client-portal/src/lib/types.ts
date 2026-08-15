@@ -150,6 +150,8 @@ export type BookingDetailModel = {
   /** The client's explicit consent — escrow cannot be funded without it. */
   advance_terms_accepted_at: string | null;
   cancellation_reason: string | null;
+  /** When the event was marked as under way. Null until either party starts it. */
+  started_at: string | null;
   completed_at: string | null;
   created_at: string;
   vendor_id: string | null;
@@ -182,16 +184,85 @@ export type QuotationListModel = {
   vendors: VendorNameSlugRefModel | VendorNameSlugRefModel[] | null;
 };
 
+/** One priced line of a quote. Absent on a quote the vendor has not built yet. */
+export type QuotationItemModel = {
+  id: string;
+  description: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  line_total: number | null;
+  sort_order: number | null;
+};
+
+// useQuotation selects '*' plus the vendor, the line items and the linked event.
+export type QuotationDetailModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  currency: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  tax_total: number | null;
+  total: number | null;
+  valid_until: string | null;
+  request_details: string | null;
+  version_no: number | null;
+  /** Advance schedule the vendor proposed with the quote; null until sent. */
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  sent_at: string | null;
+  responded_at: string | null;
+  created_at: string;
+  vendor_id: string | null;
+  event_id: string | null;
+  vendors: VendorRefModel | VendorRefModel[] | null;
+  quotation_items: QuotationItemModel[] | null;
+  events: EventRefModel | EventRefModel[] | null;
+};
+
+export type EventRefModel = {
+  id: string;
+  title: string | null;
+  event_date: string | null;
+};
+
+/**
+ * One entry of a quotation's status trail. Written by a trigger on insert and
+ * on every status change, so a quotation always has at least its `requested`
+ * row. `from_status` is null on that first entry; `reason` carries the note the
+ * acting party gave when they voided, declined or asked for a revision.
+ */
+export type QuotationStatusEventModel = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  occurred_at: string;
+};
+
 // ---------- Events ----------
 export type MyEventModel = {
   id: string;
   title: string;
-  event_type: string | null;
+  /**
+   * The managed occasion behind `event_type_id`, embedded via
+   * `event_type:event_types(key,name)`. `name` is what a card renders; `key` is
+   * the token the public site and vendor feed filter by.
+   */
+  event_type: { key: string; name: string } | null;
   event_date: string | null;
   location: string | null;
   status: string;
   source: string;
 };
+
+/**
+ * One selectable occasion, from `event_types`. Only active types are ever
+ * offered to a client — a retired occasion is one nobody should be able to file
+ * a new event under.
+ */
+export type EventTypeOption = { id: string; name: string };
 
 // ---------- Escrow / Payments ----------
 export type EscrowModel = {
@@ -261,6 +332,12 @@ export type EscrowQuoteModel = {
   currency: string;
   advance_release_days_before: number;
   advance_release_due_at: string;
+  /**
+   * The highest advance the client may choose: what the vendor proposed,
+   * capped by the platform maximum. Priced alongside the quote so the picker
+   * never has to read `platform_settings` to know its own bounds.
+   */
+  advance_rate_limit: number;
 };
 
 /** One step of an escrow's append-only history, as the client sees it. */
@@ -306,13 +383,54 @@ export type PaymentModel = {
 };
 
 // ---------- Messaging ----------
+/**
+ * One row of `get_my_conversations()` (migration 0815f).
+ *
+ * The counterparty is resolved server-side because `profiles_self_read` stops
+ * a client from reading the profile of the person behind a vendor account —
+ * so an embedded `conversation_participants(profiles(...))` returns nothing.
+ * The old select worked around it with `vendors(business_name)`, which covered
+ * `client_vendor` threads only and rendered support threads as the literal
+ * string "Client Admin".
+ *
+ * `last_message_preview` / `last_message_sender_id` are denormalised onto
+ * `conversations` by trigger (0815a); before that `last_message_at` was never
+ * written at all, so the inbox's own sort was inert.
+ */
 export type ConversationModel = {
   id: string;
   type: string;
   subject: string | null;
-  last_message_at: string | null;
   status: string;
-  vendors: VendorNameRefModel | VendorNameRefModel[] | null;
+  vendor_id: string | null;
+  created_at: string | null;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_message_sender_id: string | null;
+  counterparty_id: string | null;
+  counterparty_name: string | null;
+  counterparty_avatar_url: string | null;
+  unread_count: number;
+  last_read_at: string | null;
+  is_muted: boolean;
+  is_observer: boolean;
+};
+
+/** A vendor the client has a booking or quotation with — the "message a vendor" list. */
+export type EngagedVendorModel = {
+  id: string;
+  business_name: string;
+  profile_image_url: string | null;
+  slug: string | null;
+};
+
+export type MessageAttachmentModel = {
+  id: string;
+  storage_path: string;
+  file_name: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  scan_status: string;
 };
 
 export type MessageModel = {
@@ -320,7 +438,18 @@ export type MessageModel = {
   sender_id: string | null;
   body: string | null;
   created_at: string;
+  edited_at: string | null;
+  is_system: boolean;
   moderation_status: string | null;
+  message_attachments: MessageAttachmentModel[] | null;
+};
+
+/** One row of `get_conversation_unread()`. */
+export type ConversationUnreadModel = {
+  conversation_id: string;
+  unread_count: number;
+  last_read_at: string | null;
+  is_muted: boolean;
 };
 
 // ---------- Reviews / Notifications / Profile ----------
@@ -339,8 +468,27 @@ export type NotificationModel = {
   trigger_key: string;
   title: string | null;
   body: string | null;
+  /**
+   * Producer-supplied references — the ids the notification is *about*, which
+   * is what lets a row link through to its booking, quote or conversation.
+   *
+   * Deliberately untyped: three generations of writer fill this column and none
+   * agree on a shape. The outbox dispatcher's addressed path writes a reference
+   * block (`{booking_id, conversation_id, …, url}`), its legacy path writes
+   * `{aggregate, id}`, and the SQL RPCs write their own keys. Consumers must
+   * probe — see `recordId()` in `@sinnapi/ui/notifications`.
+   */
+  data: Record<string, unknown> | null;
+  /** `notification_channel` enum — 'in_app' | 'email'. */
+  channel: string;
   read_at: string | null;
   created_at: string;
+};
+
+/** One page of the notification feed, with the server-exact total beside it. */
+export type NotificationPage = {
+  rows: NotificationModel[];
+  total: number;
 };
 
 export type ProfileModel = {
@@ -352,4 +500,6 @@ export type ProfileModel = {
   locale: string | null;
   preferred_currency: string | null;
   mfa_enabled: boolean;
+  /** Account creation timestamp — the "member since" fact on the profile page. */
+  created_at: string | null;
 };

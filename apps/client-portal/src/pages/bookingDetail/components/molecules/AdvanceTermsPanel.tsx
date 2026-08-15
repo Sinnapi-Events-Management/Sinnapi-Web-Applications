@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react';
 import { Box, Stack, Typography } from '@sinnapi/ui';
 import { alpha } from '@mui/material/styles';
 import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
-import { formatMoney } from '@/lib/config';
+import AdvanceScheduleSummary from './AdvanceScheduleSummary';
 
 type Props = {
   advanceRate: number | null;
@@ -11,14 +12,19 @@ type Props = {
   releaseDueAt: string | null;
   currency: string | null;
   note: string | null;
+  /** The rate control, when the client is still free to choose one. */
+  control?: ReactNode;
+  /** Dims the figures while a new split is being priced. */
+  isRepricing?: boolean;
 };
 
 /**
- * The payment schedule the vendor proposed, in the client's terms.
+ * The payment schedule: what the client is choosing, and what that means.
  *
- * The client is being asked to consent to money leaving before the event
- * happens, so the panel leads with when that is and how much — not with the
- * percentage, which is the vendor's framing rather than theirs.
+ * The control and the consequence sit in one panel deliberately. The client
+ * is being asked to let money leave before the service happens, so the figure
+ * they are moving and the sentence describing what it does are never more
+ * than a line apart.
  */
 export default function AdvanceTermsPanel({
   advanceRate,
@@ -28,13 +34,9 @@ export default function AdvanceTermsPanel({
   releaseDueAt,
   currency,
   note,
+  control,
+  isRepricing,
 }: Props) {
-  const due = releaseDueAt ? new Date(releaseDueAt) : null;
-  const dueLabel =
-    due && !Number.isNaN(due.getTime())
-      ? due.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-      : null;
-
   return (
     <Box
       sx={{
@@ -45,40 +47,37 @@ export default function AdvanceTermsPanel({
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <ScheduleSendIcon sx={{ fontSize: 20, color: 'info.main', mt: 0.25 }} />
+        <ScheduleSendIcon sx={{ fontSize: 20, color: 'secondary.main', mt: 0.25 }} />
         <Stack spacing={1.25} sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="subtitle2" fontWeight={700}>
-            Payment schedule
-          </Typography>
-
-          <Stack spacing={0.75}>
-            <Typography variant="body2">
-              <Box component="span" fontWeight={700}>
-                {formatMoney(advanceAmount, currency)}
-              </Box>{' '}
-              {advanceRate ? `(${Number(advanceRate)}% advance)` : 'advance'} goes to your vendor
-              {dueLabel ? (
-                <>
-                  {' '}
-                  on{' '}
-                  <Box component="span" fontWeight={700}>
-                    {dueLabel}
-                  </Box>
-                </>
-              ) : null}
-              {daysBefore != null && daysBefore > 0
-                ? `, ${daysBefore} days before your event.`
-                : '.'}
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Payment schedule
             </Typography>
+            {control && (
+              <Typography variant="caption" color="text.secondary">
+                Choose how much of your vendor&rsquo;s fee is released before the event.
+              </Typography>
+            )}
+          </Box>
 
-            <Typography variant="body2">
-              The remaining{' '}
-              <Box component="span" fontWeight={700}>
-                {formatMoney(balanceAmount, currency)}
-              </Box>{' '}
-              stays protected by Sinnapi until you confirm the service was delivered.
-            </Typography>
-          </Stack>
+          {control}
+
+          <Box
+            sx={{
+              opacity: isRepricing ? 0.5 : 1,
+              transition: 'opacity .15s',
+            }}
+            aria-busy={isRepricing || undefined}
+          >
+            <AdvanceScheduleSummary
+              advanceRate={advanceRate}
+              advanceAmount={advanceAmount}
+              balanceAmount={balanceAmount}
+              daysBefore={daysBefore}
+              releaseDueAt={releaseDueAt}
+              currency={currency}
+            />
+          </Box>
 
           {note && (
             <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>

@@ -10,21 +10,11 @@ export type FilterOption = { value: string; label: string };
  */
 
 /**
- * Occasion tokens, matched exactly against `events.event_type`. Snake_case and
- * in step with what the admin portal writes; kept in the same order the public
- * site lists them so a vendor sees one vocabulary across both surfaces.
+ * Occasions are the one facet with no list here: they live in `event_types`,
+ * which an admin manages, and arrive at runtime through
+ * `useEventTypeFacetOptions`. A hardcoded copy is exactly what let this file
+ * drift from what the admin portal writes.
  */
-export const EVENT_TYPE_OPTIONS: FilterOption[] = [
-  'wedding',
-  'birthday',
-  'corporate',
-  'graduation',
-  'baby_shower',
-  'anniversary',
-  'concert',
-  'conference',
-  'product_launch',
-].map((value) => ({ value, label: titleize(value) }));
 
 /**
  * Town tokens. Matched by containment rather than equality, because
@@ -128,11 +118,21 @@ export const FACET_LABELS: Record<FacetKey, string> = {
   source: 'Type',
 };
 
-/** Option lists per facet, for turning a stored token back into its label. */
-export const FACET_OPTIONS: Record<FacetKey, FilterOption[]> = {
-  type: EVENT_TYPE_OPTIONS,
+/**
+ * Option lists for the facets whose vocabulary is fixed in code. Occasion is
+ * absent: it is fetched, so it can only be added once it has arrived.
+ */
+const STATIC_FACET_OPTIONS: Record<Exclude<FacetKey, 'type'>, FilterOption[]> = {
   location: LOCATION_OPTIONS,
   when: WHEN_OPTIONS,
   budget: BUDGET_OPTIONS,
   source: SOURCE_OPTIONS,
 };
+
+/**
+ * Every facet's options, once the fetched occasions are in hand — used both to
+ * validate what the URL carries and to turn a stored token back into its label.
+ */
+export function facetOptions(typeOptions: FilterOption[]): Record<FacetKey, FilterOption[]> {
+  return { type: typeOptions, ...STATIC_FACET_OPTIONS };
+}

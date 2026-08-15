@@ -56,7 +56,8 @@ export default function EventHero({
   onRequestDelete,
 }: Props) {
   const meta = [
-    e.event_type && { icon: <CategoryIcon />, text: titleize(e.event_type) },
+    // The managed type carries its own display name, so no titleizing a token.
+    e.event_type?.name && { icon: <CategoryIcon />, text: e.event_type.name },
     { icon: <CalendarMonthIcon />, text: e.event_date ? formatDate(e.event_date) : 'No date set' },
     e.location && { icon: <PlaceIcon />, text: e.location },
     e.is_public
