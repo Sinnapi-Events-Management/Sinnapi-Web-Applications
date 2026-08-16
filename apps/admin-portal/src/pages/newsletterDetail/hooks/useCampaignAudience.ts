@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNewsletterAudience, useNewsletterAudienceCounts } from '@/hooks/queries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { NewsletterAudience } from '@/lib/types';
+import { useExtraRecipients } from './useExtraRecipients';
 
 export type AudienceApi = ReturnType<typeof useCampaignAudience>;
 
@@ -32,6 +33,14 @@ const PAGE_SIZE = 25;
  * With a search term active, "all" means all MATCHING, not all in the audience.
  * That is what makes search usable as a coarse segment ("everyone in Kampala"),
  * and it is why the search term is passed to the queue RPC alongside the mode.
+ *
+ * ── What this hook deliberately does NOT own ───────────────────────────────
+ * Everyone who is not an account holder — typed-in contacts, spreadsheet
+ * imports, saved address books — belongs to `useExtraRecipients`. They share
+ * nothing with the audience but the total at the bottom of the screen: no
+ * pagination, no consent join, no profile ids, and a whole attestation flow of
+ * their own. Folding them back in here is what made the old version of this
+ * hook hard to read, and it is why the two are composed rather than merged.
  */
 export function useCampaignAudience(audience: NewsletterAudience) {
   const [searchInput, setSearchInput] = useState('');
@@ -42,9 +51,7 @@ export function useCampaignAudience(audience: NewsletterAudience) {
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const [manualEmails, setManualEmails] = useState<string[]>([]);
-  const [importedEmails, setImportedEmails] = useState<string[]>([]);
-  const [attested, setAttested] = useState(false);
+  const extras = useExtraRecipients();
 
   const { data, isLoading, isFetching, error } = useNewsletterAudience({
     audience,
@@ -103,24 +110,10 @@ export function useCampaignAudience(audience: NewsletterAudience) {
     return Math.max((counts?.eligible ?? 0) - excluded.size, 0);
   }, [selectAll, selected.size, counts?.eligible, excluded.size]);
 
-  /**
-   * Manual + imported addresses, merged and de-duplicated.
-   *
-   * Overlap between the two is expected — somebody types an address, then
-   * uploads the spreadsheet it came from — and the server de-duplicates against
-   * the audience too, but showing one honest number here is what stops the
-   * confirmation dialog from over-promising.
-   */
-  const extraEmails = useMemo(
-    () => Array.from(new Set([...manualEmails, ...importedEmails])),
-    [manualEmails, importedEmails],
-  );
-
-  const totalSelected = audienceSelectedCount + extraEmails.length;
+  const totalSelected = audienceSelectedCount + extras.extraCount;
 
   /** Ad-hoc addresses carry no consent record, so the attestation is required. */
-  const needsAttestation = extraEmails.length > 0;
-  const canQueue = totalSelected > 0 && (!needsAttestation || attested);
+  const canQueue = totalSelected > 0 && (!extras.needsAttestation || extras.attested);
 
   return {
     rows: data?.rows ?? [],
@@ -143,15 +136,12 @@ export function useCampaignAudience(audience: NewsletterAudience) {
     toggleRow,
     audienceSelectedCount,
 
-    manualEmails,
-    setManualEmails,
-    importedEmails,
-    setImportedEmails,
-    extraEmails,
-
-    attested,
-    setAttested,
-    needsAttestation,
+    /** Typed, imported and saved-list recipients — see `useExtraRecipients`. */
+    extras,
+    // Re-exported because the review step asks about the send as a whole, and
+    // should not have to know which of the two hooks holds the attestation.
+    attested: extras.attested,
+    needsAttestation: extras.needsAttestation,
 
     totalSelected,
     canQueue,
@@ -162,8 +152,7 @@ export function useCampaignAudience(audience: NewsletterAudience) {
       p_search: search ?? null,
       p_profile_ids: selectAll ? null : Array.from(selected),
       p_excluded_ids: selectAll ? Array.from(excluded) : null,
-      p_extra_emails: extraEmails,
-      p_attested: attested,
+      ...extras.queueArgs,
     },
   };
 }

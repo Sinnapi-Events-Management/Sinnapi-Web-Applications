@@ -996,6 +996,51 @@ export type NewsletterAudienceCounts = {
   no_consent: number;
 };
 
+/**
+ * One ad-hoc recipient: a name AND an address, never one without the other.
+ *
+ * The pair is the unit everywhere off the audience path — typed into the
+ * composer, read out of a spreadsheet, stored in an address book — because a
+ * bare address leaves `newsletter_recipients.full_name` null, which is a send
+ * record that cannot say who was mailed and, months later, a list nobody can
+ * audit. It is also the prerequisite for greeting recipients by name, which the
+ * renderer does not do yet and cannot until the name is there to use.
+ */
+export type NewsletterContact = {
+  full_name: string;
+  email: string;
+};
+
+/** A saved address book, as `admin_contact_lists` returns it. */
+export type ContactListModel = {
+  id: string;
+  title: string;
+  description: string | null;
+  contact_count: number;
+  created_at: string;
+  updated_at: string;
+  total_count: number;
+};
+
+/** One person in an address book. `suppressed` is decided server-side. */
+export type ContactListContactModel = {
+  id: string;
+  full_name: string;
+  email: string;
+  suppressed: boolean;
+  total_count: number;
+};
+
+/** What `admin_contact_list_save` reports back. */
+export type ContactListSaveResult = {
+  list_id: string;
+  title: string;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  total: number;
+};
+
 /** What `admin_newsletter_queue` reports back, shown in the send confirmation. */
 export type NewsletterQueueResult = {
   queued: number;

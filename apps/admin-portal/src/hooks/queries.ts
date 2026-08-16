@@ -79,6 +79,10 @@ import type {
   NewsletterCampaignModel,
   NewsletterCampaignDetail,
   NewsletterStats,
+  NewsletterContact,
+  ContactListModel,
+  ContactListContactModel,
+  ContactListSaveResult,
   MarketingSubscriptionModel,
   EmailSuppressionModel,
 } from '@/lib/types';
@@ -2198,6 +2202,104 @@ export function useNewsletterStats(campaignId: string | undefined, enabled: bool
       if (error) throw error;
       return (data ?? [])[0] as NewsletterStats;
     },
+  });
+}
+
+// ─── Saved contact lists (address books) ──────────────────────────────────
+//
+// Reads are RPCs rather than PostgREST selects because both carry a derived
+// column the browser must not compute for itself: `total_count` for paging, and
+// `suppressed`, which is an anti-join against the suppression list. A picker
+// that decided suppression client-side would be one forgotten filter away from
+// showing an operator a person they cannot actually mail.
+
+export function useContactLists(search?: string) {
+  return useQuery({
+    queryKey: ['contact-lists', search ?? null] as const,
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ContactListModel[]> => {
+      const { data, error } = await supabase.rpc('admin_contact_lists', {
+        p_search: search ?? null,
+        p_limit: 100,
+        p_offset: 0,
+      });
+      if (error) throw error;
+      return (data ?? []) as ContactListModel[];
+    },
+  });
+}
+
+export function useContactListContacts(opts: {
+  listId: string | null;
+  search?: string;
+  page: number;
+  pageSize: number;
+}) {
+  return useQuery({
+    queryKey: [
+      'contact-list-contacts',
+      opts.listId,
+      opts.search ?? null,
+      opts.page,
+      opts.pageSize,
+    ] as const,
+    enabled: Boolean(opts.listId),
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ rows: ContactListContactModel[]; total: number }> => {
+      const { data, error } = await supabase.rpc('admin_contact_list_contacts', {
+        p_list_id: opts.listId!,
+        p_search: opts.search ?? null,
+        p_limit: opts.pageSize,
+        p_offset: opts.page * opts.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as ContactListContactModel[];
+      return { rows, total: rows[0]?.total_count ?? 0 };
+    },
+  });
+}
+
+/**
+ * Create an address book, or merge contacts into an existing one.
+ *
+ * `listId` null means "new list, this title". The RPC decides which of the two
+ * happened, so nothing here has to check whether a title is taken before
+ * writing — a check-then-write from the browser is a race that ends with two
+ * books the operator cannot tell apart.
+ */
+export function useSaveContactList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      title: string;
+      description?: string | null;
+      contacts: NewsletterContact[];
+      listId?: string | null;
+    }): Promise<ContactListSaveResult> => {
+      const { data, error } = await supabase.rpc('admin_contact_list_save', {
+        p_title: input.title,
+        p_description: input.description ?? null,
+        p_contacts: input.contacts,
+        p_list_id: input.listId ?? null,
+      });
+      if (error) throw error;
+      return (data ?? [])[0] as ContactListSaveResult;
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['contact-lists'] });
+      qc.invalidateQueries({ queryKey: ['contact-list-contacts', result?.list_id] });
+    },
+  });
+}
+
+export function useDeleteContactList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (listId: string) => {
+      const { error } = await supabase.rpc('admin_contact_list_delete', { p_list_id: listId });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contact-lists'] }),
   });
 }
 

@@ -1,117 +1,75 @@
-import {
-  Alert,
-  Checkbox,
-  Divider,
-  FormControlLabel,
-  SectionCard,
-  Stack,
-  Typography,
-} from '@sinnapi/ui';
 import type { AudienceApi } from '../../hooks/useCampaignAudience';
-import { useEmailImport } from '../../hooks/useEmailImport';
-import EmailChipInput from '../molecules/EmailChipInput';
-import EmailImportPanel from '../molecules/EmailImportPanel';
+import { useContactLibrary } from '../../hooks/useContactLibrary';
+import type { ExtraRecipientSource } from '../../schema';
+import ContactLibraryDialogs from '../molecules/ContactLibraryDialogs';
+import ManualContactsSection from './ManualContactsSection';
+import ImportContactsSection from './ImportContactsSection';
+import SavedListSection from './SavedListSection';
 
-type Props = { api: AudienceApi; disabled?: boolean };
+type Props = {
+  api: AudienceApi;
+  /** Which of the three non-account sources the operator is looking at. */
+  source: ExtraRecipientSource;
+  disabled?: boolean;
+};
 
 /**
- * Addresses that are not accounts: typed in, or uploaded from a spreadsheet.
+ * Recipients who are not account holders.
  *
- * ── Why the attestation exists ────────────────────────────────────────────
- * These addresses have no consent record — that is what makes them useful and
- * what makes them a liability. Nothing in the platform can verify that a list
- * somebody pasted in was collected lawfully, so it does the next best thing:
- * it makes the operator state it, and stores who stated it with the campaign
- * (`attested_by`). That is not a legal shield, it is accountability: the person
- * who answers for the list is recorded before the send, not reconstructed after
- * a complaint.
+ * Three ways in — a few people typed by hand, a spreadsheet uploaded now, and
+ * an address book saved earlier — of which exactly one is on screen. This
+ * component owns only what genuinely spans them: the address-book library,
+ * whose save dialog any section can open with its own contacts and whose
+ * delete confirmation the book picker raises.
  *
- * The checkbox gates the send in `useCampaignAudience.canQueue` and again in
- * `admin_newsletter_queue`, which raises `attestation_required` — so a browser
- * with the checkbox forced true still cannot queue an unattested list.
- *
- * Suppressed addresses are dropped server-side no matter what is uploaded here:
- * re-importing last year's spreadsheet is the most common way an unsubscribe
- * gets quietly undone, and it is the one thing an attestation must not buy.
+ * Nothing here holds recipient state. It lives in `useExtraRecipients`, reached
+ * through `api.extras`, so the numbers on this screen and the payload sent to
+ * `admin_newsletter_queue` are the same values rather than two views that have
+ * to be kept in step — and so switching sources cannot quietly drop a list that
+ * is still going to be mailed.
  */
-export default function AudienceExtras({ api, disabled }: Props) {
-  const importer = useEmailImport();
+export default function AudienceExtras({ api, source, disabled }: Props) {
+  const extras = api.extras;
+  const library = useContactLibrary();
 
   return (
-    <SectionCard title="Additional addresses">
-      <Stack spacing={2.5}>
-        <Typography variant="body2" color="text.secondary">
-          Send to people who do not have a Sinnapi account — type addresses in, or upload a list.
-        </Typography>
-
-        <EmailChipInput
-          value={api.manualEmails}
-          onChange={api.setManualEmails}
+    <>
+      {source === 'manual' && (
+        <ManualContactsSection
+          api={extras.manual}
+          contacts={extras.typedContacts}
           disabled={disabled}
+          onSaveToBook={library.openSaveDialog}
         />
+      )}
 
-        <Divider flexItem>
-          <Typography variant="caption" color="text.secondary">
-            or
-          </Typography>
-        </Divider>
-
-        <EmailImportPanel
-          parsing={importer.parsing}
-          error={importer.error}
-          result={importer.result}
+      {source === 'import' && (
+        <ImportContactsSection
+          api={extras.imported}
           disabled={disabled}
-          onFile={async (file) => {
-            await importer.parse(file);
-          }}
-          onClear={() => {
-            importer.clear();
-            api.setImportedEmails([]);
-          }}
+          onSaveToBook={library.openSaveDialog}
         />
+      )}
 
-        {/* Applying the parsed file is a separate, explicit step from parsing
-            it: the operator reads the accepted/rejected counts first, and only
-            then decides the file is the list they meant. */}
-        {importer.result && importer.result.emails.length > 0 && (
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={api.importedEmails.length > 0}
-                disabled={disabled}
-                onChange={(e) =>
-                  api.setImportedEmails(e.target.checked ? (importer.result?.emails ?? []) : [])
-                }
-              />
-            }
-            label={`Include the ${importer.result.emails.length} addresses from this file`}
-          />
-        )}
+      {source === 'saved' && (
+        <SavedListSection
+          api={extras.listSelection}
+          lists={library.lists}
+          listsLoading={library.isLoading}
+          disabled={disabled}
+          onDelete={library.askDelete}
+        />
+      )}
 
-        {api.needsAttestation && (
-          <Alert severity="warning" icon={false}>
-            <FormControlLabel
-              sx={{ alignItems: 'flex-start', m: 0 }}
-              control={
-                <Checkbox
-                  checked={api.attested}
-                  disabled={disabled}
-                  onChange={(e) => api.setAttested(e.target.checked)}
-                  sx={{ pt: 0.25 }}
-                />
-              }
-              label={
-                <Typography variant="body2">
-                  I confirm Sinnapi holds valid consent to send marketing email to these{' '}
-                  {api.extraEmails.length} addresses. This confirmation is recorded against my
-                  account and the campaign. Every message still carries a one-click unsubscribe
-                  link, and any address on the suppression list will be skipped automatically.
-                </Typography>
-              }
-            />
-          </Alert>
-        )}
-      </Stack>
-    </SectionCard>
+      <ContactLibraryDialogs
+        library={library}
+        onDeleted={(removed) => {
+          // The picker is still pointing at a book that no longer exists.
+          if (extras.listSelection.list?.id === removed.id) {
+            extras.listSelection.chooseList(null);
+          }
+        }}
+      />
+    </>
   );
 }

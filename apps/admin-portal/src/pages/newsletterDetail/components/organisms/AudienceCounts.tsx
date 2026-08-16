@@ -1,4 +1,4 @@
-import { Grid, Alert, Typography } from '@sinnapi/ui';
+import { Grid, Alert, Stack, Typography } from '@sinnapi/ui';
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined';
 import DoNotDisturbOnOutlinedIcon from '@mui/icons-material/DoNotDisturbOnOutlined';
@@ -23,8 +23,8 @@ export default function AudienceCounts({ counts, loading, audienceLabel }: Props
   const share = total > 0 ? Math.round((eligible / total) * 100) : 0;
 
   return (
-    <>
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+    <Stack spacing={2}>
+      <Grid container spacing={2}>
         <Grid item xs={6} md={3}>
           <SummaryTile
             label={`${audienceLabel} total`}
@@ -63,21 +63,27 @@ export default function AudienceCounts({ counts, loading, audienceLabel }: Props
       </Grid>
 
       {!loading && total > 0 && eligible === 0 && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning">
           <Typography variant="body2">
             None of these {total.toLocaleString()} accounts has opted in to this topic yet, so there
-            is nobody to send to. Consent is only collected at sign-up, so an existing user base
-            starts at zero and grows from there.
+            is nobody here to send to. Consent is only collected at sign-up, so an existing user
+            base starts at zero and grows from there.{' '}
+            {/* The dead end is only dead for this source. Said here, where the
+                zero is, rather than left for the operator to find. */}
+            <strong>
+              The other three sources above — by hand, a spreadsheet, or a saved address book — take
+              recipients who are not account holders.
+            </strong>
           </Typography>
         </Alert>
       )}
 
       {!loading && eligible > 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary">
           You can reach <strong>{eligible.toLocaleString()}</strong> of {total.toLocaleString()}{' '}
           {audienceLabel.toLowerCase()} ({share}%).
         </Typography>
       )}
-    </>
+    </Stack>
   );
 }

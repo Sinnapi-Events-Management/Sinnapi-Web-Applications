@@ -7,9 +7,7 @@ import CampaignHeader from './components/organisms/CampaignHeader';
 import CampaignDetailsForm from './components/organisms/CampaignDetailsForm';
 import CampaignComposer from './components/organisms/CampaignComposer';
 import CampaignPreviewDialog from './components/organisms/CampaignPreviewDialog';
-import AudienceCounts from './components/organisms/AudienceCounts';
-import AudiencePicker from './components/organisms/AudiencePicker';
-import AudienceExtras from './components/organisms/AudienceExtras';
+import AudienceStep from './components/organisms/AudienceStep';
 import CampaignReview from './components/organisms/CampaignReview';
 import CampaignStats from './components/organisms/CampaignStats';
 
@@ -96,15 +94,11 @@ export default function NewsletterDetail() {
       )}
 
       {api.step === 'audience' && (
-        <Stack spacing={3}>
-          <AudienceCounts
-            counts={api.audience.counts}
-            loading={api.audience.countsLoading}
-            audienceLabel={AUDIENCE_META[campaign.audience].label}
-          />
-          <AudiencePicker api={api.audience} disabled={locked} />
-          <AudienceExtras api={api.audience} disabled={locked} />
-        </Stack>
+        <AudienceStep
+          api={api.audience}
+          audienceLabel={AUDIENCE_META[campaign.audience].label}
+          disabled={locked}
+        />
       )}
 
       {api.step === 'review' && (
