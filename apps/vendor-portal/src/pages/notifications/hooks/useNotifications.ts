@@ -106,6 +106,7 @@ export function useNotifications() {
     },
     arrivals: sync.arrivals,
     alerts: sync.alerts,
+    chime: sync.chime,
     active,
     actions,
     markSelectedRead,

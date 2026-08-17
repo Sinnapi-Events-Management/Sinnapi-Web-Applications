@@ -2,6 +2,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -53,6 +54,15 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { label: 'Vendors', to: '/vendors', icon: StorefrontIcon, perm: 'vendor.manage' },
       { label: 'Bookings', to: '/bookings', icon: EventNoteIcon, perm: 'bookings.read' },
+      // Directly beneath Bookings, because it is a slice of them rather than a
+      // separate domain — and above Quotations, because a vendor's held date
+      // going unpaid is more urgent than a quote nobody has answered.
+      {
+        label: 'Awaiting payment',
+        to: '/bookings-awaiting-payment',
+        icon: HourglassBottomIcon,
+        perm: 'booking.payment.chase',
+      },
       { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon, perm: 'quotations.read' },
       { label: 'Events', to: '/events', icon: CelebrationIcon, perm: 'events.manage' },
     ],

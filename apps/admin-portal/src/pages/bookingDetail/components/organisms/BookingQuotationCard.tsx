@@ -1,13 +1,26 @@
 import { useMemo } from 'react';
-import { Button, InfoRow, SectionCard, SimpleTable, Stack, StatusChip } from '@sinnapi/ui';
+import {
+  Button,
+  Divider,
+  QuotationLineItems,
+  QuotationSummaryRows,
+  QuoteVarianceNote,
+  SectionCard,
+  Stack,
+  StatusChip,
+  quotationPricing,
+  quoteVariance,
+} from '@sinnapi/ui';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import DownloadIcon from '@mui/icons-material/Download';
-import { formatDate, formatMoney } from '@/lib/config';
 import { downloadQuotationPdf } from '@/lib/quotationPdf';
-import type { QuotationDocument } from '@/lib/types';
-import { quotationItemColumns, toItemRows } from '../../schema/Columns';
+import type { BookingAdminModel, QuotationDocument } from '@/lib/types';
 
-type Props = { quotation: QuotationDocument };
+type Props = {
+  quotation: QuotationDocument;
+  /** The booking this quote became, for the comparison the card exists to make. */
+  booking: BookingAdminModel;
+};
 
 /**
  * The quotation this booking came from, when there is one.
@@ -18,13 +31,19 @@ type Props = { quotation: QuotationDocument };
  * comparison. Bookings placed directly against a service carry no quotation at
  * all, so the whole card is absent then.
  *
- * The download reuses `downloadQuotationPdf` unchanged: `get_booking_admin`
- * returns the quotation in the same shape `get_event_quotation` does, so one
- * renderer serves both pages.
+ * The rendering is `@sinnapi/ui`'s, shared with both portals: an operator
+ * reading a quote during a dispute and the two parties arguing about it must
+ * be looking at the same document, laid out the same way. The download reuses
+ * `downloadQuotationPdf` unchanged — `get_booking_admin` returns the quotation
+ * in the same shape `get_event_quotation` does, so one renderer serves both
+ * pages.
  */
-export default function BookingQuotationCard({ quotation: q }: Props) {
-  const columns = useMemo(() => quotationItemColumns(q.currency), [q.currency]);
-  const rows = useMemo(() => toItemRows(q.items), [q.items]);
+export default function BookingQuotationCard({ quotation: q, booking }: Props) {
+  const pricing = useMemo(() => quotationPricing(q, q.items), [q]);
+  const variance = useMemo(
+    () => quoteVariance(pricing.total, booking.amount),
+    [pricing.total, booking.amount],
+  );
 
   return (
     <SectionCard
@@ -33,20 +52,19 @@ export default function BookingQuotationCard({ quotation: q }: Props) {
       accent="info"
       action={<StatusChip status={q.status} />}
     >
-      <Stack spacing={2}>
-        <Stack>
-          <InfoRow
-            label="Reference"
-            value={q.reference_no}
-            copyValue={q.reference_no ?? undefined}
-            mono
-          />
-          <InfoRow label="Sent" value={formatDate(q.sent_at)} />
-          <InfoRow label="Valid until" value={formatDate(q.valid_until)} />
-          <InfoRow label="Quoted total" value={formatMoney(q.total, q.currency)} />
-        </Stack>
+      <Stack spacing={2.5}>
+        <QuotationSummaryRows quotation={q} total={pricing.total} currency={pricing.currency} />
 
-        {rows.length > 0 && <SimpleTable columns={columns} rows={rows} getRowId={(r) => r.key} />}
+        {/* Directly under the quoted total: the booking was created at that
+            figure, so any gap was opened afterwards and is worth chasing. */}
+        <QuoteVarianceNote variance={variance} currency={pricing.currency} perspective="admin" />
+
+        {q.items.length > 0 && (
+          <>
+            <Divider />
+            <QuotationLineItems items={q.items} pricing={pricing} />
+          </>
+        )}
 
         <Button
           variant="outlined"

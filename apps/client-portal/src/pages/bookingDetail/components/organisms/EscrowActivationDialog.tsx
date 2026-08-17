@@ -14,9 +14,10 @@ import { formatMoney } from '@/lib/config';
 import { useEscrowActivation } from '../../hooks/useEscrowActivation';
 import PaymentRailPicker from '../molecules/PaymentRailPicker';
 import AdvanceTermsPanel from '../molecules/AdvanceTermsPanel';
-import AdvanceRateControl from '../molecules/AdvanceRateControl';
-import AdvanceConsentCheckbox from '../molecules/AdvanceConsentCheckbox';
+import AdvanceRateControl from '@/components/paymentTerms/components/molecules/AdvanceRateControl';
+import AdvanceConsentCheckbox from '@/components/paymentTerms/components/molecules/AdvanceConsentCheckbox';
 import EscrowCostBreakdown from '../molecules/EscrowCostBreakdown';
+import SinglePaymentNotice from '../molecules/SinglePaymentNotice';
 import type { BookingDetailModel } from '@/lib/types';
 
 type Props = {
@@ -117,6 +118,12 @@ export default function EscrowActivationDialog({
             <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.25 }}>
               What you pay
             </Typography>
+            {/* Immediately above the breakdown, which is the one place a client
+                can misread the advance/balance split as a payment plan. Here
+                the total is known, so it is named. */}
+            <Box sx={{ mb: 1.5 }}>
+              <SinglePaymentNotice grossAmount={quote?.gross_amount ?? null} currency={currency} />
+            </Box>
             <EscrowCostBreakdown
               quote={quote}
               currency={currency}

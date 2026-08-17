@@ -9,12 +9,12 @@ import {
   heroAvatarSx,
   heroDividerSx,
 } from '@sinnapi/ui';
-import type { ProfileContactRel, VendorBookingDetailModel } from '@/lib/types';
+import type { DirectoryProfile, VendorBookingDetailModel } from '@/lib/types';
 import BookingHeroMeta from '../molecules/BookingHeroMeta';
 
 type Props = {
   booking: VendorBookingDetailModel;
-  client: ProfileContactRel | null;
+  client: DirectoryProfile | null;
   timeWindow: string | null;
 };
 

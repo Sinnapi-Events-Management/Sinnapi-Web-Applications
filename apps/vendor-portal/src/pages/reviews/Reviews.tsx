@@ -12,12 +12,12 @@ import VendorGate from '@/vendor/VendorGate';
 import ReviewResponse from '@/components/review/ReviewResponse';
 import { formatDate } from '@/lib/config';
 import { one } from '@/lib/rel';
-import type { ProfileRel, ReviewResponseRel } from '@/lib/types';
+import type { ReviewResponseRel } from '@/lib/types';
 import { useReviews } from './hooks/useReviews';
 import { EmptyState } from '@sinnapi/ui/router';
 
 function ReviewsList({ vendorId }: { vendorId: string }) {
-  const { rows, isLoading, error } = useReviews(vendorId);
+  const { rows, clientName, isLoading, error } = useReviews(vendorId);
   return (
     <QueryState isLoading={isLoading} error={error}>
       {rows.length === 0 ? (
@@ -33,9 +33,7 @@ function ReviewsList({ vendorId }: { vendorId: string }) {
               <Card key={r.id} variant="outlined">
                 <CardContent>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle1">
-                      {one<ProfileRel>(r.profiles)?.full_name ?? 'Client'}
-                    </Typography>
+                    <Typography variant="subtitle1">{clientName(r.client_id)}</Typography>
                     <Rating value={r.rating} size="small" readOnly />
                   </Stack>
                   {r.title && (

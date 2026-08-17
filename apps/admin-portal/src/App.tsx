@@ -18,6 +18,7 @@ import ApplicationDetail from '@/pages/applicationDetail';
 import Vendors from '@/pages/vendors';
 import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
+import UnpaidBookings from '@/pages/unpaidBookings';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
 import Events from '@/pages/events';
@@ -107,6 +108,13 @@ export default function App() {
           {/* The detail page reads on `bookings.read`; the status overrides it
               offers are gated separately, inside `admin_set_booking_status`. */}
           <Route path="/bookings/:id" element={g('bookings.read', <BookingDetail />)} />
+          {/* Gated on the chase permission rather than `bookings.read`: the
+              page's whole purpose is the three write actions on its rows, and
+              a read-only visitor would get a queue of buttons that refuse. */}
+          <Route
+            path="/bookings-awaiting-payment"
+            element={g('booking.payment.chase', <UnpaidBookings />)}
+          />
           <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
           <Route path="/events" element={g('events.manage', <Events />)} />
           <Route path="/events/:id" element={g('events.manage', <EventDetail />)} />

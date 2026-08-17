@@ -124,22 +124,38 @@ async function dispatchAddressed(supa: Supa, trigger: string, payload: Payload):
   const locale = profile.locale ?? 'en';
 
   // ---- in-app ----
-  const inApp = await resolveTemplate(supa, trigger, audience, 'in_app', locale);
-  const title = render(inApp?.subject ?? humanise(trigger), enriched);
-  const body = inApp?.body_template ? render(inApp.body_template, enriched) : null;
+  // `email_only` rows come from `tg_notification_email`, which enqueues them
+  // *from* an in-app notification that already exists — the lifecycle flows
+  // write their row inline so the bell, the badge and the desktop alert do not
+  // wait on this cron's one-minute tick. Writing another here would show the
+  // user every quotation and booking event twice.
+  const emailOnly = payload.email_only === true;
 
-  await supa.from('notifications').insert({
-    recipient_id: recipientId,
-    trigger_key: trigger,
-    channel: 'in_app',
-    title,
-    body,
-    data: {
-      ...pickReferences(enriched),
-      audience,
-      url: deepLink(audience, enriched),
-    },
-  });
+  let title = render(humanise(trigger), enriched);
+  if (!emailOnly) {
+    const inApp = await resolveTemplate(supa, trigger, audience, 'in_app', locale);
+    title = render(inApp?.subject ?? humanise(trigger), enriched);
+    const body = inApp?.body_template ? render(inApp.body_template, enriched) : null;
+
+    await supa.from('notifications').insert({
+      recipient_id: recipientId,
+      trigger_key: trigger,
+      channel: 'in_app',
+      title,
+      body,
+      data: {
+        ...pickReferences(enriched),
+        audience,
+        url: deepLink(audience, enriched),
+        // This pass owns both channels for this notification: the row above and
+        // the mail below. `trg_notification_email` fires on the insert and
+        // would otherwise enqueue a second copy of the same email, because its
+        // rule is simply "an email template exists for this trigger" — and for
+        // every escrow, settlement and payment-window trigger, one does.
+        dispatched: true,
+      },
+    });
+  }
 
   // ---- email ----
   if (!profile.email) return;
@@ -177,7 +193,9 @@ async function dispatchLegacy(supa: Supa, eventType: string, payload: Payload): 
       channel: 'in_app',
       title: humanise(route.trigger),
       body: null,
-      data: { aggregate: eventType, id: payload.id ?? null },
+      // Same ownership claim as the addressed path: this function sends the
+      // legacy email itself, two lines down.
+      data: { aggregate: eventType, id: payload.id ?? null, dispatched: true },
     });
 
     const { data: prof } = await supa.from('profiles').select('email').eq('id', rid).maybeSingle();
@@ -242,6 +260,21 @@ async function enrich(supa: Supa, payload: Payload): Promise<Payload> {
     'psp_fee_amount',
     'amount',
     'shortfall',
+    // Settlement figures. `requested_amount` is what the vendor asked for,
+    // `approved_amount` what the client agreed, `final_amount` what was paid
+    // and `withheld_amount` what goes back — a template that prints any of
+    // them raw would put `140000.00` in front of a person.
+    'requested_amount',
+    'approved_amount',
+    'withheld_amount',
+    'final_amount',
+    'refunded_amount',
+    // Quotation figures. `total` is what the vendor quoted and what the client
+    // accepts, so it is the number most of the quote copy prints — unformatted
+    // it would read as `226600.00`. Kept in step with `notify_enrich`, which
+    // formats the same keys for the in-app row.
+    'total',
+    'subtotal',
   ]) {
     if (out[key] != null) out[key] = formatAmount(Number(out[key]));
   }
@@ -249,6 +282,27 @@ async function enrich(supa: Supa, payload: Payload): Promise<Payload> {
   for (const key of ['advance_release_due_at', 'event_date', 'auto_release_due_at']) {
     if (out[key]) out[key] = formatDate(String(out[key]));
   }
+
+  // A quote's validity, as a day rather than an instant: the window is two
+  // weeks by default, so the hour is noise the reader has to look past. Zoned
+  // to Kampala because unlike `event_date` this is a real timestamptz, and a
+  // quote lapsing at 01:00 local would print as the previous day in UTC — the
+  // one direction of error that makes a live quote read as already dead.
+  if (out.valid_until) out.valid_until = formatZonedDate(String(out.valid_until));
+
+  // Settlement deadlines are hours away, not days, so the date alone would be
+  // useless — "respond by 18 August" when the clock runs out at 14:00 reads as
+  // a whole day of slack the person does not have. The booking payment window
+  // is the same shape and clamps to the event start, so a short-notice booking
+  // can be due at 09:00 on a morning the bare date would render as a full day.
+  for (const key of ['client_due_at', 'vendor_due_at', 'admin_due_at', 'payment_due_at']) {
+    if (out[key]) out[key] = formatDateTime(String(out[key]));
+  }
+
+  // How long the client has left, as a whole number of hours. Written by the
+  // reminder sweep as the mark it fired on, so it is already round — this only
+  // guards a template printing `6.000000000001`.
+  if (out.hours_left != null) out.hours_left = String(Math.round(Number(out.hours_left)));
 
   if (out.method) out.method = humanise(String(out.method));
 
@@ -278,6 +332,7 @@ const REFERENCE_KEYS = [
   'payout_id',
   'refund_id',
   'dispute_id',
+  'settlement_id',
   'subscription_id',
   'review_id',
   'event_id',
@@ -306,6 +361,38 @@ function formatDate(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** The same, for an instant whose *day* is what matters, read in Kampala. */
+function formatZonedDate(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', {
+    timeZone: 'Africa/Kampala',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/**
+ * A deadline, in the timezone the deadline is actually about.
+ *
+ * Recipients are in Uganda and the clocks these render are short — six hours,
+ * not six days — so an instant printed in the server's UTC would be three
+ * hours wrong in the direction that costs someone their window.
+ */
+function formatDateTime(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString('en-GB', {
+    timeZone: 'Africa/Kampala',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }
 
 /**

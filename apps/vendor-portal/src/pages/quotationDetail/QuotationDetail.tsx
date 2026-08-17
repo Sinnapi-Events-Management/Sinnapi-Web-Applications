@@ -1,24 +1,21 @@
-import { Box, Grid, Stack, QueryState } from '@sinnapi/ui';
+import { Box, Grid, QueryState } from '@sinnapi/ui';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
 import QuotationHero from './components/organisms/QuotationHero';
-import QuotationRequestCard from './components/organisms/QuotationRequestCard';
-import QuotationQuoteCard from './components/organisms/QuotationQuoteCard';
-import QuotationFactsCard from './components/organisms/QuotationFactsCard';
-import QuotationTimelineCard from './components/organisms/QuotationTimelineCard';
-import QuotationActionsCard from './components/organisms/QuotationActionsCard';
+import QuotationWorkColumn from './components/organisms/QuotationWorkColumn';
+import QuotationStateColumn from './components/organisms/QuotationStateColumn';
 import { useQuotationDetail } from './hooks/useQuotationDetail';
 
 /**
  * A single quotation as the vendor sees it: who asked, what they asked for,
- * what was quoted back, and what can still be done about it.
+ * what was quoted back, what it pays and what can still be done about it.
  *
- * The wide column is the work — the brief, then the quote, then the record. The
- * narrow one is the state: what can be done to it and how it got here. That is
- * the same split the client's page uses, which is deliberate; the two sides are
- * looking at one object and should recognise each other's screen.
+ * The wide column is the work; the narrow one is the state. That is the same
+ * split the client's page uses, which is deliberate; the two sides are looking
+ * at one object and should recognise each other's screen.
  *
- * Layout only — `useQuotationDetail` owns the reads and each section owns its
- * own content.
+ * This file is the composition and nothing else — no condition about when a
+ * card appears, no arithmetic on the price. `useQuotationDetail` owns the reads
+ * and every derived figure, and each column owns its own contents.
  */
 export default function QuotationDetail() {
   const {
@@ -27,7 +24,8 @@ export default function QuotationDetail() {
     client,
     event,
     items,
-    isPriced,
+    pricing,
+    advance,
     isEditable,
     isLapsed,
     isLoading,
@@ -49,28 +47,27 @@ export default function QuotationDetail() {
         />
       ) : (
         <>
-          <QuotationHero quotation={quotation} client={client} event={event} isPriced={isPriced} />
+          <QuotationHero quotation={quotation} client={client} event={event} pricing={pricing} />
 
           <Grid container spacing={3}>
             <Grid item xs={12} md={7}>
-              <Stack spacing={3}>
-                {quotation.request_details && (
-                  <QuotationRequestCard requestDetails={quotation.request_details} />
-                )}
-                <QuotationQuoteCard
-                  quotation={quotation}
-                  items={items}
-                  isEditable={isEditable}
-                  isPriced={isPriced}
-                />
-                <QuotationFactsCard quotation={quotation} client={client} event={event} />
-              </Stack>
+              <QuotationWorkColumn
+                quotation={quotation}
+                client={client}
+                event={event}
+                items={items}
+                pricing={pricing}
+                isEditable={isEditable}
+              />
             </Grid>
             <Grid item xs={12} md={5}>
-              <Stack spacing={3}>
-                <QuotationActionsCard quotation={quotation} isLapsed={isLapsed} />
-                <QuotationTimelineCard quotationId={quotationId} status={quotation.status} />
-              </Stack>
+              <QuotationStateColumn
+                quotationId={quotationId}
+                quotation={quotation}
+                pricing={pricing}
+                advance={advance}
+                isLapsed={isLapsed}
+              />
             </Grid>
           </Grid>
         </>

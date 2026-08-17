@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Alert, DataTable, PageTitle } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useQuotations } from './hooks/useQuotations';
@@ -5,13 +6,28 @@ import { quotationColumns } from './schema';
 import CompareQuotesAction from './components/molecules/CompareQuotesAction';
 
 export default function Quotations() {
-  const { rows, total, isLoading, isFetching, error, table, openQuotation } = useQuotations();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    table,
+    bookingFor,
+    openQuotation,
+    openBookingForm,
+  } = useQuotations();
+
+  const columns = useMemo(
+    () => quotationColumns({ bookingFor, onBook: openBookingForm }),
+    [bookingFor, openBookingForm],
+  );
 
   return (
     <>
       <PageTitle
         title="Quotations"
-        subtitle="Open a quote to see what it covers, then accept, send it back or void it."
+        subtitle="Open a quote to see what it covers, then accept, send it back or void it. Once accepted, create the booking to lock in your date."
         action={<CompareQuotesAction />}
       />
 
@@ -22,7 +38,7 @@ export default function Quotations() {
       )}
 
       <DataTable
-        columns={quotationColumns}
+        columns={columns}
         rows={rows}
         getRowId={(q) => q.id}
         rowCount={total}

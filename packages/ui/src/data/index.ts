@@ -3,3 +3,4 @@
 export * from './table';
 export * from './useTableState';
 export * from './useRealtimeRefresh';
+export * from './useNow';

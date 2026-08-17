@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import {
   Alert,
+  Box,
   Button,
   CircularProgress,
   Dialog,
@@ -16,12 +17,14 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { IconBadge } from '../molecules/IconBadge';
 import { bookingActionSpec, type BookingAction } from '../molecules/bookingTransitions';
 
 const ICONS: Record<BookingAction, ReactNode> = {
   start: <PlayCircleOutlineIcon />,
   accept: <CheckCircleOutlineIcon />,
+  counter: <SwapHorizIcon />,
   decline: <CancelOutlinedIcon />,
   complete: <TaskAltIcon />,
 };
@@ -39,6 +42,21 @@ export type BookingActionDialogProps = {
   error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
+  /**
+   * A control the action needs and the others do not — the payment rail on a
+   * counter-proposal. Sits above the reason field, because on that action the
+   * reason explains the choice made here.
+   *
+   * A slot rather than a prop per action: the alternative is this dialog
+   * importing a picker it only sometimes renders, which is how one shared
+   * confirmation turns into a switch over every transition in the product.
+   */
+  extra?: ReactNode;
+  /**
+   * Blocks confirmation on top of the reason rule — a counter with no rail
+   * chosen is not submittable however much prose is attached to it.
+   */
+  disableConfirm?: boolean;
 };
 
 /**
@@ -67,10 +85,12 @@ export function BookingActionDialog({
   error,
   onConfirm,
   onCancel,
+  extra,
+  disableConfirm,
 }: BookingActionDialogProps) {
   const spec = action ? bookingActionSpec(action) : null;
   const needsReason = !!spec?.requiresReason;
-  const canSubmit = !busy && (!needsReason || reason.trim().length > 0);
+  const canSubmit = !busy && !disableConfirm && (!needsReason || reason.trim().length > 0);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -100,6 +120,8 @@ export function BookingActionDialog({
             {spec?.description}
           </DialogContentText>
         </Stack>
+
+        {extra && <Box sx={{ mt: 3, textAlign: 'left' }}>{extra}</Box>}
 
         {needsReason && (
           <TextField

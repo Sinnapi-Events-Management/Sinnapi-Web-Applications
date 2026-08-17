@@ -1,6 +1,7 @@
-import { Card, CardContent, Chip, Stack, StatusChip, Typography } from '@sinnapi/ui';
+import { Card, CardContent, Chip, Divider, Stack, StatusChip, Typography } from '@sinnapi/ui';
 import { formatDate } from '@/lib/config';
 import type { MyEventModel } from '@/lib/types';
+import EventPaymentTermsRow from './EventPaymentTermsRow';
 
 type Props = {
   event: MyEventModel;
@@ -23,6 +24,12 @@ export default function MyEventCard({ event }: Props) {
         <Typography variant="body2" color="text.secondary">
           {formatDate(event.event_date)} · {event.location ?? '—'}
         </Typography>
+
+        {/* The terms belong on the card rather than behind a detail page,
+            because an event has no detail page — and because they are the one
+            thing here that binds bookings the client has not made yet. */}
+        <Divider sx={{ my: 1.5 }} />
+        <EventPaymentTermsRow event={event} />
       </CardContent>
     </Card>
   );

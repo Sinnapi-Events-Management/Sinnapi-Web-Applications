@@ -5,7 +5,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query';
-import { paginate, type PageParams, type Paged } from '@sinnapi/ui';
+import { paginate, BOOKING_PAYMENT_WINDOW_COLUMNS, type PageParams, type Paged } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
@@ -15,14 +15,18 @@ import type {
   EventFacetCounts,
   ServiceRegionModel,
   ProfileModel,
+  DirectoryProfile,
   MyApplicationModel,
   VendorBookingModel,
   VendorBookingDetailModel,
   VendorBookingEscrowModel,
+  SettlementRequestModel,
+  SettlementEventModel,
   BookingStatusEventModel,
   VendorQuotationModel,
   QuotationDetailModel,
   QuotationStatusEventModel,
+  QuotationBookingModel,
   TemplateModel,
   ServiceModel,
   MediaModel,
@@ -86,6 +90,61 @@ export function useProfile() {
   });
 }
 
+/** Frozen so an empty result cannot be mistaken for a mutable cache entry. */
+const EMPTY_DIRECTORY: Record<string, DirectoryProfile> = Object.freeze({});
+
+/**
+ * Resolves counterparty profiles by id — the vendor portal's only way to put a
+ * name to a client.
+ *
+ * `profiles_self_read` restricts the table to the caller's own row, so every
+ * `profiles:client_id(...)` embed this portal used to select resolved to null
+ * and every client rendered as the placeholder "Client". The rows now come from
+ * `get_profile_directory`, which discloses name and avatar for people the
+ * vendor already shares a quotation, booking or conversation with, and contact
+ * details only once that engagement is live.
+ *
+ * Callers pass the ids off a page of rows, so duplicates and nulls are expected
+ * and cleaned up here. The ids are sorted into the query key so two renders of
+ * the same page hit one cache entry regardless of row order.
+ */
+export function useProfileDirectory(ids: Array<string | null | undefined>) {
+  // Not memoized on purpose: react-query hashes the key structurally, so a
+  // fresh array with the same contents is the same cache entry. Memoizing here
+  // would only move the cost around and would need the caller to hold a stable
+  // array reference.
+  const unique = Array.from(new Set(ids.filter((v): v is string => !!v))).sort();
+
+  const query = useQuery({
+    queryKey: ['profile-directory', unique] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_profile_directory', { p_ids: unique });
+      if (error) throw error;
+      const rows = (data ?? []) as DirectoryProfile[];
+      return Object.fromEntries(rows.map((r) => [r.id, r])) as Record<string, DirectoryProfile>;
+    },
+    enabled: unique.length > 0,
+    // Names and avatars are not what a vendor is refreshing this page to see.
+    staleTime: 5 * 60_000,
+  });
+
+  const profiles = query.data ?? EMPTY_DIRECTORY;
+
+  return {
+    profiles,
+    /** `null` for an id that resolved to nothing — unknown, or not ours to see. */
+    profile: (id: string | null | undefined) => (id ? (profiles[id] ?? null) : null),
+    isLoading: query.isLoading,
+    error: query.error,
+  };
+}
+
+/** The single-id case, which is most detail pages. */
+export function useDirectoryProfile(id: string | null | undefined) {
+  const { profile, isLoading, error } = useProfileDirectory([id]);
+  return { profile: profile(id), isLoading, error };
+}
+
 /** Query key for the erasure request, so the settings page can invalidate it after filing one. */
 export const DELETION_REQUEST_KEY = ['deletion-request'] as const;
 
@@ -130,8 +189,11 @@ export function useVendorBookings(vendorId: string | undefined, params: PagePara
         supabase
           .from('bookings')
           .select(
-            'id,reference_no,status,event_date,amount,currency,client_id,profiles:client_id(full_name)',
-            { count: 'exact' },
+            'id,reference_no,status,event_date,amount,currency,client_id,payment_type,' +
+              `payment_terms_status,${BOOKING_PAYMENT_WINDOW_COLUMNS}`,
+            {
+              count: 'exact',
+            },
           )
           .eq('vendor_id', vendorId!),
         params,
@@ -142,17 +204,39 @@ export function useVendorBookings(vendorId: string | undefined, params: PagePara
   });
 }
 
+/**
+ * One booking with everything behind it: the quotation the vendor sent, with
+ * that quote's priced lines, and the event it was requested against.
+ *
+ * Embedded rather than fetched separately because both answer questions asked
+ * *about this booking* — "is this the price I quoted?", "which request was
+ * this?" — and a second round trip per card turns one page into three loading
+ * states.
+ *
+ * Both resolve to null legitimately: a booking placed straight against a
+ * service never had a quotation, and `events_public_read` withholds a client's
+ * private event from the vendor. Neither is an error, and neither card draws.
+ */
+const VENDOR_BOOKING_DETAIL_SELECT = [
+  '*',
+  'quotations(id,reference_no,status,currency,subtotal,discount_total,tax_total,total,' +
+    'valid_until,request_details,version_no,advance_rate,advance_release_days_before,' +
+    'advance_terms_note,sent_at,responded_at,created_at,' +
+    'quotation_items(id,description,quantity,unit_price,line_total,sort_order))',
+  'events(id,title,event_date,location,payment_type,payment_terms_note)',
+].join(',');
+
 export function useVendorBooking(id: string) {
   return useQuery({
     queryKey: ['v-booking', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select('*,profiles:client_id(full_name,email)')
+        .select(VENDOR_BOOKING_DETAIL_SELECT)
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
-      return (data as VendorBookingDetailModel) ?? null;
+      return (data as unknown as VendorBookingDetailModel) ?? null;
     },
   });
 }
@@ -171,13 +255,59 @@ export function useVendorBookingEscrow(bookingId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('escrow_transactions')
-        .select('id,status,currency,gross_amount,advance_amount,balance_amount')
+        .select(
+          'id,status,currency,gross_amount,advance_amount,balance_amount,timers_frozen_at,advance_released_at,advance_release_due_at',
+        )
         .eq('booking_id', bookingId!)
         .maybeSingle();
       if (error) throw error;
       return (data as VendorBookingEscrowModel) ?? null;
     },
     enabled: !!bookingId,
+  });
+}
+
+/**
+ * The settlement request on one booking, or `null` when the vendor has not
+ * asked yet.
+ *
+ * Newest first and limited to one: a booking can only have one *live* request
+ * (a partial unique index enforces it), but a contested or withdrawn one stays
+ * on the record and a second attempt is legitimate. The latest row is the one
+ * the page is about; the rest are history and are read through the trail.
+ */
+export function useVendorBookingSettlement(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['v-settlement', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_requests')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as SettlementRequestModel) ?? null;
+    },
+    enabled: !!bookingId,
+  });
+}
+
+/** A settlement's visible trail, oldest first — the order it reads in. */
+export function useSettlementEvents(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['v-settlement-events', requestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_events')
+        .select('id,kind,actor_role,amount,note,created_at')
+        .eq('request_id', requestId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SettlementEventModel[];
+    },
+    enabled: !!requestId,
   });
 }
 
@@ -210,7 +340,7 @@ export function useVendorQuotations(vendorId: string | undefined, params: PagePa
         supabase
           .from('quotations')
           .select(
-            'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,profiles:client_id(full_name)',
+            'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id',
             { count: 'exact' },
           )
           .eq('vendor_id', vendorId!),
@@ -223,8 +353,9 @@ export function useVendorQuotations(vendorId: string | undefined, params: PagePa
 }
 
 /**
- * One quotation, fully resolved: the client who asked, the priced lines and the
- * event it was requested for.
+ * One quotation with its priced lines and the event it was requested for. The
+ * client is only a `client_id` here — RLS keeps their profile row out of an
+ * embed — and is resolved through `useProfileDirectory`.
  *
  * The PostgREST error is raised rather than swallowed. It used to be dropped on
  * the floor and the page rendered "Quotation not found" — which told a vendor
@@ -237,7 +368,7 @@ export function useQuotation(id: string) {
       const { data, error } = await supabase
         .from('quotations')
         .select(
-          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),profiles:client_id(full_name),events(id,title,event_date)',
+          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date)',
         )
         .eq('id', id)
         .maybeSingle();
@@ -246,6 +377,85 @@ export function useQuotation(id: string) {
     },
     enabled: !!id,
   });
+}
+
+/**
+ * The columns the quotation pages need about a booking made from a quote.
+ *
+ * The keyed variant repeats the list rather than concatenating onto the first:
+ * supabase-js parses the select string as a *literal type* to infer the row
+ * shape, and a runtime concatenation widens it to `string` — at which point the
+ * inferred row becomes `GenericStringError` and the cast below stops compiling.
+ */
+const QUOTATION_BOOKING_SELECT = 'id,reference_no,status,event_date,start_time,end_time,location';
+const QUOTATION_BOOKING_KEYED_SELECT =
+  'id,reference_no,status,event_date,start_time,end_time,location,quotation_id';
+
+/** Stable empty map, so consumers do not re-render on every fetch. */
+const EMPTY_QUOTATION_BOOKINGS: Record<string, QuotationBookingModel> = Object.freeze({});
+
+/**
+ * The booking a client made from this quotation, or null while they have not
+ * scheduled it yet.
+ *
+ * Read off `bookings` rather than embedded on the quotation because the
+ * relation runs the other way — `bookings.quotation_id` is the foreign key —
+ * and because this is the one fact on the quote page that changes without the
+ * quotation row changing.
+ *
+ * `maybeSingle` rather than a list: `ux_bookings_quotation` guarantees at most
+ * one live booking per quote, so anything else is a schema violation and should
+ * surface as an error rather than be silently sliced to `[0]`.
+ */
+export function useQuotationBooking(quotationId: string | undefined) {
+  return useQuery({
+    queryKey: ['v-quotation-booking', quotationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(QUOTATION_BOOKING_SELECT)
+        .eq('quotation_id', quotationId!)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as QuotationBookingModel) ?? null;
+    },
+    enabled: !!quotationId,
+  });
+}
+
+/**
+ * The bookings made from a page of quotations, keyed by quotation.
+ *
+ * One query for the whole page rather than one per row — the same shape as
+ * `useProfileDirectory` above, and for the same reason: a list column that
+ * needs a fact the row does not carry must not become N requests.
+ */
+export function useQuotationBookings(quotationIds: Array<string | null | undefined>) {
+  const unique = Array.from(new Set(quotationIds.filter((v): v is string => !!v))).sort();
+
+  const query = useQuery({
+    queryKey: ['v-quotation-bookings', unique] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(QUOTATION_BOOKING_KEYED_SELECT)
+        .in('quotation_id', unique)
+        .is('deleted_at', null);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<QuotationBookingModel & { quotation_id: string }>;
+      return Object.fromEntries(rows.map((r) => [r.quotation_id, r])) as Record<
+        string,
+        QuotationBookingModel
+      >;
+    },
+    enabled: unique.length > 0,
+  });
+
+  return {
+    bookings: query.data ?? EMPTY_QUOTATION_BOOKINGS,
+    isLoading: query.isLoading,
+  };
 }
 
 /**
@@ -643,9 +853,7 @@ export function useVendorReviews(vendorId?: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('reviews')
-        .select(
-          'id,rating,title,body,status,created_at,review_responses(id,body),profiles:client_id(full_name)',
-        )
+        .select('id,rating,title,body,status,created_at,client_id,review_responses(id,body)')
         .eq('vendor_id', vendorId!)
         .order('created_at', { ascending: false });
       return (data ?? []) as ReviewModel[];

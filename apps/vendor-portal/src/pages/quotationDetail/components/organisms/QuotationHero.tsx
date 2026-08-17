@@ -9,14 +9,15 @@ import {
   heroAvatarSx,
   heroDividerSx,
 } from '@sinnapi/ui';
-import type { EventRefModel, ProfileRel, QuotationDetailModel } from '@/lib/types';
+import type { QuotationPricing } from '@sinnapi/ui';
+import type { DirectoryProfile, EventRefModel, QuotationDetailModel } from '@/lib/types';
 import QuotationHeroMeta from '../molecules/QuotationHeroMeta';
 
 type Props = {
   quotation: QuotationDetailModel;
-  client: ProfileRel | null;
+  client: DirectoryProfile | null;
   event: EventRefModel | null;
-  isPriced: boolean;
+  pricing: QuotationPricing;
 };
 
 /**
@@ -26,7 +27,7 @@ type Props = {
  * The client's name is not a link. A vendor has no client profile page to reach
  * — the way to them is the message thread, which the actions column offers.
  */
-export default function QuotationHero({ quotation: q, client, event, isPriced }: Props) {
+export default function QuotationHero({ quotation: q, client, event, pricing }: Props) {
   const name = client?.full_name ?? 'Client';
 
   return (
@@ -54,7 +55,7 @@ export default function QuotationHero({ quotation: q, client, event, isPriced }:
       <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Box sx={{ position: 'relative' }}>
-        <QuotationHeroMeta quotation={q} event={event} isPriced={isPriced} />
+        <QuotationHeroMeta quotation={q} event={event} pricing={pricing} />
       </Box>
     </HeroSurface>
   );

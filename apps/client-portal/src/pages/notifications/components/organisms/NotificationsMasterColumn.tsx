@@ -25,6 +25,7 @@ export default function NotificationsMasterColumn({ page }: Props) {
         availableDomains={feed.availableDomains}
         resultCount={feed.rows.length}
         alerts={page.alerts}
+        chime={page.chime}
       />
       <NotificationFeed
         groups={feed.groups}

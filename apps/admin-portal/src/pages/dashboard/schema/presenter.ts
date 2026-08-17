@@ -11,6 +11,7 @@ import {
 import { describeAction } from '@/lib/audit';
 import { formatRelative } from '@/lib/config';
 import { QUEUES } from './queues';
+import type { UnpaidBookingCounts } from '@/lib/types';
 import type {
   ActivityModel,
   ActivityRow,
@@ -213,6 +214,48 @@ function toHero(
   }
 
   return null;
+}
+
+/**
+ * Fold the unpaid-bookings card into the queue band.
+ *
+ * That queue is not part of `admin_dashboard_overview`, and deliberately so.
+ * The RPC's queue helper is shaped around "count rows of table X in statuses
+ * Y" — unpaid bookings are a join across a status, a settled-at stamp, an
+ * overdue flag and a deadline that may be an admin's override, none of which
+ * that shape expresses. Bending the helper to fit would have made every other
+ * queue pay for this one; a second, dedicated count RPC costs one small query
+ * on a page that already makes several.
+ *
+ * Re-sorted through `QUEUES` afterwards so the card lands in its intended
+ * working position rather than wherever it was appended.
+ */
+export function mergeUnpaidQueue(
+  queues: QueueCardModel[],
+  counts: UnpaidBookingCounts | undefined,
+): QueueCardModel[] {
+  const def = QUEUES.find((q) => q.key === 'unpaid_bookings');
+  // No counts means the query is still in flight or the admin lacks the
+  // permission and it errored. Either way the card would be a confident zero,
+  // which on this queue reads as "nothing to do" — so draw nothing instead.
+  if (!def || !counts) return queues;
+
+  const card: QueueCardModel = {
+    key: def.key,
+    label: def.label,
+    to: def.to,
+    accent: def.accent,
+    // The backlog is everything unpaid; the overdue half is what the card
+    // badges. Matching how the other queues read: count is the work, overdue
+    // is the part that is late.
+    count: counts.awaiting + counts.overdue,
+    overdue: counts.overdue,
+    waiting: formatAge(counts.oldest_overdue_at),
+  };
+
+  const merged = [...queues.filter((q) => q.key !== 'unpaid_bookings'), card];
+  const order = new Map(QUEUES.map((q, i) => [q.key, i]));
+  return merged.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
 }
 
 export function toDashboardModel(

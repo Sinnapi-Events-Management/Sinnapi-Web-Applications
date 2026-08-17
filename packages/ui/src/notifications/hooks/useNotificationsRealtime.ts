@@ -34,12 +34,22 @@ export type NotificationsRealtimeClient = {
   removeChannel: (channel: never) => unknown;
 };
 
-/** The raw table row a postgres_changes payload carries. */
+/**
+ * The raw table row a postgres_changes payload carries.
+ *
+ * `data` is included because the payload is the whole row and this is the only
+ * copy of it an arrival has: an alert clicked from another window has to route
+ * to the booking or quote the notification is *about*, and that id lives
+ * nowhere else until the feed refetches. Optional rather than required so a
+ * replication setup configured with a reduced REPLICA IDENTITY still type-checks
+ * against the rest of the shape.
+ */
 export type NotificationRealtimeRow = {
   id: string;
   trigger_key: string;
   title: string | null;
   body: string | null;
+  data?: Record<string, unknown> | null;
   read_at: string | null;
   created_at: string | null;
 };

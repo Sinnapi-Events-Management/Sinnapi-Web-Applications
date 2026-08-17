@@ -63,8 +63,28 @@ export function useEscrowSection(booking: BookingDetailModel | null | undefined)
     error,
     refresh,
 
-    /** Vendors accept before money is discussed; escrow is meaningless before that. */
-    canActivate: booking?.status === 'confirmed' && isUnfunded,
+    /**
+     * Whether this booking is settled through Sinnapi at all.
+     *
+     * The rail is now a term both parties agreed at the request, so escrow is
+     * not something a client opts into afterwards. Offering the button on an
+     * off-platform booking would be offering to overwrite an agreement the
+     * vendor made — which is exactly what `activate_escrow` used to do, since
+     * it set `payment_type = 'escrow'` as a side effect of the charge.
+     */
+    isEscrowBooking: booking?.payment_type === 'escrow',
+    isOffPlatform: booking?.payment_type === 'direct',
+
+    /**
+     * Vendors accept before money moves, and now they accept the rail with it.
+     * Both conditions matter: `confirmed` alone was reachable on a booking
+     * whose terms the vendor countered and the client never answered.
+     */
+    canActivate:
+      booking?.status === 'confirmed' &&
+      booking?.payment_type === 'escrow' &&
+      booking?.payment_terms_status === 'accepted' &&
+      isUnfunded,
     /** The consent step gates the charge, so it is offered before the rail picker. */
     needsAdvanceApproval: !booking?.advance_terms_accepted_at,
     /** A previous attempt failed and is worth calling out rather than hiding. */
@@ -78,6 +98,14 @@ export function useEscrowSection(booking: BookingDetailModel | null | undefined)
     canRaiseIssue:
       !!escrow &&
       ['held', 'awaiting_advance', 'advance_released', 'release_requested'].includes(status ?? ''),
+
+    /**
+     * The escrow's own status, handed to the deadline block as the second
+     * opinion on whether the money is in. `payment_settled_at` and this row are
+     * written by different paths, and a page that trusts only one of them shows
+     * a countdown to a client whose payment landed thirty seconds ago.
+     */
+    escrowStatus: status,
 
     isSettled: status === 'paid_out',
     isFrozen: !!escrow?.timers_frozen_at || status === 'disputed',

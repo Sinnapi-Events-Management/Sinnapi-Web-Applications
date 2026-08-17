@@ -32,7 +32,7 @@ export function InboxLayout({
   detail,
   detailOpen,
   onCloseDetail,
-  offsetPx = 120,
+  offsetPx = 200,
 }: InboxLayoutProps) {
   // Matches MUI's `md`; avoids threading the theme type through here.
   const isDesktop = useMediaQuery('(min-width:900px)');

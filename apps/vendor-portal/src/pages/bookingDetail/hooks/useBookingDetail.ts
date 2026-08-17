@@ -1,8 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@sinnapi/ui/router';
-import { useVendorBooking } from '@/hooks/queries';
-import { one } from '@/lib/rel';
-import type { ProfileContactRel } from '@/lib/types';
+import { useDirectoryProfile, useVendorBooking } from '@/hooks/queries';
 import { formatTimeWindow } from '../utils/timeWindow';
 
 /**
@@ -18,12 +16,19 @@ export function useBookingDetail() {
   // the crumb worth showing over the opaque row id.
   useBreadcrumbTitle(booking?.reference_no ? `Booking ${booking.reference_no}` : undefined);
 
-  const client = one<ProfileContactRel>(booking?.profiles);
+  // Not an embedded relation: `profiles_self_read` hides the client's row from
+  // the vendor, so the booking carries only `client_id` and the name and email
+  // come from `get_profile_directory`. The email is disclosed only once the
+  // booking is past `requested`, which is exactly when the vendor has a reason
+  // to reach the client directly.
+  const { profile: client, isLoading: isClientLoading } = useDirectoryProfile(booking?.client_id);
 
   return {
     bookingId: id,
     booking,
     client,
+    /** The client's details are still arriving; the booking itself renders without them. */
+    isClientLoading,
     /** `null` when the request carried no times — the row is then omitted. */
     timeWindow: formatTimeWindow(booking?.start_time, booking?.end_time),
     /**

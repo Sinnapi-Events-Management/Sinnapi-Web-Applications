@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProfile } from '@/hooks/queries';
+import { useProfile, useUnpaidBookingCounts } from '@/hooks/queries';
+import { useAdmin } from '@/admin/AdminProvider';
+import { mergeUnpaidQueue } from '../schema';
 import { DEFAULT_PERIOD, getPeriodOption, type AnalyticsPeriod } from '@/lib/analytics';
 import { useDashboardOverview } from '../data';
 import { useDashboardSections } from './useDashboardSections';
@@ -31,8 +33,20 @@ export function useDashboard() {
   const { tabs, tab, activeTab, setTab } = useDashboardTabs(sections.canSee);
   const queryClient = useQueryClient();
 
+  const { has } = useAdmin();
   const { data: profile } = useProfile();
-  const { data, isLoading, isFetching, error, refetch } = useDashboardOverview(period);
+  const { data: overview, isLoading, isFetching, error, refetch } = useDashboardOverview(period);
+
+  // The unpaid queue is counted separately from the dashboard RPC — see
+  // `mergeUnpaidQueue` for why. Gated on the same permission its route and its
+  // RPC are, so an admin without it makes no request rather than one that 403s.
+  const canChase = has('booking.payment.chase');
+  const { data: unpaidCounts } = useUnpaidBookingCounts(canChase);
+
+  const data = useMemo(() => {
+    if (!overview) return overview;
+    return { ...overview, queues: mergeUnpaidQueue(overview.queues, unpaidCounts) };
+  }, [overview, unpaidCounts]);
 
   const name = firstName(profile?.full_name);
   // Badged on the Overview tab so a backlog is visible from the analytics tabs.
@@ -57,6 +71,7 @@ export function useDashboard() {
       // Drop the whole dashboard key so switching period after a refresh can't
       // resolve from a cache entry that predates the refresh.
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-unpaid-bookings'] });
       return refetch();
     },
     ...sections,

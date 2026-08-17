@@ -10,6 +10,8 @@
  * refuse, which is a different job and needs its own copy of the rule.
  */
 
+import { rpcErrorMessage } from './rpcError';
+
 /**
  * The path a quotation walks when nothing goes wrong.
  *
@@ -47,6 +49,31 @@ export function isQuoteLapsed(validUntil: string | null | undefined, now: Date =
   if (!validUntil) return false;
   const at = new Date(validUntil).getTime();
   return Number.isFinite(at) && at < now.getTime();
+}
+
+/**
+ * Whether a quote has no price on it, and so nothing to accept.
+ *
+ * The second gate `respond_quotation` applies that a status cannot express, and
+ * the more serious of the two: a lapsed quote was a real offer that ran out of
+ * time, where this one was never an offer at all. Accepting it binds nothing,
+ * and everything downstream is a percentage of the figure it does not have —
+ * the booking's amount, the advance, escrow's commission and the payout. A zero
+ * accepted here does not stay on the quotation; it becomes a booking worth
+ * nothing that the client then cannot pay for.
+ *
+ * Reads the stored total deliberately, not the total the page displays.
+ * `quotationPricing` will fall back to the line items so the client is never
+ * shown `UGX 0` over priced rows — but the server checks `quotations.total`,
+ * and a UI that offered Accept on a figure the server does not have would be
+ * offering a button it is about to be refused for. Where the two disagree the
+ * quote is broken, and the honest answer is that it cannot be accepted until
+ * the vendor sends it again.
+ */
+export function isQuoteUnpriced(total: number | string | null | undefined): boolean {
+  if (total === null || total === undefined || total === '') return true;
+  const value = typeof total === 'string' ? Number(total) : total;
+  return !Number.isFinite(value) || value <= 0;
 }
 
 /**
@@ -98,9 +125,9 @@ const SPECS: Record<QuotationAction, QuotationActionSpec> = {
     title: 'Accept quote {ref}?',
     description:
       'This agrees the price and the payment terms shown above, and the vendor is told you have ' +
-      'accepted. The advance terms are copied onto your booking, which is what the payment step ' +
-      'then asks you to fund. You can still cancel the booking afterwards, but the quote itself ' +
-      'cannot be un-accepted.',
+      'accepted. You then pick a date and create the booking, which carries these terms and is ' +
+      'what the payment step asks you to fund. You can still cancel the booking afterwards, but ' +
+      'the quote itself cannot be un-accepted.',
     confirmLabel: 'Accept quote',
     tone: 'success',
     from: ['sent', 'revised'],
@@ -189,6 +216,12 @@ const QUOTATION_ACTION_ERRORS: Record<string, string> = {
   quotation_expired:
     'This quote has passed its valid-until date, so it can no longer be accepted. Ask the vendor ' +
     'for a fresh one.',
+  // The server refuses to bind a price of zero, because everything downstream —
+  // the booking, the advance, escrow — is a percentage of it. Named as the
+  // vendor's omission, which is what it is: the client cannot fix this.
+  quotation_not_priced:
+    'This quote has no price on it yet, so there is nothing to accept. Ask the vendor to send the ' +
+    'priced quote.',
   invalid_action: 'That is not a response this quotation can take.',
   reason_required: 'A reason is required for this change.',
   reason_too_long: 'That reason is too long — keep it under 500 characters.',
@@ -196,11 +229,16 @@ const QUOTATION_ACTION_ERRORS: Record<string, string> = {
   forbidden: 'You do not have permission to change this quotation.',
 };
 
-/** Turns a Postgres exception string into something a person can act on. */
+/**
+ * Turns whatever `respond_quotation` or `void_quotation` failed with into
+ * something a person can act on.
+ *
+ * The reading is delegated: a Supabase RPC error is a plain object, not an
+ * `Error`, and the version of this that tried to handle it here rendered
+ * `[object Object]` in the confirmation dialog. `rpcErrorMessage` also decides
+ * what may be shown — an unmapped Postgres fault is a bug in us, and the client
+ * gets a sentence they can act on while the SQLSTATE goes to the console.
+ */
 export function quotationActionError(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error ?? '');
-  for (const [key, message] of Object.entries(QUOTATION_ACTION_ERRORS)) {
-    if (raw.includes(key)) return message;
-  }
-  return raw || 'Something went wrong. Please try again.';
+  return rpcErrorMessage(error, QUOTATION_ACTION_ERRORS);
 }

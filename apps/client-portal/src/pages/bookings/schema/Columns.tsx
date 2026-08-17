@@ -1,4 +1,10 @@
-import { Typography, type DataTableColumn, StatusChip } from '@sinnapi/ui';
+import {
+  PaymentTermsChip,
+  PaymentWindowChip,
+  Typography,
+  type DataTableColumn,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { BookingListModel, VendorRefModel } from '@/lib/types';
@@ -35,6 +41,22 @@ export const bookingColumns: DataTableColumn<BookingListModel>[] = [
     align: 'right',
     sortable: true,
     render: (b) => formatMoney(b.amount, b.currency),
+  },
+  {
+    field: 'payment_type',
+    headerName: 'Payment',
+    // The rail is not something the client can order by usefully — two values
+    // over a whole list — and `payment_terms_status` is what actually matters
+    // when it is unsettled, which no single column sort would express.
+    render: (b) => <PaymentTermsChip rail={b.payment_type} status={b.payment_terms_status} />,
+  },
+  {
+    field: 'payment_due_at',
+    headerName: 'Payment due',
+    // Not sortable: the deadline in force may be an admin's override rather
+    // than this column, so ordering by it would sort the list by a date some
+    // rows are not actually counting down to.
+    render: (b) => <PaymentWindowChip booking={b} audience="client" />,
   },
   {
     field: 'status',

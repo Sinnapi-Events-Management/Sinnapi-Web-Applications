@@ -1,14 +1,13 @@
-import { SectionCard, Typography } from '@sinnapi/ui';
+import { QuotationLineItems, SectionCard, Typography, type QuotationPricing } from '@sinnapi/ui';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import QuotationBuilder from '@/components/quotation/QuotationBuilder';
 import type { QuotationDetailModel, QuotationItemModel } from '@/lib/types';
-import QuotationLineItems from '../molecules/QuotationLineItems';
 
 type Props = {
   quotation: QuotationDetailModel;
   items: QuotationItemModel[];
+  pricing: QuotationPricing;
   isEditable: boolean;
-  isPriced: boolean;
 };
 
 /**
@@ -23,7 +22,7 @@ type Props = {
  * point of the page after the fact — it is what either side quotes back if the
  * withdrawal is ever questioned.
  */
-export default function QuotationQuoteCard({ quotation, items, isEditable, isPriced }: Props) {
+export default function QuotationQuoteCard({ quotation, items, pricing, isEditable }: Props) {
   return (
     <SectionCard
       title={isEditable ? 'Build & send quote' : 'Quote sent'}
@@ -36,8 +35,8 @@ export default function QuotationQuoteCard({ quotation, items, isEditable, isPri
     >
       {isEditable ? (
         <QuotationBuilder quotationId={quotation.id} currency={quotation.currency ?? undefined} />
-      ) : isPriced ? (
-        <QuotationLineItems quotation={quotation} items={items} />
+      ) : pricing.isPriced ? (
+        <QuotationLineItems items={items} pricing={pricing} />
       ) : (
         <Typography variant="body2" color="text.secondary">
           This request was closed before a quote was built for it.

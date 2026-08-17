@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Alert, DataTable } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useBookings } from '../../hooks/useBookings';
@@ -8,7 +9,9 @@ import { bookingColumns } from '../../schema';
  * is resolved, which is why it can take `vendorId` as a plain string.
  */
 export default function BookingsTable({ vendorId }: { vendorId: string }) {
-  const { rows, total, isLoading, isFetching, error, table, openBooking } = useBookings(vendorId);
+  const { rows, total, isLoading, isFetching, error, table, openBooking, clientName } =
+    useBookings(vendorId);
+  const columns = useMemo(() => bookingColumns(clientName), [clientName]);
 
   return (
     <>
@@ -19,7 +22,7 @@ export default function BookingsTable({ vendorId }: { vendorId: string }) {
       )}
 
       <DataTable
-        columns={bookingColumns}
+        columns={columns}
         rows={rows}
         getRowId={(b) => b.id}
         rowCount={total}

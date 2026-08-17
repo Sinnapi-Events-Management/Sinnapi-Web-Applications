@@ -1,4 +1,4 @@
-import { Stack, InfoRow, SectionCard, formatRate } from '@sinnapi/ui';
+import { Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TagIcon from '@mui/icons-material/Tag';
 import PersonIcon from '@mui/icons-material/Person';
@@ -6,27 +6,29 @@ import HistoryIcon from '@mui/icons-material/History';
 import SendIcon from '@mui/icons-material/Send';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CelebrationIcon from '@mui/icons-material/Celebration';
-import HandshakeIcon from '@mui/icons-material/Handshake';
 import LayersIcon from '@mui/icons-material/Layers';
 import { formatDate, formatDateTime } from '@/lib/config';
-import type { EventRefModel, ProfileRel, QuotationDetailModel } from '@/lib/types';
+import type { DirectoryProfile, EventRefModel, QuotationDetailModel } from '@/lib/types';
 
 type Props = {
   quotation: QuotationDetailModel;
-  client: ProfileRel | null;
+  client: DirectoryProfile | null;
   event: EventRefModel | null;
 };
 
 /**
  * The quote as a record: every stored fact, in the order someone checking one
  * would look for them. Rows that only exist at a given stage — a sent stamp, a
- * revision number above one, the advance terms before they have been set —
- * appear only then rather than sitting empty the rest of the time.
+ * revision number above one — appear only then rather than sitting empty the
+ * rest of the time.
+ *
+ * The advance terms used to be one of these rows, reduced to a percentage and a
+ * number of days. They are now their own card, next to the money they divide,
+ * which is the form the client has always seen them in. Saying it twice in two
+ * levels of detail would leave a vendor comparing their own page against
+ * itself.
  */
 export default function QuotationFactsCard({ quotation: q, client, event }: Props) {
-  const rate = q.advance_rate;
-  const days = q.advance_release_days_before;
-
   return (
     <SectionCard title="Quotation details" icon={<DescriptionIcon />}>
       <Stack>
@@ -55,17 +57,6 @@ export default function QuotationFactsCard({ quotation: q, client, event }: Prop
             icon={<CelebrationIcon />}
             value={
               event.event_date ? `${event.title} · ${formatDate(event.event_date)}` : event.title
-            }
-          />
-        )}
-        {rate != null && (
-          <InfoRow
-            label="Advance terms"
-            icon={<HandshakeIcon />}
-            value={
-              Number(rate) > 0
-                ? `${formatRate(rate)}${days != null && days > 0 ? `, released ${days} days before the event` : ''}`
-                : 'No advance — full amount held until delivery'
             }
           />
         )}

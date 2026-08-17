@@ -11,6 +11,7 @@ import {
   heroAvatarSx,
   heroDividerSx,
 } from '@sinnapi/ui';
+import type { QuotationPricing } from '@sinnapi/ui';
 import type { EventRefModel, QuotationDetailModel, VendorRefModel } from '@/lib/types';
 import QuotationHeroMeta from '../molecules/QuotationHeroMeta';
 
@@ -18,7 +19,7 @@ type Props = {
   quotation: QuotationDetailModel;
   vendor: VendorRefModel | null;
   event: EventRefModel | null;
-  isPriced: boolean;
+  pricing: QuotationPricing;
 };
 
 /**
@@ -27,7 +28,7 @@ type Props = {
  * to their profile when we hold a slug — comparing a price against what the
  * vendor actually offers is the obvious next click.
  */
-export default function QuotationHero({ quotation: q, vendor, event, isPriced }: Props) {
+export default function QuotationHero({ quotation: q, vendor, event, pricing }: Props) {
   const name = vendor?.business_name ?? 'Vendor';
 
   return (
@@ -71,7 +72,7 @@ export default function QuotationHero({ quotation: q, vendor, event, isPriced }:
       <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Box sx={{ position: 'relative' }}>
-        <QuotationHeroMeta quotation={q} event={event} isPriced={isPriced} />
+        <QuotationHeroMeta quotation={q} event={event} pricing={pricing} />
       </Box>
     </HeroSurface>
   );

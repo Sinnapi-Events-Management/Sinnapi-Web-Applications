@@ -17,6 +17,8 @@
  * its own copy of the rule.
  */
 
+import { rpcErrorMessage } from './rpcError';
+
 /** The path a booking walks when nothing goes wrong. */
 export const BOOKING_LIFECYCLE = ['requested', 'confirmed', 'in_progress', 'completed'] as const;
 
@@ -43,7 +45,7 @@ export function isBookingSettled(status: string): boolean {
  * its own spec (`pages/bookingDetail/schema/statusActions.ts`); two specs
  * because there are two audiences, not because one drifted.
  */
-export const BOOKING_ACTIONS = ['start', 'accept', 'decline', 'complete'] as const;
+export const BOOKING_ACTIONS = ['start', 'accept', 'counter', 'decline', 'complete'] as const;
 
 export type BookingAction = (typeof BOOKING_ACTIONS)[number];
 
@@ -97,16 +99,35 @@ const SPECS: Record<BookingAction, BookingActionSpec> = {
   },
   accept: {
     action: 'accept',
-    label: 'Accept request',
+    // "and terms", because since payment terms became part of the request this
+    // button agrees to two things: the date, and how the vendor gets paid. A
+    // vendor who reads it as "accept the date" is agreeing to the other one
+    // without noticing, and on the off-platform rail that is a decision to
+    // stand outside Sinnapi's protection.
+    label: 'Accept date and terms',
     title: 'Accept booking {ref}?',
     description:
-      'The client is told you have taken the job and the date is held for them. Accepting also ' +
-      'opens the payment step — nothing can be funded until you have confirmed.',
-    confirmLabel: 'Accept request',
+      'You are agreeing to both the date and the payment terms the client proposed. The client ' +
+      'is told you have taken the job and the date is held for them. If the terms are escrow, ' +
+      'this also opens the payment step — nothing can be funded until you have confirmed.',
+    confirmLabel: 'Accept booking',
     tone: 'success',
     from: ['requested'],
     actors: ['vendor'],
     requiresReason: false,
+  },
+  counter: {
+    action: 'counter',
+    label: 'Propose other terms',
+    title: 'Propose different payment terms for {ref}?',
+    description:
+      'The date is not held and nothing is agreed yet — this goes back to the client, who can ' +
+      'accept your terms or decline the booking. You can only do this once, so say why.',
+    confirmLabel: 'Send to client',
+    tone: 'secondary',
+    from: ['requested'],
+    actors: ['vendor'],
+    requiresReason: true,
   },
   decline: {
     action: 'decline',
@@ -114,7 +135,8 @@ const SPECS: Record<BookingAction, BookingActionSpec> = {
     title: 'Decline booking {ref}?',
     description:
       'The client is told you cannot take the job and the date is released. This cannot be ' +
-      'undone — if you change your mind, the client has to send a fresh request.',
+      'undone — if you change your mind, the client has to send a fresh request. If it is only ' +
+      'the payment terms you object to, propose different ones instead.',
     confirmLabel: 'Decline request',
     tone: 'error',
     from: ['requested'],
@@ -126,9 +148,9 @@ const SPECS: Record<BookingAction, BookingActionSpec> = {
     label: 'Mark completed',
     title: 'Mark booking {ref} completed?',
     description:
-      'This says the service has been delivered. It starts the escrow release window, which is ' +
-      'what puts the remaining balance on its way to you — so only mark it once the work is ' +
-      'genuinely done. It cannot be undone from here.',
+      'This says the service has been delivered. It is what lets you ask for the money still ' +
+      'held for you, and the client is asked to approve that release — so only mark it once the ' +
+      'work is genuinely done. It cannot be undone from here.',
     confirmLabel: 'Mark completed',
     tone: 'success',
     from: ['confirmed', 'in_progress'],
@@ -218,6 +240,109 @@ export function localToday(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/**
+ * East Africa Time, as a fixed offset from UTC.
+ *
+ * Bookings store a bare `date` and a bare `time` with no zone of their own, and
+ * every event they describe happens in Uganda — so "18:00" means 18:00 in
+ * Kampala, not wherever the browser happens to be. EAT has never observed DST,
+ * which is the only reason a constant is honest here; a zone with a summer
+ * shift would need the tz database and this would be a bug twice a year.
+ *
+ * `booking_end_at` on the server reads the same instant through
+ * `at time zone 'Africa/Kampala'`, so the button unlocks in the UI at the
+ * moment the server starts accepting the write, not before and not after.
+ */
+const EAT_OFFSET_HOURS = 3;
+
+/**
+ * The instant a booking's event is over, in epoch milliseconds.
+ *
+ * `null` when there is no event date to reason about — the caller then has no
+ * gate to apply and says so rather than inventing one.
+ */
+export function bookingEndInstant(
+  eventDate: string | null | undefined,
+  endTime: string | null | undefined,
+): number | null {
+  if (!eventDate) return null;
+  const [y, m, d] = eventDate.split('-').map(Number);
+  if (!y || !m || !d) return null;
+
+  // No end time agreed means the whole day is the vendor's: the event is over
+  // when the day is. With one, it is over at that time.
+  if (!endTime) return Date.UTC(y, m - 1, d + 1, -EAT_OFFSET_HOURS, 0, 0);
+
+  const [hh, mm] = endTime.split(':').map(Number);
+  return Date.UTC(y, m - 1, d, (hh || 0) - EAT_OFFSET_HOURS, mm || 0, 0);
+}
+
+export type BookingCompletionGate = {
+  canComplete: boolean;
+  /** Why not, phrased for whoever is looking at it. `null` when it can. */
+  blockedReason: string | null;
+  /** When the gate opens, for a countdown beside the disabled button. */
+  availableAt: number | null;
+};
+
+/**
+ * Whether a booking can be marked completed, and if not, why.
+ *
+ * Completing a booking is the vendor saying the service was delivered. It is
+ * also what opens the escrow release window and lets them ask for the money
+ * being held — so a booking completed before its event has even happened tells
+ * the client their event is done, tells the console the same, and starts a
+ * payout clock on work nobody has performed. There was no gate on this at all
+ * until now, in the UI or on the server.
+ *
+ * The gate is the *end* of the event rather than its start: a vendor cannot
+ * know at 09:00 that a job running until 18:00 went well.
+ *
+ * The server enforces the same rule in `complete_booking`. This exists so the
+ * page can refuse in advance and say when it will unlock, rather than letting
+ * the vendor press a button that is going to be rejected.
+ */
+export function evaluateBookingCompletionGate(input: {
+  status: string;
+  /** `bookings.event_date` — a plain `YYYY-MM-DD` date. */
+  eventDate: string | null;
+  /** `bookings.end_time` — a plain `HH:MM:SS`, or null when open-ended. */
+  endTime: string | null;
+  /** Now, in epoch milliseconds. Passed in so the rule stays pure. */
+  now?: number;
+}): BookingCompletionGate {
+  const { status, eventDate, endTime, now = Date.now() } = input;
+
+  if (!['confirmed', 'in_progress'].includes(status)) {
+    return {
+      canComplete: false,
+      blockedReason: 'Only a confirmed or in-progress booking can be marked completed.',
+      availableAt: null,
+    };
+  }
+
+  const endsAt = bookingEndInstant(eventDate, endTime);
+  // No date to judge by. The server has the same booking and will apply the
+  // same rule; blocking here on missing data would strand a vendor over a
+  // column they cannot fill in.
+  if (endsAt === null) return { canComplete: true, blockedReason: null, availableAt: null };
+
+  if (now < endsAt) {
+    return {
+      canComplete: false,
+      blockedReason: endTime
+        ? 'This unlocks when the event ends. Marking a booking completed tells the client the ' +
+          'service was delivered and starts the release of the money held for you, so it waits ' +
+          'for the event to actually be over.'
+        : 'This unlocks at the end of the event day. Marking a booking completed tells the client ' +
+          'the service was delivered and starts the release of the money held for you.',
+      availableAt: endsAt,
+    };
+  }
+
+  return { canComplete: true, blockedReason: null, availableAt: endsAt };
+}
+
 /** `start_booking` and `admin_set_booking_status` refusals, in plain language. */
 const BOOKING_ACTION_ERRORS: Record<string, string> = {
   booking_not_confirmed: 'This booking has to be confirmed by the vendor first.',
@@ -226,6 +351,20 @@ const BOOKING_ACTION_ERRORS: Record<string, string> = {
     'This booking has to be paid into escrow before the event can start. That is what protects ' +
     'both sides once work begins.',
   booking_not_completable: 'Only a confirmed or in-progress booking can be marked completed.',
+  booking_not_ended:
+    'This booking cannot be marked completed until its event has ended. If the event genuinely ' +
+    'finished early, ask our team to complete it for you and they will record why.',
+  booking_not_pending:
+    'This booking has already been answered. Reload the page to see where it got to.',
+  terms_set_by_event:
+    'These terms are set on the event this booking belongs to, so they cannot be renegotiated ' +
+    'here. Accept the booking or decline it.',
+  terms_already_countered:
+    'You have already proposed different terms on this booking. The client is deciding.',
+  counter_same_as_proposed:
+    'That is the way of paying the client already asked for — accept the booking instead.',
+  counter_required: 'Choose the way of paying you would rather use.',
+  unsupported_action: 'That is not something you can do to this booking.',
   invalid_transition: 'That is not a move this booking can make from its current state.',
   unsupported_status: 'That status cannot be set from here.',
   reason_required: 'A reason is required for this change.',
@@ -234,11 +373,11 @@ const BOOKING_ACTION_ERRORS: Record<string, string> = {
   forbidden: 'You do not have permission to change this booking.',
 };
 
-/** Turns a Postgres exception string into something a person can act on. */
+/**
+ * Turns whatever a booking status write failed with into something a person can
+ * act on. Same reader as the quotation side — see `rpcError.ts` for why a
+ * Supabase failure cannot be read with `instanceof Error`.
+ */
 export function bookingActionError(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error ?? '');
-  for (const [key, message] of Object.entries(BOOKING_ACTION_ERRORS)) {
-    if (raw.includes(key)) return message;
-  }
-  return raw || 'Something went wrong. Please try again.';
+  return rpcErrorMessage(error, BOOKING_ACTION_ERRORS);
 }

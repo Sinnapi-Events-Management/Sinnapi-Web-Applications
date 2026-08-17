@@ -18,3 +18,6 @@ export * from './hooks/useNotificationFeed';
 export * from './hooks/useNotificationsRealtime';
 export * from './hooks/useNotificationArrivals';
 export * from './hooks/useDesktopNotifications';
+export * from './hooks/useNotificationChime';
+export * from './hooks/useNotificationLive';
+export * from './NotificationLiveProvider';

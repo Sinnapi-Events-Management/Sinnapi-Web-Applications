@@ -1,5 +1,4 @@
-import { Alert, InfoRow, Stack, Typography } from '@sinnapi/ui';
-import { formatDate, formatDateTime } from '@/lib/config';
+import { AdvanceTermsRows, Alert } from '@sinnapi/ui';
 import type { BookingAdminModel } from '@/lib/types';
 
 type Props = { booking: BookingAdminModel };
@@ -12,50 +11,27 @@ type Props = { booking: BookingAdminModel };
  * refuses without it, so an operator looking at a booking that will not fund is
  * usually looking at a missing acceptance — and the rate matters only alongside
  * who agreed to it and when.
+ *
+ * The rows themselves are `@sinnapi/ui`'s, shared with the vendor's own copy of
+ * this schedule: an operator answering "where is my advance?" should be reading
+ * the same figures, in the same order, as the vendor who asked.
  */
 export default function AdvanceTermsSummary({ booking: b }: Props) {
-  const hasTerms = b.advance_rate !== null || b.advance_release_days_before !== null;
-
-  if (!hasTerms) {
-    return (
-      <Alert severity="info" variant="outlined">
-        No advance schedule was set on this booking. It predates the advance terms, or the quotation
-        behind it carried none.
-      </Alert>
-    );
-  }
-
   return (
-    <Stack>
-      <InfoRow label="Advance rate" value={b.advance_rate === null ? null : `${b.advance_rate}%`} />
-      <InfoRow
-        label="Released before event"
-        value={
-          b.advance_release_days_before === null
-            ? null
-            : `${b.advance_release_days_before} day${b.advance_release_days_before === 1 ? '' : 's'}`
-        }
-      />
-      <InfoRow
-        label="Client accepted"
-        value={
-          b.advance_terms_accepted_at
-            ? formatDateTime(b.advance_terms_accepted_at)
-            : 'Not yet accepted'
-        }
-      />
-      {b.advance_terms_accepted_by && (
-        <InfoRow label="Accepted by" value={b.advance_terms_accepted_by} />
-      )}
-      {b.escrow?.advance_release_due_at && (
-        <InfoRow label="Advance due" value={formatDate(b.escrow.advance_release_due_at)} />
-      )}
-
-      {b.advance_terms_note && (
-        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', pt: 1 }}>
-          “{b.advance_terms_note}”
-        </Typography>
-      )}
-    </Stack>
+    <AdvanceTermsRows
+      rate={b.advance_rate}
+      daysBefore={b.advance_release_days_before}
+      note={b.advance_terms_note}
+      acceptedAt={b.advance_terms_accepted_at}
+      acceptedBy={b.advance_terms_accepted_by}
+      advanceDueAt={b.escrow?.advance_release_due_at}
+      currency={b.escrow?.currency ?? b.currency}
+      emptyMessage={
+        <Alert severity="info" variant="outlined">
+          No advance schedule was set on this booking. It predates the advance terms, or the
+          quotation behind it carried none.
+        </Alert>
+      }
+    />
   );
 }

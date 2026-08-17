@@ -119,6 +119,14 @@ export function deepLink(audience: string, payload: Record<string, unknown>): st
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   };
 
+  // Settlement steps are acted on from the booking in every portal, admin
+  // included — the console's forward and release controls live on that page,
+  // not on the escrow register. Checked before the escrow branch, which would
+  // otherwise send an operator to a read-only row and leave them hunting.
+  const settlementId = id('settlement_id');
+  const bookingForSettlement = id('booking_id');
+  if (settlementId && bookingForSettlement) return `${root}/bookings/${bookingForSettlement}`;
+
   const escrowId = id('escrow_id');
   if (audience === 'admin' && escrowId) return `${root}/escrow/${escrowId}`;
 

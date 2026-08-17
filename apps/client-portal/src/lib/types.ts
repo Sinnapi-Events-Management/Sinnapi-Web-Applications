@@ -2,6 +2,8 @@
 // queries in src/hooks/queries.ts. The Supabase client is untyped, so each
 // query asserts one of these shapes ONCE at the data boundary.
 
+import type { BookingPaymentWindowFields } from '@sinnapi/ui';
+
 // Embedded (to-one) relations as returned by PostgREST. Use one<T>() at call
 // sites to normalize the object-or-array shape.
 export type VendorRefModel = {
@@ -118,6 +120,22 @@ export type FilterRefModel = {
   name: string;
 };
 
+/**
+ * A vendor as one row of a picker: enough to recognise them by, nothing more.
+ *
+ * Deliberately not `VendorSearchCardModel`. That shape carries ratings, prices
+ * and categories because a discovery card renders them; a dropdown row shows a
+ * name, a city and an avatar, and selecting one yields an id. Asking for the
+ * card's columns here would transfer a payload the picker throws away.
+ */
+export type VendorOptionModel = {
+  id: string;
+  business_name: string;
+  base_city: string | null;
+  profile_image_url: string | null;
+  primary_image_url: string | null;
+};
+
 // ---------- Bookings ----------
 export type BookingListModel = {
   id: string;
@@ -126,11 +144,63 @@ export type BookingListModel = {
   event_date: string | null;
   amount: number | null;
   currency: string | null;
+  /** Enough for the list to say how a booking is being paid, and whether the
+   *  vendor has agreed to it — the two facts a client scans this table for. */
+  payment_type: string | null;
+  payment_terms_status: string | null;
   vendor_id: string | null;
   vendors: VendorRefModel | VendorRefModel[] | null;
+} & BookingPaymentWindowFields;
+
+/**
+ * The quotation a booking was made from, embedded on the booking read.
+ *
+ * Everything a client needs to answer "does this booking match what I agreed
+ * to?" without leaving the page — the header fields, the money columns and the
+ * priced lines. `quotations_read` already allows this: the client is the
+ * `client_id` on the quote, so no RPC is involved and no new grant was needed.
+ *
+ * Absent on bookings placed straight against a service, which never had one.
+ */
+export type BookingQuotationModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  currency: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  tax_total: number | null;
+  total: number | null;
+  valid_until: string | null;
+  request_details: string | null;
+  version_no: number | null;
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  sent_at: string | null;
+  responded_at: string | null;
+  created_at: string | null;
+  quotation_items: QuotationItemModel[] | null;
 };
 
-// useBooking selects '*' plus the vendors relation.
+/**
+ * The event a booking hangs off, when it was made from one.
+ *
+ * `payment_type` here outranks the booking's own: where the client set a rail
+ * across the event, `payment_terms_from_event` is true on the booking and
+ * neither party can renegotiate it.
+ */
+export type BookingEventModel = {
+  id: string;
+  title: string | null;
+  event_date: string | null;
+  location: string | null;
+  payment_type: string | null;
+  payment_terms_note: string | null;
+};
+
+// useBooking selects '*' plus the vendor, the quotation with its line items,
+// and the event the booking hangs off.
 export type BookingDetailModel = {
   id: string;
   reference_no: string | null;
@@ -142,7 +212,18 @@ export type BookingDetailModel = {
   location: string | null;
   amount: number | null;
   currency: string | null;
+  /** The payment rail — `escrow` or `direct` (off platform). */
   payment_type: string | null;
+  /**
+   * How far the terms conversation has got: the client proposes a rail when the
+   * booking is created, and the vendor accepts, declines or counters it. Read
+   * through `readPaymentTerms` rather than compared to string literals here.
+   */
+  payment_terms_status: string | null;
+  payment_terms_counter: string | null;
+  payment_terms_note: string | null;
+  /** Set on the event, so not this booking's to renegotiate. */
+  payment_terms_from_event: boolean | null;
   /** Advance schedule agreed on the quotation; null on older bookings. */
   advance_rate: number | null;
   advance_release_days_before: number | null;
@@ -155,8 +236,20 @@ export type BookingDetailModel = {
   completed_at: string | null;
   created_at: string;
   vendor_id: string | null;
+  /** Null on a booking placed straight against a service. */
+  quotation_id: string | null;
+  event_id: string | null;
   vendors: VendorRefModel | VendorRefModel[] | null;
-};
+  quotations: BookingQuotationModel | BookingQuotationModel[] | null;
+  events: BookingEventModel | BookingEventModel[] | null;
+  /**
+   * The clock the client has to fund this booking. Read through
+   * `readPaymentWindow` rather than compared to `new Date()` here — the
+   * precedence between the deadline and an admin's extension, and the
+   * difference between a passed clock and a flagged one, both live in that
+   * module and neither is obvious from the column names.
+   */
+} & BookingPaymentWindowFields;
 
 /**
  * One entry of a booking's status trail. Written by a trigger on insert and on
@@ -225,6 +318,30 @@ export type EventRefModel = {
   id: string;
   title: string | null;
   event_date: string | null;
+  /**
+   * Terms set across the whole event. Where this is set, a booking made from
+   * this quote inherits it and the client cannot choose — which the booking
+   * dialog has to know before it offers a choice it would then override.
+   */
+  payment_type: string | null;
+  payment_terms_note: string | null;
+};
+
+/**
+ * The booking made from a quotation, when there is one. Deliberately thin: the
+ * quotation page only needs to say whether the quote has been scheduled, when
+ * for, and where to click — the booking's own page owns everything else.
+ *
+ * `ux_bookings_quotation` makes at most one of these exist per quote.
+ */
+export type QuotationBookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
 };
 
 /**
@@ -255,6 +372,22 @@ export type MyEventModel = {
   location: string | null;
   status: string;
   source: string;
+  /**
+   * What the client said they expect to spend. Used to price the payment-terms
+   * comparison on the event, since an event has no single agreed amount of its
+   * own — the illustration is the client's own upper figure, and each booking
+   * under it is priced on what that booking is actually worth.
+   */
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string | null;
+  /**
+   * Terms binding every booking made under this event. Null means each booking
+   * chooses its own — which is the default, and stays the honest one for a
+   * client who has not thought about it yet.
+   */
+  payment_type: string | null;
+  payment_terms_note: string | null;
 };
 
 /**
@@ -312,6 +445,51 @@ export type EscrowDetailModel = {
   failure_reason: string | null;
   attempt_no: number | null;
   booking_id: string | null;
+  created_at: string;
+};
+
+/**
+ * The vendor's post-event request to be paid the money still held, and the
+ * three-party agreement on what is actually paid.
+ *
+ * The client's own consent lives on this row (`client_consent_at`) beside the
+ * figure it was given for — a consent stored apart from the amount it was
+ * given for is consent to nothing in particular, which is the same reason
+ * `advance_terms_accepted_at` sits next to the rate it accepted.
+ */
+export type SettlementRequestModel = {
+  id: string;
+  booking_id: string;
+  escrow_id: string;
+  status: string;
+  currency: string | null;
+  requested_amount: number | null;
+  approved_amount: number | null;
+  decision: string | null;
+  decision_reason: string | null;
+  decided_automatically: boolean | null;
+  vendor_note: string | null;
+  admin_note: string | null;
+  vendor_response: string | null;
+  vendor_response_note: string | null;
+  client_due_at: string | null;
+  vendor_due_at: string | null;
+  admin_due_at: string | null;
+  client_consent_at: string | null;
+  vendor_consent_at: string | null;
+  released_at: string | null;
+  last_nudge_at: string | null;
+  nudge_count: number | null;
+  requested_at: string;
+};
+
+/** One entry of a settlement's append-only trail, oldest first. */
+export type SettlementEventModel = {
+  id: string;
+  kind: string;
+  actor_role: string;
+  amount: number | null;
+  note: string | null;
   created_at: string;
 };
 

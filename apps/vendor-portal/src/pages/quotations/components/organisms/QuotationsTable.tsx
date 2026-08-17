@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Alert, DataTable } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useQuotations } from '../../hooks/useQuotations';
@@ -5,8 +6,21 @@ import { quotationColumns } from '../../schema';
 
 /** The quote-request list for one vendor, mounted by <VendorGate />. */
 export default function QuotationsTable({ vendorId }: { vendorId: string }) {
-  const { rows, total, isLoading, isFetching, error, table, openQuotation } =
-    useQuotations(vendorId);
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    table,
+    openQuotation,
+    clientName,
+    bookingFor,
+  } = useQuotations(vendorId);
+  const columns = useMemo(
+    () => quotationColumns({ clientName, bookingFor }),
+    [clientName, bookingFor],
+  );
 
   return (
     <>
@@ -17,7 +31,7 @@ export default function QuotationsTable({ vendorId }: { vendorId: string }) {
       )}
 
       <DataTable
-        columns={quotationColumns}
+        columns={columns}
         rows={rows}
         getRowId={(q) => q.id}
         rowCount={total}

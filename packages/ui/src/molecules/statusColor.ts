@@ -118,6 +118,19 @@ const MAP: Record<string, StatusChipColor> = {
   bounced: 'error',
   complained: 'error',
   suppressed: 'error',
+  // post-event settlement (`settlement_request_status`). `cancelled` is mapped
+  // above and means the same thing here.
+  //
+  // The three in-flight states are amber rather than gold: each one is a
+  // request sitting on somebody's desk with a vendor's money behind it, which
+  // is "awaiting attention", not "healthy and progressing". `consented` turns
+  // gold because the argument is over and only the payment is left.
+  vendor_requested: 'warning',
+  admin_forwarded: 'warning',
+  awaiting_vendor_consent: 'warning',
+  consented: 'secondary',
+  released: 'success',
+  contested: 'error',
 };
 
 export function statusColor(status: string): StatusChipColor {

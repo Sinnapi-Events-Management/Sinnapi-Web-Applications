@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { useBookingAdmin, useBookingActivity } from '@/hooks/queries';
+import { useAdmin } from '@/admin/AdminProvider';
+import { usePaymentChase } from '@/hooks/usePaymentChase';
 import { useBookingStatus } from './useBookingStatus';
 import { availableStatusTargets } from '../schema/statusActions';
 import { formatTimeWindow } from '../utils/timeWindow';
@@ -15,9 +17,13 @@ import { formatTimeWindow } from '../utils/timeWindow';
 export function useBookingDetail() {
   const { id = '' } = useParams();
 
+  const { has } = useAdmin();
   const { data: booking, isLoading, error } = useBookingAdmin(id);
   const activity = useBookingActivity(id);
   const status = useBookingStatus(id);
+  // Shared with the Awaiting-payment queue rather than reimplemented, so the
+  // two surfaces cannot drift on which writes invalidate what.
+  const chase = usePaymentChase();
 
   // The reference number is what every other party quotes in correspondence,
   // so it is the crumb worth showing over the opaque row id.
@@ -38,6 +44,10 @@ export function useBookingDetail() {
     /** The overrides offered from this booking's state; empty once settled. */
     targets,
     status,
+
+    /** The payment-clock levers, and whether this admin may pull them. */
+    chase,
+    canChase: has('booking.payment.chase'),
 
     /** `null` when the request carried no times — the row is then omitted. */
     timeWindow: formatTimeWindow(booking?.start_time, booking?.end_time),

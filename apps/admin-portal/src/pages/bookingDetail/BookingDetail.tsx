@@ -1,4 +1,4 @@
-import { Grid, QueryState, Snackbar, Stack } from '@sinnapi/ui';
+import { Grid, PaymentChaseDialog, QueryState, Snackbar, Stack } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useBookingDetail } from './hooks/useBookingDetail';
 import BookingHero from './components/organisms/BookingHero';
@@ -9,6 +9,8 @@ import BookingStatusCard from './components/organisms/BookingStatusCard';
 import BookingStatusDialog from './components/organisms/BookingStatusDialog';
 import BookingPartiesCard from './components/organisms/BookingPartiesCard';
 import BookingMoneyCard from './components/organisms/BookingMoneyCard';
+import BookingPaymentWindowCard from './components/organisms/BookingPaymentWindowCard';
+import BookingSettlementCard from './components/organisms/BookingSettlementCard';
 
 /**
  * One booking as the console sees it: what was agreed, who it is between, what
@@ -31,6 +33,8 @@ export default function BookingDetail() {
     activityError,
     targets,
     status,
+    chase,
+    canChase,
     isLoading,
     error,
   } = useBookingDetail();
@@ -53,12 +57,29 @@ export default function BookingDetail() {
               <Stack spacing={3}>
                 <BookingFactsCard booking={booking} timeWindow={timeWindow} />
                 <BookingMoneyCard booking={booking} />
-                {booking.quotation && <BookingQuotationCard quotation={booking.quotation} />}
+                {booking.quotation && (
+                  <BookingQuotationCard quotation={booking.quotation} booking={booking} />
+                )}
               </Stack>
             </Grid>
 
             <Grid item xs={12} md={5}>
               <Stack spacing={3}>
+                {/* Above the lifecycle control: when a settlement is open it
+                    is the live piece of work on this booking, with two people
+                    waiting on us. It draws nothing when there is none. */}
+                <BookingSettlementCard bookingId={booking.id} />
+                {/* Above the lifecycle control and below the settlement, in
+                    the order the money moves: a booking waiting to be funded
+                    is earlier in its life than one waiting to be paid out.
+                    Draws nothing once there is no clock. */}
+                <BookingPaymentWindowCard
+                  booking={booking}
+                  canChase={canChase}
+                  onChase={chase.open}
+                  busy={chase.isBusy}
+                  error={chase.error}
+                />
                 <BookingStatusCard
                   targets={targets}
                   onSelect={status.request}
@@ -84,6 +105,19 @@ export default function BookingDetail() {
             error={status.err}
             onConfirm={status.confirm}
             onCancel={status.cancel}
+          />
+
+          <PaymentChaseDialog
+            action={chase.pending}
+            reference={chase.target?.reference}
+            reason={chase.reason}
+            onReasonChange={chase.setReason}
+            hours={chase.hours}
+            onHoursChange={chase.setHours}
+            busy={chase.isBusy}
+            error={chase.error}
+            onConfirm={chase.confirm}
+            onCancel={chase.close}
           />
 
           <Snackbar

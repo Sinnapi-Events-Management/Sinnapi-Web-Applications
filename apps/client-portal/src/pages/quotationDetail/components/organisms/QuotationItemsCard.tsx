@@ -1,14 +1,10 @@
-import { useMemo } from 'react';
-import { Divider, SectionCard, SimpleTable, Typography } from '@sinnapi/ui';
+import { QuotationLineItems, SectionCard, Typography, type QuotationPricing } from '@sinnapi/ui';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import type { QuotationDetailModel, QuotationItemModel } from '@/lib/types';
-import { getLineItemColumns } from '../../schema';
-import QuotationTotals from '../molecules/QuotationTotals';
+import type { QuotationItemModel } from '@/lib/types';
 
 type Props = {
-  quotation: QuotationDetailModel;
   items: QuotationItemModel[];
-  isPriced: boolean;
+  pricing: QuotationPricing;
 };
 
 /**
@@ -19,31 +15,21 @@ type Props = {
  * tells the client the ball is not in their court, which an empty grid does
  * not.
  */
-export default function QuotationItemsCard({ quotation: q, items, isPriced }: Props) {
-  const columns = useMemo(() => getLineItemColumns(q.currency), [q.currency]);
-
+export default function QuotationItemsCard({ items, pricing }: Props) {
   return (
     <SectionCard
       title="What this covers"
       icon={<ReceiptLongIcon />}
-      subtitle={isPriced ? `${items.length} item${items.length === 1 ? '' : 's'}` : undefined}
+      subtitle={
+        pricing.isPriced ? `${items.length} item${items.length === 1 ? '' : 's'}` : undefined
+      }
     >
-      {!isPriced ? (
+      {!pricing.isPriced ? (
         <Typography variant="body2" color="text.secondary">
           The vendor has not priced this request yet. You will be notified when their quote arrives.
         </Typography>
       ) : (
-        <>
-          <SimpleTable
-            columns={columns}
-            rows={items}
-            getRowId={(it) => it.id}
-            minWidth={420}
-            emptyMessage="This quote has no line items."
-          />
-          <Divider sx={{ my: 2.5 }} />
-          <QuotationTotals quotation={q} />
-        </>
+        <QuotationLineItems items={items} pricing={pricing} />
       )}
     </SectionCard>
   );

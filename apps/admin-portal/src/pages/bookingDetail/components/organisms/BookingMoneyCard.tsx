@@ -3,6 +3,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import ShieldIcon from '@mui/icons-material/Shield';
 import type { BookingAdminModel } from '@/lib/types';
 import AdvanceTermsSummary from '../molecules/AdvanceTermsSummary';
+import PaymentTermsSummary from '../molecules/PaymentTermsSummary';
 
 type Props = { booking: BookingAdminModel };
 
@@ -27,6 +28,12 @@ export default function BookingMoneyCard({ booking: b }: Props) {
       action={escrow ? <StatusChip status={escrow.status} /> : undefined}
     >
       <Stack spacing={2.5}>
+        {/* Before the escrow figures, because it decides whether there are any.
+            An operator reading a breakdown first and the rail second has
+            already formed a view of a booking Sinnapi may never have held. */}
+        <PaymentTermsSummary booking={b} />
+        <Divider />
+
         {escrow ? (
           <MoneyBreakdown
             dense
@@ -48,8 +55,11 @@ export default function BookingMoneyCard({ booking: b }: Props) {
           />
         ) : (
           <Alert severity="info" variant="outlined">
-            Nothing has been funded on this booking. Escrow opens once the vendor confirms and the
-            client accepts the advance schedule.
+            {b.payment_type === 'direct'
+              ? 'Nothing was ever funded here, and nothing will be: this booking was agreed to be ' +
+                'settled directly between the two parties.'
+              : 'Nothing has been funded on this booking. Escrow opens once the vendor agrees the ' +
+                'terms and the client accepts the advance schedule.'}
           </Alert>
         )}
 

@@ -2,10 +2,15 @@ import { Box, Grid, Stack, QueryState } from '@sinnapi/ui';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
 import BookingHero from './components/organisms/BookingHero';
 import BookingFactsCard from './components/organisms/BookingFactsCard';
+import BookingEventCard from './components/organisms/BookingEventCard';
+import BookingQuotationCard from './components/organisms/BookingQuotationCard';
 import BookingTimelineCard from './components/organisms/BookingTimelineCard';
+import BookingTermsCard from './components/organisms/BookingTermsCard';
 import BookingPaymentCard from './components/organisms/BookingPaymentCard';
+import BookingAdvanceTermsCard from './components/organisms/BookingAdvanceTermsCard';
 import BookingClientCard from './components/organisms/BookingClientCard';
 import BookingActionsCard from './components/organisms/BookingActionsCard';
+import BookingSettlementCard from './components/organisms/BookingSettlementCard';
 import { useBookingDetail } from './hooks/useBookingDetail';
 
 /**
@@ -37,13 +42,32 @@ export default function BookingDetail() {
             <Grid item xs={12} md={7}>
               <Stack spacing={3}>
                 <BookingFactsCard booking={booking} timeWindow={timeWindow} />
+                {/* Between the facts and the trail, in the order this booking
+                    actually happened: a request on an event, a quote against
+                    it, and the booking that quote became. Both cards draw
+                    nothing when the booking came from neither. */}
+                <BookingEventCard booking={booking} />
+                <BookingQuotationCard booking={booking} client={client} />
                 <BookingTimelineCard bookingId={booking.id} status={booking.status} />
               </Stack>
             </Grid>
             <Grid item xs={12} md={5}>
               <Stack spacing={3}>
                 <BookingActionsCard booking={booking} needsResponse={needsResponse} />
+                {/* Above the terms once the event is over: after an event the
+                    only thing a vendor comes back to this page for is their
+                    money, and the card draws nothing at all until there is
+                    something to ask for or answer. */}
+                <BookingSettlementCard booking={booking} />
+                {/* Directly under the actions: the accept button agrees to
+                    these terms as well as to the date, so what it commits the
+                    vendor to should be the next thing they read. */}
+                <BookingTermsCard booking={booking} />
                 <BookingPaymentCard booking={booking} />
+                {/* Under the payment card, and after it: that one says where
+                    the money is now, this one says when the rest of it comes.
+                    A vendor reads them in that order. */}
+                <BookingAdvanceTermsCard booking={booking} />
                 <BookingClientCard client={client} />
               </Stack>
             </Grid>

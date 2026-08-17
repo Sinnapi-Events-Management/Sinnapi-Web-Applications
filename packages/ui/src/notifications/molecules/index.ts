@@ -9,3 +9,4 @@ export * from './NewArrivalsPill';
 export * from './NotificationTabs';
 export * from './NotificationStatTile';
 export * from './DesktopAlertsToggle';
+export * from './NotificationChimeToggle';

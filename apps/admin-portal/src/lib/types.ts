@@ -6,6 +6,8 @@
 // inferred cardinality; such fields are typed as `T | T[] | null` and normalized
 // at the call site with `one<T>()` from src/lib/rel.ts.
 
+import type { BookingPaymentWindowFields } from '@sinnapi/ui';
+
 // --- shared relation shapes -------------------------------------------------
 
 export type ProfileRef = {
@@ -541,7 +543,73 @@ export type BookingModel = {
   event_date: string | null;
   amount: number | null;
   currency: string | null;
+  /**
+   * The agreed rail and how far the terms conversation got. Optional because
+   * the vendor-detail tab selects a narrower row than the platform-wide list —
+   * the chip renders "Not set" for either absence, which is the truth in both.
+   */
+  payment_type?: string | null;
+  payment_terms_status?: string | null;
   vendors: VendorRef | VendorRef[] | null;
+} & Partial<BookingPaymentWindowFields>;
+
+/**
+ * One escrow booking that is confirmed but not funded, as
+ * `search_unpaid_bookings_admin` returns it.
+ *
+ * Its own model rather than a wider `BookingModel`, because the queue exists to
+ * answer questions the bookings list cannot: how long the client has had, how
+ * often they have been chased, and — the one that decides what an operator
+ * does next — whether they ever opened a checkout at all. A client who tried
+ * and failed needs help; one who never started needs chasing, and those are
+ * different messages.
+ */
+export type UnpaidBookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  amount: number | null;
+  currency: string | null;
+  client_id: string | null;
+  client_name: string;
+  vendor_id: string | null;
+  vendor_name: string;
+  payment_window_opened_at: string | null;
+  payment_due_at: string | null;
+  payment_due_override_at: string | null;
+  payment_due_override_reason: string | null;
+  /** The deadline in force — the override when there is one. Resolved server-side. */
+  effective_due_at: string | null;
+  payment_overdue_at: string | null;
+  last_payment_nudge_at: string | null;
+  payment_nudge_count: number | null;
+  /** `null` when the client has never opened a checkout; else 'initiated' | 'failed'. */
+  escrow_status: string | null;
+  escrow_attempt_no: number | null;
+};
+
+/** The unpaid queue's headline figures, from `count_unpaid_bookings_admin`. */
+export type UnpaidBookingCounts = {
+  awaiting: number;
+  /** Still payable, but inside six hours — the actionable middle. */
+  due_soon: number;
+  overdue: number;
+  overdue_value: number;
+  currency: string;
+  oldest_overdue_at: string | null;
+};
+
+/** One entry in a booking's payment-window trail. */
+export type BookingPaymentEventModel = {
+  id: string;
+  booking_id: string;
+  kind: string;
+  actor_id: string | null;
+  actor_role: string;
+  note: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 };
 
 export type QuotationModel = {
@@ -599,7 +667,18 @@ export type BookingAdminModel = {
   location: string | null;
   currency: string | null;
   amount: number | null;
+  /** The payment rail agreed for this booking — `escrow` or `direct`. */
   payment_type: string | null;
+  /**
+   * The terms conversation, which the console needs whole: an off-platform
+   * complaint turns on whether the vendor ever actually agreed to that rail,
+   * and on what either side said when they did.
+   */
+  payment_terms_status: string | null;
+  payment_terms_counter: string | null;
+  payment_terms_note: string | null;
+  payment_terms_from_event: boolean | null;
+  payment_terms_responded_at: string | null;
   advance_rate: number | null;
   advance_release_days_before: number | null;
   advance_terms_note: string | null;
@@ -611,12 +690,42 @@ export type BookingAdminModel = {
   started_at: string | null;
   completed_at: string | null;
   created_at: string | null;
+  /**
+   * The clock the client had to fund this booking. `null` when there is none —
+   * an off-platform booking, or one no vendor has confirmed — which is one
+   * check rather than eight independently-null columns.
+   */
+  payment_window: BookingPaymentWindowModel | null;
   vendor: BookingPartyModel;
   client: BookingPartyModel;
-  event: { id: string; title: string | null } | null;
+  /** `payment_type` here outranks the booking's own — see `payment_terms_from_event`. */
+  event: { id: string; title: string | null; payment_type: string | null } | null;
   escrow: BookingEscrowModel | null;
   /** Same shape as `get_event_quotation`, so `downloadQuotationPdf` renders it. */
   quotation: QuotationDocument | null;
+};
+
+/**
+ * A booking's payment clock, as `get_booking_admin` returns it.
+ *
+ * `effective_due_at` is the deadline in force, resolved server-side — the
+ * override when an admin granted one, the original otherwise. The two raw
+ * columns are kept beside it so the console can still show what the deadline
+ * was before somebody moved it, which is the question a vendor asks when their
+ * date was held four days longer than they expected.
+ */
+export type BookingPaymentWindowModel = {
+  opened_at: string | null;
+  due_at: string | null;
+  override_at: string | null;
+  override_reason: string | null;
+  /** Resolved to a name by the RPC, not a bare id. */
+  override_by: string | null;
+  effective_due_at: string | null;
+  overdue_at: string | null;
+  settled_at: string | null;
+  last_nudge_at: string | null;
+  nudge_count: number | null;
 };
 
 /**
@@ -633,6 +742,57 @@ export type BookingActivityModel = {
   amount: number | null;
   currency: string | null;
   occurred_at: string;
+};
+
+/**
+ * A vendor's post-event request for the money still held, and the three-party
+ * agreement on what is actually paid.
+ *
+ * The console's stake in this is narrow and specific: put the request to the
+ * client, then release exactly the figure both parties consented to. Which is
+ * why `approved_amount` and the two consent stamps matter more here than any
+ * of the workflow columns — releasing a different number is the failure this
+ * record exists to prevent.
+ */
+export type SettlementRequestModel = {
+  id: string;
+  booking_id: string;
+  escrow_id: string;
+  vendor_id: string;
+  client_id: string;
+  status: string;
+  currency: string | null;
+  requested_amount: number | null;
+  approved_amount: number | null;
+  decision: string | null;
+  decision_reason: string | null;
+  decided_automatically: boolean | null;
+  vendor_note: string | null;
+  admin_note: string | null;
+  vendor_response: string | null;
+  vendor_response_note: string | null;
+  client_due_at: string | null;
+  vendor_due_at: string | null;
+  admin_due_at: string | null;
+  client_consent_at: string | null;
+  vendor_consent_at: string | null;
+  released_at: string | null;
+  payout_id: string | null;
+  refund_id: string | null;
+  dispute_id: string | null;
+  last_nudge_at: string | null;
+  nudge_count: number | null;
+  requested_at: string;
+};
+
+/** One entry of a settlement's append-only trail, oldest first. */
+export type SettlementEventModel = {
+  id: string;
+  kind: string;
+  actor_role: string;
+  amount: number | null;
+  note: string | null;
+  created_at: string;
 };
 
 export type EventModel = {

@@ -3,6 +3,14 @@
 Status: **built**. Migrations verified against Postgres 15; the money path and its edge cases are exercised end to end (see §9). This document is the contract for the escrow money flow.
 Every RPC, edge function and portal screen below traces back to a step here.
 
+> **After the event**, the balance release is now reached through a three-party
+> settlement — the vendor asks, the client approves in full or offers less with
+> a reason, and a reduction needs the vendor's consent before anything moves.
+> See [settlement.md](./settlement.md). Everything below still describes the
+> money model, the tranches and the ledger; what changed is how the release
+> request gets raised, and that `approve_escrow_release` now refuses while an
+> agreed reduction is outstanding.
+
 ---
 
 ## 1. The money model

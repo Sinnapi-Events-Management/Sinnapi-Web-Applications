@@ -75,6 +75,32 @@ export type UseMessagingRealtimeOptions = {
   enabled?: boolean;
 };
 
+/**
+ * Distinguishes one subscription from another on an otherwise identical topic.
+ *
+ * `RealtimeClient.channel(topic)` does not create a channel — it returns the
+ * existing one when the topic is already taken. `RealtimeChannel.on()` throws
+ * `cannot add \`postgres_changes\` callbacks … after \`subscribe()\`` when the
+ * channel it is called on has already joined. Together those two make a shared
+ * topic name unusable here, in two separate ways:
+ *
+ *   - Two subscribers at once. The portal shell subscribes on every page so the
+ *     top bar can announce arrivals, and the inbox subscribes again for the open
+ *     thread. Both resolve `messaging:{uid}`, so whichever mounts second is
+ *     handed the first one's live channel and throws.
+ *   - One subscriber, re-running. `removeChannel()` is asynchronous — it awaits
+ *     the server's reply to the leave — while an effect cleanup is synchronous.
+ *     A teardown immediately followed by a rebuild therefore re-enters a channel
+ *     that has not left yet.
+ *
+ * A counter read at subscribe time settles both: every run of the effect below
+ * asks for a topic no channel has ever held, so `channel()` can only ever build
+ * a fresh one. The suffix is invisible to the server — `postgres_changes` is
+ * authorised by RLS on the tables themselves, and `can_access_topic` (migration
+ * 0015) does not govern this topic in the first place.
+ */
+let channelSeq = 0;
+
 export function useMessagingRealtime({
   client,
   currentUserId,
@@ -96,12 +122,18 @@ export function useMessagingRealtime({
   participant.current = onParticipantChange;
   arrived.current = onMessageArrived;
 
+  // Held in a ref for the same reason the callbacks are, and it matters more
+  // here: the subscription is deliberately named per user rather than per
+  // conversation so that switching threads does not churn the connection, and a
+  // `conversationId` in the dependency list below defeats exactly that. It
+  // decides what a handler does, never what is subscribed to.
+  const openThread = useRef(conversationId);
+  openThread.current = conversationId;
+
   useEffect(() => {
     if (!enabled || !currentUserId) return;
 
-    // Named per user rather than per conversation so switching threads does not
-    // churn the connection; the open thread is discriminated in the handler.
-    const ch = client.channel(`messaging:${currentUserId}`);
+    const ch = client.channel(`messaging:${currentUserId}:${++channelSeq}`);
 
     ch.on(
       'postgres_changes',
@@ -112,10 +144,11 @@ export function useMessagingRealtime({
         old?: { conversation_id?: string };
       }) => {
         const affected = payload.new?.conversation_id ?? payload.old?.conversation_id;
+        const open = openThread.current;
         // The inbox always cares: the row's preview, order and unread count all
         // move on any message the viewer is entitled to see.
         inbox.current?.();
-        if (conversationId && affected === conversationId) thread.current?.();
+        if (open && affected === open) thread.current?.();
 
         // System messages are the product narrating itself ("Booking
         // confirmed") — the notification feed already covers those, and
@@ -161,5 +194,6 @@ export function useMessagingRealtime({
     return () => {
       client.removeChannel(ch as never);
     };
-  }, [client, currentUserId, conversationId, enabled]);
+    // `conversationId` is deliberately absent — see `openThread` above.
+  }, [client, currentUserId, enabled]);
 }

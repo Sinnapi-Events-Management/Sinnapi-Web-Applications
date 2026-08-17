@@ -17,7 +17,11 @@ import EditNoteIcon from '@mui/icons-material/EditNote';
 import BlockIcon from '@mui/icons-material/Block';
 import UndoIcon from '@mui/icons-material/Undo';
 import { IconBadge } from '../molecules/IconBadge';
-import { quotationActionSpec, type QuotationAction } from '../molecules/quotationTransitions';
+import {
+  quotationActionError,
+  quotationActionSpec,
+  type QuotationAction,
+} from '../molecules/quotationTransitions';
 
 const ICONS: Record<QuotationAction, ReactNode> = {
   accept: <CheckCircleOutlineIcon />,
@@ -35,8 +39,17 @@ export type QuotationActionDialogProps = {
   reason: string;
   onReasonChange: (value: string) => void;
   busy: boolean;
-  /** A server refusal, shown in place rather than behind a closed dialog. */
-  error?: string | null;
+  /**
+   * A server refusal, shown in place rather than behind a closed dialog.
+   *
+   * Deliberately `unknown`. Callers are expected to pass a sentence — both
+   * portals map the failure through `quotationActionError` first — but a
+   * Supabase RPC error is a plain object, and the one time that object reached
+   * this prop unmapped the dialog rendered `[object Object]` at a client who
+   * had just tried to accept a quote. Anything that arrives here is read
+   * through the same normaliser, so the last hop cannot restage that.
+   */
+  error?: unknown;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -66,6 +79,10 @@ export function QuotationActionDialog({
   const spec = action ? quotationActionSpec(action) : null;
   const needsReason = !!spec?.requiresReason;
   const canSubmit = !busy && (!needsReason || reason.trim().length > 0);
+
+  // Idempotent on a sentence a caller already mapped, and the whole treatment
+  // — token lookup, SQLSTATE classification, console report — on anything raw.
+  const errorText = error == null ? null : quotationActionError(error);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,9 +129,16 @@ export function QuotationActionDialog({
           />
         )}
 
-        {error && (
+        {/*
+          The refusal, in the dialog that caused it. It stays open on failure —
+          the reason the person typed is still in the field, the button is live
+          again, and retrying is one tap. MUI's Alert carries `role="alert"`,
+          so a screen reader announces this when it appears rather than leaving
+          someone waiting on a dialog that looks unchanged.
+        */}
+        {errorText && (
           <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
-            {error}
+            {errorText}
           </Alert>
         )}
       </DialogContent>

@@ -5,13 +5,29 @@
 // Embedded relations are returned by PostgREST as an object OR an array; such
 // fields are typed as `T | T[] | null` and normalized with `one<T>()` (rel.ts).
 
-export type ProfileRel = {
-  full_name: string | null;
-};
+import type { BookingPaymentWindowFields } from '@sinnapi/ui';
 
-export type ProfileContactRel = {
+/**
+ * A counterparty resolved through `get_profile_directory`, NOT through an
+ * embedded relation.
+ *
+ * `profiles_self_read` lets an account read only its own profile row, so
+ * `profiles:client_id(full_name)` embeds returned null for every client this
+ * portal has ever displayed. The RPC discloses these fields for people the
+ * vendor already shares a quotation, booking or conversation with.
+ *
+ * `email` and `phone` stay null until the engagement is live — an accepted
+ * quote or a booking past `requested` — which is what `contact_visible`
+ * reports. Null contact with `contact_visible: false` means "not yet", not
+ * "missing", and the UI should say so rather than render a blank field.
+ */
+export type DirectoryProfile = {
+  id: string;
   full_name: string | null;
+  avatar_url: string | null;
   email: string | null;
+  phone: string | null;
+  contact_visible: boolean;
 };
 
 export type VendorRel = {
@@ -51,7 +67,77 @@ export type VendorBookingModel = {
   amount: number | null;
   currency: string | null;
   client_id: string | null;
-  profiles: ProfileRel | ProfileRel[] | null;
+  /** How the client has asked to pay, and whether this vendor has agreed to it.
+   *  A request whose terms are unanswered is the one a vendor should open. */
+  payment_type: string | null;
+  payment_terms_status: string | null;
+} & BookingPaymentWindowFields;
+
+/**
+ * The booking a client made from a quotation, when there is one. Deliberately
+ * thin: the quotation page only needs to say whether the quote has turned into
+ * a date the vendor has to answer, and where to click — the booking's own page
+ * owns everything else.
+ *
+ * `ux_bookings_quotation` makes at most one of these exist per quote.
+ */
+export type QuotationBookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+};
+
+/**
+ * The quotation a booking was made from, embedded on the booking read.
+ *
+ * The vendor's own document, coming back to them as the record of what they
+ * offered: the header fields, the money columns and the priced lines.
+ * `quotations_read` matches on `is_vendor_owner(vendor_id)` and `q_items_rw`
+ * follows it to the lines, so this needed no new grant and no RPC.
+ *
+ * Absent on a booking a client placed straight against a service.
+ */
+export type BookingQuotationModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  currency: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  tax_total: number | null;
+  total: number | null;
+  valid_until: string | null;
+  request_details: string | null;
+  version_no: number | null;
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  sent_at: string | null;
+  responded_at: string | null;
+  created_at: string | null;
+  quotation_items: QuotationItemModel[] | null;
+};
+
+/**
+ * The event a booking hangs off, when the vendor is allowed to see it.
+ *
+ * `events_public_read` discloses an event to a vendor only while it is
+ * published and public — which is exactly the marketplace request they quoted
+ * on. A booking against a client's private event resolves this to null, and
+ * the card is then absent rather than empty: the vendor has the booking's own
+ * date and location either way.
+ */
+export type BookingEventModel = {
+  id: string;
+  title: string | null;
+  event_date: string | null;
+  location: string | null;
+  payment_type: string | null;
+  payment_terms_note: string | null;
 };
 
 export type VendorBookingDetailModel = {
@@ -65,13 +151,40 @@ export type VendorBookingDetailModel = {
   amount: number | null;
   currency: string | null;
   location: string | null;
+  /** The payment rail the client proposed — `escrow` or `direct` (off platform). */
   payment_type: string | null;
+  /**
+   * How far the terms conversation has got. The vendor's accept agrees to this
+   * as well as to the date; their counter offers the other rail back. Read
+   * through `readPaymentTerms` rather than compared to string literals here.
+   */
+  payment_terms_status: string | null;
+  payment_terms_counter: string | null;
+  payment_terms_note: string | null;
+  /** Set on the client's event, so not this vendor's to renegotiate. */
+  payment_terms_from_event: boolean | null;
+  /**
+   * The advance schedule carried over from the quotation, and the client's
+   * consent to it. Read-only here — the client owns the rate, and the vendor
+   * owns nothing about it — but it is the vendor's money and the date it
+   * arrives, which makes it theirs to know.
+   */
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  /** Null until the client accepts. `activate_escrow` refuses before then. */
+  advance_terms_accepted_at: string | null;
   cancellation_reason: string | null;
   /** When the event was marked as under way. Null until either party starts it. */
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
-  profiles: ProfileContactRel | ProfileContactRel[] | null;
+  client_id: string | null;
+  /** Null on a booking a client placed straight against a service. */
+  quotation_id: string | null;
+  event_id: string | null;
+  quotations: BookingQuotationModel | BookingQuotationModel[] | null;
+  events: BookingEventModel | BookingEventModel[] | null;
 };
 
 /**
@@ -87,6 +200,56 @@ export type VendorBookingEscrowModel = {
   gross_amount: number | null;
   advance_amount: number | null;
   balance_amount: number | null;
+  /** Set while a dispute or reversal is under review; nothing releases then. */
+  timers_frozen_at: string | null;
+  /** Null while the advance is still in the held pool. */
+  advance_released_at: string | null;
+  /** When the cron will release the advance — the vendor's "money arrives" date. */
+  advance_release_due_at: string | null;
+};
+
+/**
+ * The vendor's post-event request for the money still held for them, and where
+ * the three-party agreement on it has got to.
+ *
+ * Read rather than derived: the amount was snapshotted when the request was
+ * raised and the consents are what make the figure payable, so the page shows
+ * the row rather than recomputing anything from the escrow.
+ */
+export type SettlementRequestModel = {
+  id: string;
+  booking_id: string;
+  escrow_id: string;
+  status: string;
+  currency: string | null;
+  requested_amount: number | null;
+  approved_amount: number | null;
+  decision: string | null;
+  decision_reason: string | null;
+  decided_automatically: boolean | null;
+  vendor_note: string | null;
+  admin_note: string | null;
+  vendor_response: string | null;
+  vendor_response_note: string | null;
+  client_due_at: string | null;
+  vendor_due_at: string | null;
+  admin_due_at: string | null;
+  client_consent_at: string | null;
+  vendor_consent_at: string | null;
+  released_at: string | null;
+  last_nudge_at: string | null;
+  nudge_count: number | null;
+  requested_at: string;
+};
+
+/** One entry of a settlement's append-only trail, oldest first. */
+export type SettlementEventModel = {
+  id: string;
+  kind: string;
+  actor_role: string;
+  amount: number | null;
+  note: string | null;
+  created_at: string;
 };
 
 /**
@@ -112,7 +275,6 @@ export type VendorQuotationModel = {
   request_details: string | null;
   created_at: string;
   client_id: string | null;
-  profiles: ProfileRel | ProfileRel[] | null;
 };
 
 export type QuotationItemModel = {
@@ -124,7 +286,9 @@ export type QuotationItemModel = {
   sort_order: number | null;
 };
 
-// useQuotation selects '*' plus the client, the line items and the linked event.
+// useQuotation selects '*' plus the line items and the linked event. The client
+// is NOT embedded here — see DirectoryProfile for why — only `client_id` is,
+// which the page resolves through the directory.
 export type QuotationDetailModel = {
   id: string;
   reference_no: string | null;
@@ -148,7 +312,6 @@ export type QuotationDetailModel = {
   client_id: string | null;
   event_id: string | null;
   quotation_items: QuotationItemModel[] | null;
-  profiles: ProfileRel | ProfileRel[] | null;
   events: EventRefModel | EventRefModel[] | null;
 };
 
@@ -371,8 +534,8 @@ export type ReviewModel = {
   body: string | null;
   status: string;
   created_at: string;
+  client_id: string | null;
   review_responses: ReviewResponseRel | ReviewResponseRel[] | null;
-  profiles: ProfileRel | ProfileRel[] | null;
 };
 
 export type PlanFeatureModel = {

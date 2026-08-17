@@ -1,5 +1,12 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { BookingActionDialog, Button, Divider, Stack, SectionCard } from '@sinnapi/ui';
+import {
+  BookingActionDialog,
+  Button,
+  Divider,
+  PaymentRailChoice,
+  Stack,
+  SectionCard,
+} from '@sinnapi/ui';
 import BoltIcon from '@mui/icons-material/Bolt';
 import ChatIcon from '@mui/icons-material/Chat';
 import type { VendorBookingDetailModel } from '@/lib/types';
@@ -67,6 +74,21 @@ export default function BookingActionsCard({ booking, needsResponse }: Props) {
         error={actions.error}
         onConfirm={actions.confirm}
         onCancel={actions.cancel}
+        disableConfirm={actions.isIncomplete}
+        // Only the counter needs a control of its own: the vendor is naming a
+        // rail, and the reason field below it explains that choice. Every other
+        // action leaves the slot empty and the dialog unchanged.
+        extra={
+          actions.pending === 'counter' && actions.terms.proposed ? (
+            <PaymentRailChoice
+              value={actions.counter}
+              onChange={actions.setCounter}
+              actor="vendor"
+              exclude={[actions.terms.proposed]}
+              disabled={actions.isBusy}
+            />
+          ) : undefined
+        }
       />
     </SectionCard>
   );

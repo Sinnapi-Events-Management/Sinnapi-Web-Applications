@@ -4,6 +4,7 @@ import {
   Button,
   EscrowJourney,
   MoneyBreakdown,
+  PaymentDeadline,
   SectionCard,
   Stack,
   StatusChip,
@@ -19,6 +20,7 @@ import { useEscrowActions } from '../../hooks/useEscrowActions';
 import EscrowActivationDialog from './EscrowActivationDialog';
 import RaiseIssueDialog from './RaiseIssueDialog';
 import AmountHeadline from '../molecules/AmountHeadline';
+import SinglePaymentNotice from '../molecules/SinglePaymentNotice';
 
 type Props = { booking: BookingDetailModel };
 
@@ -51,6 +53,34 @@ export default function BookingEscrowCard({ booking }: Props) {
             currency={booking.currency}
             paymentType={booking.payment_type}
           />
+        )}
+
+        {/* Above everything else on the card once the clock is running, and
+            deliberately: how long is left is the only thing on this card that
+            changes on its own, and the only thing with a consequence attached
+            to ignoring it. Draws nothing on an off-platform booking, an
+            unconfirmed one, or one already paid. */}
+        <PaymentDeadline booking={booking} audience="client" escrowStatus={section.escrowStatus} />
+
+        {/* The full-payment statement sits with the offer, not only in the
+            dialog behind it. A client deciding whether to open the checkout at
+            all is deciding whether they can afford it today. No figure here:
+            the total depends on the payment rail they have not chosen yet, and
+            a number that changes once they get inside is worse than none. */}
+        {section.canActivate && (
+          <SinglePaymentNotice grossAmount={null} currency={booking.currency} />
+        )}
+
+        {/* An off-platform booking has no escrow to show and never will. Saying
+            so is better than a card that silently offers nothing: the client
+            agreed to this, but they agreed to it once, weeks ago, and the page
+            they come back to should still be honest about what it means. */}
+        {section.isOffPlatform && !escrow && (
+          <Alert severity="warning">
+            You and your vendor agreed to settle this directly, outside Sinnapi. Pay them however
+            the two of you arranged — we are not holding this money, cannot refund it, and cannot
+            mediate if something goes wrong.
+          </Alert>
         )}
 
         {escrow && (

@@ -7,7 +7,13 @@ import {
 } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { applyFilters, paginate, type PageParams, type Paged } from '@sinnapi/ui';
+import {
+  applyFilters,
+  paginate,
+  BOOKING_PAYMENT_WINDOW_COLUMNS,
+  type PageParams,
+  type Paged,
+} from '@sinnapi/ui';
 import {
   INTAKE_STATUSES,
   VENDOR_STATUSES,
@@ -52,8 +58,13 @@ import type {
   ServiceCategoryOption,
   ServiceRegionModel,
   BookingModel,
+  BookingPaymentEventModel,
+  UnpaidBookingCounts,
+  UnpaidBookingModel,
   BookingAdminModel,
   BookingActivityModel,
+  SettlementRequestModel,
+  SettlementEventModel,
   QuotationModel,
   EventModel,
   EventDetailModel,
@@ -1167,9 +1178,13 @@ export function useBookingsAdmin(params: PageParams) {
       paginate<BookingModel>(
         supabase
           .from('bookings')
-          .select('id,reference_no,status,event_date,amount,currency,vendors(business_name)', {
-            count: 'exact',
-          }),
+          .select(
+            'id,reference_no,status,event_date,amount,currency,payment_type,payment_terms_status,' +
+              `${BOOKING_PAYMENT_WINDOW_COLUMNS},vendors(business_name)`,
+            {
+              count: 'exact',
+            },
+          ),
         params,
         { field: 'event_date', ascending: false },
       ),
@@ -1196,6 +1211,50 @@ export function useBookingAdmin(id: string) {
       return data as BookingAdminModel;
     },
     enabled: !!id,
+  });
+}
+
+/**
+ * The settlement request on one booking, or `null` when the vendor has not
+ * asked to be paid yet.
+ *
+ * Read as a table rather than folded into `get_booking_admin`: it changes on
+ * its own clock (a client answering, a vendor consenting, a cron escalating)
+ * and the console subscribes to it, so it wants its own cache key rather than
+ * dragging the whole booking projection through every refresh.
+ */
+export function useBookingSettlementAdmin(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-settlement', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_requests')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as SettlementRequestModel) ?? null;
+    },
+    enabled: !!bookingId,
+  });
+}
+
+/** A settlement's visible trail, oldest first — the order it reads in. */
+export function useSettlementEventsAdmin(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-settlement-events', requestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_events')
+        .select('id,kind,actor_role,amount,note,created_at')
+        .eq('request_id', requestId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SettlementEventModel[];
+    },
+    enabled: !!requestId,
   });
 }
 
@@ -2379,4 +2438,83 @@ export function useEmailSuppressions(params: PageParams) {
       return paginate<EmailSuppressionModel>(q, params, { field: 'created_at', ascending: false });
     }),
   );
+}
+
+// ---------- Unpaid escrow bookings ----------
+
+/** Which slice of the unpaid queue to show. `all` is both. */
+export type UnpaidBookingState = 'all' | 'awaiting' | 'overdue';
+
+export type UnpaidBookingParams = PageParams & { search?: string; state?: UnpaidBookingState };
+
+/**
+ * One page of escrow bookings that are confirmed but have not been funded.
+ *
+ * An RPC rather than a PostgREST select: the row an operator triages on spans
+ * the booking, both parties by name, and whether a checkout was ever opened —
+ * and that last join has to be a LEFT one, because the booking whose client
+ * never started paying is the single most important row in this queue and an
+ * inner join would silently drop exactly it.
+ */
+export function useUnpaidBookings(params: UnpaidBookingParams) {
+  return useQuery({
+    queryKey: ['admin-unpaid-bookings', params] as const,
+    queryFn: async (): Promise<Paged<UnpaidBookingModel>> => {
+      const { data, error } = await supabase.rpc('search_unpaid_bookings_admin', {
+        p_search: params.search || null,
+        p_state: params.state && params.state !== 'all' ? params.state : null,
+        p_sort_field: params.sort?.field ?? 'effective_due_at',
+        p_sort_dir: params.sort?.direction ?? 'asc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (UnpaidBookingModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The queue's headline figures — the dashboard card and the list's tab badges.
+ *
+ * Shares the `admin-unpaid-bookings` key prefix so a nudge, an extension or a
+ * cancellation refreshes the badges alongside the list it was performed from.
+ */
+export function useUnpaidBookingCounts(enabled = true) {
+  return useQuery({
+    queryKey: ['admin-unpaid-bookings', 'counts'] as const,
+    queryFn: async (): Promise<UnpaidBookingCounts> => {
+      const { data, error } = await supabase.rpc('count_unpaid_bookings_admin');
+      if (error) throw error;
+      return data as UnpaidBookingCounts;
+    },
+    enabled,
+  });
+}
+
+/**
+ * One booking's payment-window trail: the clock opening, every reminder and
+ * chase, any extension, and how it ended.
+ *
+ * Read as a table rather than folded into `get_booking_admin` because it grows
+ * on its own clock — a cron reminder, a vendor's nudge — and the console
+ * subscribes to it, so it wants its own cache key rather than dragging the
+ * whole booking projection through every refresh.
+ */
+export function useBookingPaymentEvents(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['booking-payment-events', bookingId] as const,
+    queryFn: async (): Promise<BookingPaymentEventModel[]> => {
+      const { data, error } = await supabase
+        .from('booking_payment_events')
+        .select('id,booking_id,kind,actor_id,actor_role,note,metadata,created_at')
+        .eq('booking_id', bookingId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BookingPaymentEventModel[];
+    },
+    enabled: !!bookingId,
+  });
 }

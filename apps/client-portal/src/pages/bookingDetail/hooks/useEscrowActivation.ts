@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEscrowCheckout } from './useEscrowCheckout';
-import { useAdvanceRate } from './useAdvanceRate';
+import { useAdvanceRate } from '@/components/paymentTerms/hooks/useAdvanceRate';
 import type { BookingDetailModel } from '@/lib/types';
 
 type Options = {
@@ -34,7 +34,7 @@ export function useEscrowActivation({
   const { quote } = checkout;
 
   const advance = useAdvanceRate({
-    proposedRate: quote?.advance_rate ?? null,
+    startingRate: quote?.advance_rate ?? null,
     limit: quote?.advance_rate_limit ?? null,
   });
 

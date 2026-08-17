@@ -3,11 +3,13 @@ import { Stack, Box, Typography } from '@mui/material';
 import { SearchField } from '../../molecules/SearchField';
 import { DomainFilterChips } from '../molecules/DomainFilterChips';
 import { DesktopAlertsToggle } from '../molecules/DesktopAlertsToggle';
+import { NotificationChimeToggle } from '../molecules/NotificationChimeToggle';
 import type {
   NotificationDomainFilter,
   NotificationSearchState,
 } from '../hooks/useNotificationFeed';
 import type { DesktopNotifications } from '../hooks/useDesktopNotifications';
+import type { NotificationChime } from '../hooks/useNotificationChime';
 
 export type NotificationsToolbarProps = {
   search: NotificationSearchState;
@@ -18,6 +20,8 @@ export type NotificationsToolbarProps = {
   resultCount: number;
   /** Omit to hide the desktop-alerts opt-in entirely. */
   alerts?: DesktopNotifications;
+  /** Omit to hide the arrival-sound opt-in entirely. */
+  chime?: NotificationChime;
 };
 
 /**
@@ -34,6 +38,7 @@ export function NotificationsToolbar({
   availableDomains,
   resultCount,
   alerts,
+  chime,
 }: NotificationsToolbarProps) {
   return (
     <Stack spacing={1.25}>
@@ -58,10 +63,11 @@ export function NotificationsToolbar({
           {resultCount} shown
         </Typography>
       </Stack>
-      {alerts && (
-        <Box>
-          <DesktopAlertsToggle alerts={alerts} />
-        </Box>
+      {(alerts || chime) && (
+        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+          {alerts && <DesktopAlertsToggle alerts={alerts} />}
+          {chime && <NotificationChimeToggle chime={chime} />}
+        </Stack>
       )}
     </Stack>
   );
