@@ -15,6 +15,31 @@ export const PROFILE_STATUSES = ['active', 'suspended', 'pending'] as const;
 export type ProfileStatus = (typeof PROFILE_STATUSES)[number];
 
 /**
+ * The full `profile_status` enum after 0810a, in lifecycle order. Authoritative
+ * source for the vendor accounts list' status tabs and their counts.
+ *
+ * Kept separate from `PROFILE_STATUSES` rather than replacing it: that constant
+ * is the set of states the Users and Clients pages can produce, and it is also
+ * what `create-staff` validates a new account's status against. Widening it
+ * would give both of those pages two tabs they can never fill and would let a
+ * staff account be provisioned straight into `blocked`.
+ *
+ * `deactivated` is off-by-request and reversible in one click; `blocked` is
+ * punitive and indefinite; `suspended` always carries an end date and lifts
+ * itself. See the 0810a migration header for why the distinction is stored
+ * rather than left to a reason string.
+ */
+export const VENDOR_ACCOUNT_STATUSES = [
+  'active',
+  'pending',
+  'suspended',
+  'deactivated',
+  'blocked',
+] as const;
+
+export type VendorAccountStatus = (typeof VENDOR_ACCOUNT_STATUSES)[number];
+
+/**
  * The vendor application intake lifecycle, in workflow order. This is the
  * authoritative list of `vendor_application_intake.status` values — the review
  * queue's tabs and status counts are both derived from it.

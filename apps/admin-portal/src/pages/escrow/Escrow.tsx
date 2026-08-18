@@ -1,63 +1,29 @@
 import { useMemo } from 'react';
-import { DataTable, Alert, Button, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
-import { formatMoney } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { EscrowModel, VendorRef, BookingRef } from '@/lib/types';
+import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
 import { useEscrow } from './hooks/useEscrow';
+import { escrowColumns } from './schema';
 
+/**
+ * The escrow register and release console. Layout only — `useEscrow` owns the
+ * read, the realtime subscription and the one write.
+ */
 export default function Escrow() {
-  const { rows, total, isLoading, isFetching, error, has, busy, err, approveRelease, table } =
-    useEscrow();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    has,
+    busy,
+    err,
+    clearError,
+    approveRelease,
+    table,
+  } = useEscrow();
 
-  const columns = useMemo<DataTableColumn<EscrowModel>[]>(
-    () => [
-      {
-        field: 'booking',
-        headerName: 'Booking',
-        render: (e) => one<BookingRef>(e.bookings)?.reference_no ?? '—',
-      },
-      {
-        field: 'vendor',
-        headerName: 'Vendor',
-        render: (e) => one<VendorRef>(e.vendors)?.business_name ?? '—',
-      },
-      {
-        field: 'gross_amount',
-        headerName: 'Gross',
-        align: 'right',
-        sortable: true,
-        render: (e) => formatMoney(e.gross_amount, e.currency),
-      },
-      {
-        field: 'net_payout_amount',
-        headerName: 'Net',
-        align: 'right',
-        sortable: true,
-        render: (e) => formatMoney(e.net_payout_amount, e.currency),
-      },
-      {
-        field: 'status',
-        headerName: 'Status',
-        sortable: true,
-        render: (e) => <StatusChip status={e.status} />,
-      },
-      {
-        field: 'action',
-        headerName: 'Action',
-        align: 'right',
-        render: (e) =>
-          has('escrow.release') && e.status === 'release_requested' ? (
-            <Button
-              size="small"
-              variant="contained"
-              disabled={busy === e.id}
-              onClick={() => approveRelease(e.id)}
-            >
-              Approve release
-            </Button>
-          ) : null,
-      },
-    ],
+  const columns = useMemo(
+    () => escrowColumns({ has, busy, approveRelease }),
     [has, busy, approveRelease],
   );
 
@@ -65,13 +31,15 @@ export default function Escrow() {
     <>
       <PageTitle
         title="Escrow"
-        subtitle="Approve releases once the client has confirmed. Approval creates a payout for Finance to process."
+        subtitle="Approve releases once the client has confirmed, or once the confirmation window has lapsed. Approval raises a payout for Finance to settle."
       />
+
       {(err || error) && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={err ? clearError : undefined}>
           {err ?? (error instanceof Error ? error.message : 'Failed to load escrow transactions.')}
         </Alert>
       )}
+
       <DataTable
         columns={columns}
         rows={rows}

@@ -1,4 +1,13 @@
-import { Box, Stack, TextField, MenuItem, Button, Typography, SearchField } from '@sinnapi/ui';
+import {
+  Box,
+  Stack,
+  TextField,
+  MenuItem,
+  Button,
+  SearchField,
+  DateRangeField,
+  FUTURE_RANGE_PRESETS,
+} from '@sinnapi/ui';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import type { SearchTerm } from '@/hooks/useSearchTerm';
 import type { EventFilters } from '../../hooks/useEventFilters';
@@ -17,7 +26,7 @@ type EventsToolbarProps = {
  * page hook already owns.
  */
 export default function EventsToolbar({ search, filters }: EventsToolbarProps) {
-  const { values, setSource, setPublic, setDateFrom, setDateTo, isActive, reset } = filters;
+  const { values, setSource, setPublic, dateRange, setDateRange, isActive, reset } = filters;
 
   const showClear = isActive || Boolean(search.input);
   const clearAll = () => {
@@ -75,36 +84,17 @@ export default function EventsToolbar({ search, filters }: EventsToolbarProps) {
         ))}
       </TextField>
 
-      {/* Date range kept as one labelled unit so the row reads as four controls,
-          not two orphaned date pickers. */}
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ width: { xs: '100%', md: 'auto' }, flexShrink: 0 }}
-      >
-        <TextField
-          type="date"
-          size="small"
-          label="From"
-          value={values.dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ width: { xs: '100%', md: 150 } }}
-        />
-        <Typography component="span" color="text.disabled" sx={{ px: 0.25 }}>
-          –
-        </Typography>
-        <TextField
-          type="date"
-          size="small"
-          label="To"
-          value={values.dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ width: { xs: '100%', md: 150 } }}
-        />
-      </Stack>
+      {/* The date range is now genuinely one control rather than two inputs
+          dressed up as one — so the row really does read as four filters. */}
+      <DateRangeField
+        label="Event date"
+        size="small"
+        fullWidth={false}
+        value={dateRange}
+        onChange={setDateRange}
+        presets={FUTURE_RANGE_PRESETS}
+        sx={{ width: { xs: '100%', md: 230 }, flexShrink: 0 }}
+      />
 
       {showClear && (
         <Button

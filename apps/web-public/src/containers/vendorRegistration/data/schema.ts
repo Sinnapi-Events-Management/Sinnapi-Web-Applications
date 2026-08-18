@@ -88,6 +88,11 @@ export const step4Schema = z.object({
   acceptedVendorTerms: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
   acceptedEscrowPolicy: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
   acceptedFalseInfoRemoval: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
+  // `boolean`, not `literal(true)`, and that is the whole point: the four above
+  // are acceptances an applicant must give to proceed, this is a choice they
+  // are free to decline. Validating it as required would make the consent
+  // conditional on the application, which GDPR Art.7(4) does not allow.
+  marketingConsent: z.boolean(),
 });
 
 export const STEP_SCHEMAS = [step1Schema, step2Schema, step3Schema, step4Schema] as const;
@@ -100,6 +105,7 @@ export type RegistrationValues = z.infer<typeof step1Schema> &
     acceptedVendorTerms: boolean;
     acceptedEscrowPolicy: boolean;
     acceptedFalseInfoRemoval: boolean;
+    marketingConsent: boolean;
   };
 
 export const INITIAL_VALUES: RegistrationValues = {
@@ -135,4 +141,8 @@ export const INITIAL_VALUES: RegistrationValues = {
   acceptedVendorTerms: false,
   acceptedEscrowPolicy: false,
   acceptedFalseInfoRemoval: false,
+  // Unticked. A pre-ticked box is not consent under GDPR (Art.4(11) requires an
+  // "unambiguous indication… by a statement or by a clear affirmative action"),
+  // and Planet49 settled the point for pre-checked boxes specifically.
+  marketingConsent: false,
 };

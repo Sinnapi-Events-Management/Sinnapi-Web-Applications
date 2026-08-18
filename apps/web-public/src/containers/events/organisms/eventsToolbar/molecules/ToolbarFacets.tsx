@@ -1,9 +1,8 @@
 'use client';
 import { Grid, TextField, MenuItem } from '@sinnapi/ui/atoms';
-import type { EventFacetCounts } from '@/lib/types';
+import type { EventFacetCounts, FilterOption } from '@/lib/types';
 import FacetSelect from '@/components/molecules/facetSelect';
 import {
-  EVENT_TYPE_OPTIONS,
   WHEN_OPTIONS,
   LOCATION_OPTIONS,
   SOURCE_OPTIONS,
@@ -14,6 +13,8 @@ import {
 import type { FacetKey, EventsSearchParams } from '../../../utils/searchParams';
 
 type ToolbarFacetsProps = {
+  /** Occasions from `event_types` — fetched, so they arrive as a prop. */
+  typeOptions: FilterOption[];
   params: EventsSearchParams;
   facetCounts?: EventFacetCounts;
   onFacetChange: (key: FacetKey, value: string) => void;
@@ -37,6 +38,7 @@ type ToolbarFacetsProps = {
  * it into the facet row invites the reading that it does.
  */
 export default function ToolbarFacets({
+  typeOptions,
   params,
   facetCounts,
   onFacetChange,
@@ -48,7 +50,7 @@ export default function ToolbarFacets({
         <FacetSelect
           label="Occasion"
           allLabel="All occasions"
-          options={EVENT_TYPE_OPTIONS}
+          options={typeOptions}
           value={params.type}
           counts={facetCounts?.type}
           onChange={(value) => onFacetChange('type', value)}

@@ -5,25 +5,35 @@ import {
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query';
+import { paginate, BOOKING_PAYMENT_WINDOW_COLUMNS, type PageParams, type Paged } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
+import { fetchLatestDeletionRequest } from '@/lib/accountApi';
 import type {
   EventSearchFilters,
   EventSearchPage,
   EventFacetCounts,
   ServiceRegionModel,
   ProfileModel,
+  DirectoryProfile,
   MyApplicationModel,
   VendorBookingModel,
   VendorBookingDetailModel,
+  VendorBookingEscrowModel,
+  SettlementRequestModel,
+  SettlementEventModel,
+  BookingStatusEventModel,
   VendorQuotationModel,
   QuotationDetailModel,
+  QuotationStatusEventModel,
+  QuotationBookingModel,
   TemplateModel,
   ServiceModel,
   MediaModel,
   AvailabilityModel,
   BlockedDateModel,
   PublicEventModel,
+  EventTypeRef,
   EventInterestModel,
   EscrowModel,
   PayoutModel,
@@ -33,10 +43,34 @@ import type {
   PlanModel,
   ConversationModel,
   MessageModel,
+  VendorClientModel,
   NotificationModel,
+  NotificationPage,
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
+
+// Shared react-query options for a server-paginated list: the page params are
+// part of the key (so each page/sort caches independently) and the previous
+// page stays visible while the next one loads. The list's own key stays the
+// prefix, so existing broad invalidations (`['v-bookings']`) still match every
+// page of every vendor.
+//
+// The pagination contract itself (`PageParams`/`Paged`/`paginate`) is shared
+// across all three portals from `@sinnapi/ui`. Only this thin react-query
+// binding is portal-local, since the design system does not depend on
+// react-query.
+function pagedOptions<Row>(
+  key: readonly unknown[],
+  params: PageParams,
+  fetcher: () => Promise<Paged<Row>>,
+) {
+  return {
+    queryKey: [...key, params.page, params.pageSize, params.sort, params.filters] as const,
+    queryFn: fetcher,
+    placeholderData: keepPreviousData,
+  };
+}
 
 export function useProfile() {
   return useQuery({
@@ -48,11 +82,82 @@ export function useProfile() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('id,full_name,email,phone,avatar_url,preferred_currency')
+        .select('id,full_name,email,phone,avatar_url,preferred_currency,created_at')
         .eq('id', user.id)
         .maybeSingle();
       return (data as ProfileModel) ?? null;
     },
+  });
+}
+
+/** Frozen so an empty result cannot be mistaken for a mutable cache entry. */
+const EMPTY_DIRECTORY: Record<string, DirectoryProfile> = Object.freeze({});
+
+/**
+ * Resolves counterparty profiles by id — the vendor portal's only way to put a
+ * name to a client.
+ *
+ * `profiles_self_read` restricts the table to the caller's own row, so every
+ * `profiles:client_id(...)` embed this portal used to select resolved to null
+ * and every client rendered as the placeholder "Client". The rows now come from
+ * `get_profile_directory`, which discloses name and avatar for people the
+ * vendor already shares a quotation, booking or conversation with, and contact
+ * details only once that engagement is live.
+ *
+ * Callers pass the ids off a page of rows, so duplicates and nulls are expected
+ * and cleaned up here. The ids are sorted into the query key so two renders of
+ * the same page hit one cache entry regardless of row order.
+ */
+export function useProfileDirectory(ids: Array<string | null | undefined>) {
+  // Not memoized on purpose: react-query hashes the key structurally, so a
+  // fresh array with the same contents is the same cache entry. Memoizing here
+  // would only move the cost around and would need the caller to hold a stable
+  // array reference.
+  const unique = Array.from(new Set(ids.filter((v): v is string => !!v))).sort();
+
+  const query = useQuery({
+    queryKey: ['profile-directory', unique] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_profile_directory', { p_ids: unique });
+      if (error) throw error;
+      const rows = (data ?? []) as DirectoryProfile[];
+      return Object.fromEntries(rows.map((r) => [r.id, r])) as Record<string, DirectoryProfile>;
+    },
+    enabled: unique.length > 0,
+    // Names and avatars are not what a vendor is refreshing this page to see.
+    staleTime: 5 * 60_000,
+  });
+
+  const profiles = query.data ?? EMPTY_DIRECTORY;
+
+  return {
+    profiles,
+    /** `null` for an id that resolved to nothing — unknown, or not ours to see. */
+    profile: (id: string | null | undefined) => (id ? (profiles[id] ?? null) : null),
+    isLoading: query.isLoading,
+    error: query.error,
+  };
+}
+
+/** The single-id case, which is most detail pages. */
+export function useDirectoryProfile(id: string | null | undefined) {
+  const { profile, isLoading, error } = useProfileDirectory([id]);
+  return { profile: profile(id), isLoading, error };
+}
+
+/** Query key for the erasure request, so the settings page can invalidate it after filing one. */
+export const DELETION_REQUEST_KEY = ['deletion-request'] as const;
+
+/**
+ * The account's latest right-to-erasure request, if it has ever made one.
+ *
+ * Read on the settings page to decide whether to offer the request button or
+ * report the state of the request already in the compliance queue.
+ */
+export function useLatestDeletionRequest() {
+  return useQuery({
+    queryKey: DELETION_REQUEST_KEY,
+    queryFn: fetchLatestDeletionRequest,
   });
 }
 
@@ -76,23 +181,50 @@ export function useMyApplication() {
   });
 }
 
-export function useVendorBookings(vendorId?: string) {
+/** One page of the vendor's bookings, by event date unless re-sorted. */
+export function useVendorBookings(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-bookings', vendorId],
+    ...pagedOptions(['v-bookings', vendorId], params, () =>
+      paginate<VendorBookingModel>(
+        supabase
+          .from('bookings')
+          .select(
+            'id,reference_no,status,event_date,amount,currency,client_id,payment_type,' +
+              `payment_terms_status,${BOOKING_PAYMENT_WINDOW_COLUMNS}`,
+            {
+              count: 'exact',
+            },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'event_date', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(
-          'id,reference_no,status,event_date,amount,currency,client_id,profiles:client_id(full_name)',
-        )
-        .eq('vendor_id', vendorId!)
-        .order('event_date', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as VendorBookingModel[];
-    },
   });
 }
+
+/**
+ * One booking with everything behind it: the quotation the vendor sent, with
+ * that quote's priced lines, and the event it was requested against.
+ *
+ * Embedded rather than fetched separately because both answer questions asked
+ * *about this booking* — "is this the price I quoted?", "which request was
+ * this?" — and a second round trip per card turns one page into three loading
+ * states.
+ *
+ * Both resolve to null legitimately: a booking placed straight against a
+ * service never had a quotation, and `events_public_read` withholds a client's
+ * private event from the vendor. Neither is an error, and neither card draws.
+ */
+const VENDOR_BOOKING_DETAIL_SELECT = [
+  '*',
+  'quotations(id,reference_no,status,currency,subtotal,discount_total,tax_total,total,' +
+    'valid_until,request_details,version_no,advance_rate,advance_release_days_before,' +
+    'advance_terms_note,sent_at,responded_at,created_at,' +
+    'quotation_items(id,description,quantity,unit_price,line_total,sort_order))',
+  'events(id,title,event_date,location,payment_type,payment_terms_note)',
+].join(',');
 
 export function useVendorBooking(id: string) {
   return useQuery({
@@ -100,44 +232,251 @@ export function useVendorBooking(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
-        .select('*,profiles:client_id(full_name,email)')
+        .select(VENDOR_BOOKING_DETAIL_SELECT)
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
-      return (data as VendorBookingDetailModel) ?? null;
+      return (data as unknown as VendorBookingDetailModel) ?? null;
     },
   });
 }
 
-export function useVendorQuotations(vendorId?: string) {
+/**
+ * The escrow behind one booking, or `null` when nothing has been funded.
+ *
+ * The vendor cannot act on it — funding, disputes and release confirmation are
+ * all the client's or an admin's — but the booking page needs its status to
+ * know whether the booking may be started: `start_booking` refuses until the
+ * money is in, and a disabled button with no explanation is worse than none.
+ */
+export function useVendorBookingEscrow(bookingId: string | undefined) {
   return useQuery({
-    queryKey: ['v-quotations', vendorId],
-    enabled: !!vendorId,
+    queryKey: ['v-booking-escrow', bookingId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('quotations')
+        .from('escrow_transactions')
         .select(
-          'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,profiles:client_id(full_name)',
+          'id,status,currency,gross_amount,advance_amount,balance_amount,timers_frozen_at,advance_released_at,advance_release_due_at',
         )
-        .eq('vendor_id', vendorId!)
-        .order('created_at', { ascending: false });
+        .eq('booking_id', bookingId!)
+        .maybeSingle();
       if (error) throw error;
-      return (data ?? []) as VendorQuotationModel[];
+      return (data as VendorBookingEscrowModel) ?? null;
     },
+    enabled: !!bookingId,
   });
 }
 
+/**
+ * The settlement request on one booking, or `null` when the vendor has not
+ * asked yet.
+ *
+ * Newest first and limited to one: a booking can only have one *live* request
+ * (a partial unique index enforces it), but a contested or withdrawn one stays
+ * on the record and a second attempt is legitimate. The latest row is the one
+ * the page is about; the rest are history and are read through the trail.
+ */
+export function useVendorBookingSettlement(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['v-settlement', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_requests')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as SettlementRequestModel) ?? null;
+    },
+    enabled: !!bookingId,
+  });
+}
+
+/** A settlement's visible trail, oldest first — the order it reads in. */
+export function useSettlementEvents(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['v-settlement-events', requestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_events')
+        .select('id,kind,actor_role,amount,note,created_at')
+        .eq('request_id', requestId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SettlementEventModel[];
+    },
+    enabled: !!requestId,
+  });
+}
+
+/**
+ * A booking's status trail, oldest first — the order it reads in as a timeline.
+ * Keyed under the booking so `useBookingActions` can invalidate it with the
+ * same `['v-booking', id]`-shaped refresh it already does after a status write.
+ */
+export function useVendorBookingStatusHistory(id: string) {
+  return useQuery({
+    queryKey: ['v-booking-history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('booking_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('booking_id', id)
+        .order('occurred_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BookingStatusEventModel[];
+    },
+    enabled: !!id,
+  });
+}
+
+/** One page of the vendor's quote requests, newest first unless re-sorted. */
+export function useVendorQuotations(vendorId: string | undefined, params: PageParams) {
+  return useQuery({
+    ...pagedOptions(['v-quotations', vendorId], params, () =>
+      paginate<VendorQuotationModel>(
+        supabase
+          .from('quotations')
+          .select(
+            'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id',
+            { count: 'exact' },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
+    enabled: !!vendorId,
+  });
+}
+
+/**
+ * One quotation with its priced lines and the event it was requested for. The
+ * client is only a `client_id` here — RLS keeps their profile row out of an
+ * embed — and is resolved through `useProfileDirectory`.
+ *
+ * The PostgREST error is raised rather than swallowed. It used to be dropped on
+ * the floor and the page rendered "Quotation not found" — which told a vendor
+ * their quote had been deleted when the truth was a failed request.
+ */
 export function useQuotation(id: string) {
   return useQuery({
     queryKey: ['v-quotation', id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('quotations')
-        .select('*,quotation_items(*),profiles:client_id(full_name)')
+        .select(
+          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date)',
+        )
         .eq('id', id)
         .maybeSingle();
+      if (error) throw error;
       return (data as QuotationDetailModel) ?? null;
     },
+    enabled: !!id,
+  });
+}
+
+/**
+ * The columns the quotation pages need about a booking made from a quote.
+ *
+ * The keyed variant repeats the list rather than concatenating onto the first:
+ * supabase-js parses the select string as a *literal type* to infer the row
+ * shape, and a runtime concatenation widens it to `string` — at which point the
+ * inferred row becomes `GenericStringError` and the cast below stops compiling.
+ */
+const QUOTATION_BOOKING_SELECT = 'id,reference_no,status,event_date,start_time,end_time,location';
+const QUOTATION_BOOKING_KEYED_SELECT =
+  'id,reference_no,status,event_date,start_time,end_time,location,quotation_id';
+
+/** Stable empty map, so consumers do not re-render on every fetch. */
+const EMPTY_QUOTATION_BOOKINGS: Record<string, QuotationBookingModel> = Object.freeze({});
+
+/**
+ * The booking a client made from this quotation, or null while they have not
+ * scheduled it yet.
+ *
+ * Read off `bookings` rather than embedded on the quotation because the
+ * relation runs the other way — `bookings.quotation_id` is the foreign key —
+ * and because this is the one fact on the quote page that changes without the
+ * quotation row changing.
+ *
+ * `maybeSingle` rather than a list: `ux_bookings_quotation` guarantees at most
+ * one live booking per quote, so anything else is a schema violation and should
+ * surface as an error rather than be silently sliced to `[0]`.
+ */
+export function useQuotationBooking(quotationId: string | undefined) {
+  return useQuery({
+    queryKey: ['v-quotation-booking', quotationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(QUOTATION_BOOKING_SELECT)
+        .eq('quotation_id', quotationId!)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as QuotationBookingModel) ?? null;
+    },
+    enabled: !!quotationId,
+  });
+}
+
+/**
+ * The bookings made from a page of quotations, keyed by quotation.
+ *
+ * One query for the whole page rather than one per row — the same shape as
+ * `useProfileDirectory` above, and for the same reason: a list column that
+ * needs a fact the row does not carry must not become N requests.
+ */
+export function useQuotationBookings(quotationIds: Array<string | null | undefined>) {
+  const unique = Array.from(new Set(quotationIds.filter((v): v is string => !!v))).sort();
+
+  const query = useQuery({
+    queryKey: ['v-quotation-bookings', unique] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(QUOTATION_BOOKING_KEYED_SELECT)
+        .in('quotation_id', unique)
+        .is('deleted_at', null);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<QuotationBookingModel & { quotation_id: string }>;
+      return Object.fromEntries(rows.map((r) => [r.quotation_id, r])) as Record<
+        string,
+        QuotationBookingModel
+      >;
+    },
+    enabled: unique.length > 0,
+  });
+
+  return {
+    bookings: query.data ?? EMPTY_QUOTATION_BOOKINGS,
+    isLoading: query.isLoading,
+  };
+}
+
+/**
+ * A quotation's status trail, oldest first — the order it reads in as a
+ * timeline. The table is append-only and trigger-written, so this needs no
+ * invalidation of its own: it is refetched alongside the quotation whenever a
+ * status changes.
+ */
+export function useQuotationStatusHistory(id: string) {
+  return useQuery({
+    queryKey: ['v-quotation-history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotation_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('quotation_id', id)
+        .order('occurred_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as QuotationStatusEventModel[];
+    },
+    enabled: !!id,
   });
 }
 
@@ -271,6 +610,7 @@ function toEventCard(row: EventSearchRow): PublicEventModel {
     title: row.title,
     description: row.description,
     event_type: row.event_type,
+    event_type_name: row.event_type_name,
     event_date: row.event_date,
     location: row.location,
     budget_min: row.budget_min,
@@ -314,6 +654,35 @@ async function searchPublicEvents(
     total: rows[0]?.total_count ?? 0,
     offset,
   };
+}
+
+/**
+ * The occasions the feed can be filtered by, straight from `event_types`.
+ *
+ * Replaces a hardcoded list that had already drifted from what the admin portal
+ * writes — it offered `corporate` and `product_launch`, which nothing has ever
+ * written, while missing `introduction`, `company_event` and `fundraising`,
+ * which are exactly the occasions a Ugandan vendor is looking for. Filtering by
+ * one of the phantom tokens returned an empty feed with no explanation.
+ *
+ * Active types only, `key` as the value: the key is what
+ * `search_events_public` matches and what the URL carries. Reference data that
+ * changes rarely, so it is cached for the session.
+ */
+export function useEventTypeOptions() {
+  return useQuery({
+    queryKey: ['event-type-options'],
+    staleTime: Infinity,
+    queryFn: async (): Promise<EventTypeRef[]> => {
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('key,name')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as EventTypeRef[];
+    },
+  });
 }
 
 /**
@@ -399,35 +768,45 @@ export function useMyInterests(vendorId?: string) {
   });
 }
 
-export function useVendorEscrow(vendorId?: string) {
+/** One page of escrow activity for the vendor's bookings (read-only). */
+export function useVendorEscrow(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-escrow', vendorId],
+    ...pagedOptions(['v-escrow', vendorId], params, () =>
+      paginate<EscrowModel>(
+        supabase
+          .from('escrow_transactions')
+          .select(
+            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,currency,bookings(reference_no)',
+            { count: 'exact' },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('escrow_transactions')
-        .select(
-          'id,status,gross_amount,commission_amount,net_payout_amount,currency,bookings(reference_no)',
-        )
-        .eq('vendor_id', vendorId!)
-        .order('created_at', { ascending: false });
-      return (data ?? []) as EscrowModel[];
-    },
   });
 }
 
-export function useVendorPayouts(vendorId?: string) {
+/** One page of the vendor's payout history, newest request first. */
+export function useVendorPayouts(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-payouts', vendorId],
+    ...pagedOptions(['v-payouts', vendorId], params, () =>
+      paginate<PayoutModel>(
+        supabase
+          .from('payouts')
+          .select(
+            'id,kind,amount,currency,status,provider,settlement_method,settlement_reference,settled_at,blocked_reason,approved_at,completed_at,created_at',
+            {
+              count: 'exact',
+            },
+          )
+          .eq('vendor_id', vendorId!),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('payouts')
-        .select('id,amount,currency,status,provider,approved_at,completed_at,created_at')
-        .eq('vendor_id', vendorId!)
-        .order('created_at', { ascending: false });
-      return (data ?? []) as PayoutModel[];
-    },
   });
 }
 
@@ -447,19 +826,23 @@ export function usePromotions(vendorId?: string) {
   });
 }
 
-export function useDiscounts(vendorId?: string) {
+/** One page of the vendor's discount codes, newest first unless re-sorted. */
+export function useDiscounts(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    queryKey: ['v-discounts', vendorId],
+    ...pagedOptions(['v-discounts', vendorId], params, () =>
+      paginate<DiscountModel>(
+        supabase
+          .from('discounts')
+          .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active', {
+            count: 'exact',
+          })
+          .eq('vendor_id', vendorId!)
+          .is('deleted_at', null),
+        params,
+        { field: 'created_at', ascending: false },
+      ),
+    ),
     enabled: !!vendorId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('discounts')
-        .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active')
-        .eq('vendor_id', vendorId!)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-      return (data ?? []) as DiscountModel[];
-    },
   });
 }
 
@@ -470,9 +853,7 @@ export function useVendorReviews(vendorId?: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('reviews')
-        .select(
-          'id,rating,title,body,status,created_at,review_responses(id,body),profiles:client_id(full_name)',
-        )
+        .select('id,rating,title,body,status,created_at,client_id,review_responses(id,body)')
         .eq('vendor_id', vendorId!)
         .order('created_at', { ascending: false });
       return (data ?? []) as ReviewModel[];
@@ -533,45 +914,190 @@ export function useVendorDashboard(vendorId?: string) {
   });
 }
 
-// shared with client portal pattern
-export function useConversations() {
+// ---------- Messaging ----------
+
+/** Query keys the realtime subscription invalidates. */
+export const MESSAGING_KEYS = {
+  conversations: ['conversations'] as const,
+  unread: ['conversation-unread'] as const,
+  unreadTotal: ['unread-messages'] as const,
+  thread: (id: string) => ['messages', id] as const,
+};
+
+// PostgREST infers a row type from the *literal* text of the select, so this
+// must stay a single string literal — concatenating it widens the type to
+// `string` and the query starts returning `GenericStringError[]`.
+const MESSAGE_SELECT =
+  'id,sender_id,body,created_at,edited_at,is_system,moderation_status,message_attachments(id,storage_path,file_name,mime_type,size_bytes,scan_status)';
+
+/**
+ * The vendor's inbox, with the counterparty and unread count already resolved
+ * by `get_my_conversations()`. See `ConversationModel` for why this cannot be a
+ * plain select.
+ */
+export function useConversations({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: MESSAGING_KEYS.conversations,
+    // The inbox always wants this; the top bar's preview panel only wants it
+    // once the user opens the panel. Same key either way, so the page finds a
+    // warm cache when the panel got there first.
+    enabled,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('conversations')
-        .select('id,type,subject,last_message_at,status')
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+      const { data, error } = await supabase.rpc('get_my_conversations');
+      if (error) throw error;
       return (data ?? []) as ConversationModel[];
+    },
+  });
+}
+
+/** Single number for the sidebar badge. */
+export function useUnreadMessageCount() {
+  return useQuery({
+    queryKey: MESSAGING_KEYS.unreadTotal,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_unread_message_count');
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+  });
+}
+
+/**
+ * Clients this vendor may start a conversation with — those with an existing
+ * booking or quotation. Same predicate the RPC enforces, so the picker can
+ * never offer a name the send would then refuse.
+ */
+export function useVendorClients() {
+  return useQuery({
+    queryKey: ['vendor-clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_vendor_clients');
+      if (error) throw error;
+      return (data ?? []) as VendorClientModel[];
     },
   });
 }
 
 export function useMessages(conversationId: string) {
   return useQuery({
-    queryKey: ['messages', conversationId],
+    queryKey: MESSAGING_KEYS.thread(conversationId),
+    enabled: !!conversationId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
-        .select('id,sender_id,body,created_at')
+        .select(MESSAGE_SELECT)
         .eq('conversation_id', conversationId)
         .is('deleted_at', null)
         .order('created_at', { ascending: true });
+      if (error) throw error;
       return (data ?? []) as MessageModel[];
     },
   });
 }
 
+export const NOTIFICATIONS_PAGE_SIZE = 25;
+
+const NOTIFICATION_SELECT = 'id,trigger_key,title,body,data,channel,read_at,created_at';
+
+/**
+ * The notification feed, paged.
+ *
+ * Infinite rather than a flat `limit(50)`: the feed is the vendor's whole
+ * history with the platform and a fixed cap silently hid the tail of it. The
+ * exact `count` rides along on every page so the summary tiles and tab badges
+ * can describe the entire feed while only the first page is in hand.
+ */
 export function useNotifications() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['notifications'],
-    queryFn: async () => {
-      const { data } = await supabase
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<NotificationPage> => {
+      const from = pageParam * NOTIFICATIONS_PAGE_SIZE;
+      const { data, count, error } = await supabase
         .from('notifications')
-        .select('id,trigger_key,title,body,read_at,created_at')
+        .select(NOTIFICATION_SELECT, { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(50);
+        .range(from, from + NOTIFICATIONS_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: (data ?? []) as NotificationModel[], total: count ?? 0 };
+    },
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.rows.length, 0);
+      // Stop on a short page too: `total` can shrink under us if rows are
+      // purged between requests, and an empty page would otherwise loop.
+      if (lastPage.rows.length === 0 || loaded >= lastPage.total) return undefined;
+      return pages.length;
+    },
+  });
+}
+
+/**
+ * The newest few notifications, for the top bar's preview panel.
+ *
+ * A separate query from the paged feed rather than a read of its first page:
+ * that one is an infinite query with an exact `count`, and mounting it in the
+ * shell would put the whole feed — and its paging state — behind every screen
+ * in the portal to render six rows. Prefixed under `['notifications']` so the
+ * feed's existing invalidations refresh this too.
+ */
+export function useRecentNotifications(
+  limit: number,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: ['notifications', 'recent', limit],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(NOTIFICATION_SELECT)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
       return (data ?? []) as NotificationModel[];
+    },
+  });
+}
+
+/** Flip one notification's read state. `read_at = null` puts it back to unread. */
+export function useSetNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, read }: { ids: string[]; read: boolean }) => {
+      if (ids.length === 0) return;
+      // A direct update rather than `mark_notification_read`: that RPC only
+      // stamps, and marking something back to unread is half of what makes
+      // opening a notification a reversible act. RLS (`notif_update`) already
+      // confines the write to the caller's own rows.
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: read ? new Date().toISOString() : null })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      // Both keys: the feed drives the page, `unread` the sidebar badge.
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['notifications'] }),
+        qc.invalidateQueries({ queryKey: ['unread'] }),
+      ]);
+    },
+  });
+}
+
+/** Stamp every unread notification for the signed-in user. */
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('mark_all_notifications_read');
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['notifications'] }),
+        qc.invalidateQueries({ queryKey: ['unread'] }),
+      ]);
     },
   });
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { DataTable, Chip, Box, Typography, type DataTableColumn } from '@sinnapi/ui';
 import type { NotificationTemplateModel } from '@/lib/types';
-import type { TableState } from '@/hooks/useTableState';
+import type { TableState } from '@sinnapi/ui';
 import ChannelBadge from '../molecules/ChannelBadge';
 import ActiveToggle from '../molecules/ActiveToggle';
 import TriggerCell from '../molecules/TriggerCell';

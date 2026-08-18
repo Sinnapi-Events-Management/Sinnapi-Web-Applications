@@ -1,5 +1,6 @@
 'use client';
 import { type ReactNode } from 'react';
+import { cellValue, type TableColumn } from './tableColumns';
 import {
   Box,
   Paper,
@@ -19,16 +20,10 @@ import {
 export type SortDirection = 'asc' | 'desc';
 export type SortModel = { field: string; direction: SortDirection } | null;
 
-export type DataTableColumn<Row> = {
-  /** Key used for sorting callbacks and the default cell value lookup. */
-  field: string;
-  headerName: ReactNode;
-  sortable?: boolean;
-  align?: 'left' | 'center' | 'right';
-  width?: number | string;
-  /** Custom cell renderer; defaults to String(row[field]). */
-  render?: (row: Row) => ReactNode;
-};
+export type { TableColumn };
+
+/** A `TableColumn` that can additionally opt into server-side sorting. */
+export type DataTableColumn<Row> = TableColumn<Row> & { sortable?: boolean };
 
 export type DataTableProps<Row> = {
   columns: DataTableColumn<Row>[];
@@ -62,12 +57,6 @@ export type DataTableProps<Row> = {
    */
   minWidth?: number | string;
 };
-
-function cellValue<Row>(row: Row, col: DataTableColumn<Row>): ReactNode {
-  if (col.render) return col.render(row);
-  const raw = (row as Record<string, unknown>)[col.field];
-  return raw == null ? '' : String(raw);
-}
 
 /**
  * Controlled, server-side paginated table. It owns no data-fetching: the parent

@@ -1,6 +1,7 @@
-import { Box, Button, Divider, Stack } from '@sinnapi/ui';
+import { Alert, Box, Button, Divider, Stack } from '@sinnapi/ui';
 import type { EventFormValues } from '../../schema';
 import { useEventForm } from '../../hooks/useEventForm';
+import { useEventTypeSelectOptions } from '../../hooks/useEventTypeSelectOptions';
 import EventFormFields from './EventFormFields';
 
 type Props = {
@@ -31,6 +32,10 @@ export default function EventForm({
   onSave,
 }: Props) {
   const { control, isDirty, submit } = useEventForm(values, onSave);
+  // Reference data, so it's read here rather than threaded down from the page:
+  // both drawers render this form, and neither has any other reason to know
+  // what the occasion vocabulary is.
+  const eventTypes = useEventTypeSelectOptions();
 
   return (
     <Box
@@ -40,7 +45,17 @@ export default function EventForm({
       sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
     >
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>
-        <EventFormFields control={control} />
+        {eventTypes.error && (
+          <Alert severity="warning" sx={{ mb: 2.5 }}>
+            Event types couldn’t be loaded, so the occasion can’t be set right now. Everything else
+            still saves.
+          </Alert>
+        )}
+        <EventFormFields
+          control={control}
+          eventTypeOptions={eventTypes.options}
+          eventTypesLoading={eventTypes.isLoading}
+        />
       </Box>
 
       <Divider />

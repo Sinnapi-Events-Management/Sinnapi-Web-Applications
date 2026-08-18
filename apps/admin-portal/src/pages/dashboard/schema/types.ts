@@ -107,7 +107,14 @@ export type DashboardOverviewRow = {
 // View models — what the components actually render.
 // ---------------------------------------------------------------------
 
-export type QueueKey = 'applications' | 'payouts' | 'disputes' | 'escrow' | 'refunds' | 'renewals';
+export type QueueKey =
+  | 'applications'
+  | 'payouts'
+  | 'disputes'
+  | 'escrow'
+  | 'refunds'
+  | 'renewals'
+  | 'unpaid_bookings';
 
 /** A queue card, ready to render: definition + live figures, nothing to derive. */
 export type QueueCardModel = {

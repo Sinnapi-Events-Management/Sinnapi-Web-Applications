@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { escrowErrorMessage } from '@/hooks/queries';
 
-/** Escrow can only be released while the funds are still held. */
-const CONFIRMABLE_STATUSES = ['held'];
+/**
+ * Escrow can be confirmed while funds are still held — including after the
+ * advance tranche has gone out, which leaves the balance held and is the
+ * normal state for a booking whose event has already happened.
+ */
+const CONFIRMABLE_STATUSES = ['held', 'advance_released'];
 /** A dispute is open to the client until the release actually settles. */
-const DISPUTABLE_STATUSES = ['held', 'release_requested'];
+const DISPUTABLE_STATUSES = ['held', 'awaiting_advance', 'advance_released', 'release_requested'];
 
 /**
  * The input-free escrow actions and the dialog state around the one that isn't.
@@ -26,7 +31,9 @@ export function useEscrowActions(escrowId: string, status: string) {
     });
     setBusy(false);
     if (rpcError) {
-      setError(rpcError.message);
+      // Postgres exception text ('booking_not_completed') is a wire format,
+      // not something to put in front of a client.
+      setError(escrowErrorMessage(rpcError));
       return;
     }
     qc.invalidateQueries({ queryKey: ['escrow'] });

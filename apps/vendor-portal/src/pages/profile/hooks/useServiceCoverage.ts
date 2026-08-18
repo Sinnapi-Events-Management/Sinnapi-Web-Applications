@@ -15,13 +15,12 @@ import { useServiceRegions, useVendorCoverage, useSetVendorCoverage } from '@/ho
  * underneath — without it the form would keep showing a selection the database
  * no longer holds.
  */
-export function useServiceCoverage(vendorId: string) {
+export function useServiceCoverage(vendorId: string, onSaved?: (message: string) => void) {
   const regions = useServiceRegions();
   const coverage = useVendorCoverage(vendorId);
   const save = useSetVendorCoverage(vendorId);
 
   const [selected, setSelected] = useState<string[]>([]);
-  const [saved, setSaved] = useState(false);
 
   const serverKeys = useMemo(() => coverage.data ?? [], [coverage.data]);
 
@@ -38,13 +37,15 @@ export function useServiceCoverage(vendorId: string) {
   const isDirty =
     selected.length !== serverKeys.length || selected.some((key) => !serverKeys.includes(key));
 
+  // Reports success through the page's own notice rather than a local snackbar, so
+  // every save on the profile page confirms itself in the same place.
   const submit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
       await save.mutateAsync(selected);
-      setSaved(true);
+      onSaved?.('Your service coverage has been updated.');
     },
-    [save, selected],
+    [onSaved, save, selected],
   );
 
   return {
@@ -57,7 +58,5 @@ export function useServiceCoverage(vendorId: string) {
     error: regions.error ?? coverage.error,
     busy: save.isPending,
     saveError: save.error,
-    saved,
-    dismissSaved: useCallback(() => setSaved(false), []),
   };
 }

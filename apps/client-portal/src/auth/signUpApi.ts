@@ -81,6 +81,10 @@ export async function signUpClient(input: {
   password: string;
   role: string;
   captchaToken: string;
+  /** Newsletter opt-in. Optional and never a reason for the signup to fail. */
+  marketingConsent?: boolean;
+  /** The exact wording ticked, stored server-side as the GDPR Art.7(1) record. */
+  marketingConsentText?: string;
 }): Promise<SignUpResult> {
   const { data, error } = await supabase.functions.invoke<FnResult>('client-sign-up', {
     body: { action: 'signup', ...input },

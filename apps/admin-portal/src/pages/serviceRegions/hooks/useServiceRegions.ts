@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useServiceRegionsAdmin, useNextServiceRegionSortOrder } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { supabase } from '@/lib/supabase';
-import type { PageFilters } from '@/lib/table';
+import type { PageFilters } from '@sinnapi/ui';
 import type { ServiceRegionModel } from '@/lib/types';
 import { useRegionEdit } from './useRegionEdit';
 import { useRegionDelete } from './useRegionDelete';

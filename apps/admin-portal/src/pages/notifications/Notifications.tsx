@@ -1,4 +1,5 @@
 import { Stack, Button, PageTitle } from '@sinnapi/ui';
+import { NewArrivalsPill } from '@sinnapi/ui/notifications';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import StatusTabs from '@/components/ui/StatusTabs';
 import { useNotifications } from './hooks/useNotifications';
@@ -27,6 +28,9 @@ export default function Notifications() {
     markAll,
     markingAll,
     isFiltered,
+    arrivals,
+    alerts,
+    chime,
   } = useNotifications();
 
   const active = useActiveNotification();
@@ -38,7 +42,13 @@ export default function Notifications() {
         domainFilter={domainFilter}
         availableDomains={availableDomains}
         resultCount={rows.length}
+        alerts={alerts}
+        chime={chime}
       />
+      {/* Arrivals are buffered rather than spliced in, so a feed being read
+          does not rearrange under the reader. The pill is how they get folded
+          in — without it the console would count arrivals it never showed. */}
+      <NewArrivalsPill count={arrivals.count} onApply={arrivals.apply} />
       <NotificationList
         groups={groups}
         isLoading={isLoading}

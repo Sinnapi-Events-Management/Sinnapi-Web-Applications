@@ -14,6 +14,7 @@ function EventsFeed({ vendorId }: { vendorId: string }) {
   const {
     search,
     filters,
+    typeOptions,
     facetCounts,
     events,
     interestedIds,
@@ -29,9 +30,18 @@ function EventsFeed({ vendorId }: { vendorId: string }) {
 
   return (
     <>
-      <EventsToolbar search={search} filters={filters} facetCounts={facetCounts} />
+      <EventsToolbar
+        search={search}
+        filters={filters}
+        typeOptions={typeOptions}
+        facetCounts={facetCounts}
+      />
 
-      <ActiveFilterChips values={filters.values} onRemove={filters.setFacet} />
+      <ActiveFilterChips
+        values={filters.values}
+        typeOptions={typeOptions}
+        onRemove={filters.setFacet}
+      />
 
       <EventsResults
         events={events}

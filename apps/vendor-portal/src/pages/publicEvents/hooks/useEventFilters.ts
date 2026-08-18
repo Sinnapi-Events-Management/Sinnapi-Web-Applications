@@ -3,23 +3,15 @@ import { useSearchParams } from 'react-router-dom';
 import type { EventSearchFilters, EventSortKey } from '@/lib/types';
 import {
   FACET_KEYS,
-  FACET_OPTIONS,
+  facetOptions,
   EMPTY_FACETS,
   BUDGET_RANGES,
   SORT_OPTIONS,
   DEFAULT_SORT,
   type FacetKey,
   type FacetValues,
+  type FilterOption,
 } from '../schema/filters';
-
-/** Every value each facet legitimately accepts, so unknown input can be dropped. */
-const ALLOWED: Record<FacetKey, Set<string>> = FACET_KEYS.reduce(
-  (acc, key) => {
-    acc[key] = new Set(FACET_OPTIONS[key].map((option) => option.value));
-    return acc;
-  },
-  {} as Record<FacetKey, Set<string>>,
-);
 
 const ALLOWED_SORTS = new Set<string>(SORT_OPTIONS.map((option) => option.value));
 
@@ -45,18 +37,39 @@ export type EventFilters = {
  * Anything unrecognised — a stale bookmark, a hand-edited URL, a retired
  * occasion — is dropped rather than passed down, so a bad value degrades to "no
  * filter" instead of an empty feed the vendor can't explain.
+ *
+ * `typeOptions` is the occasions as fetched from `event_types`. While they are
+ * still in flight the occasion in the URL is passed through unchecked rather
+ * than dropped: validating against an empty list would strip the filter off a
+ * shared link on first paint, fire an unfiltered query, and then re-filter a
+ * moment later — a visible flash of the wrong feed to save nothing. The server
+ * is the real authority here anyway; a bogus token simply matches nothing.
  */
-export function useEventFilters(): EventFilters {
+export function useEventFilters(typeOptions: FilterOption[]): EventFilters {
   const [searchParams, setSearchParams] = useSearchParams();
+
+  /** Every value each facet legitimately accepts, so unknown input can be dropped. */
+  const allowed = useMemo(() => {
+    const options = facetOptions(typeOptions);
+    return FACET_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = new Set(options[key].map((option) => option.value));
+        return acc;
+      },
+      {} as Record<FacetKey, Set<string>>,
+    );
+  }, [typeOptions]);
 
   const values = useMemo(() => {
     const next: FacetValues = { ...EMPTY_FACETS };
     for (const key of FACET_KEYS) {
       const raw = searchParams.get(key)?.trim();
-      if (raw && ALLOWED[key].has(raw)) next[key] = raw;
+      if (!raw) continue;
+      const unverifiable = key === 'type' && typeOptions.length === 0;
+      if (unverifiable || allowed[key].has(raw)) next[key] = raw;
     }
     return next;
-  }, [searchParams]);
+  }, [searchParams, allowed, typeOptions.length]);
 
   const rawSort = searchParams.get('sort')?.trim();
   const sort = (rawSort && ALLOWED_SORTS.has(rawSort) ? rawSort : DEFAULT_SORT) as EventSortKey;

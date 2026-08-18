@@ -1,6 +1,7 @@
 'use client';
 import { Paper, TextField, Button, IconButton } from '@sinnapi/ui/atoms';
 import { Search, Close } from '@mui/icons-material';
+import type { FilterOption } from '@/lib/types';
 import { useEventsSearchInput } from '../../../hooks/useEventsSearchInput';
 
 /**
@@ -19,8 +20,8 @@ import { useEventsSearchInput } from '../../../hooks/useEventsSearchInput';
  * navigation are gone with the navigation itself — filters live in the URL and
  * are never cleared by a search, so there is nothing left to carry.
  */
-export default function HeroSearchForm() {
-  const { value, setValue, submit, clear } = useEventsSearchInput();
+export default function HeroSearchForm({ typeOptions }: { typeOptions: FilterOption[] }) {
+  const { value, setValue, submit, clear } = useEventsSearchInput(typeOptions);
 
   return (
     <Paper

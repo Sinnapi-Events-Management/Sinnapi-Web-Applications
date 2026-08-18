@@ -1,84 +1,60 @@
-import { Link as RouterLink } from 'react-router-dom';
-import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Typography,
-  Button,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import { formatDate, formatMoney } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { VendorNameSlugRefModel } from '@/lib/types';
-import { useQuotations } from './hooks/useQuotations';
+import { useMemo } from 'react';
+import { Alert, DataTable, PageTitle } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
+import { useQuotations } from './hooks/useQuotations';
+import { quotationColumns } from './schema';
+import CompareQuotesAction from './components/molecules/CompareQuotesAction';
 
 export default function Quotations() {
-  const { rows, isLoading, error } = useQuotations();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    table,
+    bookingFor,
+    openQuotation,
+    openBookingForm,
+  } = useQuotations();
+
+  const columns = useMemo(
+    () => quotationColumns({ bookingFor, onBook: openBookingForm }),
+    [bookingFor, openBookingForm],
+  );
 
   return (
     <>
       <PageTitle
         title="Quotations"
-        subtitle="Review and compare quotes from vendors."
-        action={
-          <Button
-            component={RouterLink}
-            to="/quotations/compare"
-            variant="outlined"
-            startIcon={<CompareArrowsIcon />}
-          >
-            Compare
-          </Button>
-        }
+        subtitle="Open a quote to see what it covers, then accept, send it back or void it. Once accepted, create the booking to lock in your date."
+        action={<CompareQuotesAction />}
       />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load quotations.'}
+        </Alert>
+      )}
+
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(q) => q.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        onRowClick={(q) => openQuotation(q.id)}
+        emptyMessage={
           <EmptyState
+            embedded
             title="No quotations yet"
             description="Request a quote from a vendor to get started."
             ctaLabel="Discover vendors"
             ctaHref="/discover"
           />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Reference</TableCell>
-                  <TableCell>Vendor</TableCell>
-                  <TableCell align="right">Total</TableCell>
-                  <TableCell>Valid until</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((q) => (
-                  <TableRow key={q.id} hover>
-                    <TableCell>
-                      <Typography variant="body2">{q.reference_no}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      {one<VendorNameSlugRefModel>(q.vendors)?.business_name ?? '—'}
-                    </TableCell>
-                    <TableCell align="right">{formatMoney(q.total, q.currency)}</TableCell>
-                    <TableCell>{formatDate(q.valid_until)}</TableCell>
-                    <TableCell>
-                      <StatusChip status={q.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+        }
+        {...table.controls}
+      />
     </>
   );
 }

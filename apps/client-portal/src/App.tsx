@@ -18,10 +18,9 @@ import Bookings from '@/pages/bookings';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
 import CompareQuotes from '@/pages/compareQuotes';
+import QuotationDetail from '@/pages/quotationDetail';
 import MyEvents from '@/pages/myEvents';
-import NewEvent from '@/pages/newEvent';
 import Messages from '@/pages/messages';
-import Conversation from '@/pages/conversation';
 import Payments from '@/pages/payments';
 import Escrow from '@/pages/escrow';
 import Reviews from '@/pages/reviews';
@@ -62,10 +61,13 @@ export default function App() {
           <Route path="/bookings/:id" element={<BookingDetail />} />
           <Route path="/quotations" element={<Quotations />} />
           <Route path="/quotations/compare" element={<CompareQuotes />} />
+          <Route path="/quotations/:id" element={<QuotationDetail />} />
           <Route path="/my-events" element={<MyEvents />} />
-          <Route path="/my-events/new" element={<NewEvent />} />
           <Route path="/messages" element={<Messages />} />
-          <Route path="/messages/:conversationId" element={<Conversation />} />
+          {/* The inbox renders the open thread itself — master–detail on
+              desktop, a full-height drawer on mobile — so a deep link lands in
+              the list rather than on a detached page with no way back. */}
+          <Route path="/messages/:conversationId" element={<Messages />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/reviews" element={<Reviews />} />

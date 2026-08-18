@@ -1,6 +1,5 @@
-import type { EventSearchFilters, EventSortKey } from '@/lib/types';
+import type { EventSearchFilters, EventSortKey, FilterOption } from '@/lib/types';
 import {
-  EVENT_TYPE_OPTIONS,
   SOURCE_OPTIONS,
   LOCATION_OPTIONS,
   WHEN_OPTIONS,
@@ -38,9 +37,12 @@ export const FACET_KEYS = ['type', 'source', 'location', 'when', 'budget'] as co
 
 export type FacetKey = (typeof FACET_KEYS)[number];
 
-/** Every value each facet legitimately accepts, so unknown input can be dropped. */
-const ALLOWED: Record<FacetKey, Set<string>> = {
-  type: new Set(EVENT_TYPE_OPTIONS.map((option) => option.value)),
+/**
+ * Every value each facet legitimately accepts, so unknown input can be dropped.
+ * Occasion is absent: its vocabulary is `event_types`, which an admin edits, so
+ * it can only be checked against what was fetched — see below.
+ */
+const ALLOWED: Record<Exclude<FacetKey, 'type'>, Set<string>> = {
   source: new Set(SOURCE_OPTIONS.map((option) => option.value)),
   location: new Set(LOCATION_OPTIONS.map((option) => option.value)),
   when: new Set(WHEN_OPTIONS.map((option) => option.value)),
@@ -54,12 +56,28 @@ const ALLOWED_SORTS = new Set<string>(SORT_OPTIONS.map((option) => option.value)
  * unrecognised — a stale bookmark, a hand-edited URL, a retired occasion — is
  * dropped rather than passed down, so a bad value degrades to "no filter"
  * instead of a permanently empty grid the visitor can't explain.
+ *
+ * `typeOptions` is the fetched occasion vocabulary. Passing an empty array
+ * means "not known yet", and the URL's occasion is then left *alone* rather
+ * than dropped: a shared `?type=baby_shower` link must not lose its filter
+ * during the moment before the vocabulary lands. An unknown key costs an empty
+ * grid; dropping a real one silently shows the visitor the wrong events.
  */
-export function parseEventsSearchParams(raw: EventsSearchParams = {}): EventsSearchParams {
+export function parseEventsSearchParams(
+  raw: EventsSearchParams = {},
+  typeOptions: FilterOption[] = [],
+): EventsSearchParams {
   const params: EventsSearchParams = {};
   const q = raw.q?.trim();
   if (q) params.q = q;
+
+  const type = raw.type?.trim();
+  if (type && (typeOptions.length === 0 || typeOptions.some((o) => o.value === type))) {
+    params.type = type;
+  }
+
   for (const key of FACET_KEYS) {
+    if (key === 'type') continue;
     const value = raw[key]?.trim();
     if (value && ALLOWED[key].has(value)) params[key] = value;
   }

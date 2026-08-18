@@ -7,7 +7,8 @@
   "exports": {
     ".": "./constants.ts",
     "./constants": "./constants.ts",
-    "./userAgent": "./userAgent.ts"
+    "./userAgent": "./userAgent.ts",
+    "./download": "./download.ts"
   },
   "scripts": {
     "lint": "eslint . --ext ts,tsx",

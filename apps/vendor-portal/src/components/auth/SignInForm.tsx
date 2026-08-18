@@ -1,4 +1,5 @@
 import { Stack, Button, Alert, Link, Typography } from '@sinnapi/ui';
+import { AppLink } from '@sinnapi/ui/router';
 import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi/ui/forms';
 import { APP } from '@/lib/config';
 import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
@@ -17,12 +18,23 @@ export default function SignInForm() {
         label="Email"
         autoComplete="email"
       />
-      <ControlledPasswordField
-        name="password"
-        control={control}
-        label="Password"
-        autoComplete="current-password"
-      />
+
+      <Stack spacing={0.75}>
+        <ControlledPasswordField
+          name="password"
+          control={control}
+          label="Password"
+          autoComplete="current-password"
+        />
+        <AppLink
+          to="/forgot-password"
+          variant="body2"
+          sx={{ alignSelf: 'flex-end', fontWeight: 600 }}
+        >
+          Forgot password?
+        </AppLink>
+      </Stack>
+
       <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="vendor-sign-in" />
       <Button type="submit" variant="contained" size="large" disabled={!canSubmit}>
         {loading ? 'Signing in…' : 'Sign in'}
@@ -37,8 +49,17 @@ export default function SignInForm() {
         could only ever produce an account this portal's own gate then refuses —
         the dead end this replaces. Approved applicants receive credentials by
         email.
+
+        Hidden from `md` up, where the showcase panel's CTA already offers the
+        same link — below `md` that panel is not rendered at all, so without
+        this line a prospective vendor on a phone would have no way through to
+        the application form.
       */}
-      <Typography variant="body1" color="text.secondary">
+      <Typography
+        variant="body1"
+        color="text.secondary"
+        sx={{ display: { xs: 'block', md: 'none' } }}
+      >
         Not on Sinnapi yet?{' '}
         <Link href={`${APP.publicUrl}/apply`} underline="none" sx={{ fontWeight: 600 }}>
           Apply to become a vendor

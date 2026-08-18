@@ -4,6 +4,7 @@ import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { EventSearchFilters } from '@/lib/types';
 import { useEventFilters } from './useEventFilters';
+import { useEventTypeFacetOptions } from './useEventTypeFacetOptions';
 import { LOCATION_OPTIONS } from '../schema/filters';
 
 /** The curated towns the facet counts are computed over — see `count_event_facets_public`. */
@@ -34,7 +35,10 @@ const FILTER_DEBOUNCE_MS = 200;
  */
 export function usePublicEvents(vendorId: string) {
   const search = useSearchTerm();
-  const filters = useEventFilters();
+  // The occasion vocabulary is fetched, so it has to reach the filter hook
+  // (which validates the URL against it) and the toolbar (which renders it).
+  const typeOptions = useEventTypeFacetOptions();
+  const filters = useEventFilters(typeOptions);
 
   // The two debounces are applied separately, then combined — stacking them
   // would make a search wait out both windows for no reason. `search.query` is
@@ -60,6 +64,8 @@ export function usePublicEvents(vendorId: string) {
   return {
     search,
     filters,
+    /** Occasions for the facet dropdown and the active-filter chips. */
+    typeOptions,
     facetCounts: facets.data,
     events,
     interestedIds,

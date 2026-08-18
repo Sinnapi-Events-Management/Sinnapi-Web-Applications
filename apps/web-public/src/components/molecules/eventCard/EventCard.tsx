@@ -92,12 +92,14 @@ export default function EventCard({ event }: { event: EventCardModel }) {
         </Box>
 
         <CardContent sx={{ width: '100%', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-          {event.event_type && (
+          {/* The admin's name for the occasion, with the key titleized as a
+              fallback for a row whose type was deleted out from under it. */}
+          {(event.event_type_name || event.event_type) && (
             <Chip
               size="small"
               variant="outlined"
               color="primary"
-              label={titleize(event.event_type)}
+              label={event.event_type_name ?? titleize(event.event_type ?? '')}
               sx={{ alignSelf: 'flex-start', mb: 1, fontWeight: 600 }}
             />
           )}

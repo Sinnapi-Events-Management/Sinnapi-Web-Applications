@@ -1,0 +1,1 @@
+export { paymentColumns } from './Columns';

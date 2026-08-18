@@ -3,7 +3,7 @@ import EventIcon from '@mui/icons-material/Event';
 import PlaceIcon from '@mui/icons-material/Place';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import ExpressInterestButton from '@/components/events/ExpressInterestButton';
-import { formatDate, formatMoney, titleize } from '@/lib/config';
+import { formatDate, formatMoney } from '@/lib/config';
 import type { PublicEventModel } from '@/lib/types';
 
 type PublicEventCardProps = {
@@ -46,7 +46,9 @@ export default function PublicEventCard({ event, vendorId, interested }: PublicE
     <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flex: 1 }}>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 1 }}>
-          {event.event_type && <Chip size="small" label={titleize(event.event_type)} />}
+          {/* The RPC returns the occasion's own display name, so there is no
+              token left to titleize — the chip reads what the admin named it. */}
+          {event.event_type_name && <Chip size="small" label={event.event_type_name} />}
           <Chip
             size="small"
             variant="outlined"

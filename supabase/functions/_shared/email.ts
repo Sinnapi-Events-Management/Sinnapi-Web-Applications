@@ -13,6 +13,15 @@
 // report `{ sent: false }` rather than crashing the caller):
 //   SMTP_HOST, SMTP_USER, SMTP_PASS   — credentials
 //   SMTP_PORT                         — optional, defaults to 587 (465 => TLS)
+//   SMTP_SERVERNAME                   — optional. The name the server's TLS
+//                       certificate must be valid for, when that differs from
+//                       SMTP_HOST. Needed on shared hosting, where `mail.<domain>`
+//                       serves the hosting provider's own wildcard certificate
+//                       and verification otherwise fails with `NotValidForName`
+//                       before AUTH is attempted. Setting it selects which
+//                       identity is verified; it does not disable verification.
+//                       Mirrors NEWSLETTER_SMTP_SERVERNAME — see
+//                       `./campaignSmtp.ts` for the full rationale.
 // Optional branding env (see `./emailTemplate.ts`):
 //   APP_NAME, PUBLIC_SITE_URL
 //   EMAIL_FROM        — envelope From; defaults to SMTP_USER (many SMTP servers
@@ -51,12 +60,23 @@ function buildTransporter(): ReturnType<typeof nodemailer.createTransport> | nul
     return null;
   }
 
+  const servername = Deno.env.get('SMTP_SERVERNAME')?.trim() || undefined;
+
   cachedTransporter = nodemailer.createTransport({
     host,
     port,
     secure: port === 465,
     auth: { user, pass },
-    tls: { rejectUnauthorized: false },
+    // Only set when configured, so the default stays "verify against the host
+    // we dialled".
+    //
+    // `rejectUnauthorized: false` was here and was inert: the Edge Runtime's
+    // Deno rejects a certificate-name mismatch inside the rustls handshake, so
+    // the Node-compat layer that reads the flag never runs. It bought nothing
+    // and advertised that this transport would accept a forged certificate for
+    // password-reset mail, so it is gone. A name mismatch is fixed by naming
+    // the right certificate above.
+    ...(servername ? { tls: { servername } } : {}),
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 15_000,

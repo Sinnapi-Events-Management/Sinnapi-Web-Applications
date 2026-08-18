@@ -56,5 +56,48 @@ verify_jwt = false
 [functions.promote-intake]
 verify_jwt = true
 
+# Campaign send worker. Open at the gateway because the cron trigger is a
+# service-role bearer rather than a user session — the handler rejects anything
+# that is not the service-role key before it touches campaign state. Its one
+# non-cron action, `test`, reads the campaign through the CALLER'S client, so
+# `marketing.manage` via RLS is what authorises a test send.
+[functions.newsletter-dispatch]
+verify_jwt = false
+
+# Resend delivery telemetry. Public by necessity (the provider holds no JWT);
+# every request is verified against the Svix signature before it is parsed, and
+# a missing RESEND_WEBHOOK_SECRET fails closed.
+#
+# Stays deployed even when NEWSLETTER_TRANSPORT=smtp, which produces no events
+# for it to receive: keeping it up means rolling back to Resend is one variable,
+# and late events for campaigns sent before a swap still land.
+[functions.newsletter-webhook]
+verify_jwt = false
+
+# Double opt-in confirmation, the preference centre, and RFC 8058 one-click
+# unsubscribe. Must stay open to anonymous callers: a mail client POSTing a
+# one-click opt-out has no session, and requiring a login to unsubscribe is the
+# friction GDPR Art.7(3) exists to forbid. The capability is the 192-bit token
+# in the link, which is unreachable through PostgREST.
+[functions.marketing-consent]
+verify_jwt = false
+
 [functions.set-intake-status]
+verify_jwt = true
+
+# Vendor ACCOUNT lifecycle (suspend / deactivate / block / activate) and
+# credential re-issue for an approved vendor who never signed in. Both are
+# console-only and privileged: the gateway demands a JWT, and each handler then
+# re-checks `users.manage` with the caller's own token before the service_role
+# client bans a login or sets a password.
+[functions.manage-vendor-account]
+verify_jwt = true
+
+[functions.resend-vendor-credentials]
+verify_jwt = true
+
+# Self-service right-of-access export. The gateway demands a JWT and the handler
+# reads exclusively through the caller's own client, so RLS — not a filter we
+# remembered to write — is what scopes the document to one person.
+[functions.data-export]
 verify_jwt = true

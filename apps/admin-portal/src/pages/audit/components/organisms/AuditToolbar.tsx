@@ -1,12 +1,13 @@
 import {
   Box,
   Button,
+  DateRangeField,
   FormControl,
   InputLabel,
   MenuItem,
+  PAST_RANGE_PRESETS,
   Select,
   Stack,
-  TextField,
 } from '@sinnapi/ui';
 import FilterListOffIcon from '@mui/icons-material/FilterListOff';
 import type { AuditFiltersApi, AuditFilterValues } from '../../hooks/useAuditFilters';
@@ -43,34 +44,13 @@ function SelectFilter({ label, value, options, onChange }: SelectFilterProps) {
   );
 }
 
-type DateFilterProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-};
-
-function DateFilter({ label, value, onChange }: DateFilterProps) {
-  return (
-    <TextField
-      type="date"
-      size="small"
-      label={label}
-      value={value}
-      fullWidth={false}
-      onChange={(e) => onChange(e.target.value)}
-      InputLabelProps={{ shrink: true }}
-      sx={{ minWidth: 150 }}
-    />
-  );
-}
-
 /**
  * Filter bar for the audit log: what happened (operation), which kind of record,
  * who did it (people vs system), and a date range. Presentational — all state
  * lives in `useAuditFilters`.
  */
 export default function AuditToolbar({ filters }: { filters: AuditFiltersApi }) {
-  const { values, set, reset, activeCount } = filters;
+  const { values, set, range, setRange, reset, activeCount } = filters;
   const bind = (key: keyof AuditFilterValues) => (value: string) => set(key, value);
 
   return (
@@ -100,8 +80,18 @@ export default function AuditToolbar({ filters }: { filters: AuditFiltersApi }) 
         options={ACTOR_FILTER_OPTIONS}
         onChange={bind('actor')}
       />
-      <DateFilter label="From" value={values.from} onChange={bind('from')} />
-      <DateFilter label="To" value={values.to} onChange={bind('to')} />
+      {/* One range, not two dates: an audit search is "what happened between
+          these days", and the presets turn the common answers into one click. */}
+      <DateRangeField
+        label="Date range"
+        size="small"
+        fullWidth={false}
+        value={range}
+        onChange={setRange}
+        presets={PAST_RANGE_PRESETS}
+        disableFuture
+        sx={{ minWidth: 230 }}
+      />
 
       <Box sx={{ flex: 1 }} />
 

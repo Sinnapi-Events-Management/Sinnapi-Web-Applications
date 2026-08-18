@@ -1,4 +1,12 @@
-import { DataTable, Alert, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
+import {
+  DataTable,
+  Alert,
+  type DataTableColumn,
+  PageTitle,
+  PaymentTermsChip,
+  PaymentWindowChip,
+  StatusChip,
+} from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type { BookingModel, VendorRef } from '@/lib/types';
@@ -25,6 +33,25 @@ const columns: DataTableColumn<BookingModel>[] = [
     render: (b) => formatMoney(b.amount, b.currency),
   },
   {
+    field: 'payment_type',
+    headerName: 'Payment',
+    // Not sortable: two rail values order nothing useful across a platform-wide
+    // list, and what an operator scans for — an off-platform booking nobody
+    // ever agreed to — is the pairing, which one column sort cannot express.
+    render: (b) => <PaymentTermsChip rail={b.payment_type} status={b.payment_terms_status} />,
+  },
+  {
+    field: 'payment_due_at',
+    headerName: 'Payment due',
+    // Not sortable: the deadline in force may be an admin's override rather
+    // than this column, so ordering by it would sort the list by a date some
+    // rows are not actually counting down to. The Awaiting-payment queue sorts
+    // on the server-resolved deadline, which is the place to work this from.
+    render: (b) => (
+      <PaymentWindowChip booking={{ ...b, payment_type: b.payment_type }} audience="admin" />
+    ),
+  },
+  {
     field: 'status',
     headerName: 'Status',
     sortable: true,
@@ -33,7 +60,7 @@ const columns: DataTableColumn<BookingModel>[] = [
 ];
 
 export default function Bookings() {
-  const { rows, total, isLoading, isFetching, error, table } = useBookings();
+  const { rows, total, isLoading, isFetching, error, table, viewBooking } = useBookings();
 
   return (
     <>
@@ -50,6 +77,7 @@ export default function Bookings() {
         rowCount={total}
         loading={isLoading || isFetching}
         emptyMessage="No bookings yet."
+        onRowClick={(b) => viewBooking(b.id)}
         {...table.controls}
       />
     </>

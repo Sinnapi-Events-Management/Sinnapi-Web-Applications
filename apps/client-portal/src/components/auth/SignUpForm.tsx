@@ -3,6 +3,7 @@ import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi
 import { AuthSwitchPrompt } from '@sinnapi/ui/router';
 import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { PASSWORD_HINT, ROLE_OPTIONS } from './schema';
+import SignUpConsent from './molecules/SignUpConsent';
 import type { useSignUpForm } from './hooks/useSignUpForm';
 
 /**
@@ -44,6 +45,10 @@ export default function SignUpForm({ control, error, loading, submit, captcha, c
         helperText={PASSWORD_HINT}
       />
       <ControlledField name="role" control={control} label="I am a…" options={ROLE_OPTIONS} />
+      {/* Above the CAPTCHA rather than below it: the consents are decisions the
+          person makes, the human check is a formality they clear on the way out,
+          and burying a required acceptance under a widget is how it gets missed. */}
+      <SignUpConsent control={control} disabled={loading} />
       <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="client-sign-up" />
       <Button
         type="submit"

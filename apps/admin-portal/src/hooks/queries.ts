@@ -7,10 +7,17 @@ import {
 } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { applyFilters, paginate, type PageParams, type Paged } from '@/lib/table';
+import {
+  applyFilters,
+  paginate,
+  BOOKING_PAYMENT_WINDOW_COLUMNS,
+  type PageParams,
+  type Paged,
+} from '@sinnapi/ui';
 import {
   INTAKE_STATUSES,
   VENDOR_STATUSES,
+  VENDOR_ACCOUNT_STATUSES,
   EVENT_STATUSES,
   SUBSCRIPTION_STATUSES,
   type IntakeStatus,
@@ -18,6 +25,7 @@ import {
   type EventStatus,
   type SubscriptionStatus,
   type ProfileStatus,
+  type VendorAccountStatus,
 } from '@/lib/status';
 import type {
   BlockedAccountModel,
@@ -25,6 +33,7 @@ import type {
   IntakeListModel,
   IntakeDetailModel,
   VendorAdminModel,
+  VendorAccountModel,
   VendorDetailModel,
   VendorKpis,
   VendorPaymentModel,
@@ -36,6 +45,7 @@ import type {
   PermissionModel,
   EscrowModel,
   PayoutModel,
+  ReconciliationExceptionModel,
   RefundModel,
   DisputeModel,
   PaymentModel,
@@ -48,9 +58,18 @@ import type {
   ServiceCategoryOption,
   ServiceRegionModel,
   BookingModel,
+  BookingPaymentEventModel,
+  UnpaidBookingCounts,
+  UnpaidBookingModel,
+  BookingAdminModel,
+  BookingActivityModel,
+  SettlementRequestModel,
+  SettlementEventModel,
   QuotationModel,
   EventModel,
   EventDetailModel,
+  EventTypeModel,
+  EventTypeOption,
   ReviewReportModel,
   MessageFlagModel,
   NotificationTemplateModel,
@@ -59,13 +78,24 @@ import type {
   RetentionPolicyModel,
   ErasureRequestModel,
   ConversationModel,
-  ConversationReadStateModel,
   MessageModel,
   NotificationModel,
   EventInterestModel,
   EventQuotationModel,
   EventEngagementKpis,
   QuotationDocument,
+  NewsletterAudience,
+  NewsletterAudienceRow,
+  NewsletterAudienceCounts,
+  NewsletterCampaignModel,
+  NewsletterCampaignDetail,
+  NewsletterStats,
+  NewsletterContact,
+  ContactListModel,
+  ContactListContactModel,
+  ContactListSaveResult,
+  MarketingSubscriptionModel,
+  EmailSuppressionModel,
 } from '@/lib/types';
 
 // Reads are RLS-gated by the admin's permissions (UI also hides via RBAC).
@@ -597,6 +627,74 @@ export function useClientStatusCounts(search?: string) {
   });
 }
 
+// ─── Vendor accounts ──────────────────────────────────────────────────────
+// The People-section view of vendors: one row per OWNER ACCOUNT, not per
+// listing (that is `useVendors`). Both reads go through SECURITY DEFINER RPCs
+// rather than the two-step id-scoping the Clients list uses above — see the
+// 0810b migration header for why role scoping belongs next to the data.
+
+export type VendorAccountParams = {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** Debounced term matched against name, email, phone and business name. */
+  search?: string;
+  status?: string;
+};
+
+export function useVendorAccounts(params: VendorAccountParams) {
+  return useQuery({
+    queryKey: ['vendor-accounts', params] as const,
+    queryFn: async (): Promise<Paged<VendorAccountModel>> => {
+      const { data, error } = await supabase.rpc('search_vendor_accounts', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (VendorAccountModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Row count per account status, plus `all` — drives the list's tabs. */
+export type VendorAccountCounts = Record<VendorAccountStatus | 'all', number>;
+
+/**
+ * Per-status counts for the tabs. The RPC honours the active search but NOT
+ * status, so each badge reflects what its tab would show once selected. Shares
+ * the `vendor-accounts` key prefix so a lifecycle action's invalidation
+ * refreshes the badges in the same tick as the table.
+ */
+export function useVendorAccountCounts(search?: string) {
+  return useQuery({
+    queryKey: ['vendor-accounts', 'counts', search ?? null] as const,
+    queryFn: async (): Promise<VendorAccountCounts> => {
+      const { data, error } = await supabase.rpc('count_vendor_accounts_by_status', {
+        p_search: search ?? null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: VendorAccountStatus; count: number | string }[];
+      const base = VENDOR_ACCOUNT_STATUSES.reduce((acc, status) => ({ ...acc, [status]: 0 }), {
+        all: 0,
+      } as VendorAccountCounts);
+      return byStatus.reduce((acc, { status, count }) => {
+        const n = Number(count);
+        // A status the enum gains later would otherwise land as an unexpected
+        // key; it still belongs in `all`, which is the only honest total.
+        if (status in acc) acc[status] = n;
+        acc.all += n;
+        return acc;
+      }, base);
+    },
+  });
+}
+
 export function useClient(id: string) {
   return useQuery({
     queryKey: ['client', id],
@@ -779,7 +877,7 @@ export function useEscrowAdmin(params: PageParams) {
         supabase
           .from('escrow_transactions')
           .select(
-            'id,status,gross_amount,commission_amount,net_payout_amount,currency,client_confirmed_at,vendors(business_name),bookings(reference_no)',
+            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,psp_fee_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,timers_frozen_at,currency,client_confirmed_at,vendors(business_name),bookings(reference_no)',
             { count: 'exact' },
           ),
         params,
@@ -796,13 +894,50 @@ export function usePayoutsAdmin(params: PageParams) {
         supabase
           .from('payouts')
           .select(
-            'id,amount,currency,status,requested_by,approved_by,created_at,vendors(business_name)',
+            'id,kind,escrow_id,amount,currency,status,settlement_method,settlement_reference,destination_label,proof_path,blocked_reason,notes,requested_by,recorded_by,recorded_at,approved_by,settled_at,created_at,vendors(business_name)',
             { count: 'exact' },
           ),
         params,
         { field: 'created_at', ascending: false },
       ),
     ),
+  );
+}
+
+/**
+ * The reconciliation exception queue: everything the nightly sweeps found that
+ * did not agree, newest activity first.
+ *
+ * Open items are what Finance works; resolved ones stay for the audit trail.
+ * Nothing here has been auto-corrected — the sweeps only ever file.
+ */
+export function useReconciliationExceptions(params: PageParams, openOnly = true) {
+  // Folded into `filters` rather than into the key string: pagedOptions already
+  // includes filters in the query key, so the two views cache separately while
+  // the base key stays 'admin-reconciliation' — which is what invalidation
+  // after a resolve matches on.
+  const scoped: PageParams = {
+    ...params,
+    // PageFilters values are strings (they become PostgREST equality filters),
+    // hence the string form rather than the boolean.
+    filters: { ...(params.filters ?? {}), scope: openOnly ? 'open' : 'all' },
+  };
+  return useQuery(
+    pagedOptions('admin-reconciliation', scoped, () => {
+      const query = supabase
+        .from('reconciliation_exceptions')
+        .select(
+          'id,kind,status,severity,detail,expected,actual,occurrences,escrow_id,payment_id,payout_id,first_seen_at,last_seen_at',
+          { count: 'exact' },
+        );
+      return paginate<ReconciliationExceptionModel>(
+        openOnly ? query.in('status', ['open', 'investigating']) : query,
+        // The original params: `openOnly` is a cache-key concern, not a
+        // column filter, so it must not reach applyFilters.
+        params,
+        { field: 'last_seen_at', ascending: false },
+      );
+    }),
   );
 }
 
@@ -1043,14 +1178,104 @@ export function useBookingsAdmin(params: PageParams) {
       paginate<BookingModel>(
         supabase
           .from('bookings')
-          .select('id,reference_no,status,event_date,amount,currency,vendors(business_name)', {
-            count: 'exact',
-          }),
+          .select(
+            'id,reference_no,status,event_date,amount,currency,payment_type,payment_terms_status,' +
+              `${BOOKING_PAYMENT_WINDOW_COLUMNS},vendors(business_name)`,
+            {
+              count: 'exact',
+            },
+          ),
         params,
         { field: 'event_date', ascending: false },
       ),
     ),
   );
+}
+
+/**
+ * One booking with both parties, the quotation behind it and the escrow in
+ * front of it, in a single call.
+ *
+ * An RPC rather than a PostgREST select with embeds: three of the four halves
+ * are optional, and four requests to render one screen leaves the page in a
+ * partially-loaded state for most of its life. The server also resolves the
+ * actor ids to names, which a browser-side join could only do with two more
+ * round trips.
+ */
+export function useBookingAdmin(id: string) {
+  return useQuery({
+    queryKey: ['admin-booking', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_booking_admin', { p_booking_id: id });
+      if (error) throw error;
+      return data as BookingAdminModel;
+    },
+    enabled: !!id,
+  });
+}
+
+/**
+ * The settlement request on one booking, or `null` when the vendor has not
+ * asked to be paid yet.
+ *
+ * Read as a table rather than folded into `get_booking_admin`: it changes on
+ * its own clock (a client answering, a vendor consenting, a cron escalating)
+ * and the console subscribes to it, so it wants its own cache key rather than
+ * dragging the whole booking projection through every refresh.
+ */
+export function useBookingSettlementAdmin(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-settlement', bookingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_requests')
+        .select('*')
+        .eq('booking_id', bookingId!)
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as SettlementRequestModel) ?? null;
+    },
+    enabled: !!bookingId,
+  });
+}
+
+/** A settlement's visible trail, oldest first — the order it reads in. */
+export function useSettlementEventsAdmin(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-settlement-events', requestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settlement_events')
+        .select('id,kind,actor_role,amount,note,created_at')
+        .eq('request_id', requestId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SettlementEventModel[];
+    },
+    enabled: !!requestId,
+  });
+}
+
+/**
+ * The booking's merged activity trail — status changes, escrow events, payment
+ * attempts and admin overrides, already interleaved by the server.
+ *
+ * Kept as its own query rather than folded into `useBookingAdmin` because it
+ * is the one part of the page that grows without bound, and because a status
+ * write invalidates it on a different cadence from the booking row itself.
+ */
+export function useBookingActivity(id: string) {
+  return useQuery({
+    queryKey: ['admin-booking-activity', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_booking_activity', { p_booking_id: id });
+      if (error) throw error;
+      return (data ?? []) as BookingActivityModel[];
+    },
+    enabled: !!id,
+  });
 }
 
 export function useQuotationsAdmin(params: PageParams) {
@@ -1172,8 +1397,9 @@ export function useEvent(id: string) {
       const { data, error } = await supabase
         .from('events')
         .select(
-          'id,posted_by,source,title,description,event_type,event_date,location,' +
+          'id,posted_by,source,title,description,event_type_id,event_date,location,' +
             'budget_min,budget_max,currency,status,is_public,cover_image_url,created_at,' +
+            'event_type:event_types(key,name),' +
             'poster:profiles!posted_by(full_name,email,phone)',
         )
         .eq('id', id)
@@ -1420,6 +1646,64 @@ export function useNextServiceCategorySortOrder() {
   });
 }
 
+// --- event types ------------------------------------------------------------
+// The occasion vocabulary. Same reference-table treatment as the service
+// catalogue above, and the same three reads: a paginated admin list, the full
+// option list for form selects, and the next free sort order.
+
+const EVENT_TYPE_COLUMNS = 'id,key,name,icon,is_active,sort_order';
+
+export function useEventTypesAdmin(params: PageParams) {
+  return useQuery(
+    pagedOptions('admin-event-types', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase.from('event_types').select(EVENT_TYPE_COLUMNS, { count: 'exact' });
+      if (f.is_active) q = q.eq('is_active', f.is_active);
+      if (f.search) q = q.or(refSearchClause(f.search));
+      return paginate<EventTypeModel>(q, params, { field: 'sort_order', ascending: true });
+    }),
+  );
+}
+
+/**
+ * Every event type in display order, for the event form's occasion select.
+ *
+ * Inactive types are included rather than filtered out: an event already
+ * pointing at a retired occasion has to keep showing it, or opening the edit
+ * drawer would blank the field and saving would silently clear the type. The
+ * picker marks them instead — see `useEventTypeSelectOptions`.
+ */
+export function useEventTypeOptions() {
+  return useQuery({
+    queryKey: ['event-type-options'] as const,
+    queryFn: async (): Promise<EventTypeOption[]> => {
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('id,name,is_active')
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as EventTypeOption[];
+    },
+  });
+}
+
+/** One past the highest `sort_order` in `event_types`. See
+ * `useNextServiceCategorySortOrder` for why this exists. */
+export function useNextEventTypeSortOrder() {
+  return useQuery({
+    queryKey: ['event-type-next-sort-order'] as const,
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('event_types')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0]?.sort_order ?? -1) + 1;
+    },
+  });
+}
+
 const SERVICE_REGION_COLUMNS = 'id,key,name,scope,is_active,sort_order';
 
 export function useServiceRegionsAdmin(params: PageParams) {
@@ -1523,60 +1807,72 @@ export function useErasureRequests(params: PageParams) {
 }
 
 // shared inbox
+// ---------- Messaging ----------
+
+/** Query keys the realtime subscription invalidates. */
+export const MESSAGING_KEYS = {
+  conversations: ['conversations'] as const,
+  unreadTotal: ['unread-messages'] as const,
+  thread: (id: string) => ['messages', id] as const,
+};
+
+// PostgREST infers a row type from the *literal* text of the select, so this
+// must stay a single string literal — concatenating it widens the type to
+// `string` and the query starts returning `GenericStringError[]`.
+const MESSAGE_SELECT =
+  'id,sender_id,body,created_at,edited_at,is_system,moderation_status,message_attachments(id,storage_path,file_name,mime_type,size_bytes,scan_status)';
+
 /**
- * Inbox list. The vendor join gives each row a human name, and the embedded
- * `messages` resource is capped at the single newest non-deleted message so the
- * list can show a preview without a second round trip per conversation.
+ * The inbox, with the counterparty, preview and unread count already resolved
+ * by `get_my_conversations()`.
+ *
+ * This replaces three round trips: the conversation select, a limit-1 lateral
+ * embed on `messages` for each row's preview, and a separate fetch of the
+ * admin's `conversation_participants` rows for read state. For an operator
+ * holding `moderation.manage` the RPC returns every non-deleted conversation,
+ * matching what `convo_read` already allowed.
  */
-export function useConversations() {
+export function useConversations({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: MESSAGING_KEYS.conversations,
+    // The inbox always wants this; the top bar's preview panel only wants it
+    // once the operator opens the panel. Same key either way, so the page finds
+    // a warm cache when the panel got there first — which matters more here
+    // than elsewhere, since a moderator's list is every thread on the platform.
+    enabled,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('conversations')
-        .select(
-          'id,type,subject,last_message_at,status,created_at,vendors(business_name),messages(body,created_at,sender_id)',
-        )
-        .is('messages.deleted_at', null)
-        .order('created_at', { referencedTable: 'messages', ascending: false })
-        .limit(1, { referencedTable: 'messages' })
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+      const { data, error } = await supabase.rpc('get_my_conversations');
+      if (error) throw error;
       return (data ?? []) as ConversationModel[];
     },
   });
 }
 
-/**
- * The signed-in admin's participant rows, keyed by conversation. Split from
- * `useConversations` because it is scoped to `auth.uid()` and is invalidated on
- * its own whenever a thread is marked read.
- */
-export function useConversationReadState(profileId: string | undefined) {
+/** Single number for the sidebar badge. Excludes muted threads. */
+export function useUnreadMessageCount() {
   return useQuery({
-    queryKey: ['conversation-read-state', profileId],
-    enabled: !!profileId,
+    queryKey: MESSAGING_KEYS.unreadTotal,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id,last_read_at,is_muted')
-        .eq('profile_id', profileId!);
-      return (data ?? []) as ConversationReadStateModel[];
+      const { data, error } = await supabase.rpc('get_unread_message_count');
+      if (error) throw error;
+      return (data as number) ?? 0;
     },
   });
 }
 
 export function useMessages(conversationId: string) {
   return useQuery({
-    queryKey: ['messages', conversationId],
+    queryKey: MESSAGING_KEYS.thread(conversationId),
     // The inbox mounts this before a thread is picked; don't fetch on an empty id.
     enabled: !!conversationId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
-        .select('id,sender_id,body,created_at,moderation_status')
+        .select(MESSAGE_SELECT)
         .eq('conversation_id', conversationId)
         .is('deleted_at', null)
         .order('created_at', { ascending: true });
+      if (error) throw error;
       return (data ?? []) as MessageModel[];
     },
   });
@@ -1615,6 +1911,76 @@ export function useNotifications() {
       // between requests, and an empty page would otherwise loop forever.
       if (lastPage.rows.length === 0 || loaded >= lastPage.total) return undefined;
       return pages.length;
+    },
+  });
+}
+
+/**
+ * The newest few notifications, for the top bar's preview panel.
+ *
+ * A separate query from the paged feed rather than a read of its first page:
+ * that one is an infinite query with an exact `count`, and mounting it in the
+ * shell would put the whole feed — and its paging state — behind every screen
+ * in the portal to render six rows. Prefixed under `['notifications']` so the
+ * feed's existing invalidations refresh this too.
+ */
+export function useRecentNotifications(
+  limit: number,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: ['notifications', 'recent', limit],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id,trigger_key,title,body,data,channel,read_at,created_at')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as NotificationModel[];
+    },
+  });
+}
+
+/**
+ * Stamp one notification read.
+ *
+ * The RPC rather than an update: the browser has no UPDATE policy on
+ * `notifications`, and `mark_notification_read` is the SECURITY DEFINER path
+ * the detail pane already uses.
+ */
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc('mark_notification_read', { p_notification_id: id });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      // Both keys: `notifications` drives the feed and its preview, `unread`
+      // the badges.
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['notifications'] }),
+        qc.invalidateQueries({ queryKey: ['unread'] }),
+      ]);
+    },
+  });
+}
+
+/** Stamp every unread notification for the signed-in operator. */
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('mark_all_notifications_read');
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['notifications'] }),
+        qc.invalidateQueries({ queryKey: ['unread'] }),
+      ]);
     },
   });
 }
@@ -1732,5 +2098,423 @@ export function useSetVendorCoverage(vendorId: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['vendor-coverage', vendorId] }),
+  });
+}
+
+// =====================================================================
+// MARKETING (newsletter_campaigns, marketing_subscriptions, email_suppressions)
+//
+// Campaign reads go through PostgREST — RLS on the tables already gates them on
+// `marketing.manage`. Everything that MOVES a campaign goes through an RPC
+// instead, because those checks (is it still a draft, does it have recipients,
+// is the address suppressed) have to hold against a concurrent second admin,
+// and a browser cannot enforce them.
+// =====================================================================
+
+const CAMPAIGN_LIST_SELECT =
+  'id,title,subject,preheader,audience,topic,status,scheduled_at,started_at,completed_at,' +
+  'error,recipient_count,sent_count,failed_count,created_at';
+
+// Case-insensitive "contains" across the internal title and the subject line,
+// with the PostgREST logical operators stripped so a search term can't rewrite
+// the query. Same treatment as every other search clause in this file.
+function campaignSearchClause(search: string): string {
+  const s = `%${search.replace(/[%,()]/g, '')}%`;
+  return `title.ilike.${s},subject.ilike.${s}`;
+}
+
+export function useNewsletterCampaigns(params: PageParams) {
+  return useQuery(
+    pagedOptions('newsletter-campaigns', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase
+        .from('newsletter_campaigns')
+        .select(CAMPAIGN_LIST_SELECT, { count: 'exact' });
+      if (f.status) q = q.eq('status', f.status);
+      if (f.audience) q = q.eq('audience', f.audience);
+      if (f.search) q = q.or(campaignSearchClause(f.search));
+      return paginate<NewsletterCampaignModel>(q, params, {
+        field: 'created_at',
+        ascending: false,
+      });
+    }),
+  );
+}
+
+export type NewsletterCampaignCounts = {
+  all: number;
+  draft: number;
+  scheduled: number;
+  sending: number;
+  sent: number;
+};
+
+export function useNewsletterCampaignCounts(search?: string) {
+  return useQuery({
+    queryKey: ['newsletter-campaign-counts', search ?? null] as const,
+    queryFn: async (): Promise<NewsletterCampaignCounts> => {
+      const base = () => {
+        let q = supabase.from('newsletter_campaigns').select('id', { count: 'exact', head: true });
+        if (search) q = q.or(campaignSearchClause(search));
+        return q;
+      };
+      const [all, draft, scheduled, sending, sent] = await Promise.all([
+        count(base()),
+        count(base().eq('status', 'draft')),
+        count(base().eq('status', 'scheduled')),
+        count(base().eq('status', 'sending')),
+        count(base().eq('status', 'sent')),
+      ]);
+      return { all, draft, scheduled, sending, sent };
+    },
+  });
+}
+
+export function useNewsletterCampaign(id: string | undefined) {
+  return useQuery({
+    queryKey: ['newsletter-campaign', id] as const,
+    enabled: Boolean(id),
+    queryFn: async (): Promise<NewsletterCampaignDetail> => {
+      const { data, error } = await supabase
+        .from('newsletter_campaigns')
+        .select(`${CAMPAIGN_LIST_SELECT},blocks,attested_by,attested_at`)
+        .eq('id', id!)
+        .single();
+      if (error) throw error;
+      return data as unknown as NewsletterCampaignDetail;
+    },
+  });
+}
+
+/**
+ * The pickable audience. Paginated server-side because "all vendors" is a list
+ * nobody wants delivered to a browser in one response, and because the eligible
+ * / ineligible split has to be computed against the same join the send uses.
+ */
+export function useNewsletterAudience(opts: {
+  audience: NewsletterAudience;
+  search?: string;
+  page: number;
+  pageSize: number;
+  enabled?: boolean;
+}) {
+  return useQuery({
+    queryKey: [
+      'newsletter-audience',
+      opts.audience,
+      opts.search ?? null,
+      opts.page,
+      opts.pageSize,
+    ] as const,
+    enabled: opts.enabled ?? true,
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ rows: NewsletterAudienceRow[]; total: number }> => {
+      const { data, error } = await supabase.rpc('admin_newsletter_audience', {
+        p_audience: opts.audience,
+        p_search: opts.search ?? null,
+        p_limit: opts.pageSize,
+        p_offset: opts.page * opts.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as NewsletterAudienceRow[];
+      // `total_count` is a window function on every row, so an empty page
+      // genuinely means zero rather than an unknown total.
+      return { rows, total: rows[0]?.total_count ?? 0 };
+    },
+  });
+}
+
+export function useNewsletterAudienceCounts(opts: {
+  audience: NewsletterAudience;
+  search?: string;
+  enabled?: boolean;
+}) {
+  return useQuery({
+    queryKey: ['newsletter-audience-counts', opts.audience, opts.search ?? null] as const,
+    enabled: opts.enabled ?? true,
+    queryFn: async (): Promise<NewsletterAudienceCounts> => {
+      const { data, error } = await supabase.rpc('admin_newsletter_audience_counts', {
+        p_audience: opts.audience,
+        p_search: opts.search ?? null,
+      });
+      if (error) throw error;
+      return (
+        ((data ?? [])[0] as NewsletterAudienceCounts) ?? {
+          total: 0,
+          eligible: 0,
+          suppressed: 0,
+          no_consent: 0,
+        }
+      );
+    },
+  });
+}
+
+export function useNewsletterStats(campaignId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['newsletter-stats', campaignId] as const,
+    enabled: Boolean(campaignId) && enabled,
+    queryFn: async (): Promise<NewsletterStats> => {
+      const { data, error } = await supabase.rpc('admin_newsletter_stats', {
+        p_campaign_id: campaignId!,
+      });
+      if (error) throw error;
+      return (data ?? [])[0] as NewsletterStats;
+    },
+  });
+}
+
+// ─── Saved contact lists (address books) ──────────────────────────────────
+//
+// Reads are RPCs rather than PostgREST selects because both carry a derived
+// column the browser must not compute for itself: `total_count` for paging, and
+// `suppressed`, which is an anti-join against the suppression list. A picker
+// that decided suppression client-side would be one forgotten filter away from
+// showing an operator a person they cannot actually mail.
+
+export function useContactLists(search?: string) {
+  return useQuery({
+    queryKey: ['contact-lists', search ?? null] as const,
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ContactListModel[]> => {
+      const { data, error } = await supabase.rpc('admin_contact_lists', {
+        p_search: search ?? null,
+        p_limit: 100,
+        p_offset: 0,
+      });
+      if (error) throw error;
+      return (data ?? []) as ContactListModel[];
+    },
+  });
+}
+
+export function useContactListContacts(opts: {
+  listId: string | null;
+  search?: string;
+  page: number;
+  pageSize: number;
+}) {
+  return useQuery({
+    queryKey: [
+      'contact-list-contacts',
+      opts.listId,
+      opts.search ?? null,
+      opts.page,
+      opts.pageSize,
+    ] as const,
+    enabled: Boolean(opts.listId),
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ rows: ContactListContactModel[]; total: number }> => {
+      const { data, error } = await supabase.rpc('admin_contact_list_contacts', {
+        p_list_id: opts.listId!,
+        p_search: opts.search ?? null,
+        p_limit: opts.pageSize,
+        p_offset: opts.page * opts.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as ContactListContactModel[];
+      return { rows, total: rows[0]?.total_count ?? 0 };
+    },
+  });
+}
+
+/**
+ * Create an address book, or merge contacts into an existing one.
+ *
+ * `listId` null means "new list, this title". The RPC decides which of the two
+ * happened, so nothing here has to check whether a title is taken before
+ * writing — a check-then-write from the browser is a race that ends with two
+ * books the operator cannot tell apart.
+ */
+export function useSaveContactList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      title: string;
+      description?: string | null;
+      contacts: NewsletterContact[];
+      listId?: string | null;
+    }): Promise<ContactListSaveResult> => {
+      const { data, error } = await supabase.rpc('admin_contact_list_save', {
+        p_title: input.title,
+        p_description: input.description ?? null,
+        p_contacts: input.contacts,
+        p_list_id: input.listId ?? null,
+      });
+      if (error) throw error;
+      return (data ?? [])[0] as ContactListSaveResult;
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['contact-lists'] });
+      qc.invalidateQueries({ queryKey: ['contact-list-contacts', result?.list_id] });
+    },
+  });
+}
+
+export function useDeleteContactList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (listId: string) => {
+      const { error } = await supabase.rpc('admin_contact_list_delete', { p_list_id: listId });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contact-lists'] }),
+  });
+}
+
+// ─── Subscriber register ──────────────────────────────────────────────────
+
+function subscriberSearchClause(search: string): string {
+  const s = `%${search.replace(/[%,()]/g, '')}%`;
+  return `email.ilike.${s}`;
+}
+
+export function useMarketingSubscriptions(params: PageParams) {
+  return useQuery(
+    pagedOptions('marketing-subscriptions', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase
+        .from('marketing_subscriptions')
+        .select(
+          'id,email,topic,status,source,consent_text,consent_at,confirmed_at,unsubscribed_at,created_at',
+          { count: 'exact' },
+        );
+      if (f.status) q = q.eq('status', f.status);
+      if (f.topic) q = q.eq('topic', f.topic);
+      if (f.search) q = q.or(subscriberSearchClause(f.search));
+      return paginate<MarketingSubscriptionModel>(q, params, {
+        field: 'created_at',
+        ascending: false,
+      });
+    }),
+  );
+}
+
+export type MarketingSubscriptionCounts = {
+  all: number;
+  subscribed: number;
+  pending: number;
+  unsubscribed: number;
+  suppressed: number;
+};
+
+export function useMarketingSubscriptionCounts(search?: string) {
+  return useQuery({
+    queryKey: ['marketing-subscription-counts', search ?? null] as const,
+    queryFn: async (): Promise<MarketingSubscriptionCounts> => {
+      const base = () => {
+        let q = supabase
+          .from('marketing_subscriptions')
+          .select('id', { count: 'exact', head: true });
+        if (search) q = q.or(subscriberSearchClause(search));
+        return q;
+      };
+      const suppressionBase = () => {
+        let q = supabase.from('email_suppressions').select('id', { count: 'exact', head: true });
+        if (search) q = q.or(subscriberSearchClause(search));
+        return q;
+      };
+      const [all, subscribed, pending, unsubscribed, suppressed] = await Promise.all([
+        count(base()),
+        count(base().eq('status', 'subscribed')),
+        count(base().eq('status', 'pending')),
+        count(base().eq('status', 'unsubscribed')),
+        count(suppressionBase()),
+      ]);
+      return { all, subscribed, pending, unsubscribed, suppressed };
+    },
+  });
+}
+
+export function useEmailSuppressions(params: PageParams) {
+  return useQuery(
+    pagedOptions('email-suppressions', params, () => {
+      const f = params.filters ?? {};
+      let q = supabase
+        .from('email_suppressions')
+        .select('id,email,reason,detail,created_at', { count: 'exact' });
+      if (f.reason) q = q.eq('reason', f.reason);
+      if (f.search) q = q.or(subscriberSearchClause(f.search));
+      return paginate<EmailSuppressionModel>(q, params, { field: 'created_at', ascending: false });
+    }),
+  );
+}
+
+// ---------- Unpaid escrow bookings ----------
+
+/** Which slice of the unpaid queue to show. `all` is both. */
+export type UnpaidBookingState = 'all' | 'awaiting' | 'overdue';
+
+export type UnpaidBookingParams = PageParams & { search?: string; state?: UnpaidBookingState };
+
+/**
+ * One page of escrow bookings that are confirmed but have not been funded.
+ *
+ * An RPC rather than a PostgREST select: the row an operator triages on spans
+ * the booking, both parties by name, and whether a checkout was ever opened —
+ * and that last join has to be a LEFT one, because the booking whose client
+ * never started paying is the single most important row in this queue and an
+ * inner join would silently drop exactly it.
+ */
+export function useUnpaidBookings(params: UnpaidBookingParams) {
+  return useQuery({
+    queryKey: ['admin-unpaid-bookings', params] as const,
+    queryFn: async (): Promise<Paged<UnpaidBookingModel>> => {
+      const { data, error } = await supabase.rpc('search_unpaid_bookings_admin', {
+        p_search: params.search || null,
+        p_state: params.state && params.state !== 'all' ? params.state : null,
+        p_sort_field: params.sort?.field ?? 'effective_due_at',
+        p_sort_dir: params.sort?.direction ?? 'asc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (UnpaidBookingModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The queue's headline figures — the dashboard card and the list's tab badges.
+ *
+ * Shares the `admin-unpaid-bookings` key prefix so a nudge, an extension or a
+ * cancellation refreshes the badges alongside the list it was performed from.
+ */
+export function useUnpaidBookingCounts(enabled = true) {
+  return useQuery({
+    queryKey: ['admin-unpaid-bookings', 'counts'] as const,
+    queryFn: async (): Promise<UnpaidBookingCounts> => {
+      const { data, error } = await supabase.rpc('count_unpaid_bookings_admin');
+      if (error) throw error;
+      return data as UnpaidBookingCounts;
+    },
+    enabled,
+  });
+}
+
+/**
+ * One booking's payment-window trail: the clock opening, every reminder and
+ * chase, any extension, and how it ended.
+ *
+ * Read as a table rather than folded into `get_booking_admin` because it grows
+ * on its own clock — a cron reminder, a vendor's nudge — and the console
+ * subscribes to it, so it wants its own cache key rather than dragging the
+ * whole booking projection through every refresh.
+ */
+export function useBookingPaymentEvents(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['booking-payment-events', bookingId] as const,
+    queryFn: async (): Promise<BookingPaymentEventModel[]> => {
+      const { data, error } = await supabase
+        .from('booking_payment_events')
+        .select('id,booking_id,kind,actor_id,actor_role,note,metadata,created_at')
+        .eq('booking_id', bookingId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BookingPaymentEventModel[];
+    },
+    enabled: !!bookingId,
   });
 }

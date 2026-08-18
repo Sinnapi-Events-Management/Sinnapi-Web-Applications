@@ -1,23 +1,28 @@
 import { Controller, type Control } from 'react-hook-form';
 import { Box, FormControlLabel, Stack, Switch } from '@sinnapi/ui';
+import { ControlledDateField } from '@sinnapi/ui/forms';
 import {
   CURRENCY_OPTIONS,
-  EVENT_TYPE_OPTIONS,
   STATUS_OPTIONS,
   type EventFormValues,
+  type SelectOption,
 } from '../../schema';
 import ControlledField from './ControlledField';
 
 type Props = {
   control: Control<EventFormValues>;
+  /** Occasions from `event_types`, supplied by the owning form. */
+  eventTypeOptions: SelectOption[];
+  /** Disables the occasion select until the vocabulary lands. */
+  eventTypesLoading: boolean;
 };
 
 /**
  * The editable event fields, shared by the create and edit forms so the layout
  * lives in one place. Purely presentational — the owning form supplies `control`
- * and handles submit.
+ * and the occasion options, and handles submit.
  */
-export default function EventFormFields({ control }: Props) {
+export default function EventFormFields({ control, eventTypeOptions, eventTypesLoading }: Props) {
   return (
     <Stack spacing={2.5}>
       <ControlledField name="title" control={control} label="Title" required autoFocus />
@@ -29,18 +34,18 @@ export default function EventFormFields({ control }: Props) {
         minRows={4}
       />
       <ControlledField
-        name="event_type"
+        name="event_type_id"
         control={control}
         label="Event type"
-        options={EVENT_TYPE_OPTIONS}
+        options={eventTypeOptions}
+        disabled={eventTypesLoading}
+        helperText={
+          eventTypesLoading ? 'Loading event types…' : 'Managed under Config → Event Types.'
+        }
       />
-      <ControlledField
-        name="event_date"
-        control={control}
-        label="Date"
-        type="date"
-        InputLabelProps={{ shrink: true }}
-      />
+      {/* An admin edits events that have already happened as well as ones still
+          to come, so this calendar stays unbounded in both directions. */}
+      <ControlledDateField name="event_date" control={control} label="Date" />
       <ControlledField name="location" control={control} label="Location" />
 
       <Stack direction="row" spacing={1.5} alignItems="flex-start">

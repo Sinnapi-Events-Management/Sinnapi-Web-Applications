@@ -5,6 +5,7 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ReplayIcon from '@mui/icons-material/Replay';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import type { QueueCardModel, QueueKey } from './types';
 
 /**
@@ -33,6 +34,18 @@ export const QUEUES: QueueDef[] = [
     perm: 'subscriptions.manage',
     accent: 'error',
     Icon: AutorenewIcon,
+  },
+  {
+    // Second, behind renewals and ahead of everything else. An unpaid booking
+    // is a vendor's date held off the market for money that may never arrive,
+    // and unlike the queues below it the cost of leaving it grows with the
+    // calendar rather than with the backlog.
+    key: 'unpaid_bookings',
+    label: 'Awaiting payment',
+    to: '/bookings-awaiting-payment',
+    perm: 'booking.payment.chase',
+    accent: 'warning',
+    Icon: HourglassBottomIcon,
   },
   {
     key: 'applications',

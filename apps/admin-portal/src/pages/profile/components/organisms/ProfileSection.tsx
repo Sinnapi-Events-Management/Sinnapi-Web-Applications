@@ -37,6 +37,7 @@ export default function ProfileSection({
       <Grid item xs={12} md={4}>
         <Stack spacing={3}>
           <ProfileIdentityCard
+            userId={profile.id}
             name={displayName}
             email={email}
             avatarUrl={profile.avatar_url}

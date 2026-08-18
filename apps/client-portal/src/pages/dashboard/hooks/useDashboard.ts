@@ -1,12 +1,11 @@
-import { useDashboardCounts, useBookings, useProfile } from '@/hooks/queries';
+import { useDashboardCounts, useUpcomingBookings, useProfile } from '@/hooks/queries';
 
 export function useDashboard() {
   const counts = useDashboardCounts();
-  const bookings = useBookings();
+  // The preview strip asks the server for exactly the rows it shows, rather
+  // than borrowing the (now paginated) bookings list and slicing it.
+  const bookings = useUpcomingBookings();
   const { data: profile } = useProfile();
-  const upcoming = (bookings.data ?? [])
-    .filter((b) => ['requested', 'confirmed', 'in_progress'].includes(b.status))
-    .slice(0, 5);
 
-  return { counts, bookings, profile, upcoming };
+  return { counts, bookings, profile, upcoming: bookings.data ?? [] };
 }

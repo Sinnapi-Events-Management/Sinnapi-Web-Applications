@@ -9,8 +9,11 @@ import { z } from 'zod';
  * exactly one definition to change.
  */
 
-/** `<input type="date">` always hands back `YYYY-MM-DD` or an empty string. */
+/** `DateField` always hands back `YYYY-MM-DD` or an empty string. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** `TimeField` always hands back `HH:mm` on a 24-hour clock, or an empty string. */
+const ISO_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 /**
  * Deliberately permissive: digits, spaces and the usual grouping punctuation.
@@ -37,6 +40,13 @@ export const optionalDateField = (label = 'date') =>
       .refine(isRealDate, `Enter a valid ${label}.`),
     z.literal(''),
   ]);
+
+/**
+ * An optional time of day. Blank stays blank; anything present is `HH:mm`,
+ * which is what a Postgres `time` column takes verbatim.
+ */
+export const optionalTimeField = (label = 'time') =>
+  z.union([z.string().regex(ISO_TIME_RE, `Enter a valid ${label}.`), z.literal('')]);
 
 /** An optional money/number input, as the string the field actually yields. */
 export const optionalAmountField = (label = 'Amount') =>

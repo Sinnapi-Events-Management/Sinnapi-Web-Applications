@@ -1,5 +1,5 @@
 import { useRetention as useRetentionQuery } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 
 export function useRetention() {
   const table = useTableState({ sort: { field: 'data_category', direction: 'asc' } });

@@ -1,65 +1,42 @@
-import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import { formatMoney, formatDate } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { VendorNameSlugRefModel } from '@/lib/types';
-import { useCompareQuotes } from './hooks/useCompareQuotes';
+import { Alert, DataTable, PageTitle } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
+import { useCompareQuotes } from './hooks/useCompareQuotes';
+import { compareQuoteColumns } from './schema';
 
 export default function CompareQuotes() {
-  const { rows, isLoading, error } = useCompareQuotes();
+  const { rows, total, isLoading, isFetching, error, table, openQuotation } = useCompareQuotes();
 
   return (
     <>
-      <PageTitle title="Compare quotations" subtitle="Side-by-side comparison of vendor quotes." />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
+      <PageTitle
+        title="Compare quotations"
+        subtitle="Side-by-side comparison of vendor quotes. Open one to see what it covers."
+      />
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load quotations.'}
+        </Alert>
+      )}
+
+      <DataTable
+        columns={compareQuoteColumns}
+        rows={rows}
+        getRowId={(q) => q.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        onRowClick={(q) => openQuotation(q.id)}
+        emptyMessage={
           <EmptyState
+            embedded
             title="No quotes to compare"
             description="Quotes vendors have sent you will appear here."
             ctaLabel="Back to quotations"
             ctaHref="/quotations"
           />
-        ) : (
-          <Card variant="outlined" sx={{ overflowX: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Vendor</TableCell>
-                  <TableCell align="right">Total</TableCell>
-                  <TableCell>Valid until</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((q) => (
-                  <TableRow key={q.id} hover>
-                    <TableCell>
-                      {one<VendorNameSlugRefModel>(q.vendors)?.business_name ?? '—'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <strong>{formatMoney(q.total, q.currency)}</strong>
-                    </TableCell>
-                    <TableCell>{formatDate(q.valid_until)}</TableCell>
-                    <TableCell>
-                      <StatusChip status={q.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+        }
+        {...table.controls}
+      />
     </>
   );
 }

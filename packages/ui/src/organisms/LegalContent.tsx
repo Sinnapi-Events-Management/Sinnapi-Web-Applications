@@ -1,5 +1,5 @@
 'use client';
-import type { LegalDocument } from '@sinnapi/content';
+import { legalSectionId, type LegalDocument } from '@sinnapi/content';
 import { Box, Container } from '../atoms/Layout';
 import { Typography } from '../atoms/Typography';
 
@@ -57,8 +57,13 @@ export function LegalContent({ document, hideHeader = false }: LegalContentProps
             <Typography
               variant="h6"
               component="h2"
+              // Anchor target for the table of contents. `scroll-margin-top`
+              // keeps a jumped-to heading clear of the sticky page header
+              // instead of landing underneath it.
+              id={legalSectionId(section.heading)}
               sx={{
                 mb: 1.5,
+                scrollMarginTop: 96,
                 counterIncrement: 'legal-section',
                 '&::before': { content: '"" counter(legal-section) ". "' },
               }}

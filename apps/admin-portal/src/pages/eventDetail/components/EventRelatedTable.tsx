@@ -1,6 +1,6 @@
 import { DataTable, Alert, type DataTableColumn, type SortModel } from '@sinnapi/ui';
-import { useTableState } from '@/hooks/useTableState';
-import type { PageParams, Paged } from '@/lib/table';
+import { useTableState } from '@sinnapi/ui';
+import type { PageParams, Paged } from '@sinnapi/ui';
 
 type QueryLike<Row> = {
   data?: Paged<Row>;

@@ -1,9 +1,11 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import MarketplaceCta from '@/components/organisms/marketplaceCta';
 import EventTips from '@/components/organisms/eventTips';
+import { getEventTypes } from '@/lib/queries';
 import EventsHero from './organisms/eventsHero';
 import EventsBrowser from './organisms/eventsBrowser';
 import { parseEventsSearchParams, type EventsSearchParams } from './utils/searchParams';
+import { toEventTypeOptions } from './utils/options';
 import { prefetchEventsData } from './utils/prefetchEventsData';
 
 /**
@@ -27,17 +29,23 @@ export default async function EventsContainer({
 }: {
   searchParams: EventsSearchParams;
 }) {
+  // The occasion vocabulary is read before the params are parsed, because it is
+  // what `?type=` is validated against — and read here rather than in the two
+  // islands that need it, so the server and the browser parse the URL against
+  // the identical list. If they disagreed, they would resolve different query
+  // keys and the hydrated page would silently refetch the whole grid.
+  const typeOptions = toEventTypeOptions(await getEventTypes());
+
   // Normalised once, here: an unrecognised facet from a stale link must not
-  // reach the prefetch, or the server and the client would resolve different
-  // query keys and the hydrated page would silently refetch everything.
-  const params = parseEventsSearchParams(searchParams);
+  // reach the prefetch, for the same reason.
+  const params = parseEventsSearchParams(searchParams, typeOptions);
   const queryClient = await prefetchEventsData(params);
 
   return (
     <>
-      <EventsHero />
+      <EventsHero typeOptions={typeOptions} />
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <EventsBrowser />
+        <EventsBrowser typeOptions={typeOptions} />
       </HydrationBoundary>
       <EventTips />
       <MarketplaceCta

@@ -1,5 +1,7 @@
-import { EVENT_TYPES, EVENT_LOCATIONS, titleize } from '@/lib/config/site';
+import { EVENT_LOCATIONS, titleize } from '@/lib/config/site';
 import type { FilterOption, EventSortKey } from '@/lib/types';
+// Type-only, so this never pulls the Supabase client into the client bundle.
+import type { ReferenceOption } from '@/lib/queries';
 
 /**
  * Single source of truth for the events page facets. The occasion/town `value`s
@@ -10,11 +12,19 @@ import type { FilterOption, EventSortKey } from '@/lib/types';
  * these are the tokens the URL and the RPC are built from, not sample content.
  */
 
-/** Occasion tokens (snake_case, matched exactly against `events.event_type`). */
-export const EVENT_TYPE_OPTIONS: FilterOption[] = EVENT_TYPES.map((value) => ({
-  value,
-  label: titleize(value),
-}));
+/**
+ * Occasions are the one facet with no list here: they live in `event_types`,
+ * which an admin manages, and are fetched by the page's Server Component and
+ * threaded down. A hardcoded copy is exactly what let this file drift from what
+ * the admin portal writes.
+ *
+ * `value` is the key the RPC matches and the URL carries; `label` is whatever
+ * the admin named it, so a rename re-labels every surface without breaking a
+ * single shared link.
+ */
+export function toEventTypeOptions(types: ReferenceOption[]): FilterOption[] {
+  return types.map((type) => ({ value: type.key, label: type.name }));
+}
 
 /** Where an event came from — maps the `event_source` enum to friendly labels. */
 export const SOURCE_OPTIONS: FilterOption[] = [

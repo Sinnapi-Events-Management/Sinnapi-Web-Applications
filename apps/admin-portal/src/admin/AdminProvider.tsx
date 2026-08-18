@@ -10,6 +10,13 @@ type Ctx = {
   roles: string[];
   loading: boolean;
   has: (perm: string) => boolean;
+  /**
+   * The signed-in admin's profile id. Needed wherever a maker-checker control
+   * has to tell "someone else did this" from "you did this" — the RPC is the
+   * one that enforces it, but the UI should not offer a button that will be
+   * refused.
+   */
+  profileId: string | null;
 };
 
 const AdminContext = createContext<Ctx | undefined>(undefined);
@@ -21,7 +28,14 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return { isAdmin: false, permissions: new Set<string>(), roles: [] as string[] };
+      if (!user) {
+        return {
+          isAdmin: false,
+          permissions: new Set<string>(),
+          roles: [] as string[],
+          profileId: null as string | null,
+        };
+      }
       // user_roles -> roles -> role_permissions -> permissions
       const { data: rows } = await supabase
         .from('user_roles')
@@ -41,7 +55,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           if (perm?.key) permissions.add(perm.key);
         }
       }
-      return { isAdmin, permissions, roles };
+      return { isAdmin, permissions, roles, profileId: user.id as string | null };
     },
   });
 
@@ -52,6 +66,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     roles: data?.roles ?? [],
     loading: isLoading,
     has: (perm: string) => permissions.has(perm),
+    profileId: data?.profileId ?? null,
   };
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 }

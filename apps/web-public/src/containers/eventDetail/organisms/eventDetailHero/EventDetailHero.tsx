@@ -134,9 +134,9 @@ export default function EventDetailHero({ event }: { event: EventCardModel }) {
         </Link>
 
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          {event.event_type && (
+          {(event.event_type_name || event.event_type) && (
             <Chip
-              label={titleize(event.event_type)}
+              label={event.event_type_name ?? titleize(event.event_type ?? '')}
               size="small"
               sx={{
                 color: 'common.white',

@@ -9,6 +9,7 @@ import {
   type RegistrationValues,
   type Referee,
 } from '../data/schema';
+import { MARKETING_CONSENT_TEXT } from '../data/options';
 
 const BUCKET = 'application-intake';
 
@@ -232,6 +233,11 @@ export function useVendorRegistration() {
       acceptedVendorTerms: values.acceptedVendorTerms,
       acceptedEscrowPolicy: values.acceptedEscrowPolicy,
       acceptedFalseInfoRemoval: values.acceptedFalseInfoRemoval,
+      marketingConsent: values.marketingConsent,
+      // The wording is sent with the answer, not looked up server-side: the
+      // record has to say what THIS applicant was shown, and this page's copy
+      // will be rewritten long before the consent record expires.
+      marketingConsentText: MARKETING_CONSENT_TEXT,
     };
 
     const { error } = await supa.functions.invoke('vendor-application', { body: payload });

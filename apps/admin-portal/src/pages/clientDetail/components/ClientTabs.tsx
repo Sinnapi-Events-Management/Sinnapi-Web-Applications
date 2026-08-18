@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, Paper, Tabs, Tab, DataTable, Alert } from '@sinnapi/ui';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import {
   useClientBookings,
   useClientEvents,
@@ -11,7 +11,7 @@ import ClientRelatedTable from './ClientRelatedTable';
 import ClientChat from './ClientChat';
 import { bookingColumns, quotationColumns, eventColumns, vendorColumns } from '../schema';
 
-type Props = { clientId: string };
+type Props = { clientId: string; clientName?: string | null };
 
 /**
  * Vendors-engaged panel: a distinct-vendor list resolved in one query and
@@ -43,7 +43,7 @@ function VendorsPanel({ clientId }: { clientId: string }) {
   );
 }
 
-export default function ClientTabs({ clientId }: Props) {
+export default function ClientTabs({ clientId, clientName }: Props) {
   const [tab, setTab] = useState(0);
 
   const panels = [
@@ -82,7 +82,7 @@ export default function ClientTabs({ clientId }: Props) {
       ),
     },
     { label: 'Vendors', render: () => <VendorsPanel clientId={clientId} /> },
-    { label: 'Chat', render: () => <ClientChat clientId={clientId} /> },
+    { label: 'Chat', render: () => <ClientChat clientId={clientId} clientName={clientName} /> },
   ];
 
   return (

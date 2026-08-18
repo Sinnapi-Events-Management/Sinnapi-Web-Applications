@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { FilterOption } from '@/lib/types';
 import { useEventsFilters } from './useEventsFilters';
 
 /** Pause after the last keystroke before a search is committed to the URL. */
@@ -20,9 +21,14 @@ export const RESULTS_ANCHOR_ID = 'event-results';
  * apart from someone else's. When the toolbar's "Clear" wipes `q`, the URL no
  * longer matches what we last wrote, so the box adopts the new value; when the
  * change is just our own debounce landing, it doesn't fight the user's cursor.
+ *
+ * `typeOptions` is threaded in only to reach `useEventsFilters`: committing a
+ * search rewrites the whole param set, so this hook has to parse the URL
+ * against the same occasion vocabulary as everything else or a search would
+ * quietly drop the visitor's occasion filter.
  */
-export function useEventsSearchInput() {
-  const { params, setQuery } = useEventsFilters();
+export function useEventsSearchInput(typeOptions: FilterOption[]) {
+  const { params, setQuery } = useEventsFilters(typeOptions);
   const urlQuery = params.q ?? '';
 
   const [value, setValue] = useState(urlQuery);

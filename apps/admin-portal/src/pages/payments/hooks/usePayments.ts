@@ -1,5 +1,5 @@
 import { usePaymentsAdmin } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 
 export function usePayments() {
   const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });

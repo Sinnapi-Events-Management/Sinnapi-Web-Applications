@@ -19,6 +19,12 @@ type FacetSelectProps = {
    * sort has a default order, not an absent one.
    */
   hideAnyOption?: boolean;
+  /**
+   * Locks the control. Used by the occasion facet while its vocabulary is
+   * still loading — an empty dropdown that opens onto nothing reads as "there
+   * are no occasions", which is a different and wrong statement.
+   */
+  disabled?: boolean;
 };
 
 /**
@@ -38,6 +44,7 @@ export default function FacetSelect({
   counts,
   anyLabel = 'Any',
   hideAnyOption = false,
+  disabled = false,
 }: FacetSelectProps) {
   return (
     <TextField
@@ -46,6 +53,7 @@ export default function FacetSelect({
       label={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
       fullWidth
     >
       {!hideAnyOption && <MenuItem value="">{anyLabel}</MenuItem>}

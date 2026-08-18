@@ -7,22 +7,6 @@ import type { EventDetailModel } from '@/lib/types';
 // and the `currencies` seed (UGX/USD are the only active codes).
 const CURRENCIES = ['UGX', 'USD'] as const;
 
-// `event_type` is a free-text column in the DB, but the admin form constrains it
-// to this curated set so events categorise consistently. Values are stored
-// as-is; a legacy/other value coerces to '' ("Not specified") on load.
-const EVENT_TYPES = [
-  'wedding',
-  'introduction',
-  'birthday',
-  'baby_shower',
-  'graduation',
-  'company_event',
-  'anniversary',
-  'company_launch',
-  'fundraising',
-  'conference',
-] as const;
-
 export type SelectOption = { value: string; label: string };
 
 /** `event_status` values as form-select options, in lifecycle order. */
@@ -30,12 +14,6 @@ export const STATUS_OPTIONS: SelectOption[] = EVENT_STATUSES.map((status) => ({
   value: status,
   label: titleize(status),
 }));
-
-/** Leading blank entry lets the optional event type be cleared back to null. */
-export const EVENT_TYPE_OPTIONS: SelectOption[] = [
-  { value: '', label: 'Not specified' },
-  ...EVENT_TYPES.map((type) => ({ value: type, label: titleize(type) })),
-];
 
 export const CURRENCY_OPTIONS: SelectOption[] = CURRENCIES.map((c) => ({ value: c, label: c }));
 
@@ -58,7 +36,10 @@ export const eventFormSchema = z
       .min(2, 'Title must be at least 2 characters.')
       .max(200, 'Title must be 200 characters or fewer.'),
     description: z.string().trim().max(5000, 'Description must be 5000 characters or fewer.'),
-    event_type: z.enum(EVENT_TYPES).or(z.literal('')),
+    // A row id from `event_types`, or '' for "not specified" — the vocabulary
+    // is admin-managed data now, so the allowed set can't be an enum here. The
+    // select only ever offers real ids; this rejects a hand-crafted value.
+    event_type_id: z.union([z.literal(''), z.string().uuid('Choose an event type.')]),
     event_date: z.union([z.literal(''), z.string().date('Enter a valid date.')]),
     location: z.string().trim().max(200, 'Location must be 200 characters or fewer.'),
     budget_min: z.union([
@@ -90,7 +71,7 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export const BLANK_EVENT: EventFormValues = {
   title: '',
   description: '',
-  event_type: '',
+  event_type_id: '',
   event_date: '',
   location: '',
   budget_min: '',
@@ -109,9 +90,11 @@ export function toFormValues(e: EventDetailModel): EventFormValues {
   return {
     title: e.title ?? '',
     description: e.description ?? '',
-    event_type: EVENT_TYPES.includes(e.event_type as (typeof EVENT_TYPES)[number])
-      ? (e.event_type as (typeof EVENT_TYPES)[number])
-      : '',
+    // No coercion needed any more: the FK guarantees the id resolves, and the
+    // select is fed every type — including retired ones — so an event filed
+    // under a deactivated occasion keeps showing it instead of silently
+    // clearing on the next save.
+    event_type_id: e.event_type_id ?? '',
     event_date: e.event_date ?? '',
     location: e.location ?? '',
     budget_min: e.budget_min != null ? String(e.budget_min) : '',
@@ -131,7 +114,7 @@ function toColumns(values: EventFormValues) {
   return {
     title: values.title.trim(),
     description: nullIfEmpty(values.description),
-    event_type: nullIfEmpty(values.event_type),
+    event_type_id: nullIfEmpty(values.event_type_id),
     event_date: nullIfEmpty(values.event_date),
     location: nullIfEmpty(values.location),
     budget_min: amountOrNull(values.budget_min),

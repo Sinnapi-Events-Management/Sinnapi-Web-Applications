@@ -64,7 +64,7 @@ export default function EventDetailsSection({ event: e, poster }: Props) {
             gap: 2.5,
           }}
         >
-          <Field label="Event type">{e.event_type ? titleize(e.event_type) : '—'}</Field>
+          <Field label="Event type">{e.event_type?.name || '—'}</Field>
           <Field label="Date">{e.event_date ? formatDate(e.event_date) : '—'}</Field>
           <Field label="Location">{e.location || '—'}</Field>
           <Field label="Budget">{budgetText(e)}</Field>

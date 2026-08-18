@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSettings as useSettingsQuery } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import type { SettingModel } from '@/lib/types';
 

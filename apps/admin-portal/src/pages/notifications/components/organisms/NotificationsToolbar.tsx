@@ -1,4 +1,10 @@
 import { Stack, Box, Typography, SearchField } from '@sinnapi/ui';
+import {
+  DesktopAlertsToggle,
+  NotificationChimeToggle,
+  type DesktopNotifications,
+  type NotificationChime,
+} from '@sinnapi/ui/notifications';
 import DomainFilterChips from '../molecules/DomainFilterChips';
 import type { DomainFilter, SearchState } from '../../hooks/useNotifications';
 
@@ -9,6 +15,10 @@ type Props = {
   availableDomains: Set<string>;
   /** Notifications currently visible (post tab + domain + search). */
   resultCount: number;
+  /** Omit to hide the desktop-alerts opt-in entirely. */
+  alerts?: DesktopNotifications;
+  /** Omit to hide the arrival-sound opt-in entirely. */
+  chime?: NotificationChime;
 };
 
 /**
@@ -24,6 +34,8 @@ export default function NotificationsToolbar({
   domainFilter,
   availableDomains,
   resultCount,
+  alerts,
+  chime,
 }: Props) {
   return (
     <Stack spacing={1.25}>
@@ -47,6 +59,12 @@ export default function NotificationsToolbar({
           {resultCount} shown
         </Typography>
       </Stack>
+      {(alerts || chime) && (
+        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+          {alerts && <DesktopAlertsToggle alerts={alerts} />}
+          {chime && <NotificationChimeToggle chime={chime} />}
+        </Stack>
+      )}
     </Stack>
   );
 }

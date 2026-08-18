@@ -57,7 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Inbox',
     items: [
-      { label: 'Messages', to: '/messages', icon: ChatIcon },
+      { label: 'Messages', to: '/messages', icon: ChatIcon, badgeKey: 'messages' },
       {
         label: 'Notifications',
         to: '/notifications',
@@ -98,6 +98,18 @@ export function formatDate(value: string | null | undefined): string {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+  });
+}
+
+/** Date plus wall-clock time, for audit-style trails where the hour matters. */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 

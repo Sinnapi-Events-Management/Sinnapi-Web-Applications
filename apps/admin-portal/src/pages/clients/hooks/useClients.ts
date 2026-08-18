@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClients as useClientsQuery, useClientStatusCounts } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useStatusFilter, ALL_STATUSES } from '@/hooks/useStatusFilter';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { useAdmin } from '@/admin/AdminProvider';
 import { PROFILE_STATUSES } from '@/lib/status';
-import type { PageFilters } from '@/lib/table';
+import type { PageFilters } from '@sinnapi/ui';
 import { useClientStatus } from './useClientStatus';
 import { useClientDelete } from './useClientDelete';
 import { useClientPasswordReset } from './useClientPasswordReset';

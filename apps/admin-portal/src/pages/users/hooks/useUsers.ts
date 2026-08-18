@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { useUsers as useUsersQuery, useUserStatusCounts, useRoles } from '@/hooks/queries';
-import { useTableState } from '@/hooks/useTableState';
+import { useTableState } from '@sinnapi/ui';
 import { useStatusFilter, ALL_STATUSES } from '@/hooks/useStatusFilter';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { useAdmin } from '@/admin/AdminProvider';
 import { PROFILE_STATUSES } from '@/lib/status';
-import type { PageFilters } from '@/lib/table';
+import type { PageFilters } from '@sinnapi/ui';
 import { useUserCreate } from './useUserCreate';
 import { useUserEdit } from './useUserEdit';
 import { useUserStatus } from './useUserStatus';

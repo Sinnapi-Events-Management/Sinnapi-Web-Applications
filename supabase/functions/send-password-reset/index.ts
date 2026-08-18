@@ -109,8 +109,13 @@ function resetUrl(dest: Destination, hashedToken: string): string {
 }
 
 /** The profile columns both actions need, including the roles that pick a portal. */
+// The `user_roles` embed names its FK explicitly: `profiles` is referenced twice
+// from that table (profile_id and granted_by), and an unqualified embed is
+// ambiguous — PostgREST answers PGRST201 and the whole read fails, taking every
+// reset with it. The admin console's own queries have always named it; this one
+// did not.
 const PROFILE_COLUMNS =
-  'id, email, full_name, status, deleted_at, user_roles(roles(key, is_admin))';
+  'id, email, full_name, status, deleted_at, user_roles!user_roles_profile_id_fkey(roles(key, is_admin))';
 
 type ProfileRow = {
   id: string;

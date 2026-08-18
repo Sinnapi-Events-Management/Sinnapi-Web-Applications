@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNotifications as useNotificationsQuery, useUnreadCount } from '@/hooks/queries';
 import { supabase } from '@/lib/supabase';
+import { useNotificationSync } from './useNotificationSync';
 import type { NotificationModel } from '@/lib/types';
 import {
   resolveDomain,
@@ -68,6 +69,11 @@ export function useNotifications() {
   const [domains, setDomains] = useState<string[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [markingAll, setMarkingAll] = useState(false);
+
+  // The console's live subscription, mounted once by the shell. Read here for
+  // the arrivals buffer that feeds the pill and for the two opt-ins the toolbar
+  // renders.
+  const sync = useNotificationSync();
 
   const all = useMemo(() => (data?.pages ?? []).flatMap((p) => p.rows).map(toView), [data?.pages]);
 
@@ -158,6 +164,9 @@ export function useNotifications() {
     markingAll,
     /** True when a filter — not an empty feed — is what emptied the list. */
     isFiltered: !!query || domains.length > 0 || tab !== 'all',
+    arrivals: sync.arrivals,
+    alerts: sync.alerts,
+    chime: sync.chime,
   };
 }
 

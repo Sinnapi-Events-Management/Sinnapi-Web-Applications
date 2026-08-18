@@ -1,59 +1,36 @@
-import {
-  Card,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import { formatMoney, formatDate, titleize } from '@/lib/config';
-import { usePayments } from './hooks/usePayments';
+import { Alert, DataTable, PageTitle } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
+import { usePayments } from './hooks/usePayments';
+import { paymentColumns } from './schema';
 
 export default function Payments() {
-  const { rows, isLoading, error } = usePayments();
+  const { rows, total, isLoading, isFetching, error, table } = usePayments();
 
   return (
     <>
       <PageTitle title="Payments" subtitle="Your payment history." />
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error instanceof Error ? error.message : 'Failed to load payments.'}
+        </Alert>
+      )}
+
+      <DataTable
+        columns={paymentColumns}
+        rows={rows}
+        getRowId={(p) => p.id}
+        rowCount={total}
+        loading={isLoading || isFetching}
+        emptyMessage={
           <EmptyState
+            embedded
             title="No payments yet"
             description="Your payment history will appear here."
           />
-        ) : (
-          <Card variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Purpose</TableCell>
-                  <TableCell>Method</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((p) => (
-                  <TableRow key={p.id} hover>
-                    <TableCell>{formatDate(p.paid_at ?? p.created_at)}</TableCell>
-                    <TableCell>{titleize(p.purpose)}</TableCell>
-                    <TableCell>{titleize(p.provider_method ?? '')}</TableCell>
-                    <TableCell align="right">{formatMoney(p.amount, p.currency)}</TableCell>
-                    <TableCell>
-                      <StatusChip status={p.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </QueryState>
+        }
+        {...table.controls}
+      />
     </>
   );
 }

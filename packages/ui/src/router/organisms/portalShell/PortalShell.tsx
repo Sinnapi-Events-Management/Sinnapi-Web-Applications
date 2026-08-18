@@ -36,7 +36,8 @@ function PortalShellFrame({
   account,
   can,
   badges = {},
-  notificationsTo,
+  messages,
+  notifications,
   homeLabel,
   banner,
   topBarActions,
@@ -54,8 +55,8 @@ function PortalShellFrame({
           account={account}
           view={view}
           sidebarWidth={shell.sidebarWidth}
-          unread={notificationsTo ? badges.notifications : undefined}
-          notificationsTo={notificationsTo}
+          messages={messages}
+          notifications={notifications}
           topBarActions={topBarActions}
           onOpenMobileNav={shell.openMobileNav}
           accountAnchor={shell.accountAnchor}
