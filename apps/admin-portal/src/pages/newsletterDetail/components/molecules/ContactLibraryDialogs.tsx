@@ -1,6 +1,7 @@
-import { Alert, ConfirmDialog, Snackbar } from '@sinnapi/ui';
+import { ConfirmDialog, Toast } from '@sinnapi/ui';
 import type { ContactListModel } from '@/lib/types';
 import type { ContactLibraryApi } from '../../hooks/useContactLibrary';
+import { savedListNotice } from '../../schema';
 import SaveContactListDialog from './SaveContactListDialog';
 
 type Props = {
@@ -46,23 +47,14 @@ export default function ContactLibraryDialogs({ library, onDeleted }: Props) {
         }}
       />
 
-      {/* The counts are the confirmation: "saved" alone cannot tell an operator
-          whether the 12 rows they expected to be new actually were. */}
-      <Snackbar
-        open={Boolean(library.lastSaved)}
-        autoHideDuration={6000}
+      <Toast
+        toast={
+          library.lastSaved
+            ? { message: savedListNotice(library.lastSaved), severity: 'success' }
+            : null
+        }
         onClose={library.dismissLastSaved}
-      >
-        <Alert severity="success" onClose={library.dismissLastSaved}>
-          {library.lastSaved
-            ? `“${library.lastSaved.title}” now holds ${library.lastSaved.total.toLocaleString()} contacts — ${library.lastSaved.inserted.toLocaleString()} added, ${library.lastSaved.updated.toLocaleString()} already there${
-                library.lastSaved.skipped > 0
-                  ? `, ${library.lastSaved.skipped.toLocaleString()} skipped for a missing name or address`
-                  : ''
-              }.`
-            : ''}
-        </Alert>
-      </Snackbar>
+      />
     </>
   );
 }

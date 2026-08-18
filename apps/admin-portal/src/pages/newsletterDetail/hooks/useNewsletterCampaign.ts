@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@sinnapi/ui';
 import { useNewsletterCampaign as useCampaignQuery, useNewsletterStats } from '@/hooks/queries';
 import { supabase } from '@/lib/supabase';
 import { invokeFunction } from '@/lib/functions';
@@ -16,14 +17,34 @@ import {
 } from '../schema';
 import type { NewsletterQueueResult } from '@/lib/types';
 
+/** Everything the composer screen is handed, in one name. */
+export type CampaignApi = ReturnType<typeof useNewsletterCampaign>;
+
+/**
+ * One pass of the immediate send.
+ *
+ * `remaining` is the loop condition: the function works for a bounded slice of
+ * time and reports what is still queued, so zero means the campaign is done.
+ * `halted` is set when the mail transport itself failed, which is a pause
+ * rather than a failure — those recipients were requeued untouched.
+ */
+type SendNowResult = {
+  sent?: number;
+  failed?: number;
+  skipped?: number;
+  bounced?: number;
+  remaining?: number | null;
+  halted?: string | null;
+  busy?: boolean;
+};
+
 /** RPC error codes mapped to copy an operator can act on. */
 const RPC_MESSAGES: Record<string, string> = {
   forbidden: 'You do not have permission to send newsletters.',
   campaign_not_found: 'This campaign no longer exists.',
-  campaign_not_editable:
-    'This campaign has already been scheduled or sent, so its audience is fixed.',
+  campaign_not_editable: 'This campaign has already been sent, so its audience is fixed.',
   campaign_not_cancellable: 'This campaign is already sending and can no longer be cancelled.',
-  no_recipients: 'Select at least one recipient before scheduling.',
+  no_recipients: 'Select at least one recipient before sending.',
   attestation_required:
     'Confirm that you hold consent for the addresses you entered before sending.',
 };
@@ -120,7 +141,12 @@ export function useNewsletterCampaign() {
   // ── Writes ───────────────────────────────────────────────────────────────
   const [busy, setBusy] = useState<null | 'save' | 'preview' | 'test' | 'queue' | 'cancel'>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Outcomes worth a word but not a decision — a test that landed, a send that
+  // finished, a schedule undone — speak through the toast. Failures do not: an
+  // error stays on the page as a banner, because "Sending paused: …" is a thing
+  // the operator has to act on, and a bar that fades cannot say so.
+  const notice = useToast();
+  const { success: noticeSuccess, info: noticeInfo, dismiss: dismissNotice } = notice;
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!id) return false;
@@ -175,7 +201,7 @@ export function useNewsletterCampaign() {
       if (dirty && !(await save())) return;
       setBusy('test');
       setActionError(null);
-      setNotice(null);
+      dismissNotice();
       const { error: e } = await invokeFunction('newsletter-dispatch', {
         action: 'test',
         campaignId: id,
@@ -186,9 +212,9 @@ export function useNewsletterCampaign() {
         setActionError(friendly(e));
         return;
       }
-      setNotice(`Test sent to ${email}.`);
+      noticeSuccess(`Test sent to ${email}.`);
     },
-    [id, dirty, save],
+    [id, dirty, save, dismissNotice, noticeSuccess],
   );
 
   const [queueResult, setQueueResult] = useState<NewsletterQueueResult | null>(null);
@@ -219,28 +245,80 @@ export function useNewsletterCampaign() {
     return true;
   }, [id, audience.queueArgs, qc]);
 
-  /** `when === null` means now. Both paths go through the same RPC. */
-  const schedule = useCallback(
-    async (when: Date | null) => {
-      if (!id) return;
-      setBusy('queue');
-      setActionError(null);
-      const { error: e } = await supabase.rpc('admin_newsletter_schedule', {
-        p_campaign_id: id,
-        p_scheduled_at: when ? when.toISOString() : null,
+  /**
+   * Send the campaign immediately, in this request.
+   *
+   * Scheduling is deliberately not offered right now. The scheduled path runs
+   * through pg_cron -> pg_net -> Edge Function, and every link in that chain
+   * fails silently and independently: a campaign sits in `scheduled` for ever
+   * and no screen in this product can say why. Until that is properly
+   * observable, the only send this UI offers is one whose outcome is the
+   * response to the operator's own click.
+   *
+   * The function works for a bounded slice of time and reports how many
+   * recipients are still queued, so a campaign larger than one invocation is
+   * finished by calling again. Looping here rather than inside the function is
+   * what keeps each request comfortably inside the Edge Function wall clock.
+   */
+  const sendNow = useCallback(async () => {
+    if (!id) return;
+    if (dirty && !(await save())) return;
+    setBusy('queue');
+    setActionError(null);
+    dismissNotice();
+
+    let sent = 0;
+    // A ceiling on the loop, not on the campaign. At 25 messages a batch and
+    // 400 batches an invocation this is far more than any realistic list, and
+    // it means a bug that always reports work remaining cannot spin for ever.
+    for (let pass = 0; pass < 40; pass++) {
+      const { data, error: e } = await invokeFunction<SendNowResult>('newsletter-dispatch', {
+        action: 'send',
+        campaignId: id,
       });
-      setBusy(null);
-      if (e) {
-        setActionError(friendly(e.message));
-        return;
+
+      if (e || !data) {
+        setBusy(null);
+        setActionError(friendly(e) ?? 'Send failed.');
+        // Deliberately not discarded: recipients already sent in earlier passes
+        // stay sent, and the counts on screen must reflect that rather than
+        // implying the whole campaign failed.
+        break;
       }
-      qc.invalidateQueries({ queryKey: ['newsletter-campaign', id] });
-      qc.invalidateQueries({ queryKey: ['newsletter-campaigns'] });
-      qc.invalidateQueries({ queryKey: ['newsletter-campaign-counts'] });
-      setNotice(when ? 'Campaign scheduled.' : 'Campaign is sending now.');
-    },
-    [id, qc],
-  );
+
+      sent += data.sent ?? 0;
+
+      // The transport is down or misconfigured. Recipients were requeued with
+      // their attempts refunded, so this is a pause, not a loss — saying so is
+      // what stops an operator re-pressing Send against a broken mail server.
+      if (data.halted) {
+        setBusy(null);
+        setActionError(`Sending paused: ${data.halted}`);
+        break;
+      }
+
+      if (data.busy) {
+        setBusy(null);
+        // Nothing was done on this press — a green tick would read as a second
+        // send, so this stays a note.
+        noticeInfo('This campaign is already sending.');
+        break;
+      }
+
+      if (!data.remaining) {
+        setBusy(null);
+        noticeSuccess(
+          `Sent to ${sent.toLocaleString()} ${sent === 1 ? 'recipient' : 'recipients'}.`,
+        );
+        break;
+      }
+    }
+
+    setBusy(null);
+    qc.invalidateQueries({ queryKey: ['newsletter-campaign', id] });
+    qc.invalidateQueries({ queryKey: ['newsletter-campaigns'] });
+    qc.invalidateQueries({ queryKey: ['newsletter-campaign-counts'] });
+  }, [id, dirty, save, qc, dismissNotice, noticeInfo, noticeSuccess]);
 
   const cancel = useCallback(async () => {
     if (!id) return;
@@ -254,8 +332,8 @@ export function useNewsletterCampaign() {
     }
     qc.invalidateQueries({ queryKey: ['newsletter-campaign', id] });
     qc.invalidateQueries({ queryKey: ['newsletter-campaigns'] });
-    setNotice('Campaign returned to draft.');
-  }, [id, qc]);
+    noticeInfo('Campaign returned to draft.');
+  }, [id, qc, noticeInfo]);
 
   // Stats only exist once something has been sent, so the query stays idle for
   // a draft rather than polling an endpoint that can only answer zero.
@@ -281,8 +359,8 @@ export function useNewsletterCampaign() {
 
     busy,
     actionError,
-    notice,
-    dismissNotice: () => setNotice(null),
+    notice: notice.toast,
+    dismissNotice,
 
     save,
     preview,
@@ -292,7 +370,7 @@ export function useNewsletterCampaign() {
     queueRecipients,
     queueResult,
     clearQueueResult: () => setQueueResult(null),
-    schedule,
+    sendNow,
     cancel,
 
     stats,

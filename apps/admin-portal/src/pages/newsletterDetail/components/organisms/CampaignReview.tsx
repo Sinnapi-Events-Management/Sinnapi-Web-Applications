@@ -3,19 +3,16 @@ import {
   Alert,
   Box,
   Button,
-  Divider,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   SectionCard,
   Stack,
-  TextField,
   Typography,
 } from '@sinnapi/ui';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SendIcon from '@mui/icons-material/Send';
-import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
 import { ConfirmDialog } from '@sinnapi/ui';
 import TestSendField from '../molecules/TestSendField';
 import QueueSummary from '../molecules/QueueSummary';
@@ -32,7 +29,7 @@ type Props = {
   myEmail?: string;
   onQueue: () => void;
   onSendTest: (email: string) => void;
-  onSchedule: (when: Date | null) => void;
+  onSendNow: () => void;
 };
 
 /**
@@ -60,9 +57,8 @@ export default function CampaignReview({
   myEmail,
   onQueue,
   onSendTest,
-  onSchedule,
+  onSendNow,
 }: Props) {
-  const [when, setWhen] = useState('');
   const [confirming, setConfirming] = useState(false);
 
   const ready = issues.length === 0;
@@ -128,36 +124,19 @@ export default function CampaignReview({
             </Typography>
           )}
 
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1.5}
-            alignItems={{ sm: 'center' }}
-          >
-            <TextField
-              size="small"
-              type="datetime-local"
-              label="Schedule for"
-              value={when}
-              onChange={(e) => setWhen(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              disabled={!ready || queued === 0}
-              sx={{ minWidth: 240 }}
-            />
-            <Button
-              variant="outlined"
-              startIcon={<ScheduleSendIcon />}
-              disabled={!ready || queued === 0 || !when || busy === 'queue'}
-              // `datetime-local` yields a naive local string; `new Date` reads
-              // it in the browser's zone, which is the zone the operator typed
-              // it in. The RPC stores the resulting instant.
-              onClick={() => onSchedule(new Date(when))}
-            >
-              Schedule
-            </Button>
-          </Stack>
+          {/*
+            Scheduling is intentionally absent. It was a `datetime-local` field
+            beside this button, writing `scheduled_at` for a pg_cron worker to
+            pick up. That chain — pg_cron, pg_net, a Vault-stored service key,
+            the function's own copy of that key — fails silently at every link,
+            and the symptom is a campaign that sits in `scheduled` indefinitely
+            while this screen reports nothing wrong.
 
-          <Divider />
-
+            Sending inline is not the better engineering; it is the honest one
+            while that path has no observability. An operator gets the result of
+            the send as the response to their own click. Restore scheduling when
+            a failed tick is something the product can actually show.
+          */}
           <Box>
             <Button
               variant="contained"
@@ -167,7 +146,7 @@ export default function CampaignReview({
               disabled={!ready || queued === 0 || busy === 'queue'}
               onClick={() => setConfirming(true)}
             >
-              Send now to {queued.toLocaleString()}
+              {busy === 'queue' ? 'Sending…' : `Send now to ${queued.toLocaleString()}`}
             </Button>
           </Box>
         </Stack>
@@ -178,13 +157,14 @@ export default function CampaignReview({
         title="Send this newsletter?"
         description={
           `This will email ${queued.toLocaleString()} ${queued === 1 ? 'person' : 'people'} ` +
-          `within the next few minutes. It cannot be recalled or edited once it starts.`
+          `now. Keep this page open until it finishes. It cannot be recalled or edited ` +
+          `once it starts.`
         }
         confirmLabel="Send now"
         loading={busy === 'queue'}
         onConfirm={() => {
           setConfirming(false);
-          onSchedule(null);
+          onSendNow();
         }}
         onCancel={() => setConfirming(false)}
       />

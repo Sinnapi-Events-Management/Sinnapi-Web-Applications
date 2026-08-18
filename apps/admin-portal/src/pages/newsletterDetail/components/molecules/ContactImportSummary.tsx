@@ -7,23 +7,25 @@ type Props = {
 };
 
 /**
- * What the parser made of the file.
+ * What the parser made of the file, in one line of counts.
  *
- * This is the only evidence an operator has that a spreadsheet was read the way
- * they expected — nobody eyeballs 400 rows — so it reports four separate facts
- * rather than one reassuring total:
+ * Four separate facts rather than one reassuring total:
  *
  *   accepted     complete name-and-address pairs
  *   duplicates   the same address more than once, merged
- *   skipped      rows that had data but no usable contact, WITH the row number
- *   columns      which headers were matched, so a mis-mapping is visible
+ *   skipped      rows that held data but produced no contact
  *
- * The last one earns its place the day somebody's file has both "Name" and
- * "Company name": the parser picks one, and this is where that choice becomes
- * something the operator can see instead of something they discover in a send.
+ * ── Why the detail moved out of here ──────────────────────────────────────
+ * This used to carry a truncated sentence naming the first six skipped rows and
+ * the columns that were matched. Both now have somewhere better to be: the
+ * preview below lists every skipped row with its number and reason, and names
+ * the columns under the table. Counts belong in the banner; evidence belongs in
+ * the table, and keeping a lossy copy of the evidence up here only gives the
+ * operator two versions of the same story to reconcile.
  */
 export default function ContactImportSummary({ result, onClear }: Props) {
-  const accepted = result.contacts.length;
+  const accepted = result.accepted.length;
+  const skipped = result.rejected.length;
 
   return (
     <Alert
@@ -44,32 +46,10 @@ export default function ContactImportSummary({ result, onClear }: Props) {
         {result.duplicates > 0 && (
           <Chip size="small" label={`${result.duplicates.toLocaleString()} duplicates merged`} />
         )}
-        {result.rejectedCount > 0 && (
-          <Chip
-            size="small"
-            color="warning"
-            label={`${result.rejectedCount.toLocaleString()} skipped`}
-          />
+        {skipped > 0 && (
+          <Chip size="small" color="warning" label={`${skipped.toLocaleString()} skipped`} />
         )}
       </Stack>
-
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-        Read “{result.columns.name}” as the name and “{result.columns.email}” as the address.
-      </Typography>
-
-      {result.rejected.length > 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-          Skipped:{' '}
-          {result.rejected
-            .slice(0, 6)
-            .map((r) => `row ${r.row} (${r.reason.toLowerCase()})`)
-            .join(', ')}
-          {result.rejectedCount > 6
-            ? ` and ${(result.rejectedCount - 6).toLocaleString()} more`
-            : ''}
-          .
-        </Typography>
-      )}
     </Alert>
   );
 }

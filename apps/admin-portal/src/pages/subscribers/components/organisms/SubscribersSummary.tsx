@@ -20,13 +20,13 @@ export default function SubscribersSummary({ counts, loading }: Props) {
     {
       label: 'Subscribed',
       value: counts?.subscribed ?? 0,
-      icon: <MarkEmailReadOutlinedIcon />,
+      icon: <MarkEmailReadOutlinedIcon sx={{ color: 'white' }} />,
       accent: 'success' as const,
     },
     {
       label: 'Awaiting confirmation',
       value: counts?.pending ?? 0,
-      icon: <HourglassEmptyIcon />,
+      icon: <HourglassEmptyIcon sx={{ color: 'white' }} />,
       accent: 'warning' as const,
     },
     {
@@ -38,7 +38,7 @@ export default function SubscribersSummary({ counts, loading }: Props) {
     {
       label: 'Suppressed',
       value: counts?.suppressed ?? 0,
-      icon: <BlockIcon />,
+      icon: <BlockIcon sx={{ color: 'white' }} />,
       accent: 'error' as const,
     },
   ];

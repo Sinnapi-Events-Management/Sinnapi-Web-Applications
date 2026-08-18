@@ -109,6 +109,12 @@ Deno.serve(
       return json(req, await sendTest(req, body.campaignId, body.email));
     }
 
+    // Operator-driven immediate send. Authorised by the CALLER's JWT, like
+    // `preview` and `test` — see `sendNow`.
+    if (body.action === 'send') {
+      return json(req, await sendNow(req, body.campaignId));
+    }
+
     // Everything below moves real campaign state, so it is cron-only.
     if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
     if (!campaignTransportConfigured()) {
@@ -130,6 +136,10 @@ Deno.serve(
 // ───────────────────────────────────────────────────────────────────────────
 // Dispatch
 // ───────────────────────────────────────────────────────────────────────────
+
+/** Columns a send needs. Shared so the cron claim and the interactive claim
+ * cannot drift into reading different shapes of the same row. */
+const CAMPAIGN_COLUMNS = 'id,subject,preheader,audience,blocks,status';
 
 type Campaign = {
   id: string;
@@ -214,7 +224,7 @@ async function claimCampaigns(supa: Supa): Promise<Campaign[]> {
 
   const { data: inFlight } = await supa
     .from('newsletter_campaigns')
-    .select('id,subject,preheader,audience,blocks,status')
+    .select(CAMPAIGN_COLUMNS)
     .eq('status', 'sending')
     .order('started_at', { ascending: true })
     .limit(MAX_CAMPAIGNS_PER_RUN);
@@ -236,7 +246,7 @@ async function claimCampaigns(supa: Supa): Promise<Campaign[]> {
       .update({ status: 'sending', started_at: new Date().toISOString(), error: null })
       .eq('id', row.id)
       .eq('status', 'scheduled')
-      .select('id,subject,preheader,audience,blocks,status')
+      .select(CAMPAIGN_COLUMNS)
       .maybeSingle();
     if (got) claimed.push(got as Campaign);
   }
@@ -244,7 +254,12 @@ async function claimCampaigns(supa: Supa): Promise<Campaign[]> {
   return claimed;
 }
 
-async function runCampaign(supa: Supa, campaign: Campaign) {
+async function runCampaign(
+  supa: Supa,
+  campaign: Campaign,
+  opts: { maxBatches?: number; deadline?: number } = {},
+) {
+  const maxBatches = opts.maxBatches ?? MAX_BATCHES_PER_RUN;
   // Rendered once for the whole campaign — only the shell varies per recipient.
   const { html: bodyHtml, text: bodyText } = renderBlocks(campaign.blocks);
   let sent = 0;
@@ -253,7 +268,14 @@ async function runCampaign(supa: Supa, campaign: Campaign) {
   let bounced = 0;
   let halted: string | null = null;
 
-  for (let i = 0; i < MAX_BATCHES_PER_RUN; i++) {
+  for (let i = 0; i < maxBatches; i++) {
+    // The interactive path runs until the campaign is finished rather than for
+    // a fixed number of batches, so it needs a wall-clock stop: an Edge Function
+    // killed mid-batch would leave rows leased with no cron to recover them.
+    // Stopping early leaves them queued and immediately claimable, and the
+    // caller is told how many are left.
+    if (opts.deadline && Date.now() >= opts.deadline) break;
+
     const batch = await claimRecipients(supa, campaign.id);
     if (batch.length === 0) {
       await finishCampaign(supa, campaign.id);
@@ -528,6 +550,152 @@ async function finishCampaign(supa: Supa, campaignId: string) {
     })
     .eq('id', campaignId)
     .eq('status', 'sending');
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Immediate send
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * How long one `send` call works before handing control back.
+ *
+ * Comfortably inside the Edge Function wall clock, with room left to write the
+ * final rows and serialise a response. Exceeding the runtime limit mid-batch is
+ * the one outcome worth engineering against here: the recipients claimed by
+ * that batch would stay leased with nothing scheduled to recover them.
+ */
+const SEND_NOW_BUDGET_MS = 55_000;
+
+/** Batches one `send` call may work through before the deadline decides. */
+const SEND_NOW_MAX_BATCHES = 400;
+
+/**
+ * Send a campaign now, in the caller's own request.
+ *
+ * ── Why this exists alongside the cron path ────────────────────────────────
+ * The scheduled path is the better design for volume: it survives timeouts, it
+ * spreads a large campaign over many ticks, and it retries without anybody
+ * watching. It also requires pg_cron, pg_net, two Vault secrets and a
+ * service-role key that matches the one injected into this function — four
+ * pieces of infrastructure that fail SILENTLY and independently, and whose
+ * combined symptom is a campaign that sits in `scheduled` forever with nothing
+ * anywhere saying why.
+ *
+ * This path trades that away for something an operator can verify in one click:
+ * the send happens inside their request, and its result is the HTTP response.
+ * Nothing is scheduled, so nothing can be silently not-run.
+ *
+ * ── Authorisation ──────────────────────────────────────────────────────────
+ * The caller's own client reads the campaign and calls the schedule RPC, so
+ * `marketing.manage` via RLS and the RPC's own permission check decide — not a
+ * test in this file. Only the send loop uses the service role, and only after
+ * that gate has been passed.
+ *
+ * ── Resumability ───────────────────────────────────────────────────────────
+ * Everything the cron worker relies on still applies: recipients are leased,
+ * results are written per row, and the campaign is closed only when nothing is
+ * left queued. So a call that runs out of budget is not a failure — it returns
+ * `remaining > 0`, and calling again picks up exactly where it stopped. The
+ * client repeats until that reaches zero.
+ */
+async function sendNow(req: Request, campaignId?: string) {
+  if (!campaignId) throw new HttpError(400, 'invalid:request');
+  if (!campaignTransportConfigured()) {
+    throw new HttpError(503, `transport_not_configured:${campaignTransportName()}`);
+  }
+
+  const caller = userClient(req);
+
+  // Reading through the caller's client IS the authorisation: `marketing.manage`
+  // via RLS. A caller without it sees no row and gets 403 here, before anything
+  // privileged runs.
+  const { data: campaign, error } = await caller
+    .from('newsletter_campaigns')
+    .select('id,status')
+    .eq('id', campaignId)
+    .maybeSingle();
+  if (error || !campaign) throw new HttpError(403, 'forbidden');
+
+  const status = campaign.status as string;
+
+  // A draft is moved to `scheduled` through the ordinary RPC rather than by
+  // writing the column here. That RPC carries the checks that make a send safe
+  // — the permission test and, critically, the refusal to send a campaign with
+  // no recipients — and duplicating them in this file is how the two paths
+  // would eventually disagree about what "ready to send" means.
+  if (status === 'draft') {
+    const { error: scheduleError } = await caller.rpc('admin_newsletter_schedule', {
+      p_campaign_id: campaignId,
+      p_scheduled_at: null,
+    });
+    if (scheduleError) throw new HttpError(400, scheduleError.message);
+  } else if (status !== 'scheduled' && status !== 'sending') {
+    // `sent`, `failed` and `cancelled` are terminal. Re-sending from here would
+    // mail everybody a second time.
+    throw new HttpError(409, `campaign_not_sendable:${status}`);
+  }
+
+  const supa = adminClient();
+  const claimed = await claimCampaignById(supa, campaignId);
+  if (!claimed) {
+    // Another caller took it between the status read and the claim. Its work is
+    // in flight, so this is reported rather than raised.
+    return { ok: true, sent: 0, failed: 0, skipped: 0, bounced: 0, remaining: null, busy: true };
+  }
+
+  const result = await runCampaign(supa, claimed, {
+    maxBatches: SEND_NOW_MAX_BATCHES,
+    deadline: Date.now() + SEND_NOW_BUDGET_MS,
+  });
+
+  return {
+    ok: true,
+    ...result,
+    // What the client loops on. Leased-but-unsent rows are still `queued`, and
+    // this call is synchronous, so by the time it is counted nothing this
+    // invocation claimed is still in flight.
+    remaining: await queuedCount(supa, campaignId),
+  };
+}
+
+/**
+ * Claim ONE campaign for an interactive send.
+ *
+ * The conditional update is the same race guard `claimCampaigns` uses: two
+ * operators pressing Send at the same instant means one update matches
+ * `status = 'scheduled'` and the other matches nothing.
+ *
+ * `sending` is returned as-is rather than refused, so a call that ran out of
+ * budget can be resumed by simply calling again — the campaign is already in
+ * flight and re-claiming it would be the wrong question to ask.
+ */
+async function claimCampaignById(supa: Supa, campaignId: string): Promise<Campaign | null> {
+  const { data: current } = await supa
+    .from('newsletter_campaigns')
+    .select(CAMPAIGN_COLUMNS)
+    .eq('id', campaignId)
+    .maybeSingle();
+  if (!current) return null;
+  if ((current as Campaign).status === 'sending') return current as Campaign;
+
+  const { data: got } = await supa
+    .from('newsletter_campaigns')
+    .update({ status: 'sending', started_at: new Date().toISOString(), error: null })
+    .eq('id', campaignId)
+    .eq('status', 'scheduled')
+    .select(CAMPAIGN_COLUMNS)
+    .maybeSingle();
+
+  return (got as Campaign) ?? null;
+}
+
+async function queuedCount(supa: Supa, campaignId: string): Promise<number> {
+  const { count } = await supa
+    .from('newsletter_recipients')
+    .select('id', { count: 'exact', head: true })
+    .eq('campaign_id', campaignId)
+    .eq('status', 'queued');
+  return count ?? 0;
 }
 
 // ───────────────────────────────────────────────────────────────────────────

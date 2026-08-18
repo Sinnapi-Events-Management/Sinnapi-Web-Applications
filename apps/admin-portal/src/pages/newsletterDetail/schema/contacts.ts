@@ -122,3 +122,18 @@ export function normalizeHeader(value: unknown): string {
     .trim()
     .toLowerCase();
 }
+
+/**
+ * Why a spreadsheet row produced no contact.
+ *
+ * Codes rather than sentences, because the same rejection is rendered three
+ * ways — a chip in the preview table, a clause in the summary line, and a
+ * colour — and three copies of the wording is how they drift apart.
+ */
+export const IMPORT_REJECTION_LABELS = {
+  'no-email': 'No email address',
+  'invalid-email': 'Not a valid email address',
+  'no-name': 'No name',
+} as const;
+
+export type ImportRejectionReason = keyof typeof IMPORT_REJECTION_LABELS;

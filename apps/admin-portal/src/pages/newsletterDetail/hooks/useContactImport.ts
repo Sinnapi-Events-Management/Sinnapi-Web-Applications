@@ -9,28 +9,42 @@ import {
   NAME_HEADERS,
   normalizeContact,
   normalizeHeader,
+  type ImportRejectionReason,
 } from '../schema';
+
+/** A contact the file yielded, with the sheet row it came from. */
+export type ImportedContactRow = {
+  /** 1-based row number in the sheet, so the operator can go and look at it. */
+  row: number;
+  contact: NewsletterContact;
+};
 
 export type ImportRejection = {
   /** 1-based row number in the sheet, so the operator can go and look at it. */
   row: number;
   value: string;
-  reason: string;
+  reason: ImportRejectionReason;
 };
 
 export type ContactImportResult = {
   /** Complete, unique, lowercased pairs — everything the campaign can use. */
-  contacts: NewsletterContact[];
-  /** Rows that held data but no usable contact, with why. Capped for display. */
+  accepted: ImportedContactRow[];
+  /**
+   * Every row that held data but no usable contact, with why.
+   *
+   * Complete, not truncated: the preview puts these in a table the operator
+   * pages through, and a list that quietly stops at fifty is one where row 51
+   * is a person nobody ever finds out was dropped.
+   */
   rejected: ImportRejection[];
-  /** How many were rejected in total — `rejected` is truncated, this is not. */
-  rejectedCount: number;
   /** Addresses that appeared more than once in the file. */
   duplicates: number;
   /** Rows read, before any rule was applied. */
   rowsRead: number;
   /** The headers the parser matched, echoed back so a mis-mapping is visible. */
   columns: { name: string; email: string };
+  /** Headers that were read and discarded — "Company", "Phone", "Notes". */
+  ignoredColumns: string[];
   fileName: string;
   sheetName: string;
 };
@@ -52,6 +66,8 @@ type Mapping = {
   last: number | null;
   nameLabel: string;
   emailLabel: string;
+  /** The headers on that row this parser has no use for. */
+  ignored: string[];
 };
 
 /**
@@ -62,6 +78,12 @@ type Mapping = {
  * headers land on row 3. The first row containing BOTH an email header and a
  * name header wins, which is a stricter test than either alone and so cannot be
  * satisfied by a stray cell that happens to say "name".
+ *
+ * Everything else on that row is recorded rather than merely skipped. A CRM
+ * export arrives with a dozen columns and only two are mailed; naming the ten
+ * that were dropped is what lets an operator see that the file they meant to
+ * upload — the one where the addresses live under "Work email" — was read from
+ * the wrong column, instead of discovering it in a send.
  */
 function findMapping(grid: unknown[][]): Mapping | null {
   const limit = Math.min(grid.length, HEADER_SCAN_ROWS);
@@ -81,6 +103,15 @@ function findMapping(grid: unknown[][]): Mapping | null {
     // and sign-up sheet export exists in.
     if (name === -1 && first === -1) continue;
 
+    const used = new Set([email, name, first, last].filter((i) => i !== -1));
+    const ignored = Array.from(
+      new Set(
+        (grid[r] ?? [])
+          .map((cell, i) => (used.has(i) ? '' : String(cell ?? '').trim()))
+          .filter((label) => label.length > 0),
+      ),
+    );
+
     return {
       headerRow: r,
       email,
@@ -95,6 +126,7 @@ function findMapping(grid: unknown[][]): Mapping | null {
               .map(String)
               .join(' + '),
       emailLabel: String(grid[r]?.[email] ?? 'Email'),
+      ignored,
     };
   }
 
@@ -111,7 +143,7 @@ function readName(row: unknown[], mapping: Mapping): string {
 /**
  * Parse a spreadsheet or CSV of contacts.
  *
- * ── Why this now demands headers, when it used to scan every cell ──────────
+ * ── Why this demands headers, when it used to scan every cell ──────────────
  * The old importer walked the whole sheet and took anything shaped like an
  * address, which was genuinely more forgiving of the files people have. What it
  * could not do is say WHO an address belonged to: an address on its own has no
@@ -127,11 +159,11 @@ function readName(row: unknown[], mapping: Mapping): string {
  * is rejected with a message that says what to add, rather than silently
  * importing half a contact.
  *
- * ── Why rejects are reported, not dropped ─────────────────────────────────
- * A file of 400 rows that yields 380 contacts raises exactly one question, and
- * the operator has to be able to answer it before sending. Silent truncation
- * would show a confident "380 recipients" for a list meant to reach 400. Rows
- * are reported with their sheet row number, because the fix happens in Excel.
+ * ── Why the result is rows, not just contacts ─────────────────────────────
+ * Every accepted contact carries the sheet row it came from, and every rejected
+ * one does too. Counts alone ("380 contacts") are a claim the operator has no
+ * way to check; rows are the evidence, and the row number is the coordinate
+ * they need because the fix happens back in Excel.
  *
  * Parsing is entirely client-side: the contacts only leave the browser when the
  * operator saves them to an address book or queues the campaign, so an
@@ -185,7 +217,7 @@ export function useContactImport() {
       }
 
       const seen = new Set<string>();
-      const contacts: NewsletterContact[] = [];
+      const accepted: ImportedContactRow[] = [];
       const rejected: ImportRejection[] = [];
       let duplicates = 0;
       let rowsRead = 0;
@@ -201,17 +233,17 @@ export function useContactImport() {
         const contact = normalizeContact({ full_name: rawName, email: rawEmail });
 
         if (!contact.email) {
-          rejected.push({ row: sheetRow, value: rawName, reason: 'No email address' });
+          rejected.push({ row: sheetRow, value: rawName, reason: 'no-email' });
           continue;
         }
         if (!EMAIL_RE.test(contact.email)) {
-          rejected.push({ row: sheetRow, value: rawEmail, reason: 'Not a valid email address' });
+          rejected.push({ row: sheetRow, value: rawEmail, reason: 'invalid-email' });
           continue;
         }
         if (!contact.full_name) {
           // The row that makes this importer worth its stricter rules: an
           // address with nobody attached is exactly what used to slip through.
-          rejected.push({ row: sheetRow, value: contact.email, reason: 'No name' });
+          rejected.push({ row: sheetRow, value: contact.email, reason: 'no-name' });
           continue;
         }
         if (seen.has(contact.email)) {
@@ -220,16 +252,16 @@ export function useContactImport() {
         }
 
         seen.add(contact.email);
-        contacts.push(contact);
+        accepted.push({ row: sheetRow, contact });
       }
 
       setResult({
-        contacts,
-        rejected: rejected.slice(0, 50),
-        rejectedCount: rejected.length,
+        accepted,
+        rejected,
         duplicates,
         rowsRead,
         columns: { name: mapping.nameLabel, email: mapping.emailLabel },
+        ignoredColumns: mapping.ignored,
         fileName: file.name,
         sheetName,
       });

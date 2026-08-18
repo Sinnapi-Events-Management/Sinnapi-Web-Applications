@@ -7,6 +7,9 @@ export * from './SearchField';
 export * from './Accordion';
 export * from './Alert';
 export * from './Snackbar';
+// `Snackbar` is the raw primitive; reach for `Toast` to say something
+// happened — it is the severity-coloured bar every portal shares.
+export * from './toast';
 export * from './Breadcrumbs';
 export * from './Pagination';
 export * from './Tabs';
