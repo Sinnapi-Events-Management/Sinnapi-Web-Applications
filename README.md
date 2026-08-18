@@ -58,3 +58,6 @@ collisions. Each app is still runnable on its own (`cd apps/<app> && yarn dev`).
   SPA's `/auth/callback` to Supabase Auth → URL Configuration.
 - Shared code (theme, Supabase client, UI atoms) is currently duplicated per app and is
   the natural next step to extract into `packages/*` (already in the workspace globs).
+
+"SQLSTATE[21S01]: Insert value list does not match column list: 1136 Column count doesn't match value count at row 1 INSERT INTO sales_agent_commision ( `agent_id`,`agent_name`,`contract_id`,`client_id`,`client_name`,`computer_number`,`principal_amount`,`commision_percentage`,`commision_amount`,`disbursement_date`,`disbursement_datestamp`, `time_inserted`, `inserted_by`, `time_last_modified`, `last_modified_by`, `is_deleted`, `guid` ) VALUES ( '0', 44, '14', 'MUSINGUZI SAMUEL RWANYAKIBUNGO', 'CH7991373525', 10700000, 10, 856000, '2026-07-14', 1783987200000, 1787045362, '1', 1787045362, '1', 0, '6a8425f233fb0-1351' )"
+]

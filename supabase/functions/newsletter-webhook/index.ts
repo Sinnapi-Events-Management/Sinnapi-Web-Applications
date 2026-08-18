@@ -19,6 +19,19 @@
 // between the internet and our subscriber list. An unverifiable request is
 // rejected before the body is parsed, and a missing secret fails closed: better
 // to lose telemetry than to accept forged suppression.
+//
+// ── Dormant while the SMTP transport is live ───────────────────────────────
+// `_shared/campaignTransport.ts` can route campaigns over SMTP when the Resend
+// account is unavailable. SMTP produces no asynchronous delivery events, so
+// nothing calls this endpoint during such a period and campaigns sent that way
+// keep null engagement columns permanently.
+//
+// It is left deployed and untouched on purpose. Rolling back to Resend is then
+// an environment variable rather than a redeploy of the telemetry path, and
+// late events for campaigns sent BEFORE the swap still land correctly — they
+// are matched by `provider_message_id`, which SMTP sends never collide with.
+// Hard bounces during an SMTP period are caught at send time instead; see the
+// `permanent` branch in `newsletter-dispatch`.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, HttpError } from '../_shared/supabase.ts';
 import { verifyResendWebhook } from '../_shared/resend.ts';

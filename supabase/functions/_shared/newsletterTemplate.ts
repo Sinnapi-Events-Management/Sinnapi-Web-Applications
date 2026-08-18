@@ -13,9 +13,13 @@
 //     which is the single failure this whole subsystem exists to prevent.
 //   * Transactional mail is one heading and a body; a newsletter is a hero, a
 //     digest of cards, and CTAs, at full bleed rather than inside a padded card.
-//   * Transactional mail attaches the logo by Content-ID over SMTP. Campaigns go
-//     out through Resend's HTTP API, which has no inline-attachment path worth
-//     relying on, so the masthead here hot-links an absolute HTTPS asset.
+//   * Transactional mail attaches the logo by Content-ID, which every message
+//     can do because there is exactly one transport. Campaigns can run over
+//     either Resend or SMTP (see `./campaignTransport.ts`) and only one of those
+//     has an inline-attachment path, so the masthead here hot-links an absolute
+//     HTTPS asset unconditionally. Rendering the logo one way on one transport
+//     and another way on the other would mean the composer's preview is a
+//     preview of whichever transport happened to be live when it was written.
 //
 // Everything else — palette, fonts, escaping, resets, the Outlook table
 // discipline — is imported from `./emailTemplate.ts` so the two shells cannot
@@ -245,36 +249,72 @@ export function newsletterSpacer(height = 24): string {
 // Shell
 // ───────────────────────────────────────────────────────────────────────────
 
-/** Newsletter-only rules layered on top of the shared resets. */
+/**
+ * Newsletter-only rules layered on top of the shared resets.
+ *
+ * ── Dark mode deliberately does NOT invert the card ─────────────────────────
+ * It used to. `.sn-nl-surface` was flipped to a near-black and `.sn-nl-text` to
+ * near-white, which reads well in isolation and breaks in place: the shared
+ * `.sn-logo-band` rule keeps the masthead light in dark mode on purpose, since
+ * the brand lockup is a dark-teal wordmark that vanishes on a dark panel. The
+ * two rules together produced a white masthead sitting directly on top of a
+ * near-black body — a torn seam across the top of every campaign, visible only
+ * to dark-mode readers, which is most of them on mobile.
+ *
+ * Matching the transactional shell instead means one behaviour to reason about
+ * and one place it is documented. The canvas around the message and the footer
+ * chrome still re-tune (inherited from `emailHeadStyles`), so the message reads
+ * as a light card on a dark page rather than as a light page.
+ */
 function newsletterHeadStyles(): string {
   return `
     ${emailHeadStyles()}
+
+    /* A newsletter is denser than a transactional message — a hero, cards and
+       CTAs rather than one heading — so it steps down further on small screens
+       than the shared rules do. */
     @media only screen and (max-width:620px) {
       .sn-h1 { font-size:26px !important; line-height:34px !important; }
       .sn-nl-pad { padding-left:20px !important; padding-right:20px !important; }
+      .sn-nl-foot { padding-left:20px !important; padding-right:20px !important; }
+      /* The opt-out links sit at the end of a long scroll on a small screen.
+         Loosening the line box gives them a real tap target: a reader who
+         mis-taps "Unsubscribe" twice reaches for the spam button instead, and
+         that costs the sending domain far more than the opt-out would have. */
+      .sn-nl-foot a { line-height:28px !important; }
     }
+
     @media (prefers-color-scheme: dark) {
-      .sn-nl-surface { background:#1B1720 !important; }
-      .sn-nl-text, .sn-nl-text p, .sn-nl-text h1, .sn-nl-text h2, .sn-nl-text h3 { color:#EDEAF0 !important; }
+      .sn-nl-surface { background:${c.bgPaper} !important; }
+      .sn-nl-rule { background:${c.secondaryMain} !important; }
     }
-    [data-ogsc] .sn-nl-surface { background:#1B1720 !important; }
-    [data-ogsc] .sn-nl-text, [data-ogsc] .sn-nl-text p { color:#EDEAF0 !important; }
+    /* Outlook.com dark mode uses [data-ogsc] rather than the media query */
+    [data-ogsc] .sn-nl-surface { background:${c.bgPaper} !important; }
+    [data-ogsc] .sn-nl-rule { background:${c.secondaryMain} !important; }
   `;
 }
 
-/** Masthead with a remote logo and a preferences link in the top bar. */
+/**
+ * Masthead with a remote logo and a preferences link in the top bar.
+ *
+ * Vertical rhythm matches the transactional masthead (`34px / 28px`) rather
+ * than the tighter figures this shell used to carry. The two mastheads sit on
+ * the same brand and are frequently seen within minutes of each other — a
+ * confirmation followed by the first campaign — and a lockup that shifts a few
+ * pixels between them reads as two different senders.
+ */
 function newsletterMasthead(preferencesUrl: string): string {
   return `
     <tr>
-      <td class="sn-logo-band sn-nl-pad" bgcolor="${c.bgPaper}" style="background:${c.bgPaper};padding:26px 32px 22px;border-radius:12px 12px 0 0">
+      <td class="sn-logo-band sn-head-pad sn-nl-pad" bgcolor="${c.bgPaper}" style="background:${c.bgPaper};padding:32px 32px 26px;border-radius:12px 12px 0 0">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td align="left">
+            <td align="left" valign="middle">
               <a href="${escapeUrl(PUBLIC_SITE_URL)}" style="text-decoration:none">
                 <img src="${escapeUrl(LOGO_URL)}" width="148" alt="${escapeHtml(APP_NAME)}" style="display:block;width:148px;max-width:148px;height:auto;border:0;outline:none" />
               </a>
             </td>
-            <td align="right" style="font-family:${emailFonts.body};font-size:12px;line-height:18px;color:${c.textMuted}">
+            <td align="right" valign="middle" style="font-family:${emailFonts.body};font-size:12px;line-height:18px;color:${c.textMuted}">
               <!-- Research consistently puts an opt-out affordance in the header
                    as well as the footer: a reader who wants out and cannot find
                    the link reaches for the spam button instead, which costs the
@@ -286,7 +326,7 @@ function newsletterMasthead(preferencesUrl: string): string {
       </td>
     </tr>
     <tr>
-      <td height="3" bgcolor="${c.secondaryMain}" style="height:3px;line-height:3px;font-size:0;background:${c.secondaryMain}">&nbsp;</td>
+      <td class="sn-nl-rule" height="3" bgcolor="${c.secondaryMain}" style="height:3px;line-height:3px;font-size:0;background:${c.secondaryMain}">&nbsp;</td>
     </tr>`;
 }
 
@@ -302,6 +342,17 @@ function newsletterMasthead(preferencesUrl: string): string {
  *   * unsubscribe is a plain, unmissable link — no login, no survey, no dark
  *     pattern, because Art.7(3) requires withdrawal to be as easy as consent
  *     and because friction here converts opt-outs into complaints.
+ *
+ * ── Ordering ────────────────────────────────────────────────────────────────
+ * The opt-out row sits ABOVE the "why you're getting this" sentence rather than
+ * below it. A reader who has decided to leave is scanning, not reading, and
+ * burying the link under a paragraph of justification is the friction Art.7(3)
+ * is about. The reason then reads as the answer to "wait, what is this?" for
+ * everybody who did not leave — which is who it is written for.
+ *
+ * A hairline separates the whole block from the content card. Without it the
+ * footer reads as the last section of the newsletter, and legal text that looks
+ * like editorial gets skipped by exactly the readers it exists to inform.
  */
 function newsletterFooter(opts: {
   unsubscribeUrl: string;
@@ -311,32 +362,36 @@ function newsletterFooter(opts: {
   const host = PUBLIC_SITE_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const year = new Date().getFullYear();
   const muted = `color:${c.textMuted};text-decoration:underline`;
+  const dot = `<span style="color:${c.dividerStrong}">&nbsp;&nbsp;•&nbsp;&nbsp;</span>`;
   const socials = contact.social
     .map((s) => `<a href="${escapeUrl(s.href)}" style="${muted}">${escapeHtml(s.label)}</a>`)
-    .join(`<span style="color:${c.dividerStrong}">&nbsp;&nbsp;•&nbsp;&nbsp;</span>`);
+    .join(dot);
 
   return `
     <tr>
-      <td class="sn-nl-pad" align="center" style="padding:28px 32px 8px">
-        <p class="sn-footer-text" style="margin:0 0 14px;font-family:${emailFonts.body};font-size:13px;line-height:20px;color:${c.textSecondary};mso-line-height-rule:exactly">
+      <td class="sn-nl-foot sn-nl-pad" align="center" style="padding:26px 32px 12px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td height="1" bgcolor="${c.divider}" style="height:1px;line-height:1px;font-size:0;background:${c.divider}">&nbsp;</td></tr>
+        </table>
+        <p class="sn-footer-text" style="margin:22px 0 16px;font-family:${emailFonts.body};font-size:13px;line-height:20px;color:${c.textSecondary};mso-line-height-rule:exactly">
           ${socials}
         </p>
-        <p class="sn-footer-text" style="margin:0 0 12px;font-family:${emailFonts.body};font-size:12px;line-height:19px;color:${c.textMuted};mso-line-height-rule:exactly">
-          ${escapeHtml(opts.reason)}
-        </p>
-        <p class="sn-footer-text" style="margin:0 0 12px;font-family:${emailFonts.body};font-size:13px;line-height:20px;color:${c.textMuted};mso-line-height-rule:exactly">
+        <p class="sn-footer-text" style="margin:0 0 14px;font-family:${emailFonts.body};font-size:13px;line-height:20px;color:${c.textMuted};mso-line-height-rule:exactly">
           <a href="${escapeUrl(opts.unsubscribeUrl)}" style="color:${c.textSecondary};text-decoration:underline;font-weight:700">Unsubscribe</a>
-          <span style="color:${c.dividerStrong}">&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+          ${dot}
           <a href="${escapeUrl(opts.preferencesUrl)}" style="${muted}">Manage preferences</a>
-          <span style="color:${c.dividerStrong}">&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+          ${dot}
           <a href="mailto:${contact.supportEmail}" style="${muted}">Contact us</a>
         </p>
-        <p class="sn-footer-text" style="margin:0 0 4px;font-family:${emailFonts.body};font-size:12px;line-height:19px;color:${c.textMuted};mso-line-height-rule:exactly">
+        <p class="sn-footer-text" style="margin:0 0 14px;font-family:${emailFonts.body};font-size:12px;line-height:19px;color:${c.textMuted};mso-line-height-rule:exactly">
+          ${escapeHtml(opts.reason)}
+        </p>
+        <p class="sn-footer-text" style="margin:0 0 5px;font-family:${emailFonts.body};font-size:12px;line-height:19px;color:${c.textMuted};mso-line-height-rule:exactly">
           ${escapeHtml(SENDER_IDENTITY.legalName)} &middot; ${escapeHtml(SENDER_IDENTITY.address)}
         </p>
         <p class="sn-footer-text" style="margin:0;font-family:${emailFonts.body};font-size:12px;line-height:19px;color:${c.textMuted};mso-line-height-rule:exactly">
           <a href="${escapeUrl(PUBLIC_SITE_URL)}" style="${muted}">${escapeHtml(host)}</a>
-          &nbsp;&middot;&nbsp; &copy; ${year} ${escapeHtml(APP_NAME)}
+          ${dot}&copy; ${year} ${escapeHtml(APP_NAME)}
         </p>
       </td>
     </tr>`;
@@ -355,6 +410,22 @@ export function newsletterLayout(opts: {
   subject: string;
   /** Composed block HTML. */
   body: string;
+  /**
+   * Opening line — "Hi Mulumba," — rendered above the body.
+   *
+   * Belongs to the shell rather than to a block for the same reason the
+   * unsubscribe footer does: the body is rendered ONCE per campaign and shared
+   * by every recipient, because re-walking the block tree per person is the
+   * most expensive thing the send loop could do. Only the shell varies per
+   * recipient, so anything personalised has to live here.
+   *
+   * Already-resolved text, not a name: deciding what to call somebody (and
+   * when to fall back to "Hi there") needs their email address to sanity-check
+   * the stored name against, which is a content concern. See `greetingLine` in
+   * `newsletter-dispatch/emails.ts`. Escaped here regardless — the value is
+   * ultimately operator- or user-supplied.
+   */
+  greeting?: string;
   /** Hidden inbox-preview text. Strongly recommended. */
   preheader?: string;
   unsubscribeUrl: string;
@@ -363,6 +434,13 @@ export function newsletterLayout(opts: {
   reason: string;
 }): string {
   const title = escapeHtml(opts.subject);
+  // 17px rather than the 16px body scale: this is the one line addressed to the
+  // reader personally, and it opens the message above a hero eyebrow set in
+  // 12px caps. Matching the hero's standfirst size keeps the top of the card on
+  // one typographic ladder instead of three.
+  const greeting = opts.greeting
+    ? `<p style="margin:0 0 22px;font-family:${emailFonts.body};font-size:17px;line-height:27px;color:${c.textPrimary};mso-line-height-rule:exactly">${escapeHtml(opts.greeting)}</p>`
+    : '';
   const preheader = opts.preheader
     ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;visibility:hidden;mso-hide:all;font-size:1px;line-height:1px;color:transparent">${escapeHtml(opts.preheader)}${'&#8199;&#65279;&#847; '.repeat(30)}</div>`
     : '';
@@ -393,8 +471,13 @@ export function newsletterLayout(opts: {
         <table role="presentation" class="sn-wrap" width="${WIDTH}" cellpadding="0" cellspacing="0" border="0" style="width:${WIDTH}px;max-width:${WIDTH}px">
           ${newsletterMasthead(opts.preferencesUrl)}
           <tr>
-            <td class="sn-card sn-nl-surface sn-nl-pad" bgcolor="${c.bgPaper}" style="background:${c.bgPaper};padding:34px 32px 28px;border:1px solid ${c.divider};border-top:none;border-radius:0 0 12px 12px">
-              <div class="sn-nl-text">${opts.body}</div>
+            <!-- Horizontal padding stays at 32px. The digest card block sizes
+                 its thumbnail to 536px, which is 600 minus exactly this padding;
+                 widening the gutter to the transactional shell's 40px would
+                 overflow every article image by 16px. Vertical rhythm is free to
+                 match, and does. -->
+            <td class="sn-card sn-nl-surface sn-nl-pad" bgcolor="${c.bgPaper}" style="background:${c.bgPaper};padding:36px 32px 32px;border:1px solid ${c.divider};border-top:none;border-radius:0 0 12px 12px">
+              <div class="sn-nl-text">${greeting}${opts.body}</div>
             </td>
           </tr>
           ${newsletterFooter({
@@ -418,18 +501,30 @@ export function newsletterLayout(opts: {
  */
 export function newsletterText(opts: {
   lines: string[];
+  /**
+   * Same opening line as the HTML shell. Carried here too because the text part
+   * is what some clients and every screen reader present, and a message that
+   * greets you by name in one part and not the other reads as two messages.
+   */
+  greeting?: string;
   unsubscribeUrl: string;
   preferencesUrl: string;
   reason: string;
 }): string {
   const host = PUBLIC_SITE_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
   return [
+    ...(opts.greeting ? [opts.greeting, ''] : []),
     ...opts.lines,
     '',
-    '—',
-    opts.reason,
+    '--',
+    // Same ordering as the HTML footer, for the same reason: the way out comes
+    // before the justification. A plain-text reader is scanning even harder
+    // than an HTML one, with no weight or colour to guide them.
     `Unsubscribe: ${opts.unsubscribeUrl}`,
     `Manage preferences: ${opts.preferencesUrl}`,
+    `Contact us: ${contact.supportEmail}`,
+    '',
+    opts.reason,
     '',
     `${SENDER_IDENTITY.legalName} · ${SENDER_IDENTITY.address}`,
     host,

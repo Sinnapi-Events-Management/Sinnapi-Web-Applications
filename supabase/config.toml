@@ -67,6 +67,10 @@ verify_jwt = false
 # Resend delivery telemetry. Public by necessity (the provider holds no JWT);
 # every request is verified against the Svix signature before it is parsed, and
 # a missing RESEND_WEBHOOK_SECRET fails closed.
+#
+# Stays deployed even when NEWSLETTER_TRANSPORT=smtp, which produces no events
+# for it to receive: keeping it up means rolling back to Resend is one variable,
+# and late events for campaigns sent before a swap still land.
 [functions.newsletter-webhook]
 verify_jwt = false
 

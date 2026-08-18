@@ -325,6 +325,12 @@ async function collect() {
           bodyText: body.text,
           to: 'aisha.namubiru@example.com',
           unsubscribeToken: 'nZ8kQ2_wV5tR-xB1yH3jL7pC',
+          // Exercises the personalised opening line. The greeting is a shell
+          // concern (the body renders once per campaign), so it is only visible
+          // in a rendered message — which makes this harness the only place it
+          // gets looked at before a send.
+          firstName: 'Aisha',
+          fullName: 'Aisha Namubiru',
         }),
       };
     }),

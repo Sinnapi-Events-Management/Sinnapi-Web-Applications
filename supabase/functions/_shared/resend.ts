@@ -1,28 +1,31 @@
-// Bulk-email transport for marketing campaigns, over the Resend HTTP API.
+// Resend driver — bulk campaign delivery over the Resend HTTP API.
 //
-// ── Why campaigns do not go through `_shared/email.ts` ─────────────────────
-// That module is one authenticated SMTP connection sending one message at a
-// time, and it is the right tool for what it does: a password reset is a single
-// message whose delivery matters more than its throughput. A campaign is
+// This is the PREFERRED campaign transport and the one the subsystem is
+// designed around. `./campaignTransport.ts` chooses between it and the SMTP
+// fallback in `./campaignSmtp.ts`; this file no longer decides anything beyond
+// how to talk to Resend.
+//
+// ── Why campaigns prefer this over SMTP ────────────────────────────────────
+// `_shared/email.ts` is one authenticated SMTP connection sending one message
+// at a time, and it is the right tool for what it does: a password reset is a
+// single message whose delivery matters more than its throughput. A campaign is
 // thousands of messages that must each carry a *different* `List-Unsubscribe`
 // header, be individually traceable back to a recipient row, and produce bounce
-// and complaint feedback we can act on. Pushing that through SMTP would mean
-// building batching, per-message tracking and a feedback loop by hand, on a
-// transport that offers none of them.
+// and complaint feedback we can act on. SMTP offers batching and none of the
+// rest, which is why the fallback driver is explicitly a temporary measure and
+// why `newsletter-webhook` and the telemetry schema are left standing while it
+// is in use.
 //
 // Transactional mail stays on SMTP. Nothing in this file touches it.
 //
 // ── The headers are the point ──────────────────────────────────────────────
-// `List-Unsubscribe` plus `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
-// is RFC 8058. Since 2024 Google and Yahoo treat a working one-click opt-out as
-// a hard requirement for bulk senders, not a nicety — mail without it gets
-// throttled or binned regardless of what the footer says. It also has to be
-// per-recipient, because the URL carries that subscription's token, which is
-// precisely why the batch endpoint (which takes per-email `headers`) is used
-// rather than one message with a thousand BCCs.
+// See `unsubscribeHeaders` in `./campaignMessage.ts`: RFC 8058 one-click
+// opt-out, per recipient. The batch endpoint is used precisely because it takes
+// per-email `headers`, so a thousand recipients get a thousand distinct
+// unsubscribe URLs rather than one message with a thousand BCCs.
 //
 // Required env:
-//   RESEND_API_KEY        — bulk sending is a no-op without it, reported, never thrown
+//   RESEND_API_KEY        — the driver reports itself unconfigured without it
 //   NEWSLETTER_FROM       — e.g. "Sinnapi <news@sinnapi.com>". Must be a verified
 //                           Resend domain, and deliberately a DIFFERENT subdomain
 //                           from transactional mail so a bad campaign cannot
@@ -30,6 +33,8 @@
 // Optional env:
 //   NEWSLETTER_REPLY_TO   — defaults to the support address
 //   RESEND_WEBHOOK_SECRET — required only by the webhook endpoint
+import { campaignReplyTo, unsubscribeHeaders } from './campaignMessage.ts';
+import type { CampaignDriver, CampaignMessage, SendOutcome } from './campaignMessage.ts';
 
 const API = 'https://api.resend.com';
 
@@ -42,41 +47,6 @@ function env(key: string): string | undefined {
 
 export function resendConfigured(): boolean {
   return Boolean(env('RESEND_API_KEY') && env('NEWSLETTER_FROM'));
-}
-
-export interface CampaignMessage {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-  /** Absolute https URL that unsubscribes this recipient in one POST. */
-  unsubscribeUrl: string;
-  /** Correlates provider events back to a campaign without a lookup table. */
-  tags?: Record<string, string>;
-}
-
-export interface SendOutcome {
-  /** Provider message id, present only on success. */
-  id?: string;
-  error?: string;
-}
-
-/**
- * Headers attached to every campaign message.
- *
- * The `mailto:` alternative is listed alongside the URL because some clients
- * (and most older ones) only honour that form, and a header offering only an
- * https target silently does nothing for them.
- */
-function unsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
-  const support = env('NEWSLETTER_UNSUBSCRIBE_MAILTO');
-  const targets = support
-    ? `<${unsubscribeUrl}>, <mailto:${support}?subject=unsubscribe>`
-    : `<${unsubscribeUrl}>`;
-  return {
-    'List-Unsubscribe': targets,
-    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-  };
 }
 
 /**
@@ -102,7 +72,7 @@ function payloadFor(msg: CampaignMessage) {
   return {
     from: env('NEWSLETTER_FROM'),
     to: [msg.to],
-    reply_to: env('NEWSLETTER_REPLY_TO') ?? 'support@sinnapi.com',
+    reply_to: campaignReplyTo(),
     subject: msg.subject,
     html: msg.html,
     text: msg.text,
@@ -119,21 +89,18 @@ function payloadFor(msg: CampaignMessage) {
  * onto a specific recipient row, so a shifted result would mark the wrong
  * person sent.
  *
- * Never throws. A campaign worker that dies on a network blip leaves rows in
- * `processing` with no one to recover them; returning a per-message error lets
- * the caller retry or dead-letter each row on its own terms.
+ * No outcome here ever sets `permanent`. Resend accepts every syntactically
+ * valid address at the API boundary and reports the bounce asynchronously, so a
+ * failure at this layer is a transport problem, not a verdict on the address —
+ * suppressing on it would delete reachable subscribers. Bounces reach
+ * `email_suppressions` through `newsletter-webhook` instead.
+ *
+ * Never throws. A campaign worker that dies on a network blip leaves rows
+ * leased with nobody to recover them until the lease lapses; returning a
+ * per-message error lets the caller retry or dead-letter each row on its own
+ * terms.
  */
-export async function sendCampaignBatch(messages: CampaignMessage[]): Promise<SendOutcome[]> {
-  if (messages.length === 0) return [];
-  if (!resendConfigured()) {
-    return messages.map(() => ({ error: 'resend_not_configured' }));
-  }
-  if (messages.length > MAX_BATCH) {
-    // A caller-side bug, but one that would otherwise surface as a truncated
-    // send that looks successful.
-    return messages.map(() => ({ error: 'batch_too_large' }));
-  }
-
+async function send(messages: CampaignMessage[]): Promise<SendOutcome[]> {
   try {
     const res = await fetch(`${API}/emails/batch`, {
       method: 'POST',
@@ -163,11 +130,12 @@ export async function sendCampaignBatch(messages: CampaignMessage[]): Promise<Se
   }
 }
 
-/** Single send — used by the composer's "send a test to myself". */
-export async function sendCampaignEmail(message: CampaignMessage): Promise<SendOutcome> {
-  const [outcome] = await sendCampaignBatch([message]);
-  return outcome ?? { error: 'no_result' };
-}
+export const resendDriver: CampaignDriver = {
+  name: 'resend',
+  maxBatch: MAX_BATCH,
+  configured: resendConfigured,
+  send,
+};
 
 // ───────────────────────────────────────────────────────────────────────────
 // Webhook verification

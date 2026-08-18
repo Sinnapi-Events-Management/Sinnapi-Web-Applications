@@ -1213,12 +1213,19 @@ export type NewsletterStats = {
   total: number;
   queued: number;
   sent: number;
+  /**
+   * Delivery and engagement counts come from provider webhooks, which only the
+   * Resend transport emits. A campaign sent over the SMTP fallback reports
+   * these as 0 permanently — the absence of a receipt, not a failure to open.
+   */
   delivered: number;
   opened: number;
   clicked: number;
   bounced: number;
   complained: number;
   failed: number;
+  /** Deliberately not mailed: consent withdrawn, or no unsubscribe token. */
+  skipped: number;
   unsubscribed: number;
 };
 

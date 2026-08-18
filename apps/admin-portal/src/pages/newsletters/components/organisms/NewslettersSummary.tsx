@@ -14,13 +14,13 @@ export default function NewslettersSummary({ counts, loading }: Props) {
     {
       label: 'Drafts',
       value: counts?.draft ?? 0,
-      icon: <DraftsOutlinedIcon />,
+      icon: <DraftsOutlinedIcon sx={{ color: 'text.secondary' }} />,
       accent: 'default' as const,
     },
     {
       label: 'Scheduled',
       value: counts?.scheduled ?? 0,
-      icon: <ScheduleOutlinedIcon />,
+      icon: <ScheduleOutlinedIcon sx={{ color: 'secondary' }} />,
       accent: 'info' as const,
     },
     {
@@ -29,13 +29,13 @@ export default function NewslettersSummary({ counts, loading }: Props) {
       // page worth interrupting somebody for.
       label: 'Sending now',
       value: counts?.sending ?? 0,
-      icon: <SendOutlinedIcon />,
+      icon: <SendOutlinedIcon sx={{ color: 'white' }} />,
       accent: 'secondary' as const,
     },
     {
       label: 'Sent',
       value: counts?.sent ?? 0,
-      icon: <MarkEmailReadOutlinedIcon />,
+      icon: <MarkEmailReadOutlinedIcon sx={{ color: 'white' }} />,
       accent: 'success' as const,
     },
   ];
