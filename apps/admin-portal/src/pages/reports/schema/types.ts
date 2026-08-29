@@ -1,5 +1,5 @@
 // Report-only shapes. The generic metric/chart vocabulary (Kpi, TrendPoint,
-// SeriesDef, BreakdownSlice, ValueFormat) lives in `@/lib/analytics` so the
+// SeriesDef, BreakdownSlice, ValueFormat) lives in `@sinnapi/ui/analytics` so the
 // Dashboard shares it — re-exported here so report modules keep one import.
 export type {
   BreakdownSlice,
@@ -8,19 +8,14 @@ export type {
   SeriesDef,
   TrendPoint,
   ValueFormat,
-} from '@/lib/analytics';
+} from '@sinnapi/ui/analytics';
 
-/**
- * A flat, export-ready table. Each report dataset produces one of these; the
- * Excel exporter turns it into a worksheet and the PDF exporter into a section,
- * so exports stay in lock-step with what the charts show.
- */
-export type ReportTable = {
-  /** Worksheet / section name (≤ 31 chars for Excel). */
-  name: string;
-  columns: string[];
-  rows: (string | number)[][];
-};
+// The export table shape is shared with the vendor portal (`@sinnapi/ui/export`)
+// so both consoles serialise the same way — an admin and a vendor comparing the
+// same figures should be reading documents with the same columns.
+import type { ReportTable } from '@sinnapi/ui/export';
+
+export type { ReportTable };
 
 /** Common envelope every report hook resolves to. */
 export type ReportState<T> = {

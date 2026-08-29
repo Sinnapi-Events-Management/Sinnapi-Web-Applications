@@ -1,28 +1,37 @@
-import { Grid, PaymentChaseDialog, QueryState, Snackbar, Stack } from '@sinnapi/ui';
+import { DetailTabPanel, PaymentChaseDialog, QueryState, Snackbar } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
-import { useBookingDetail } from './hooks/useBookingDetail';
+import { useBookingDetailPage } from './hooks/useBookingDetailPage';
 import BookingHero from './components/organisms/BookingHero';
-import BookingFactsCard from './components/organisms/BookingFactsCard';
-import BookingQuotationCard from './components/organisms/BookingQuotationCard';
-import BookingActivityCard from './components/organisms/BookingActivityCard';
-import BookingStatusCard from './components/organisms/BookingStatusCard';
+import BookingActionBar from './components/organisms/BookingActionBar';
+import BookingTabs from './components/molecules/BookingTabs';
+import OverviewSection from './components/organisms/OverviewSection';
+import MoneySection from './components/organisms/MoneySection';
+import EscrowSection from './components/organisms/EscrowSection';
+import ActivitySection from './components/organisms/ActivitySection';
+import OriginSection from './components/organisms/OriginSection';
 import BookingStatusDialog from './components/organisms/BookingStatusDialog';
-import BookingPartiesCard from './components/organisms/BookingPartiesCard';
-import BookingMoneyCard from './components/organisms/BookingMoneyCard';
-import BookingPaymentWindowCard from './components/organisms/BookingPaymentWindowCard';
-import BookingSettlementCard from './components/organisms/BookingSettlementCard';
 
 /**
  * One booking as the console sees it: what was agreed, who it is between, what
  * the money is doing, and everything that has happened to it — with the
- * lifecycle control beside them.
+ * lifecycle control above them all.
  *
- * Layout only. `useBookingDetail` owns the reads and the override flow; each
- * section owns its own content.
+ * Two things stay above the tabs and never move: the hero, which says which
+ * booking this is, and the status bar, which is the reason an operator opened
+ * the page. Everything below them is a record, split into five sections that
+ * each fit a screen — the nine cards this page used to stack in two columns
+ * meant an operator called about a settlement scrolled past the facts, the
+ * amount, the payment clock and the parties to reach it, and on a phone, where
+ * the columns collapse into one, past all of it.
  *
- * The status control leads the right column deliberately. An operator opens
- * this page from a support thread with something to change, and the trail
- * they need to justify it is one column across rather than a scroll away.
+ * Escrow gets a section of its own, which the vendor's and client's four-tab
+ * pages do not give it. That is deliberate: the console is the only side that
+ * acts on a settlement rather than reading one.
+ *
+ * Layout only. `useBookingDetailPage` owns the reads, the override flow, the
+ * payment-clock levers and the open section; each section owns its own content.
+ * The dialogs stay at page level because each is opened from a different
+ * section's controls and none of them belongs to one.
  */
 export default function BookingDetail() {
   const {
@@ -35,9 +44,11 @@ export default function BookingDetail() {
     status,
     chase,
     canChase,
+    tab,
+    setTab,
     isLoading,
     error,
-  } = useBookingDetail();
+  } = useBookingDetailPage();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -51,50 +62,40 @@ export default function BookingDetail() {
       ) : (
         <>
           <BookingHero booking={booking} timeWindow={timeWindow} />
+          <BookingActionBar
+            targets={targets}
+            onSelect={status.request}
+            busy={status.busy}
+            error={status.err}
+          />
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={7}>
-              <Stack spacing={3}>
-                <BookingFactsCard booking={booking} timeWindow={timeWindow} />
-                <BookingMoneyCard booking={booking} />
-                {booking.quotation && (
-                  <BookingQuotationCard quotation={booking.quotation} booking={booking} />
-                )}
-              </Stack>
-            </Grid>
+          <BookingTabs value={tab} onChange={setTab} />
 
-            <Grid item xs={12} md={5}>
-              <Stack spacing={3}>
-                {/* Above the lifecycle control: when a settlement is open it
-                    is the live piece of work on this booking, with two people
-                    waiting on us. It draws nothing when there is none. */}
-                <BookingSettlementCard bookingId={booking.id} />
-                {/* Above the lifecycle control and below the settlement, in
-                    the order the money moves: a booking waiting to be funded
-                    is earlier in its life than one waiting to be paid out.
-                    Draws nothing once there is no clock. */}
-                <BookingPaymentWindowCard
-                  booking={booking}
-                  canChase={canChase}
-                  onChase={chase.open}
-                  busy={chase.isBusy}
-                  error={chase.error}
-                />
-                <BookingStatusCard
-                  targets={targets}
-                  onSelect={status.request}
-                  busy={status.busy}
-                  error={status.err}
-                />
-                <BookingPartiesCard booking={booking} />
-                <BookingActivityCard
-                  entries={activity}
-                  isLoading={isActivityLoading}
-                  error={activityError}
-                />
-              </Stack>
-            </Grid>
-          </Grid>
+          <DetailTabPanel value="overview" active={tab} idPrefix="booking">
+            <OverviewSection booking={booking} timeWindow={timeWindow} />
+          </DetailTabPanel>
+          <DetailTabPanel value="money" active={tab} idPrefix="booking">
+            <MoneySection
+              booking={booking}
+              canChase={canChase}
+              onChase={chase.open}
+              chaseBusy={chase.isBusy}
+              chaseError={chase.error}
+            />
+          </DetailTabPanel>
+          <DetailTabPanel value="escrow" active={tab} idPrefix="booking">
+            <EscrowSection bookingId={booking.id} />
+          </DetailTabPanel>
+          <DetailTabPanel value="activity" active={tab} idPrefix="booking">
+            <ActivitySection
+              entries={activity}
+              isLoading={isActivityLoading}
+              error={activityError}
+            />
+          </DetailTabPanel>
+          <DetailTabPanel value="origin" active={tab} idPrefix="booking">
+            <OriginSection booking={booking} />
+          </DetailTabPanel>
 
           <BookingStatusDialog
             pending={status.pending}

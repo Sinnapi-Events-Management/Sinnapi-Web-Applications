@@ -1,3 +1,4 @@
+import { PACKAGE_PUBLIC_COLUMNS } from '@sinnapi/ui/molecules';
 import { createAnonClient as createPublicClient } from './supabase/anon';
 import { EVENT_LOCATIONS } from './config/site';
 import type {
@@ -16,6 +17,7 @@ import type {
   PublicReview,
   PricingPlanModel,
   PlanFeatureModel,
+  PackageModel,
 } from './types';
 
 // Public columns only — vendor email/phone are intentionally excluded everywhere.
@@ -67,6 +69,33 @@ export async function getVendorBySlug(slug: string): Promise<VendorDetailModel |
     .is('deleted_at', null)
     .maybeSingle();
   return (data as VendorDetailModel) ?? null;
+}
+
+/**
+ * A vendor's published packages, for the profile page's pricing section.
+ *
+ * No visibility filter and no vendor-status filter: `qtpl_read` already decides
+ * what anon may see, and repeating the rule in the query is how the two come to
+ * disagree — one of them gets updated and the other does not. What the query
+ * does add is the vendor's own ordering, and the `tier_id is null` scope on the
+ * add-on embed. Without that filter every tier line arrives twice, once here
+ * and once under its tier, and each tier's total is computed over the whole
+ * package.
+ *
+ * Returns `[]` on failure like every other read in this module: a vendor page
+ * that renders without its pricing is worse than one that does not render.
+ */
+export async function getVendorPackages(vendorId: string): Promise<PackageModel[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa
+    .from('quote_templates')
+    .select(PACKAGE_PUBLIC_COLUMNS)
+    .eq('vendor_id', vendorId)
+    .is('deleted_at', null)
+    .is('quote_template_items.tier_id', null)
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as unknown as PackageModel[];
 }
 
 export async function getVendorMedia(vendorId: string): Promise<VendorMediaModel[]> {

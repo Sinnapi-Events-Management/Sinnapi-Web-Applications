@@ -25,7 +25,7 @@ import Bookings from '@/pages/bookings';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
 import QuotationDetail from '@/pages/quotationDetail';
-import Templates from '@/pages/templates';
+import Packages from '@/pages/packages';
 import PublicEvents from '@/pages/publicEvents';
 import Escrow from '@/pages/escrow';
 import Payouts from '@/pages/payouts';
@@ -98,7 +98,10 @@ export default function App() {
           <Route path="/bookings/:id" element={<BookingDetail />} />
           <Route path="/quotations" element={<Quotations />} />
           <Route path="/quotations/:id" element={<QuotationDetail />} />
-          <Route path="/templates" element={<Templates />} />
+          <Route path="/packages" element={<Packages />} />
+          {/* The page was called "Templates" until packages carried a price.
+              Vendors have the old path bookmarked and linked from email. */}
+          <Route path="/templates" element={<Navigate to="/packages" replace />} />
           <Route path="/public-events" element={<PublicEvents />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/payouts" element={<Payouts />} />

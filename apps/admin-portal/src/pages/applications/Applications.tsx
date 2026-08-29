@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import type { IntakeListModel } from '@/lib/types';
 import { useApplications } from './hooks/useApplications';
 import { getColumns } from './schema';

@@ -21,16 +21,31 @@ type Props = {
  * choices. Destructive actions keep the error palette wherever they land in
  * that order.
  *
- * A gated action stays visible and disabled with its reason beneath it. Hiding
- * it would be tidier and worse: the vendor knows the button exists, and a
- * panel that quietly drops it on the one day they need it reads as a fault.
+ * A gated action stays visible and disabled with its reason beneath the row.
+ * Hiding it would be tidier and worse: the vendor knows the button exists, and
+ * a panel that quietly drops it on the one day they need it reads as a fault.
+ *
+ * The reasons sit under the whole row rather than under their own button
+ * because the row is horizontal from `sm` up: a note threaded between two
+ * side-by-side buttons would either stretch the row or push its neighbour out
+ * of line. Each note names its action instead.
  */
 export default function BookingActionButtons({ actions, isBusy, onSelect }: Props) {
+  const blocked = actions.filter((spec) => spec.disabled && spec.blockedReason);
+
   return (
-    <Stack spacing={1.5}>
-      {actions.map((spec, i) => (
-        <Stack key={spec.action} spacing={0.75}>
+    <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+      <Stack
+        // Full-width stacked buttons on a phone, a row from `sm` up. Thumbs get
+        // a target the width of the screen; wider screens get the bar.
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1}
+        useFlexGap
+        flexWrap="wrap"
+      >
+        {actions.map((spec, i) => (
           <Button
+            key={spec.action}
             variant={i === 0 ? 'contained' : 'outlined'}
             color={spec.tone === 'error' ? 'error' : spec.tone}
             disabled={isBusy || spec.disabled}
@@ -38,12 +53,13 @@ export default function BookingActionButtons({ actions, isBusy, onSelect }: Prop
           >
             {spec.label}
           </Button>
-          {spec.disabled && spec.blockedReason && (
-            <ActionNote icon={<LockClockIcon />} tone="warning">
-              {spec.blockedReason}
-            </ActionNote>
-          )}
-        </Stack>
+        ))}
+      </Stack>
+
+      {blocked.map((spec) => (
+        <ActionNote key={spec.action} icon={<LockClockIcon />} tone="warning">
+          {spec.label}: {spec.blockedReason}
+        </ActionNote>
       ))}
     </Stack>
   );

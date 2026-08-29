@@ -10,4 +10,8 @@ export * from './organisms/EmptyState';
 export * from './organisms/portalShell';
 export * from './hooks/useAppLinkSx';
 export * from './hooks/useGoBack';
+// Keeps the open section of a tabbed page in the URL. Lives here rather than
+// with the tab bars in the root barrel because it reads the router's search
+// params — `web-public` must never pull react-router-dom into its graph.
+export * from './hooks/useUrlTab';
 export * from './types';

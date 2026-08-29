@@ -1,14 +1,16 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Button, SectionCard, Stack } from '@sinnapi/ui';
+import { Button, SectionCard, Stack } from '@sinnapi/ui';
 import ChatIcon from '@mui/icons-material/Chat';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import type { VendorRefModel } from '@/lib/types';
-import { useStartConversation } from '@/hooks/messaging/useStartConversation';
+import MessageVendorButton from '../molecules/MessageVendorButton';
 
 type Props = {
   vendorId: string | null;
   vendor: VendorRefModel | null;
+  onMessageVendor: () => void;
+  isMessaging: boolean;
 };
 
 /**
@@ -19,32 +21,34 @@ type Props = {
  * Messaging leads, because the most common thing a client wants after reading a
  * quote is to ask one question about it — a round trip far cheaper than a
  * formal revision request for both sides.
+ *
+ * IT NO LONGER LEAVES THE PAGE. This button used to find-or-create the thread
+ * and then navigate to `/messages/:id`, which meant asking "what does line
+ * three cover?" cost the client the quote they were asking about — they had to
+ * remember the number, or come back for it, or answer from memory. The thread
+ * is now a tab on this page, so the button opens it in place and the quote stays
+ * one tap away. `useQuotationDetailPage` owns both halves of that; this card is
+ * handed a callback and knows nothing about conversations.
+ *
+ * The error state left with the navigation. A failure now surfaces in the
+ * message tab, which is where the button sends the reader either way — two
+ * places reporting one refusal is how a client ends up seeing it twice.
  */
-export default function QuotationNextStepsCard({ vendorId, vendor }: Props) {
-  // Was a page-local `useMessageVendor`; the find-or-create now lives in one
-  // shared hook so the vendor profile, the booking panel and this card cannot
-  // drift on how a thread gets opened.
-  const message = useStartConversation();
-
+export default function QuotationNextStepsCard({
+  vendorId,
+  vendor,
+  onMessageVendor,
+  isMessaging,
+}: Props) {
   return (
     <SectionCard title="Next steps" icon={<ChatIcon />} accent="primary">
-      {message.error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {message.error}
-        </Alert>
-      )}
-
       <Stack spacing={1.25}>
-        <Button
+        <MessageVendorButton
+          onClick={onMessageVendor}
+          busy={isMessaging}
+          disabled={!vendorId}
           fullWidth
-          variant="outlined"
-          color="inherit"
-          startIcon={<ChatIcon />}
-          disabled={!vendorId || message.isBusy}
-          onClick={() => void message.messageVendor(vendorId)}
-        >
-          Message vendor
-        </Button>
+        />
 
         {vendor?.slug && (
           <Button

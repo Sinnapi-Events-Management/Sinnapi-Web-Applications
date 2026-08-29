@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUnpaidBookingCounts } from '@/hooks/queries';
 import { useAdmin } from '@/admin/AdminProvider';
 import { mergeUnpaidQueue } from '../schema';
-import { DEFAULT_PERIOD, getPeriodOption, type AnalyticsPeriod } from '@/lib/analytics';
+import { DEFAULT_PERIOD, getPeriodOption, type AnalyticsPeriod } from '@sinnapi/ui/analytics';
 import { useDashboardOverview } from '../data';
 import { useDashboardSections } from './useDashboardSections';
 import { useDashboardTabs } from './useDashboardTabs';

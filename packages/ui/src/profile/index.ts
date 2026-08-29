@@ -19,4 +19,7 @@ export * from './molecules';
 export * from './organisms';
 
 export * from './hooks/useProfileImageUpload';
-export * from './hooks/useUrlTab';
+// Re-exported from its home in the router kit, where the booking and other
+// tabbed detail pages reach for it too. Kept on this entry point because the
+// profile pages were its first callers and still import it from here.
+export * from '../router/hooks/useUrlTab';

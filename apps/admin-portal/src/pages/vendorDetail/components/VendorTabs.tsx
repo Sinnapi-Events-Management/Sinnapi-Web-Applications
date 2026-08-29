@@ -10,6 +10,7 @@ import type { NamedRef, OwnerRef, VendorDetailModel } from '@/lib/types';
 import VendorRelatedTable from './VendorRelatedTable';
 import OverviewTab from './OverviewTab';
 import PayoutsTab from './PayoutsTab';
+import PackagesTab from './PackagesTab';
 import { bookingColumns, paymentColumns, quotationColumns, reviewColumns } from '../schema';
 
 type Props = {
@@ -61,6 +62,10 @@ export default function VendorTabs({ vendor, owner, category }: Props) {
         />
       ),
     },
+    // Beside Orders rather than at the end: a package is what an order was
+    // quoted from, and an operator reading a disputed quote reaches for the
+    // offer behind it next.
+    { label: 'Packages', render: () => <PackagesTab vendorId={id} /> },
     { label: 'Payouts & Escrow', render: () => <PayoutsTab vendorId={id} /> },
     {
       label: 'Reviews',

@@ -57,7 +57,7 @@ export function InfoRow({ label, value, icon, copyValue, mono }: InfoRowProps) {
       <Box sx={{ flex: 1 }} />
       <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
         <Typography
-          variant="body2"
+          variant="subtitle2"
           fontWeight={600}
           sx={{
             textAlign: 'right',

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import type { VendorAdminModel } from '@/lib/types';
 import { useVendors } from './hooks/useVendors';
 import { getColumns } from './schema';

@@ -21,6 +21,7 @@ import Bookings from '@/pages/bookings';
 import UnpaidBookings from '@/pages/unpaidBookings';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
+import QuotationDetail from '@/pages/quotationDetail';
 import Events from '@/pages/events';
 import EventDetail from '@/pages/eventDetail';
 import Escrow from '@/pages/escrow';
@@ -116,6 +117,11 @@ export default function App() {
             element={g('booking.payment.chase', <UnpaidBookings />)}
           />
           <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
+          {/* The detail page reads on the same permission as the list. There is
+              no write to gate separately: `quotations_update` admits only the
+              client and the vendor owner, so the console reads a quote and
+              cannot change one. */}
+          <Route path="/quotations/:id" element={g('quotations.read', <QuotationDetail />)} />
           <Route path="/events" element={g('events.manage', <Events />)} />
           <Route path="/events/:id" element={g('events.manage', <EventDetail />)} />
 

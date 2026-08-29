@@ -1,6 +1,6 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Stack, Typography } from '@sinnapi/ui';
-import type { AnalyticsPeriod } from '@/lib/analytics';
+import type { AnalyticsPeriod } from '@sinnapi/ui/analytics';
 import type { DashboardModel, DashboardTab, SectionKey, TabDef } from '../../schema';
 import DashboardToolbar from './DashboardToolbar';
 import DashboardTabs from './DashboardTabs';

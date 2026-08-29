@@ -1,11 +1,9 @@
 import { Alert, Box, Skeleton, Stack, Typography } from '@sinnapi/ui';
-import MediaGrid from '../molecules/MediaGrid';
-import MediaLightbox from './MediaLightbox';
-import { useMediaLightbox } from '../../hooks/useMediaLightbox';
-import type { PlayableMedia } from '../../utils/mediaSource';
+import { MediaGrid, MediaViewer, useMediaViewer, type PlayableMedia } from '@sinnapi/ui/media';
+import type { VendorMediaModel } from '@/lib/types';
 
 type Props = {
-  items: PlayableMedia[];
+  items: PlayableMedia<VendorMediaModel>[];
   vendorName: string;
   isLoading: boolean;
   error: unknown;
@@ -22,9 +20,13 @@ const SKELETON_HEIGHTS = [220, 170, 260, 190, 240, 200];
  * renders nothing at all — a vendor with no uploads gets a clean profile, not an
  * "Add media" hole. A failed fetch is worth a quiet note, since the visitor can
  * otherwise not tell the difference between "no work shown" and "didn't load".
+ *
+ * The grid, the viewer and the strip all come from `@sinnapi/ui/media`, so what a
+ * client sees here is the same surface the vendor curates their portfolio
+ * through — and a fix to either reaches both.
  */
 export default function VendorMediaSection({ items, vendorName, isLoading, error }: Props) {
-  const lightbox = useMediaLightbox(items);
+  const viewer = useMediaViewer(items);
 
   if (isLoading) {
     return (
@@ -52,17 +54,20 @@ export default function VendorMediaSection({ items, vendorName, isLoading, error
   return (
     <Box sx={{ mt: 4 }}>
       <SectionHeading />
-      <MediaGrid items={items} vendorName={vendorName} onOpen={lightbox.openAt} />
-      <MediaLightbox
-        item={lightbox.active}
-        vendorName={vendorName}
-        position={lightbox.position}
-        count={lightbox.count}
-        canStep={lightbox.canStep}
-        onClose={lightbox.close}
-        onNext={lightbox.next}
-        onPrevious={lightbox.previous}
-        onKeyDown={lightbox.onKeyDown}
+      <MediaGrid items={items} fallbackAlt={vendorName} onOpen={viewer.openAt} />
+      <MediaViewer
+        items={items}
+        item={viewer.active}
+        index={viewer.index}
+        position={viewer.position}
+        count={viewer.count}
+        canStep={viewer.canStep}
+        fallbackAlt={vendorName}
+        onClose={viewer.close}
+        onNext={viewer.next}
+        onPrevious={viewer.previous}
+        onSelect={viewer.goTo}
+        onKeyDown={viewer.onKeyDown}
       />
     </Box>
   );

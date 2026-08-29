@@ -5,6 +5,7 @@ import {
   getVendorReviews,
   getVendors,
   getAllVendorSlugs,
+  getVendorPackages,
 } from '@/lib/queries';
 import { MOCK_VENDORS } from '@/containers/vendors/data/mockVendors';
 import { findMockVendorDetail, mockVendorMedia, mockVendorReviews } from '../data/mockVendorDetail';
@@ -32,21 +33,32 @@ export async function getAllVendorSlugsData() {
 export async function getVendorDetailData(slug: string) {
   const liveVendor = await getVendorBySlug(slug);
   if (liveVendor) {
-    const [media, reviews, pool] = await Promise.all([
+    const [media, reviews, pool, packages] = await Promise.all([
       getVendorMedia(liveVendor.id),
       getVendorReviews(liveVendor.id),
       getVendors(),
+      getVendorPackages(liveVendor.id),
     ]);
-    return { vendor: liveVendor, media, reviews, related: pickRelatedVendors(pool, liveVendor) };
+    return {
+      vendor: liveVendor,
+      media,
+      reviews,
+      packages,
+      related: pickRelatedVendors(pool, liveVendor),
+    };
   }
 
   const mockVendor = findMockVendorDetail(slug);
   if (!mockVendor) notFound();
 
+  // No mock packages, deliberately. A price is the one thing on this page that
+  // must never be invented — a synthesised gallery is obviously filler, a
+  // synthesised "UGX 1,350,000" is not.
   return {
     vendor: mockVendor,
     media: mockVendorMedia(mockVendor),
     reviews: mockVendorReviews(mockVendor),
+    packages: [],
     related: pickRelatedVendors(MOCK_VENDORS, mockVendor),
   };
 }

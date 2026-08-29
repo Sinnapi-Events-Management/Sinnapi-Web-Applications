@@ -27,8 +27,9 @@ import type {
   QuotationDetailModel,
   QuotationStatusEventModel,
   QuotationBookingModel,
-  TemplateModel,
+  PackageModel,
   ServiceModel,
+  ServiceCategoryModel,
   MediaModel,
   AvailabilityModel,
   BlockedDateModel,
@@ -38,6 +39,7 @@ import type {
   EscrowModel,
   PayoutModel,
   PromotionModel,
+  PromotionDiscountModel,
   DiscountModel,
   ReviewModel,
   PlanModel,
@@ -470,7 +472,7 @@ export function useQuotationStatusHistory(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quotation_status_history')
-        .select('id,from_status,to_status,reason,occurred_at')
+        .select('id,from_status,to_status,reason,occurred_at,actor_id')
         .eq('quotation_id', id)
         .order('occurred_at', { ascending: true });
       if (error) throw error;
@@ -480,38 +482,150 @@ export function useQuotationStatusHistory(id: string) {
   });
 }
 
-export function useTemplates(vendorId?: string) {
+/**
+ * Every column of a package, both levels of its lines, in one read.
+ *
+ * The nested embed is what makes a package editable and previewable without a
+ * waterfall: the editor opens with the tree already in hand, and the preview
+ * beside it prices from the same objects the form is bound to.
+ *
+ * The second `quote_template_items` embed is filtered to `tier_id is null` —
+ * the add-ons offered across every tier. Without the filter the same rows would
+ * arrive twice, once here and once under their tier, and every tier's total
+ * would be computed over a list that includes the other tiers' lines.
+ */
+const PACKAGE_COLS =
+  'id,vendor_id,name,summary,notes,currency,cover_image_url,vendor_service_id,category_id,' +
+  'pricing_model,inclusions,exclusions,lead_time_days,tax_rate,tax_inclusive,valid_days,advance_rate,' +
+  'advance_release_days_before,advance_terms_note,visibility,is_active,published_at,sort_order,' +
+  'admin_unpublished_at,admin_unpublished_reason,' +
+  'quote_template_tiers(id,name,description,is_recommended,discount_rate,sort_order,' +
+  'quote_template_items(id,tier_id,description,quantity,unit_price,unit_label,notes,is_optional,sort_order)),' +
+  'quote_template_items(id,tier_id,description,quantity,unit_price,unit_label,notes,is_optional,sort_order)';
+
+export function usePackages(vendorId?: string) {
   return useQuery({
-    queryKey: ['v-templates', vendorId],
+    queryKey: ['v-packages', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('quote_templates')
-        .select('id,name,currency,notes,is_active,quote_template_items(id)')
+        .select(PACKAGE_COLS)
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
+        .is('quote_template_items.tier_id', null)
+        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false });
-      return (data ?? []) as TemplateModel[];
+      if (error) throw error;
+      return (data ?? []) as unknown as PackageModel[];
     },
   });
 }
 
-export function useServices(vendorId?: string) {
+/**
+ * The packages a vendor can actually quote from, for the builder's picker.
+ *
+ * Archived ones are filtered out here rather than in the picker: a vendor who
+ * archived a package has said they are no longer selling it, and offering it as
+ * a starting point in the one place quotes are built would undo that.
+ */
+export function useQuotablePackages(vendorId?: string) {
+  const query = usePackages(vendorId);
+  return {
+    ...query,
+    data: (query.data ?? []).filter(
+      (pkg) => pkg.is_active !== false && (pkg.quote_template_tiers?.length ?? 0) > 0,
+    ),
+  };
+}
+
+/**
+ * A vendor's catalogue of services.
+ *
+ * `base_price`/`currency` are still selected because the columns still exist
+ * and a type that omitted them would drift from the row. Nothing in this
+ * portal reads them any more — a service card's "from" figure comes from the
+ * packages hanging off the service, through the same `packagePricing` a client
+ * sees, so the two cannot disagree.
+ *
+ * The error is surfaced rather than swallowed. The previous version dropped it
+ * and returned `[]`, which is how a failing read looked exactly like an empty
+ * catalogue and sent vendors to support instead of to a retry.
+ *
+ * ARCHIVED ROWS ARE OPT-IN
+ * `includeArchived` widens the read to soft-deleted services, and only the
+ * services screen asks for it — that screen has an Archived tab and a Restore
+ * action, so it needs rows nobody else should see. Everywhere a service is
+ * *chosen* rather than *managed* (the package editor's picker) keeps the
+ * default and gets live rows only, because offering a vendor a service they
+ * archived is offering them a choice they already made.
+ *
+ * The flag is part of the query key, so the two reads cache separately, and
+ * both still fall under an `invalidateQueries(['v-services', vendorId])` —
+ * react-query matches keys by prefix, so a write on the services screen
+ * refreshes the package editor's picker too.
+ */
+export function useServices(vendorId?: string, options?: { includeArchived?: boolean }) {
+  const includeArchived = options?.includeArchived ?? false;
+
   return useQuery({
-    queryKey: ['v-services', vendorId],
+    queryKey: ['v-services', vendorId, includeArchived ? 'with-archived' : 'live'],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase
+      const query = supabase
         .from('vendor_services')
-        .select('id,title,description,base_price,currency,is_active,category_id')
-        .eq('vendor_id', vendorId!)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .select(
+          'id,title,description,base_price,currency,is_active,category_id,pricing_models,deleted_at',
+        )
+        .eq('vendor_id', vendorId!);
+
+      const { data, error } = await (includeArchived ? query : query.is('deleted_at', null)).order(
+        'created_at',
+        { ascending: false },
+      );
+      if (error) throw error;
       return (data ?? []) as ServiceModel[];
     },
   });
 }
 
+/**
+ * The platform's service taxonomy, for the picker on the service form.
+ *
+ * World-readable through `ref_read_categories`, maintained by the console, and
+ * effectively static within a session — so it is cached indefinitely and not
+ * keyed by vendor. A category an admin adds shows up on the vendor's next
+ * visit without a release.
+ *
+ * Ordered by `sort_order` then name, matching the console's own list: a vendor
+ * and an operator discussing "the fourth one down" are looking at the same
+ * fourth one.
+ */
+export function useServiceCategories() {
+  return useQuery({
+    queryKey: ['service-categories'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('id,name')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ServiceCategoryModel[];
+    },
+  });
+}
+
+/**
+ * The vendor's portfolio, in the order they curated it.
+ *
+ * `created_at` breaks ties on purpose: every row predating the reorder feature
+ * carries the column default of 0, and without a second key those rows would come
+ * back in whatever order the planner happened to produce — so a gallery could
+ * reshuffle itself between two refetches with nothing having changed.
+ */
 export function useMedia(vendorId?: string) {
   return useQuery({
     queryKey: ['v-media', vendorId],
@@ -522,7 +636,8 @@ export function useMedia(vendorId?: string) {
         .select('id,media_type,url,caption,is_primary,sort_order')
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
-        .order('sort_order', { ascending: true });
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
       return (data ?? []) as MediaModel[];
     },
   });
@@ -547,12 +662,25 @@ export function useBlockedDates(vendorId?: string) {
     queryKey: ['v-blocked', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase
+      // The booking is embedded rather than fetched per row: the calendar names
+      // the job behind every non-manual block, and one round trip per blocked
+      // day would turn a month view into thirty requests.
+      const { data, error } = await supabase
         .from('vendor_blocked_dates')
-        .select('id,blocked_date,reason,source')
+        .select(
+          'id,blocked_date,reason,source,booking_id,' +
+            'bookings(id,reference_no,status,start_time,end_time,location,amount,currency,client_id)',
+        )
         .eq('vendor_id', vendorId!)
         .order('blocked_date', { ascending: true });
-      return (data ?? []) as BlockedDateModel[];
+      if (error) throw error;
+      // Cast before mapping: the select is too long for supabase-js to infer a
+      // row shape from, so it falls back to a union the spread below cannot
+      // read. `one()` then normalizes the embed — PostgREST returns a to-one
+      // relation as an object, but the generated types widen it to an array, and
+      // no component should have to handle both shapes.
+      const rows = (data ?? []) as unknown as BlockedDateModel[];
+      return rows.map((row) => ({ ...row, bookings: one(row.bookings) }));
     },
   });
 }
@@ -810,6 +938,7 @@ export function useVendorPayouts(vendorId: string | undefined, params: PageParam
   });
 }
 
+/** A vendor's campaigns, newest window first. */
 export function usePromotions(vendorId?: string) {
   return useQuery({
     queryKey: ['v-promotions', vendorId],
@@ -817,7 +946,7 @@ export function usePromotions(vendorId?: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('promotions')
-        .select('id,title,description,starts_at,ends_at,is_active')
+        .select('id,title,description,banner_url,starts_at,ends_at,is_active')
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
         .order('starts_at', { ascending: false });
@@ -826,23 +955,57 @@ export function usePromotions(vendorId?: string) {
   });
 }
 
-/** One page of the vendor's discount codes, newest first unless re-sorted. */
-export function useDiscounts(vendorId: string | undefined, params: PageParams) {
+/**
+ * The discount codes attached to this vendor's promotions.
+ *
+ * A separate read rather than an embed on `usePromotions`, so a campaign card
+ * still draws when this fails or is slow — the promotion is the thing being
+ * managed and its redemption count is commentary on it. Filtered to rows that
+ * actually name a promotion, because an unattached code belongs to the
+ * Discounts screen and would only inflate the totals here.
+ */
+export function usePromotionDiscounts(vendorId?: string) {
   return useQuery({
-    ...pagedOptions(['v-discounts', vendorId], params, () =>
-      paginate<DiscountModel>(
-        supabase
-          .from('discounts')
-          .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active', {
-            count: 'exact',
-          })
-          .eq('vendor_id', vendorId!)
-          .is('deleted_at', null),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
+    queryKey: ['v-promotion-discounts', vendorId],
     enabled: !!vendorId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('discounts')
+        .select('id,promotion_id,code,type,value,currency,max_uses,used_count,is_active')
+        .eq('vendor_id', vendorId!)
+        .not('promotion_id', 'is', null)
+        .is('deleted_at', null);
+      return (data ?? []) as PromotionDiscountModel[];
+    },
+  });
+}
+
+/**
+ * Every discount code this vendor owns, newest window first.
+ *
+ * Read whole rather than a page at a time. The screen above it filters by a
+ * status that is *derived* — a code inside its window that has hit its cap is
+ * not what `is_active` says it is — and counts redemptions across the whole
+ * set, and neither can be asked of one page: a "Live (3)" badge computed from
+ * rows 1–25 is wrong the moment there are 26. A vendor's own codes are a set
+ * measured in tens, so this is one small read rather than a page plus the
+ * aggregate queries the badges and tiles would otherwise each need.
+ */
+export function useDiscounts(vendorId?: string) {
+  return useQuery({
+    queryKey: ['v-discounts', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('discounts')
+        .select(
+          'id,code,type,value,currency,max_uses,used_count,min_amount,promotion_id,starts_at,ends_at,is_active',
+        )
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('starts_at', { ascending: false });
+      return (data ?? []) as DiscountModel[];
+    },
   });
 }
 
@@ -873,43 +1036,6 @@ export function usePlans() {
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       return (data ?? []) as PlanModel[];
-    },
-  });
-}
-
-export function useVendorDashboard(vendorId?: string) {
-  return useQuery({
-    queryKey: ['v-dashboard', vendorId],
-    enabled: !!vendorId,
-    queryFn: async () => {
-      const [requests, quoteReqs, escrowHeld, reviews] = await Promise.all([
-        supabase
-          .from('bookings')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .eq('status', 'requested'),
-        supabase
-          .from('quotations')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .eq('status', 'requested'),
-        supabase
-          .from('escrow_transactions')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .in('status', ['held', 'release_requested', 'payout_approved']),
-        supabase
-          .from('reviews')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .eq('status', 'published'),
-      ]);
-      return {
-        bookingRequests: requests.count ?? 0,
-        quoteRequests: quoteReqs.count ?? 0,
-        escrowHeld: escrowHeld.count ?? 0,
-        reviews: reviews.count ?? 0,
-      };
     },
   });
 }

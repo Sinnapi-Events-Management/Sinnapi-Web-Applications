@@ -8,4 +8,4 @@ export {
   formatValue,
   seriesDelta,
   sumSeries,
-} from '@/lib/analytics';
+} from '@sinnapi/ui/analytics';

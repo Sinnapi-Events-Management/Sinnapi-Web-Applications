@@ -1,7 +1,6 @@
 import { Chip, Stack, Tooltip } from '@sinnapi/ui';
-import ChartCardShell from '@/components/analytics/ChartCard';
-import type { ExportFormat } from '../../data/reportExport';
-import ExportMenu from './ExportMenu';
+import { ChartCard as ChartCardShell } from '@sinnapi/ui/analytics';
+import { ExportMenu, type ExportFormat } from '@sinnapi/ui/export';
 
 type Accent = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 
@@ -48,7 +47,7 @@ export default function ChartCard({
           />
         </Tooltip>
       )}
-      {onExport && <ExportMenu onExport={onExport} />}
+      {onExport && <ExportMenu onExport={onExport} iconOnly label="Export this table" />}
     </Stack>
   );
 

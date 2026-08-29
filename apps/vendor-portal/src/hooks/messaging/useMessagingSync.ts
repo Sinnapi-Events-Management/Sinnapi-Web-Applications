@@ -12,6 +12,14 @@ export type MessagingSyncOptions = {
    * announce an arrival exactly once.
    */
   onMessageArrived?: (row: MessageArrivalRow) => void;
+  /**
+   * Whether to hold the subscription open. Defaults to on; it exists for
+   * subscribers whose thread is only sometimes on screen. The quotation page's
+   * message tab is unmounted while the reader is on Overview, and a websocket
+   * held open for a panel that does not exist costs a connection to deliver
+   * refetches nothing is going to render.
+   */
+  enabled?: boolean;
 };
 
 /**
@@ -29,7 +37,7 @@ export type MessagingSyncOptions = {
  */
 export function useMessagingSync(
   conversationId?: string | null,
-  { onMessageArrived }: MessagingSyncOptions = {},
+  { onMessageArrived, enabled = true }: MessagingSyncOptions = {},
 ) {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -60,5 +68,6 @@ export function useMessagingSync(
     onThreadChange: refreshThread,
     onParticipantChange: refreshReadState,
     onMessageArrived,
+    enabled,
   });
 }

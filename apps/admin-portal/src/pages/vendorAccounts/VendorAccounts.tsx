@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Alert, DataTable, PageTitle, Snackbar } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useVendorAccounts } from './hooks/useVendorAccounts';
 import { getColumns } from './schema';
 import VendorAccountsToolbar from './components/organisms/VendorAccountsToolbar';

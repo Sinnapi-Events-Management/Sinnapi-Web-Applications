@@ -49,6 +49,70 @@ export type VendorDetailModel = VendorCardModel & {
 };
 
 /**
+ * A vendor's published package, as a client reads one.
+ *
+ * The field names are the column names because that is what PostgREST returns,
+ * and because `@sinnapi/ui`'s `QuotePackageLike` — the shape every app prices
+ * and renders from — is defined against those names. Renaming here would mean
+ * mapping on the way into every component that reads one.
+ *
+ * No moderation columns: the read policy would refuse them to a client, and
+ * whether a package was taken down is not a client's business — an unpublished
+ * package simply is not there.
+ */
+export type PackageLineModel = {
+  id: string;
+  tier_id: string | null;
+  description: string;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  unit_label: string | null;
+  notes: string | null;
+  is_optional: boolean | null;
+  sort_order: number | null;
+};
+
+export type PackageTierModel = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_recommended: boolean | null;
+  discount_rate: number | string | null;
+  sort_order: number | null;
+  quote_template_items: PackageLineModel[] | null;
+};
+
+export type PackageModel = {
+  id: string;
+  vendor_id: string;
+  name: string;
+  summary: string | null;
+  notes: string | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  vendor_service_id: string | null;
+  category_id: string | null;
+  /** How this package is charged — null on any published before 0823c. */
+  pricing_model: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  lead_time_days: number | null;
+  tax_rate: number | string | null;
+  tax_inclusive: boolean | null;
+  valid_days: number | null;
+  advance_rate: number | string | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  visibility: 'private' | 'public' | null;
+  is_active: boolean | null;
+  published_at: string | null;
+  sort_order: number | null;
+  quote_template_tiers: PackageTierModel[] | null;
+  /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
+  quote_template_items: PackageLineModel[] | null;
+};
+
+/**
  * One portfolio item from `vendor_media`. `media_type` is the DB enum, so the
  * two values are exhaustive. `url` is nullable in the table (a row can exist
  * with only a storage path), so anything without one is dropped before render.
@@ -356,6 +420,16 @@ export type QuotationStatusEventModel = {
   to_status: string;
   reason: string | null;
   occurred_at: string;
+  /**
+   * Who made the transition — `auth.uid()` at the moment the trigger fired.
+   *
+   * The only column that says whose words `reason` is, and the reason the
+   * feedback callout can name an author instead of guessing one. Guessing is
+   * not available: `voided` is written by `void_quotation`, which either side
+   * may call, so the status alone would have us telling a client they had
+   * cancelled a quote their vendor withdrew.
+   */
+  actor_id: string | null;
 };
 
 // ---------- Events ----------

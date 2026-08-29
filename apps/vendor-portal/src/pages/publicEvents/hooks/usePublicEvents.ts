@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { usePublicEventSearch, usePublicEventFacetCounts, useMyInterests } from '@/hooks/queries';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -61,12 +61,32 @@ export function usePublicEvents(vendorId: string) {
     [interests.data],
   );
 
+  /**
+   * The one undo for everything the toolbar holds. It lives here rather than in
+   * a component because three surfaces offer it — the filter panel's header,
+   * the chip row, and the "no matches" empty state — and a lambda repeated in
+   * three places is three chances for one of them to forget the search term.
+   */
+  // Pulled out rather than called through their objects: both are stable
+  // `useCallback`s, while the objects carrying them are rebuilt every render —
+  // depending on those would defeat the memo (and the lint rule that checks it).
+  const { reset: resetFilters } = filters;
+  const { clear: clearSearch } = search;
+
+  const clearAll = useCallback(() => {
+    resetFilters();
+    clearSearch();
+  }, [resetFilters, clearSearch]);
+
   return {
     search,
     filters,
+    clearAll,
     /** Occasions for the facet dropdown and the active-filter chips. */
     typeOptions,
     facetCounts: facets.data,
+    /** Counts still in flight — the source tabs show badge placeholders. */
+    isLoadingFacets: facets.isPending,
     events,
     interestedIds,
     // Size of the filtered set, not of this page — drives the "N of M" copy.

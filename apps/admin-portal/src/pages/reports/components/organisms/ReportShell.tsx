@@ -1,6 +1,6 @@
 import { Alert } from '@sinnapi/ui';
 import type { ReportPeriod, ReportTable } from '../../schema';
-import type { ExportFormat } from '../../data/reportExport';
+import type { ExportFormat } from '@sinnapi/ui/export';
 import { useReportExport } from '../../hooks/useReportExport';
 import ReportToolbar from './ReportToolbar';
 

@@ -4,11 +4,11 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import type { ReportPeriod, SeriesDef } from '../../schema';
 import { useVendorReport } from '../../data';
-import KpiRow from '@/components/analytics/KpiRow';
+import { KpiRow } from '@sinnapi/ui/analytics';
 import ChartCard from '../molecules/ChartCard';
-import GroupedBarChart from '@/components/analytics/charts/GroupedBarChart';
-import TrendAreaChart from '@/components/analytics/charts/TrendAreaChart';
-import BreakdownDonut from '@/components/analytics/charts/BreakdownDonut';
+import { GroupedBarChart } from '@sinnapi/ui/analytics';
+import { TrendAreaChart } from '@sinnapi/ui/analytics';
+import { BreakdownDonut } from '@sinnapi/ui/analytics';
 import ReportShell from './ReportShell';
 
 const SIGNUP_SERIES: SeriesDef[] = [{ key: 'signups', label: 'New vendors', color: 'secondary' }];

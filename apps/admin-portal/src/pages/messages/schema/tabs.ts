@@ -1,5 +1,5 @@
 import type { InboxCounts, InboxTab } from '@sinnapi/ui/messaging';
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 
 /**
  * The `conversation_status` enum, in lifecycle order, plus an "all" view.

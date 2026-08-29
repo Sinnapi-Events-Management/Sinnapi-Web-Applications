@@ -2,6 +2,8 @@ import { Grid, Box, Divider, QueryState } from '@sinnapi/ui';
 import VendorHeadline from './components/molecules/VendorHeadline';
 import VendorReviews from './components/molecules/VendorReviews';
 import VendorMediaSection from './components/organisms/VendorMediaSection';
+import VendorPackagesSection from './components/organisms/VendorPackagesSection';
+import VendorAvailabilitySection from './components/organisms/VendorAvailabilitySection';
 import VendorBookingPanel from './components/organisms/VendorBookingPanel';
 import { useVendorDetail } from './hooks/useVendorDetail';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
@@ -37,6 +39,19 @@ export default function VendorDetail() {
               isLoading={isMediaLoading}
               error={mediaError}
             />
+            {/* Above availability and reviews: "what does this cost and what do
+                I get" is the question a visitor arrives with, and every section
+                below only gets asked once that one is answered. The section
+                renders nothing when the vendor publishes no packages, so a
+                bespoke-only vendor's profile is unchanged. */}
+            <VendorPackagesSection vendorId={vendor.id} vendorName={vendor.business_name} />
+
+            {/* Between the portfolio and the reviews on purpose: a visitor has
+                just decided they like the work and has not yet decided to
+                trust it, and "can they even do my date?" is the question that
+                falls in that gap. */}
+            <Divider sx={{ my: 4 }} />
+            <VendorAvailabilitySection vendorId={vendor.id} />
             <Divider sx={{ my: 4 }} />
             <VendorReviews />
           </Grid>

@@ -111,3 +111,49 @@ export function groupMessagesByDay<T extends { createdAt: string | null }>(
   }
   return groups;
 }
+
+/** Consecutive messages from one sender inside this window read as one turn. */
+export const TURN_WINDOW_MS = 5 * 60 * 1000;
+
+type TurnCandidate = {
+  senderId?: string | null;
+  createdAt: string | null;
+  isSystem?: boolean | null;
+};
+
+/**
+ * True when `next` continues the same speaking turn as `prev`.
+ *
+ * Turn detection is what stops a burst of four short replies from rendering as
+ * four avatars, four timestamps and four wide gaps — the visual noise that
+ * makes a thread tiring to read. It lives here rather than in the thread
+ * component because it is a pure predicate over two messages, and the skeleton,
+ * the thread and any future virtualized list all have to agree on it.
+ *
+ * A system message never joins a turn (it is nobody's), and a missing sender or
+ * timestamp is treated as "cannot prove they belong together" rather than
+ * grouping on a pair of undefineds.
+ */
+export function isSameTurn(
+  prev: TurnCandidate | undefined,
+  next: TurnCandidate,
+  windowMs: number = TURN_WINDOW_MS,
+): boolean {
+  if (!prev || prev.isSystem || next.isSystem) return false;
+  if (!prev.senderId || prev.senderId !== next.senderId) return false;
+  if (!prev.createdAt || !next.createdAt) return false;
+  const gap = new Date(next.createdAt).getTime() - new Date(prev.createdAt).getTime();
+  return Number.isFinite(gap) && gap < windowMs;
+}
+
+/**
+ * The one-line caption above a thread embedded in a page about something else.
+ *
+ * Shared because the sentence is a claim about the data model, not copy: one
+ * `conversations` row per client↔vendor pair, with no `quotation_id` on it. If
+ * the two portals ever word this differently, one of them is describing a
+ * thread that does not exist.
+ */
+export function conversationScopeCaption(counterpartyName: string): string {
+  return `Your full conversation with ${counterpartyName} — it covers every quote and booking between you, not just this one.`;
+}

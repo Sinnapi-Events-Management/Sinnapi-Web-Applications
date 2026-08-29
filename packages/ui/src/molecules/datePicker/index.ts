@@ -8,6 +8,11 @@ export * from './DateField';
 export * from './DateRangeField';
 export * from './TimeField';
 export * from './DateCalendar';
+// The skin's *types* travel with the components (a caller passing `dayEmphasis`
+// needs to name it); `calendarSx` itself stays internal.
+export type { CalendarDensity, CalendarDayEmphasis, CalendarSkin } from './calendar.styles';
+// Likewise the tooltip map's type — `CalendarSurface` itself stays internal.
+export type { DayTooltips, DayModifierLabels } from './CalendarSurface';
 export * from './CalendarLegend';
 export * from './presets';
 export * from './types';

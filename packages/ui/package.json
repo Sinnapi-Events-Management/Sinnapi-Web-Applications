@@ -15,8 +15,11 @@
     "./messaging": "./src/messaging/index.ts",
     "./notifications": "./src/notifications/index.ts",
     "./settings": "./src/settings/index.ts",
+    "./media": "./src/media/index.ts",
     "./profile": "./src/profile/index.ts",
     "./router": "./src/router/index.ts",
+    "./analytics": "./src/analytics/index.ts",
+    "./export": "./src/export/index.ts",
     "./forms": "./src/forms/index.ts",
     "./system": "./src/system.ts",
     "./icons": "./src/icons.ts"
@@ -40,12 +43,19 @@
     "react": "^18.3.1",
     "react-day-picker": "^9.14.0",
     "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
     "react-hook-form": "^7.53.0",
     "react-router-dom": "^6.26.2",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "xlsx": "^0.18.5"
   },
   "peerDependenciesMeta": {
     "@marsidev/react-turnstile": {
+      "optional": true
+    },
+    "recharts": {
       "optional": true
     },
     "react-router-dom": {
@@ -59,6 +69,15 @@
     },
     "zod": {
       "optional": true
+    },
+    "jspdf": {
+      "optional": true
+    },
+    "jspdf-autotable": {
+      "optional": true
+    },
+    "xlsx": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -66,10 +85,14 @@
     "@marsidev/react-turnstile": "^1.5.4",
     "@types/react": "^18.3.8",
     "@types/react-dom": "^18.3.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "react-day-picker": "^9",
     "react-hook-form": "^7.53.0",
     "react-router-dom": "^6.26.2",
+    "recharts": "^2.15.0",
     "typescript": "^5.6.2",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   }
 }

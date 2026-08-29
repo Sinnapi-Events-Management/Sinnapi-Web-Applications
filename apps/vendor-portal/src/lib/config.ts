@@ -48,7 +48,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Bookings', to: '/bookings', icon: EventNoteIcon },
       { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon },
-      { label: 'Templates', to: '/templates', icon: DescriptionIcon },
+      { label: 'Packages', to: '/packages', icon: DescriptionIcon },
     ],
   },
   {
@@ -140,4 +140,29 @@ export function formatDateTime(value: string | null | undefined): string {
 
 export function titleize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 365 * 24 * 60 * 60],
+  ['month', 30 * 24 * 60 * 60],
+  ['day', 24 * 60 * 60],
+  ['hour', 60 * 60],
+  ['minute', 60],
+];
+
+/**
+ * Short relative timestamp ("2 hr ago") for activity feeds and freshness
+ * captions, where an absolute date is noise. Falls back to "Just now" under a
+ * minute. Mirrors the admin portal's helper so a timestamp reads the same in
+ * both consoles.
+ */
+export function formatRelative(value: string | null | undefined): string {
+  if (!value) return '—';
+  const seconds = Math.round((Date.now() - new Date(value).getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' });
+  for (const [unit, secondsPerUnit] of RELATIVE_UNITS) {
+    if (seconds >= secondsPerUnit) return rtf.format(-Math.floor(seconds / secondsPerUnit), unit);
+  }
+  return 'Just now';
 }

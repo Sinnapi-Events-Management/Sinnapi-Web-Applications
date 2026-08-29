@@ -11,6 +11,7 @@
  * Value in, value out is still `YYYY-MM-DD`, so every zod schema and Supabase
  * write it feeds keeps working untouched.
  */
+import type { ReactNode } from 'react';
 import { Box } from '@mui/material';
 import CalendarIcon from '@mui/icons-material/CalendarTodayOutlined';
 import { CalendarSurface } from './CalendarSurface';
@@ -20,6 +21,7 @@ import { PickerTrigger } from './PickerTrigger';
 import { useDateField } from './hooks/useDateField';
 import { useDayModifiers } from './hooks/useDayBounds';
 import type { IsoDate } from './isoDate';
+import type { CalendarDayEmphasis } from './calendar.styles';
 import type { DateBoundsProps, DayModifiers, PickerFieldProps } from './types';
 
 export type DateFieldProps = PickerFieldProps &
@@ -29,12 +31,25 @@ export type DateFieldProps = PickerFieldProps &
     onChange: (next: IsoDate) => void;
     /** Extra day markers — `blocked` and `booked` come pre-styled. */
     modifiers?: DayModifiers;
+    /**
+     * How those markers read. `solid` fills the day rather than dotting it — for
+     * a field whose markers are advisory rather than forbidden, where a 4px dot
+     * is too quiet to change anyone's mind before they click.
+     */
+    dayEmphasis?: CalendarDayEmphasis;
+    /**
+     * Rendered between the grid and the footer — a `CalendarLegend` saying what
+     * the markers mean. A marked calendar without a key is a puzzle.
+     */
+    calendarFooter?: ReactNode;
   };
 
 export function DateField({
   value,
   onChange,
   modifiers,
+  dayEmphasis,
+  calendarFooter,
   minDate,
   maxDate,
   disablePast,
@@ -96,9 +111,11 @@ export function DateField({
             startMonth={bounds.startMonth}
             endMonth={bounds.endMonth}
             modifiers={dayModifiers}
+            dayEmphasis={dayEmphasis}
             autoFocus
           />
         </Box>
+        {calendarFooter}
         <PickerFooter
           summary={display}
           emptyHint="No date selected"

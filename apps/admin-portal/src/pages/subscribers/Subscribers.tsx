@@ -1,5 +1,5 @@
 import { Alert, DataTable, PageTitle, Typography } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useSubscribers } from './hooks/useSubscribers';
 import { SUBSCRIPTION_COLUMNS, SUPPRESSION_COLUMNS } from './schema/Columns';
 import SubscribersSummary from './components/organisms/SubscribersSummary';

@@ -30,9 +30,27 @@ export * from './statusColor';
 export * from './rpcError';
 export * from './bookingTransitions';
 export * from './quotationTransitions';
+// What the other side said about a quote, and how to word it for whoever is
+// reading. Beside the transitions because it is the same record: the note is
+// written by the transition and has nowhere else to live.
+export * from './quotationFeedback';
 export * from './bookingFromQuotation';
 export * from './quotationPricing';
 export * from './quotationLines';
+// Quote packages — a vendor's published offer, priced in tiers. The logic
+// first, then the two pieces every app composes a package out of.
+export * from './packagePricing';
+export * from './packageLines';
+export * from './packageErrors';
+export * from './packageQuery';
+export * from './PackageScopeList';
+export * from './PackageTierTabs';
+// How a vendor charges. A set on a service, one value on a package — the two
+// shapes share one vocabulary so a badge cannot mean different things on the
+// vendor's card and the client's.
+export * from './pricingModels';
+export * from './PricingModelChip';
+export * from './PricingModelPicker';
 // The quotation as every portal reads it: its identity and dates, and how the
 // booking made from it compares to what was quoted.
 export * from './QuotationSummaryRows';
@@ -71,3 +89,18 @@ export * from './settlement';
 export * from './SettlementFigures';
 export * from './SettlementDeadline';
 export * from './SettlementTrail';
+// Faceted browse — the three pieces a searchable, filterable collection is
+// built from. Shared rather than per-portal: the client's vendor discovery and
+// the vendor's public-events feed had already forked identical copies.
+export * from './FacetSelect';
+export * from './LoadMoreResults';
+export * from './FilterDisclosure';
+// Status filter tabs for a list view — the same bar every portal's queues,
+// inbox and dashboard navigate with.
+export * from './StatusTabs';
+// Section tabs for a *detail* page — the sibling of `StatusTabs`, splitting one
+// long stack of cards into sections instead of filtering a list.
+export * from './DetailTabs';
+// The column layout those sections lay their cards out in — null-safe, so a
+// card that decides it has nothing to say leaves no hole behind.
+export * from './SectionGrid';

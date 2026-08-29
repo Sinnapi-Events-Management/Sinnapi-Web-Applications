@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, PageTitle, Stack } from '@sinnapi/ui';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import { useNavigate } from 'react-router-dom';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useNewsletters } from './hooks/useNewsletters';
 import NewslettersSummary from './components/organisms/NewslettersSummary';
 import NewslettersToolbar from './components/organisms/NewslettersToolbar';

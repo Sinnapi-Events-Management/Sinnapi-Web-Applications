@@ -10,9 +10,20 @@ export type UseZodFormProps<T extends FieldValues> = Omit<UseFormProps<T>, 'reso
  *
  * `mode: 'onBlur'` is the point: a field is checked when the user leaves it,
  * so mistakes surface next to the input while they're still in context rather
- * than as a wall of errors on submit. `reValidateMode: 'onChange'` then clears
- * a shown error as soon as the user fixes it — re-blurring to find out whether
- * the correction worked would be the annoying half of onBlur validation.
+ * than as a wall of errors on submit. `reValidateMode: 'onChange'` takes over
+ * once the form has been submitted once, and from then on a shown error clears
+ * as the user types — re-blurring to find out whether a correction worked is
+ * the annoying half of onBlur validation, and the submit is the moment that
+ * half stops being worth it. (Before that first submit, `mode` still governs
+ * both directions: an error raised on blur clears on the next blur.)
+ *
+ * WHEN it validates is only half the rule. WHETHER the result may be shown is
+ * the other half, and it lives in `useFieldError`, which every `Controlled*`
+ * component goes through: a field stays quiet until the user has actually put
+ * something into it or has tried to submit. Blur is not proof of intent — a
+ * modal's focus trap blurs an `autoFocus`ed field a tick after it opens — and
+ * a form that greets you with an error about a field you have not touched has
+ * mistaken its own machinery for the user's mistake.
  *
  * Every portal form goes through this so the timing can never drift form to
  * form; callers only supply the schema and their default/`values`.

@@ -1,48 +1,34 @@
-import { Grid, Button, Stack, PageTitle, QueryState } from '@sinnapi/ui';
-import AddIcon from '@mui/icons-material/Add';
+import { PageTitle } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
-import { usePromotions } from './hooks/usePromotions';
-import PromotionCard from './components/molecules/PromotionCard';
-import PromotionDialog from './components/organisms/PromotionDialog';
-import { EmptyState } from '@sinnapi/ui/router';
+import PromotionsWorkspace from './components/organisms/PromotionsWorkspace';
 
-function PromotionsList({ vendorId }: { vendorId: string }) {
-  const { rows, isLoading, error, open, openDialog, closeDialog } = usePromotions(vendorId);
-
-  return (
-    <>
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openDialog}>
-          New promotion
-        </Button>
-      </Stack>
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="No promotions"
-            description="Run a promotion to attract more clients."
-          />
-        ) : (
-          <Grid container spacing={3}>
-            {rows.map((p) => (
-              <Grid item xs={12} sm={6} md={4} key={p.id}>
-                <PromotionCard promotion={p} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </QueryState>
-
-      <PromotionDialog open={open} vendorId={vendorId} onClose={closeDialog} />
-    </>
-  );
-}
-
+/**
+ * A vendor's marketing campaigns.
+ *
+ * A PROMOTION is the offer clients see — a title, artwork, and the dates it
+ * runs between. A DISCOUNT is the code that prices it. That split is the shape
+ * of this screen: nothing here sets a percentage, and every redemption figure
+ * is read from the discount codes attached to a campaign, through the same rows
+ * the Discounts screen manages. The vendor sees one number for what a campaign
+ * returned, wherever they look at it.
+ *
+ * The state a campaign is really in is derived rather than stored — `is_active`
+ * alone would call a campaign that ended last February "Active" forever — so
+ * Live, Scheduled, Paused and Ended are resolved from the flag and the window
+ * together. See `schema/promotionStatus`.
+ *
+ * The page itself is a title and a gate. Everything below it lives in
+ * `PromotionsWorkspace`, which is mounted only once a vendor id exists — so no
+ * hook underneath has to defend against not having one.
+ */
 export default function Promotions() {
   return (
     <>
-      <PageTitle title="Promotions" subtitle="Promote your services to clients." />
-      <VendorGate>{(vendorId) => <PromotionsList vendorId={vendorId} />}</VendorGate>
+      <PageTitle
+        title="Promotions"
+        subtitle="Run dated campaigns on your profile, and see what each one brought back."
+      />
+      <VendorGate>{(vendorId) => <PromotionsWorkspace vendorId={vendorId} />}</VendorGate>
     </>
   );
 }

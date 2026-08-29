@@ -2,7 +2,6 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Button, Stack, SectionCard } from '@sinnapi/ui';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
-import ChatIcon from '@mui/icons-material/Chat';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 
 type Props = {
@@ -11,9 +10,16 @@ type Props = {
 };
 
 /**
- * Where the client goes from here. Exactly one action is filled at a time — the
- * review prompt when it applies, otherwise messaging the vendor — so the panel
- * reads as a recommendation rather than three equal choices.
+ * Where the client goes from here — the pages this booking leads to, once there
+ * is nothing left to do on the booking itself.
+ *
+ * Messaging the vendor used to sit here and now lives in the pinned action bar:
+ * it is available in every state of the booking, so it belongs where it is
+ * always reachable rather than inside a section. What is left is genuinely
+ * "afterwards" — the review a completed booking earns, and the escrow record.
+ *
+ * At most one action is filled, so the panel reads as a recommendation rather
+ * than two equal choices.
  */
 export default function BookingNextStepsCard({ canReview }: Props) {
   return (
@@ -31,16 +37,8 @@ export default function BookingNextStepsCard({ canReview }: Props) {
         )}
         <Button
           component={RouterLink}
-          to="/messages"
-          variant={canReview ? 'outlined' : 'contained'}
-          startIcon={<ChatIcon />}
-        >
-          Message vendor
-        </Button>
-        <Button
-          component={RouterLink}
           to="/escrow"
-          variant="text"
+          variant={canReview ? 'text' : 'outlined'}
           startIcon={<AccountBalanceIcon />}
         >
           View escrow

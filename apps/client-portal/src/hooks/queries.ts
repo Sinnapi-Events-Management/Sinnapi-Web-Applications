@@ -8,6 +8,8 @@ import {
 import {
   paginate,
   rpcErrorMessage,
+  PACKAGE_PUBLIC_COLUMNS,
+  todayIso,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
   type PageParams,
   type Paged,
@@ -17,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { readFunctionError } from '@/lib/functions';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
 import type {
+  PackageModel,
   VendorDetailModel,
   VendorMediaModel,
   VendorSearchCardModel,
@@ -300,6 +303,34 @@ export function useVendor(slug: string) {
 }
 
 /**
+ * A vendor's published packages, for the profile page and the quote request.
+ *
+ * No `visibility` filter here, and deliberately: the read policy already
+ * decides what a client may see, and repeating the rule in the query is how the
+ * two come to disagree. What the query does add is the ordering the vendor
+ * arranged, and the `tier_id is null` scope on the add-on embed — without it
+ * every tier line arrives twice and each tier's total is computed over the
+ * whole package.
+ */
+export function useVendorPackages(vendorId?: string) {
+  return useQuery({
+    queryKey: ['vendor-packages', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_templates')
+        .select(PACKAGE_PUBLIC_COLUMNS)
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .is('quote_template_items.tier_id', null)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as PackageModel[];
+    },
+  });
+}
+
+/**
  * A public vendor's portfolio — the gallery on the vendor detail page.
  *
  * Ordered the way the vendor curated it: the primary shot first, then their own
@@ -310,6 +341,39 @@ export function useVendor(slug: string) {
  * `vmedia_read` exposes these rows to anon and authenticated alike for public
  * vendors, so no session is required.
  */
+/**
+ * The days a vendor cannot take work, from today forward.
+ *
+ * Readable without being the vendor: `blocked_read` discloses blocked dates for
+ * any published vendor, which is the whole point — a client deciding on a date
+ * should not have to send a request to find out it was never available.
+ *
+ * Only the date is selected. The row also carries a `reason` and a `source`,
+ * and both are the vendor's business: "unavailable" is all a client needs, and
+ * "blocked — hospital appointment" is not something to publish on their
+ * profile. Past days are dropped server-side; nobody can book them anyway.
+ */
+export function useVendorUnavailableDates(vendorId: string | undefined) {
+  return useQuery({
+    queryKey: ['vendor-unavailable', vendorId],
+    enabled: Boolean(vendorId),
+    // Availability changes when the vendor blocks a day, not when a client
+    // reopens a profile — a minute of staleness saves the round trip on every
+    // tab back to the page.
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_blocked_dates')
+        .select('blocked_date')
+        .eq('vendor_id', vendorId!)
+        .gte('blocked_date', todayIso())
+        .order('blocked_date', { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((row) => row.blocked_date as string);
+    },
+  });
+}
+
 export function useVendorMedia(vendorId: string | undefined) {
   return useQuery({
     queryKey: ['vendor-media', vendorId],
@@ -602,7 +666,7 @@ export function useQuotationStatusHistory(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quotation_status_history')
-        .select('id,from_status,to_status,reason,occurred_at')
+        .select('id,from_status,to_status,reason,occurred_at,actor_id')
         .eq('quotation_id', id)
         .order('occurred_at', { ascending: true });
       if (error) throw error;

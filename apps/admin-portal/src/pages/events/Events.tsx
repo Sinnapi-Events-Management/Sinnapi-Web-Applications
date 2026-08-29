@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { DataTable, Alert, Button, PageTitle } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import type { EventModel } from '@/lib/types';
 import { useEvents } from './hooks/useEvents';
 import { getColumns } from './schema';

@@ -8,6 +8,13 @@ export type VendorRecord = {
   business_name: string;
   status: string;
   visibility: string;
+  /**
+   * The category the vendor was approved under. Read here rather than per-page
+   * because it is the default the service form offers and the fallback the
+   * `vendor_services` insert trigger applies — form and database agreeing on
+   * one answer is the whole point of carrying it.
+   */
+  primary_category_id: string | null;
   primary_image_url: string | null;
   trial_ends_at: string | null;
 } | null;
@@ -41,7 +48,9 @@ export function VendorProvider({ children }: { children: React.ReactNode }) {
       if (!user) return null;
       const { data } = await supabase
         .from('vendors')
-        .select('id,slug,business_name,status,visibility,primary_image_url,trial_ends_at')
+        .select(
+          'id,slug,business_name,status,visibility,primary_category_id,primary_image_url,trial_ends_at',
+        )
         .eq('owner_id', user.id)
         .is('deleted_at', null)
         .maybeSingle();

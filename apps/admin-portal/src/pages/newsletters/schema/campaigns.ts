@@ -1,4 +1,4 @@
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 import type { NewsletterAudience, MarketingTopic } from '@/lib/types';
 import type { NewsletterCampaignCounts } from '@/hooks/queries';
 

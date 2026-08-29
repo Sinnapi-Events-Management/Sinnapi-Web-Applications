@@ -4,6 +4,7 @@ import VendorDetailHero from './organisms/vendorDetailHero';
 import VendorDetailHighlights from './organisms/vendorDetailHighlights';
 import VendorDetailOverview from './organisms/vendorDetailOverview';
 import VendorDetailGallery from './organisms/vendorDetailGallery';
+import VendorDetailPackages from './organisms/vendorDetailPackages';
 import VendorDetailReviews from './organisms/vendorDetailReviews';
 import VendorDetailSidebar from './organisms/vendorDetailSidebar';
 import RelatedVendors from './organisms/relatedVendors';
@@ -18,7 +19,7 @@ import { getVendorDetailData } from './utils/getVendorDetailData';
  * here; presentation lives in the organisms.
  */
 export default async function VendorDetailContainer({ params }: { params: { slug: string } }) {
-  const { vendor, media, reviews, related } = await getVendorDetailData(params.slug);
+  const { vendor, media, reviews, packages, related } = await getVendorDetailData(params.slug);
 
   // Structured data for SEO (LocalBusiness + AggregateRating).
   const jsonLd = {
@@ -57,6 +58,11 @@ export default async function VendorDetailContainer({ params }: { params: { slug
           <Grid item xs={12} md={7} lg={8}>
             <VendorDetailOverview vendor={vendor} />
             <VendorDetailGallery media={media} vendorName={vendor.business_name} />
+            {/* After the portfolio and before the reviews: a visitor has just
+                decided they like the work, and "what does it cost" is the
+                question that falls between liking it and trusting it. Renders
+                nothing when the vendor publishes no packages. */}
+            <VendorDetailPackages packages={packages} vendorName={vendor.business_name} />
             <VendorDetailReviews vendor={vendor} reviews={reviews} />
           </Grid>
           <Grid item xs={12} md={5} lg={4}>

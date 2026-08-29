@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { useVendor, useVendorMedia } from '@/hooks/queries';
-import { toPlayableMedia } from '../utils/mediaSource';
+import { toPlayableMedia } from '@sinnapi/ui/media';
 
 /**
  * Everything the vendor page reads.

@@ -1,4 +1,4 @@
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 
 /** Read-state views over the feed. */
 export const NOTIFICATION_TABS = ['all', 'unread', 'read'] as const;

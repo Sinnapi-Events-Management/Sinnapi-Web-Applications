@@ -4,6 +4,7 @@
 // `./router` — react-hook-form, zod and @hookform/resolvers are optional peers
 // that only the form-bearing apps install. Import from `@sinnapi/ui/forms`.
 export * from './useZodForm';
+export * from './useFieldError';
 export * from './useSavedForm';
 export * from './ControlledField';
 export * from './ControlledPasswordField';

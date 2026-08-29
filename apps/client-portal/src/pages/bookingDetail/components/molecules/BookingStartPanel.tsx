@@ -18,7 +18,11 @@ type Props = {
  * The button is never simply hidden when it does not apply. A client arriving
  * on the morning of their event expects to find it, and a panel that silently
  * omits it reads as a broken page rather than an unmet condition — so the
- * withheld case keeps the space and spends it on the reason instead.
+ * withheld case keeps the button and spends the space beside it on the reason.
+ *
+ * Button and note sit side by side from `sm` up because this lives in the
+ * action bar pinned above the tabs, where vertical space is the page's
+ * scarcest: every row here is a row of the booking itself pushed down.
  *
  * The label comes from the shared action spec rather than being written here.
  * This button opens `BookingActionDialog`, which reads that same spec for its
@@ -42,13 +46,18 @@ export default function BookingStartPanel({
   }
 
   return (
-    <Stack spacing={1}>
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      spacing={1.5}
+      alignItems={{ xs: 'stretch', sm: 'center' }}
+      sx={{ minWidth: 0 }}
+    >
       <Button
         variant="contained"
-        size="large"
         startIcon={<PlayCircleOutlineIcon />}
         onClick={onStart}
         disabled={!canStart || isBusy}
+        sx={{ flexShrink: 0 }}
       >
         {bookingActionSpec('start').label}
       </Button>

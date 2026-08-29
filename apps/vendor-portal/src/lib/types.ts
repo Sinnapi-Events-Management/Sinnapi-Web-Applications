@@ -311,6 +311,17 @@ export type QuotationDetailModel = {
   vendor_id: string | null;
   client_id: string | null;
   event_id: string | null;
+  /**
+   * The package this quote was asked for or built from. Set by the client when
+   * they request a quote against a published package, and again by
+   * `send_quotation` when the vendor answers from one.
+   */
+  template_id: string | null;
+  template_tier_id: string | null;
+  /** The rates behind `discount_total` / `tax_total`, stored with the quote. */
+  discount_rate: number | null;
+  tax_rate: number | null;
+  tax_inclusive: boolean | null;
   quotation_items: QuotationItemModel[] | null;
   events: EventRefModel | EventRefModel[] | null;
 };
@@ -333,25 +344,117 @@ export type QuotationStatusEventModel = {
   to_status: string;
   reason: string | null;
   occurred_at: string;
+  /**
+   * Who made the transition — `auth.uid()` at the moment the trigger fired.
+   *
+   * The only column that says whose words `reason` is, and the reason the
+   * feedback callout can name an author instead of guessing one. Guessing is
+   * not available: `voided` is written by `void_quotation`, which either side
+   * may call, so the status alone would have us telling a client they had
+   * cancelled a quote their vendor withdrew.
+   */
+  actor_id: string | null;
 };
 
-export type TemplateModel = {
+/**
+ * A vendor's quote package, read whole: header, tiers, tier lines and the
+ * add-ons shared across every tier.
+ *
+ * The field names are the column names because this is what PostgREST hands
+ * back, and because `@sinnapi/ui`'s `QuotePackageLike` — the shape all four
+ * apps compute and render from — is defined against those names. Renaming here
+ * would mean mapping on the way into every component that reads one.
+ */
+export type PackageLineModel = {
+  id: string;
+  tier_id: string | null;
+  description: string;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  unit_label: string | null;
+  notes: string | null;
+  is_optional: boolean | null;
+  sort_order: number | null;
+};
+
+export type PackageTierModel = {
   id: string;
   name: string;
-  currency: string | null;
-  notes: string | null;
-  is_active: boolean | null;
-  quote_template_items: { id: string }[] | null;
+  description: string | null;
+  is_recommended: boolean | null;
+  discount_rate: number | string | null;
+  sort_order: number | null;
+  quote_template_items: PackageLineModel[] | null;
 };
 
+export type PackageModel = {
+  id: string;
+  vendor_id: string;
+  name: string;
+  summary: string | null;
+  notes: string | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  vendor_service_id: string | null;
+  category_id: string | null;
+  /** How this package is sold — one of the models its service offers. */
+  pricing_model: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  lead_time_days: number | null;
+  tax_rate: number | string | null;
+  tax_inclusive: boolean | null;
+  valid_days: number | null;
+  advance_rate: number | string | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  visibility: 'private' | 'public' | null;
+  is_active: boolean | null;
+  published_at: string | null;
+  sort_order: number | null;
+  admin_unpublished_at: string | null;
+  admin_unpublished_reason: string | null;
+  quote_template_tiers: PackageTierModel[] | null;
+  /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
+  quote_template_items: PackageLineModel[] | null;
+};
+
+/**
+ * One line of a vendor's catalogue: WHAT they do, not what it costs.
+ *
+ * Price lives on the packages that hang off a service, and the "from" figure a
+ * service card shows is derived from the cheapest published tier among them —
+ * see `useServicePricing`. `base_price`/`currency` are the pre-0823c columns,
+ * still selected so the type matches the row and still read by the data-export
+ * document for historical services, but no longer written by this portal.
+ */
 export type ServiceModel = {
   id: string;
   title: string;
   description: string | null;
+  /** @deprecated Superseded by package pricing. Never written by this portal. */
   base_price: number | null;
+  /** @deprecated Meaningless without `base_price`. */
   currency: string | null;
   is_active: boolean | null;
   category_id: string | null;
+  /** `vendor_services.pricing_models` — the ways this vendor will be paid. */
+  pricing_models: string[] | null;
+  /**
+   * Set when the vendor archived the service.
+   *
+   * A service is never physically deleted: `trg_soft_delete` turns a DELETE on
+   * any table with this column into an UPDATE that stamps it, so the row —
+   * and every booking and package still pointing at it — survives. Only the
+   * services screen reads archived rows, and only so it can offer them back.
+   */
+  deleted_at: string | null;
+};
+
+/** A row of `service_categories`, as the service form's picker reads it. */
+export type ServiceCategoryModel = {
+  id: string;
+  name: string;
 };
 
 export type MediaModel = {
@@ -372,11 +475,32 @@ export type AvailabilityModel = {
   is_available: boolean | null;
 };
 
+/**
+ * One day the vendor is not available, and why.
+ *
+ * `source` is the whole grammar of this table: `manual` is the vendor's own
+ * decision and can be lifted here, anything else was inserted by a confirmed
+ * booking and clears only when that booking does. The embedded booking is what
+ * lets the calendar name the job rather than saying "unavailable" — it is null
+ * for a manual block, and legitimately so.
+ */
 export type BlockedDateModel = {
   id: string;
   blocked_date: string;
   reason: string | null;
   source: string | null;
+  booking_id: string | null;
+  bookings: {
+    id: string;
+    reference_no: string | null;
+    status: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    location: string | null;
+    amount: number | null;
+    currency: string | null;
+    client_id: string | null;
+  } | null;
 };
 
 /**
@@ -504,11 +628,41 @@ export type PromotionModel = {
   id: string;
   title: string;
   description: string | null;
+  /** The campaign artwork, in `public-media`. Null until the vendor adds one. */
+  banner_url: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean | null;
 };
 
+/**
+ * A discount code as it is read *through* the promotion that owns it.
+ *
+ * Narrower than {@link DiscountModel} on purpose: the promotions screen shows a
+ * code and how often it has been redeemed, and carrying the whole discount row
+ * would invite that screen to start editing one.
+ */
+export type PromotionDiscountModel = {
+  id: string;
+  promotion_id: string;
+  code: string | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  max_uses: number | null;
+  used_count: number;
+  is_active: boolean | null;
+};
+
+/**
+ * A discount code as the vendor who owns it manages it.
+ *
+ * Wider than {@link PromotionDiscountModel}: this is the row the Discounts
+ * screen edits, so it carries the two terms that screen sets and the campaign
+ * the code prices — `promotion_id` is what rolls a redemption up into a
+ * campaign's return, and is the same relationship the Promotions screen reads
+ * back through.
+ */
 export type DiscountModel = {
   id: string;
   code: string | null;
@@ -517,6 +671,10 @@ export type DiscountModel = {
   currency: string | null;
   max_uses: number | null;
   used_count: number;
+  /** Only redeemable on bookings at or above this figure. Null = no floor. */
+  min_amount: number | null;
+  /** The campaign this code prices, or null for a standalone code. */
+  promotion_id: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean | null;

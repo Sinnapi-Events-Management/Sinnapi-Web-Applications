@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { getPeriodOption, type AnalyticsPeriod } from '@/lib/analytics';
+import { getPeriodOption, type AnalyticsPeriod } from '@sinnapi/ui/analytics';
 import { toDashboardModel, type DashboardModel, type DashboardOverviewRow } from '../schema';
 
 async function load(period: AnalyticsPeriod): Promise<DashboardModel> {

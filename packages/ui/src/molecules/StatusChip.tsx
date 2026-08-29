@@ -20,6 +20,7 @@ export function StatusChip({ status, size = 'small' }: StatusChipProps) {
       color={color}
       label={titleizeStatus(status)}
       variant={color === 'default' ? 'outlined' : 'filled'}
+      sx={{ color: 'white' }}
     />
   );
 }

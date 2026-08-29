@@ -11,6 +11,7 @@ import {
   applyFilters,
   paginate,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
+  PACKAGE_ADMIN_COLUMNS,
   type PageParams,
   type Paged,
 } from '@sinnapi/ui';
@@ -66,6 +67,8 @@ import type {
   SettlementRequestModel,
   SettlementEventModel,
   QuotationModel,
+  AdminQuotationDetailModel,
+  QuotationStatusEventModel,
   EventModel,
   EventDetailModel,
   EventTypeModel,
@@ -96,6 +99,7 @@ import type {
   ContactListSaveResult,
   MarketingSubscriptionModel,
   EmailSuppressionModel,
+  PackageModel,
 } from '@/lib/types';
 
 // Reads are RLS-gated by the admin's permissions (UI also hides via RBAC).
@@ -1275,6 +1279,54 @@ export function useBookingActivity(id: string) {
       return (data ?? []) as BookingActivityModel[];
     },
     enabled: !!id,
+  });
+}
+
+/**
+ * One quotation, whole, for the console's detail page.
+ *
+ * A SECURITY DEFINER RPC rather than a PostgREST select with an embedded
+ * `quotation_items(...)`. That embed resolves to an empty array for an
+ * operations admin and always has: `q_items_rw` names the client and the vendor
+ * owner and nobody else, so the console could read that a quote totalled 4.2m
+ * and not one line of what made it up. The RPC checks `quotations.read` in its
+ * body and discloses exactly one quotation.
+ *
+ * Returns `null` for a deleted or unknown id — the page renders an empty state
+ * for that rather than an error.
+ */
+export function useQuotationAdmin(id: string) {
+  return useQuery({
+    queryKey: ['admin-quotation', id],
+    enabled: !!id,
+    queryFn: async (): Promise<AdminQuotationDetailModel | null> => {
+      const { data, error } = await supabase.rpc('get_quotation_admin', {
+        p_quotation_id: id,
+      });
+      if (error) throw error;
+      return (data as AdminQuotationDetailModel | null) ?? null;
+    },
+  });
+}
+
+/**
+ * A quotation's status trail. A plain select, unlike the quotation itself:
+ * `q_hist_read` already admits `quotations.read`, so the console can read this
+ * table directly and no function is needed for it.
+ */
+export function useQuotationStatusHistory(id: string) {
+  return useQuery({
+    queryKey: ['admin-quotation-history', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotation_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('quotation_id', id)
+        .order('occurred_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as QuotationStatusEventModel[];
+    },
   });
 }
 
@@ -2516,5 +2568,36 @@ export function useBookingPaymentEvents(bookingId: string | undefined) {
       return (data ?? []) as BookingPaymentEventModel[];
     },
     enabled: !!bookingId,
+  });
+}
+
+/**
+ * Every package a vendor has, for the console's moderation tab.
+ *
+ * Unfiltered by visibility on purpose: an operator deciding whether a public
+ * package should stay up needs to see the drafts beside it — a vendor who
+ * publishes and unpublishes the same package around a complaint is a pattern
+ * only a full list shows. The read policy grants this to `vendor.review` and
+ * `vendor.manage` and to nobody else.
+ *
+ * Soft-deleted packages are excluded. A deleted package is off the market by
+ * every measure the console cares about, and listing them would bury the ones
+ * an operator can still act on.
+ */
+export function useVendorPackagesAdmin(vendorId?: string) {
+  return useQuery({
+    queryKey: ['admin-vendor-packages', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_templates')
+        .select(PACKAGE_ADMIN_COLUMNS)
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .is('quote_template_items.tier_id', null)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as PackageModel[];
+    },
   });
 }

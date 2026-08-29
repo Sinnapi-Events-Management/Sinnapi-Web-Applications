@@ -1,17 +1,20 @@
 import { Box, Button, DialogContent, DialogActions, Alert, Divider, Stack } from '@sinnapi/ui';
-import { ControlledField, ControlledDateField, ControlledTimeField } from '@sinnapi/ui/forms';
+import { ControlledField, ControlledTimeField } from '@sinnapi/ui/forms';
 import PaymentTermsStep from '@/components/paymentTerms/components/organisms/PaymentTermsStep';
+import EventDateField from './EventDateField';
 import { useBookingRequestForm } from '../../hooks/useBookingRequestForm';
 
 type Props = {
   vendorId: string;
   onCancel: () => void;
   onSuccess: () => void;
+  /** Starting event date, when the request began from a day on the calendar. */
+  eventDate?: string;
 };
 
 /** Date, time, place, budget and payment terms for a direct booking request. */
-export default function BookingRequestForm({ vendorId, onCancel, onSuccess }: Props) {
-  const form = useBookingRequestForm(vendorId, onSuccess);
+export default function BookingRequestForm({ vendorId, onCancel, onSuccess, eventDate }: Props) {
+  const form = useBookingRequestForm(vendorId, onSuccess, eventDate);
 
   return (
     <Box component="form" onSubmit={form.submit} noValidate>
@@ -22,14 +25,7 @@ export default function BookingRequestForm({ vendorId, onCancel, onSuccess }: Pr
           </Alert>
         )}
         <Stack spacing={2} sx={{ mt: 1 }}>
-          {/* A booking can only be for a date still to come, so the calendar
-              simply doesn't offer the past. */}
-          <ControlledDateField
-            name="event_date"
-            control={form.control}
-            label="Event date"
-            disablePast
-          />
+          <EventDateField name="event_date" control={form.control} vendorId={vendorId} />
           {/* Optional, but worth asking: without it the vendor's first reply is
               always "what time?". The end can't precede the start, because the
               list it is picked from starts one slot after it. */}

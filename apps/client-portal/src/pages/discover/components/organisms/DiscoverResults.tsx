@@ -1,8 +1,7 @@
-import { Grid, Box, Alert } from '@sinnapi/ui';
+import { Grid, Box, Alert, LoadMoreResults } from '@sinnapi/ui';
 import VendorCard from '@/components/vendor/VendorCard';
 import type { VendorSearchCardModel } from '@/lib/types';
 import VendorCardSkeleton from '../atoms/VendorCardSkeleton';
-import LoadMoreVendors from '../molecules/LoadMoreVendors';
 import { EmptyState } from '@sinnapi/ui/router';
 
 type DiscoverResultsProps = {
@@ -95,12 +94,13 @@ export default function DiscoverResults({
         </Grid>
       </Box>
 
-      <LoadMoreVendors
+      <LoadMoreResults
         hasMore={hasMore}
         isLoading={isLoadingMore}
         loaded={vendors.length}
         total={total}
         onLoadMore={onLoadMore}
+        noun="vendor"
       />
     </>
   );

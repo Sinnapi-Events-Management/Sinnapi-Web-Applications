@@ -1,5 +1,5 @@
 import { Alert, Snackbar, Stack, PageTitle } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useMessagingModeration } from './hooks/useMessagingModeration';
 import { useFlagDetail } from './hooks/useFlagDetail';
 import { buildTabs } from './schema';

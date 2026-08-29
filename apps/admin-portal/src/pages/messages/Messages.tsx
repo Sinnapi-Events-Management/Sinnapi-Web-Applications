@@ -1,6 +1,6 @@
 import { Stack, PageTitle } from '@sinnapi/ui';
 import { InboxLayout, InboxToolbar, ConversationListPanel } from '@sinnapi/ui/messaging';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useMessagesPage } from './hooks/useMessagesPage';
 import { buildInboxTabs } from './schema';
 import InboxSummary from './components/organisms/InboxSummary';

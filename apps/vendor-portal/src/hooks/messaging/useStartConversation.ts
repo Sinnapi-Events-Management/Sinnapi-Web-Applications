@@ -40,7 +40,7 @@ export function useStartConversation() {
   const [error, setError] = useState<string | null>(null);
 
   const open = useCallback(
-    async (target: Target) => {
+    async (target: Target, { goTo = true }: { goTo?: boolean } = {}) => {
       if (isBusy) return null;
       setBusy(true);
       setError(null);
@@ -62,7 +62,11 @@ export function useStartConversation() {
       void qc.invalidateQueries({ queryKey: MESSAGING_KEYS.conversations });
 
       const id = data as string;
-      navigate(`/messages/${id}`);
+      // The inbox wants the reader taken to the thread. A caller that renders
+      // the thread itself — the quotation page's message tab — wants the id and
+      // nothing else; navigating would throw away the quote they are replying
+      // about, which is the whole reason the thread is on that page.
+      if (goTo) navigate(`/messages/${id}`);
       return id;
     },
     [isBusy, qc, navigate],
@@ -72,6 +76,15 @@ export function useStartConversation() {
     messageClient: useCallback(
       (clientId: string | null | undefined) =>
         clientId ? open({ kind: 'client', clientId }) : Promise.resolve(null),
+      [open],
+    ),
+    /**
+     * The same find-or-create, without the jump to the inbox. For surfaces that
+     * show the thread where the reader already is.
+     */
+    messageClientInPlace: useCallback(
+      (clientId: string | null | undefined) =>
+        clientId ? open({ kind: 'client', clientId }, { goTo: false }) : Promise.resolve(null),
       [open],
     ),
     contactSupport: useCallback(() => open({ kind: 'support' }), [open]),

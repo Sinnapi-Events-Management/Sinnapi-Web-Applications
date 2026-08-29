@@ -1,34 +1,45 @@
-import { Link as RouterLink } from 'react-router-dom';
-import {
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Stack,
-  Box,
-  Alert,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import StarIcon from '@mui/icons-material/Star';
+import { Alert, PageTitle, QueryState, StatusChip } from '@sinnapi/ui';
 import { formatDate } from '@/lib/config';
 import { useDashboard } from './hooks/useDashboard';
-import { StatCard } from '@sinnapi/ui/router';
+import DashboardWorkspace from './components/organisms/DashboardWorkspace';
+import ApplicationStatusCard from './components/organisms/ApplicationStatusCard';
 
+/**
+ * The vendor's landing page. State, the vendor record and the single overview
+ * read all live in `useDashboard`; layout, tabs and every panel live in the
+ * workspace — so this stays a wiring point between the two, plus the one branch
+ * that decides which of the two screens a caller gets.
+ */
 export default function Dashboard() {
-  const { vendor, subscription, loading, dash, app } = useDashboard();
+  const {
+    vendor,
+    subscription,
+    loading,
+    application,
+    period,
+    setPeriod,
+    periodLabel,
+    tabs,
+    tab,
+    activeTab,
+    setTab,
+    attentionCount,
+    title,
+    data,
+    isLoading,
+    isRefreshing,
+    error,
+    refresh,
+  } = useDashboard();
 
-  if (loading)
+  // Nothing can be decided until we know whether this owner has a vendor.
+  if (loading) {
     return (
       <QueryState isLoading error={null}>
         {null}
       </QueryState>
     );
+  }
 
   if (!vendor) {
     return (
@@ -37,45 +48,7 @@ export default function Dashboard() {
           title="Welcome to Sinnapi for Vendors"
           subtitle="Let's get your business listed."
         />
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="h5" sx={{ mb: 1 }}>
-              Application status
-            </Typography>
-            {app.data ? (
-              <Stack spacing={1}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <StatusChip status={app.data.status} />
-                  {app.data.is_reapplication && (
-                    <Typography variant="caption" color="text.secondary">
-                      (re-application)
-                    </Typography>
-                  )}
-                </Box>
-                {app.data.status === 'rejected' && app.data.rejection_reason && (
-                  <Alert severity="error">{app.data.rejection_reason}</Alert>
-                )}
-                <Button
-                  component={RouterLink}
-                  to="/onboarding"
-                  variant="contained"
-                  sx={{ alignSelf: 'flex-start', mt: 1 }}
-                >
-                  View onboarding
-                </Button>
-              </Stack>
-            ) : (
-              <>
-                <Typography color="text.secondary" sx={{ mb: 2 }}>
-                  You haven't started an application yet.
-                </Typography>
-                <Button component={RouterLink} to="/onboarding" variant="contained">
-                  Start application
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <ApplicationStatusCard application={application.data} loading={application.isLoading} />
       </>
     );
   }
@@ -83,56 +56,33 @@ export default function Dashboard() {
   return (
     <>
       <PageTitle
-        title={`Welcome, ${vendor.business_name}`}
-        subtitle="Your vendor activity at a glance."
+        title={title}
+        subtitle={`Here's how ${vendor.business_name} is tracking.`}
         action={subscription && <StatusChip status={subscription.status} size="medium" />}
       />
+
       {subscription?.status === 'trialing' && vendor.trial_ends_at && (
         <Alert severity="info" sx={{ mb: 3 }}>
           Free trial active — ends {formatDate(vendor.trial_ends_at)}. Choose a plan before then to
           stay visible.
         </Alert>
       )}
-      <QueryState isLoading={dash.isLoading} error={dash.error}>
-        <Grid container spacing={3}>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="Booking requests"
-              value={dash.data?.bookingRequests ?? 0}
-              to="/bookings"
-              icon={<EventNoteIcon />}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="Quote requests"
-              value={dash.data?.quoteRequests ?? 0}
-              to="/quotations"
-              icon={<RequestQuoteIcon />}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="In escrow"
-              value={dash.data?.escrowHeld ?? 0}
-              to="/escrow"
-              icon={<AccountBalanceIcon />}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="Reviews"
-              value={dash.data?.reviews ?? 0}
-              to="/reviews"
-              icon={<StarIcon />}
-            />
-          </Grid>
-        </Grid>
-      </QueryState>
+
+      <DashboardWorkspace
+        period={period}
+        onPeriodChange={setPeriod}
+        periodLabel={periodLabel}
+        tab={tab}
+        onTabChange={setTab}
+        tabs={tabs}
+        activeTab={activeTab}
+        attentionCount={attentionCount}
+        data={data}
+        isLoading={isLoading}
+        isRefreshing={isRefreshing}
+        error={error}
+        onRefresh={refresh}
+      />
     </>
   );
 }

@@ -1,16 +1,22 @@
 import { Box, Button, DialogContent, DialogActions, Alert } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
-import { useQuoteRequestForm } from '../../hooks/useQuoteRequestForm';
+import { useQuoteRequestForm, type QuoteRequestPackage } from '../../hooks/useQuoteRequestForm';
 
 type Props = {
   vendorId: string;
   onCancel: () => void;
   onSuccess: () => void;
+  /**
+   * Set when the request was started from a published package rather than from
+   * the sidebar button. It travels to the server so the vendor's builder can
+   * open on the tier the client picked.
+   */
+  pkg?: QuoteRequestPackage;
 };
 
 /** The brief a client sends when asking a vendor to quote. */
-export default function QuoteRequestForm({ vendorId, onCancel, onSuccess }: Props) {
-  const { control, error, busy, submit } = useQuoteRequestForm(vendorId, onSuccess);
+export default function QuoteRequestForm({ vendorId, onCancel, onSuccess, pkg }: Props) {
+  const { control, error, busy, submit } = useQuoteRequestForm(vendorId, onSuccess, pkg);
 
   return (
     <Box component="form" onSubmit={submit} noValidate>

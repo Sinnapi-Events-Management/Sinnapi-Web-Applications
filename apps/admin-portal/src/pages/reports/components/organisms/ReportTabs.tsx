@@ -1,4 +1,4 @@
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { REPORT_CATEGORIES, type ReportCategory } from '../../schema';
 
 type Props = {
