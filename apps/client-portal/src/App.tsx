@@ -13,6 +13,7 @@ import Privacy from '@/pages/privacy';
 
 import Dashboard from '@/pages/dashboard';
 import Discover from '@/pages/discover';
+import Offers from '@/pages/offers';
 import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
 import BookingDetail from '@/pages/bookingDetail';
@@ -57,6 +58,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/offers" element={<Offers />} />
           <Route path="/discover/vendors/:slug" element={<VendorDetail />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/bookings/:id" element={<BookingDetail />} />

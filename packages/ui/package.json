@@ -16,6 +16,7 @@
     "./notifications": "./src/notifications/index.ts",
     "./settings": "./src/settings/index.ts",
     "./media": "./src/media/index.ts",
+    "./offers": "./src/offers/index.ts",
     "./profile": "./src/profile/index.ts",
     "./router": "./src/router/index.ts",
     "./analytics": "./src/analytics/index.ts",

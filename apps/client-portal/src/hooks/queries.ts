@@ -16,6 +16,7 @@ import {
   type Paged,
   type PaymentTermsPreview,
 } from '@sinnapi/ui';
+import type { PackageOfferRow } from '@sinnapi/ui/offers';
 import { supabase } from '@/lib/supabase';
 import { readFunctionError } from '@/lib/functions';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
@@ -62,6 +63,9 @@ import type {
   NotificationModel,
   NotificationPage,
   ProfileModel,
+  VendorOfferModel,
+  PublicOfferModel,
+  QuotationOfferModel,
 } from '@/lib/types';
 
 const VENDOR_CARD =
@@ -341,6 +345,114 @@ export function useVendorPackages(vendorId?: string) {
 }
 
 /**
+ * Every live offer on every published package of one vendor, in one read.
+ *
+ * One RPC rather than one `package_offers` call per card. A profile shows up to
+ * six packages and this page is navigated back to constantly (a client compares
+ * two vendors by flipping between them), so six round trips per visit is six
+ * too many.
+ *
+ * The rows are grouped and matched to a tier by `groupOffersByPackage` and
+ * `offersForTier` from the shared kit — not re-derived here, because the same
+ * grouping backs the marketing site's server-rendered profile and the two must
+ * not disagree about which tier an offer covers.
+ *
+ * A failure costs the profile its offer badges and nothing else, so nothing on
+ * that page gates on this.
+ */
+export function useVendorPackageOffers(vendorId?: string) {
+  return useQuery({
+    queryKey: ['vendor-package-offers', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_package_offers', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as PackageOfferRow[];
+    },
+  });
+}
+
+/**
+ * What this vendor is running, for the strip at the top of their profile.
+ *
+ * Distinct from `useVendorPackageOffers`, which is per package: this is one row
+ * per offer with the packages it covers named on it, which is what a summary
+ * strip needs and what a per-package read cannot give without the caller
+ * de-duplicating.
+ */
+export function useVendorOffers(vendorId?: string) {
+  return useQuery({
+    queryKey: ['vendor-offers', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_offers', { p_vendor_id: vendorId! });
+      if (error) throw error;
+      return (data ?? []) as VendorOfferModel[];
+    },
+  });
+}
+
+/**
+ * The offers directory — every live offer on the platform, filtered.
+ *
+ * Paged through `total_count`, which the RPC returns as a window function on
+ * every row rather than as a second query: the count and the page are one scan,
+ * and a count fetched separately can disagree with the page beside it when a
+ * campaign ends between the two.
+ */
+export function useOfferDirectory(params: {
+  search?: string;
+  categoryId?: string | null;
+  regionId?: string | null;
+  page: number;
+  pageSize: number;
+}) {
+  const { search, categoryId, regionId, page, pageSize } = params;
+
+  return useQuery({
+    queryKey: ['offer-directory', search, categoryId, regionId, page, pageSize],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_public_offers', {
+        p_search: search?.trim() || null,
+        p_category_id: categoryId ?? null,
+        p_region_id: regionId ?? null,
+        p_limit: pageSize,
+        p_offset: page * pageSize,
+      });
+      if (error) throw error;
+
+      const rows = (data ?? []) as PublicOfferModel[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+  });
+}
+
+/**
+ * The offer a quotation was priced with, by name.
+ *
+ * A quotation carries `offer_discount_id` and `offer_discount_total`, but
+ * `discounts_read` only admits a LIVE discount — and by the time a client opens
+ * an old quote the campaign behind it has usually ended. Without this the
+ * saving on a past quote renders as an amount with no name, which is the one
+ * thing a client will ask support about.
+ */
+export function useQuotationOffer(quotationId?: string) {
+  return useQuery({
+    queryKey: ['quotation-offer', quotationId],
+    enabled: !!quotationId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('quotation_offer', {
+        p_quotation_id: quotationId!,
+      });
+      if (error) throw error;
+      return ((data ?? []) as QuotationOfferModel[])[0] ?? null;
+    },
+  });
+}
+
+/**
  * A public vendor's portfolio — the gallery on the vendor detail page.
  *
  * Ordered the way the vendor curated it: the primary shot first, then their own
@@ -470,7 +582,10 @@ export function useUpcomingBookings(limit = 5) {
 const BOOKING_DETAIL_SELECT = [
   '*',
   'vendors(business_name,slug,primary_image_url)',
-  'quotations(id,reference_no,status,currency,subtotal,discount_total,tax_total,total,' +
+  // `offer_discount_total` rides along so the booking's copy of the quote adds
+  // up: without it `quotationPricing` would fall back to a derived total that
+  // ignores the promotion and overstate what the client owes.
+  'quotations(id,reference_no,status,currency,subtotal,discount_total,offer_discount_total,tax_total,total,' +
     'valid_until,request_details,version_no,advance_rate,advance_release_days_before,' +
     'advance_terms_note,sent_at,responded_at,created_at,' +
     'quotation_items(id,description,quantity,unit_price,line_total,sort_order))',
@@ -571,7 +686,7 @@ export function useQuotation(id: string) {
       const { data, error } = await supabase
         .from('quotations')
         .select(
-          '*,vendors(business_name,slug,primary_image_url),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date,payment_type,payment_terms_note)',
+          '*,vendors(business_name,slug,primary_image_url),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date,payment_type,payment_terms_note),event_types(id,name)',
         )
         .eq('id', id)
         .maybeSingle();

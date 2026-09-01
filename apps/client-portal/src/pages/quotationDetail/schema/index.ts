@@ -3,6 +3,8 @@ export {
   emptyBookingFromQuotationValues,
   toBookingFromQuotationArgs,
   defaultBookingDate,
+  bookingDateBounds,
+  defaultBookingLocation,
   type BookingFromQuotationValues,
   type BookingTermsArgs,
 } from './bookingFromQuotation';

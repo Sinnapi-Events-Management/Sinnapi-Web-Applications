@@ -50,6 +50,8 @@ export default function DiscountsWorkspace({ vendorId }: { vendorId: string }) {
     isEditorOpen,
     create,
     edit,
+    editorWarning,
+    dismissEditorWarning,
     closeEditor,
   } = useDiscounts(vendorId);
 
@@ -84,6 +86,16 @@ export default function DiscountsWorkspace({ vendorId }: { vendorId: string }) {
       {actionError && (
         <Alert severity="error" onClose={dismissError} sx={{ mb: 2 }}>
           {actionError}
+        </Alert>
+      )}
+
+      {/* The code saved; what it covers did not. Warning rather than error: the
+          vendor's work is not lost, and the code is live on their whole
+          catalogue until they reopen it and narrow the scope. */}
+      {editorWarning && (
+        <Alert severity="warning" onClose={dismissEditorWarning} sx={{ mb: 2 }}>
+          {editorWarning} The discount was saved and currently applies to everything you sell — open
+          it again to choose which packages it covers.
         </Alert>
       )}
 

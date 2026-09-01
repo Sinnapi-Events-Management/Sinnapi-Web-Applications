@@ -15,10 +15,14 @@ import {
   packageTierPricing,
   packageTiers,
   type PackageTierLike,
-  type PackageTierPricing,
   type QuotePackageLike,
 } from '../molecules/packagePricing';
 import { PackageTierBreakdown } from './PackageTierBreakdown';
+import { OfferRibbon } from '../offers/molecules/OfferRibbon';
+import { applicableOffers, applyOfferToTier, bestOffer } from '../offers/schema/offerPricing';
+import type { OfferedTierPricing } from '../offers/schema/offerPricing';
+import type { OfferModel } from '../offers/types';
+import { formatAmount } from '../molecules/money';
 
 export type PackageShowcaseProps = {
   pkg: QuotePackageLike;
@@ -31,7 +35,29 @@ export type PackageShowcaseProps = {
    * callback would make each of the four call sites hold state it has no other
    * use for.
    */
-  renderAction?: (tier: PackageTierLike, pricing: PackageTierPricing) => ReactNode;
+  renderAction?: (
+    tier: PackageTierLike,
+    pricing: OfferedTierPricing,
+    offer: OfferModel | null,
+  ) => ReactNode;
+  /**
+   * Live offers that cover this package, from `package_offers`.
+   *
+   * Passed in rather than fetched, like every other row this kit renders: four
+   * apps reach Supabase through four clients, and a showcase that fetched its
+   * own offers could only work in the app it was written for.
+   *
+   * The showcase picks the best applicable one for the tier on screen — largest
+   * saving, ties broken by the earlier deadline, which is the order
+   * `best_automatic_discount` uses in SQL. Any other choice here would advertise
+   * one saving and have the server apply another.
+   */
+  offers?: readonly OfferModel[];
+  /**
+   * Per-tier action for the offer ribbon — "Use this offer". Omitted where the
+   * offer is not something the reader can act on separately from the package.
+   */
+  renderOfferAction?: (offer: OfferModel, tier: PackageTierLike) => ReactNode;
   /** Header slot on the right — a visibility chip, an overflow menu. */
   headerAction?: ReactNode;
   /** Which tier to open on. Defaults to the vendor's recommended one. */
@@ -60,6 +86,8 @@ export function PackageShowcase({
   headerAction,
   defaultTierId,
   onTierChange,
+  offers,
+  renderOfferAction,
   variant = 'card',
 }: PackageShowcaseProps) {
   const tiers = useMemo(() => packageTiers(pkg), [pkg]);
@@ -78,7 +106,17 @@ export function PackageShowcase({
   }, [tiers, fallbackTierId]);
 
   const tier = tiers.find((entry) => entry.id === selectedTierId) ?? tiers[0] ?? null;
-  const pricing = useMemo(() => packageTierPricing(pkg, tier), [pkg, tier]);
+  const listPricing = useMemo(() => packageTierPricing(pkg, tier), [pkg, tier]);
+
+  // Re-derived per tier, not per package. A tier-scoped offer moves the Gold
+  // price and leaves Silver alone, and an offer with a minimum spend applies to
+  // the tiers that reach it and not the ones that do not — so the ribbon and
+  // the total have to be recomputed every time the reader switches tabs.
+  const offer = useMemo(
+    () => bestOffer(applicableOffers(offers, listPricing), listPricing.net, listPricing.base),
+    [offers, listPricing],
+  );
+  const pricing = useMemo(() => applyOfferToTier(listPricing, offer), [listPricing, offer]);
 
   const select = (tierId: string) => {
     setSelectedTierId(tierId);
@@ -109,6 +147,28 @@ export function PackageShowcase({
         {headerAction}
       </Stack>
 
+      {/* Above the tiers, not beside the total. A client reading a discounted
+          figure has to know it is discounted BEFORE they read it, or the number
+          lands as the vendor's ordinary price and the saving does no work. A
+          badge tucked beside the total is read after the decision it was meant
+          to influence. */}
+      {pricing.offer && tier && (
+        <OfferRibbon
+          offer={pricing.offer}
+          savingLabel={formatAmount(pricing.offerSaving, pricing.currency)}
+          // Said on the card, not just in the terms. An offer titled "20% off"
+          // that takes off far less than 20% reads as a pricing fault, and a
+          // reader who cannot see the ceiling has no way to tell that it isn't
+          // one. Absent — and silent — on every offer the ceiling did not touch.
+          note={
+            pricing.offerCap == null
+              ? null
+              : `Capped at ${formatAmount(pricing.offerCap, pricing.currency)}`
+          }
+          action={renderOfferAction?.(pricing.offer, tier)}
+        />
+      )}
+
       <PackageTierTabs
         pkg={pkg}
         tiers={tiers}
@@ -123,7 +183,22 @@ export function PackageShowcase({
       )}
 
       {tier ? (
-        <PackageTierBreakdown pricing={pricing} sharedAddOns={addOns} />
+        <PackageTierBreakdown
+          pricing={pricing}
+          sharedAddOns={addOns}
+          offerLine={
+            pricing.offer
+              ? {
+                  label: pricing.offer.title || 'Promotion',
+                  amount: pricing.offerSaving,
+                  hint:
+                    pricing.offerCap == null
+                      ? undefined
+                      : `This offer is capped at ${formatAmount(pricing.offerCap, pricing.currency)}, which is less than its rate would have taken off this tier.`,
+                }
+              : undefined
+          }
+        />
       ) : (
         <Typography variant="body2" color="text.secondary">
           This package has no tiers yet.
@@ -152,7 +227,7 @@ export function PackageShowcase({
         </Typography>
       )}
 
-      {tier && renderAction && <Box>{renderAction(tier, pricing)}</Box>}
+      {tier && renderAction && <Box>{renderAction(tier, pricing, pricing.offer)}</Box>}
     </Stack>
   );
 

@@ -10,6 +10,10 @@ export const promotionFormSchema = z
       .min(3, 'Title must be at least 3 characters.')
       .max(140, 'Title must be 140 characters or fewer.'),
     description: z.string().trim().max(2000, 'Description must be 2000 characters or fewer.'),
+    // The fine print, shown to clients under the saving. Capped shorter than
+    // the description: terms nobody finishes reading are terms that protect
+    // nobody, and this renders as a caption on a package card.
+    terms: z.string().trim().max(600, 'Terms must be 600 characters or fewer.'),
     // Not typed by hand — the banner field writes the URL the upload returned.
     // Validated anyway, so a bad value can never be persisted silently.
     banner_url: optionalUrlField('Enter a valid image URL.'),
@@ -27,6 +31,7 @@ export type PromotionFormValues = z.infer<typeof promotionFormSchema>;
 export const emptyPromotionValues: PromotionFormValues = {
   title: '',
   description: '',
+  terms: '',
   banner_url: '',
   starts_at: '',
   ends_at: '',
@@ -50,6 +55,7 @@ export function toPromotionValues(promotion: PromotionModel): PromotionFormValue
   return {
     title: promotion.title,
     description: promotion.description ?? '',
+    terms: promotion.terms ?? '',
     banner_url: promotion.banner_url ?? '',
     starts_at: toDateInput(promotion.starts_at),
     ends_at: toDateInput(promotion.ends_at),
@@ -67,6 +73,7 @@ function toPromotionColumns(values: PromotionFormValues) {
   return {
     title: values.title.trim(),
     description: values.description.trim() || null,
+    terms: values.terms.trim() || null,
     banner_url: values.banner_url.trim() || null,
     starts_at: values.starts_at,
     ends_at: values.ends_at,

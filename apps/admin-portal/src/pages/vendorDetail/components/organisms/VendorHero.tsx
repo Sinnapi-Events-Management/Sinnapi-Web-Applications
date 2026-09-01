@@ -26,6 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { VendorStatus } from '@/hooks/useVendorStatus';
 import { formatDate } from '@/lib/config';
 import type { NamedRef, OwnerRef, VendorDetailModel } from '@/lib/types';
+import VendorMetaItem from '../atoms/VendorMetaItem';
 
 function initials(name: string | null): string {
   if (!name) return '—';
@@ -129,13 +130,8 @@ export default function VendorHero({ vendor: v, owner, category, onRequestStatus
       <Divider sx={{ my: 2.5, ...heroDividerSx }} />
 
       <Stack direction="row" flexWrap="wrap" useFlexGap gap={{ xs: 1.5, sm: 3 }}>
-        {meta.map((m, i) => (
-          <Stack key={i} direction="row" spacing={0.75} alignItems="center" sx={{ opacity: 0.92 }}>
-            <Box sx={{ display: 'flex', '& svg': { fontSize: 18 } }}>{m.icon}</Box>
-            <Typography variant="body2" noWrap>
-              {m.text}
-            </Typography>
-          </Stack>
+        {meta.map((m) => (
+          <VendorMetaItem key={m.text} icon={m.icon} text={m.text} />
         ))}
       </Stack>
     </HeroSurface>

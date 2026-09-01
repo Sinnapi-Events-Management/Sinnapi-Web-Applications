@@ -6,6 +6,7 @@ import VendorDetailTabs from './organisms/vendorDetailTabs';
 import VendorDetailOverview from './organisms/vendorDetailOverview';
 import VendorDetailGallery from './organisms/vendorDetailGallery';
 import VendorDetailPackages from './organisms/vendorDetailPackages';
+import VendorDetailOffers from './organisms/vendorDetailOffers';
 import VendorDetailReviews from './organisms/vendorDetailReviews';
 import VendorDetailSidebar from './organisms/vendorDetailSidebar';
 import RelatedVendors from './organisms/relatedVendors';
@@ -35,7 +36,8 @@ import { getVendorDetailData } from './utils/getVendorDetailData';
  * page is laid out.
  */
 export default async function VendorDetailContainer({ params }: { params: { slug: string } }) {
-  const { vendor, media, reviews, packages, related } = await getVendorDetailData(params.slug);
+  const { vendor, media, reviews, packages, packageOffers, offers, related } =
+    await getVendorDetailData(params.slug);
 
   // Structured data for SEO (LocalBusiness + AggregateRating).
   const jsonLd = {
@@ -70,12 +72,23 @@ export default async function VendorDetailContainer({ params }: { params: { slug
       <Container sx={{ py: { xs: 4, md: 6 } }}>
         <VendorDetailHighlights vendor={vendor} />
 
+        {/* Above the tabs, not inside one. An offer is not a section of a
+            profile — it is a fact about every price on it — and a visitor who
+            never opens a fifth tab would read the list prices as the prices.
+            It is also the one time-limited thing on the page, which is a poor
+            fit for anything a click away. */}
+        <VendorDetailOffers offers={offers} vendorName={vendor.business_name} />
+
         <Grid container spacing={{ xs: 3, md: 5 }} sx={{ mt: { xs: 0, md: 1 } }}>
           <Grid item xs={12} md={7} lg={8} sx={{ order: { xs: 2, md: 1 } }}>
             <VendorDetailTabs
               overview={<VendorDetailOverview vendor={vendor} />}
               packages={
-                <VendorDetailPackages packages={packages} vendorName={vendor.business_name} />
+                <VendorDetailPackages
+                  packages={packages}
+                  vendorName={vendor.business_name}
+                  packageOffers={packageOffers}
+                />
               }
               portfolio={<VendorDetailGallery media={media} vendorName={vendor.business_name} />}
               reviews={<VendorDetailReviews vendor={vendor} reviews={reviews} />}

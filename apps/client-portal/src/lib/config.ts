@@ -1,5 +1,6 @@
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import SearchIcon from '@mui/icons-material/Search';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import CelebrationIcon from '@mui/icons-material/Celebration';
@@ -36,6 +37,10 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Dashboard', to: '/dashboard', icon: DashboardIcon },
       { label: 'Discover', to: '/discover', icon: SearchIcon },
+      // Beside Discover rather than under Planning: both answer "who should I
+      // book", and a client comparing vendors on price is doing the same job as
+      // one browsing them — just from the other end.
+      { label: 'Offers', to: '/offers', icon: LocalOfferIcon },
     ],
   },
   {

@@ -1,8 +1,10 @@
 'use client';
 import NextLink from 'next/link';
 import { Box, Button, Grid, Paper, Stack, Typography } from '@sinnapi/ui/atoms';
+import { formatAmount } from '@sinnapi/ui/molecules';
 import { PackageShowcase } from '@sinnapi/ui/organisms';
 import { packageTiers } from '@sinnapi/ui/molecules';
+import { groupOffersByPackage, offersForTier, type PackageOfferRow } from '@sinnapi/ui/offers';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import VendorSectionHeading from '../../atoms/VendorSectionHeading';
 import type { PackageModel } from '@/lib/types';
@@ -10,6 +12,15 @@ import type { PackageModel } from '@/lib/types';
 type Props = {
   packages: PackageModel[];
   vendorName: string;
+  /**
+   * Live offers across this vendor's packages, from `vendor_package_offers`.
+   *
+   * Fetched on the server alongside the packages and passed down as plain
+   * serialisable data — which is the only shape that can cross into this client
+   * component, and the reason the discounted price reaches the prerendered HTML
+   * a crawler reads rather than appearing after hydration.
+   */
+  packageOffers?: PackageOfferRow[];
 };
 
 /**
@@ -36,12 +47,26 @@ type Props = {
  * sidebar's quote and message buttons exactly: vendor contact and quoting are
  * gated until a client is authenticated.
  *
+ * WHAT A SIGNED-OUT VISITOR SEES OF AN OFFER
+ * The saving, the deadline, what it covers and the discounted total — all of
+ * it, priced against the tier they are looking at. What they do not see is the
+ * CODE: `vendor_package_offers` returns null for it to a caller with no
+ * session, so there is nothing here to leak. That is the deliberate split. The
+ * saving is marketing and belongs on a page Google indexes; the code is a
+ * bearer token, and a hundred-use campaign printed on an indexed page is gone
+ * by Tuesday. The sign-in caption is what converts the first into the second.
+ *
  * It used to vanish for a vendor with no priced package, which under a fixed
  * tab bar would be a tab opening onto blank space. Quoting bespoke is a normal
  * way to work, so the empty case now says that instead — and says it in the
  * HTML, which is worth more to this page than silence.
  */
-export default function VendorDetailPackages({ packages, vendorName }: Props) {
+export default function VendorDetailPackages({ packages, vendorName, packageOffers = [] }: Props) {
+  // Indexed once rather than filtered per card. The showcase then picks the
+  // best offer for whichever tier the reader is on and prices it — the same
+  // component, the same arithmetic and the same result the client portal
+  // renders after sign-in, which is the whole point of it being one component.
+  const offersByPackage = groupOffersByPackage(packageOffers);
   // The database refuses to publish a package with no priced tier, but one can
   // lose its tiers to a later edit. A card offering nothing is worse than one
   // fewer card.
@@ -82,13 +107,19 @@ export default function VendorDetailPackages({ packages, vendorName }: Props) {
             <Grid item xs={12} xl={6} key={pkg.id}>
               <PackageShowcase
                 pkg={pkg}
-                renderAction={(tier) => (
+                // Package-level (tier null): this page has no tier state of its
+                // own, so the showcase re-narrows per tier as the reader
+                // switches. Passing a tier here would fix the whole card to it.
+                offers={offersForTier(offersByPackage.get(pkg.id), null)}
+                renderAction={(tier, pricing, offer) => (
                   <Stack spacing={1}>
                     <Button component={NextLink} href="/sign-in" variant="contained" fullWidth>
                       Request the {tier.name} package
                     </Button>
                     <Typography variant="caption" color="text.secondary" textAlign="center">
-                      You will be asked to sign in first.
+                      {offer
+                        ? `Sign in to claim ${formatAmount(pricing.offerSaving, pricing.currency)} off this tier.`
+                        : 'You will be asked to sign in first.'}
                     </Typography>
                   </Stack>
                 )}

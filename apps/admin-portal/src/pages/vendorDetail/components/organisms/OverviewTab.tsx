@@ -1,24 +1,14 @@
 import { Grid, Stack, Typography, Link, InfoCard } from '@sinnapi/ui';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import type { NamedRef, OwnerRef, VendorDetailModel } from '@/lib/types';
-import CoverageCard from './CoverageCard';
+import InfoField from '../atoms/InfoField';
+import CoverageCard from '../molecules/CoverageCard';
 
 type Props = {
   vendor: VendorDetailModel;
   owner: OwnerRef | null;
   category: NamedRef | null;
 };
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <Stack spacing={0.25}>
-      <Typography variant="overline" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="body2">{children ?? '—'}</Typography>
-    </Stack>
-  );
-}
 
 /** Vendor profile: biography, business facts and the owner's contact. */
 export default function OverviewTab({ vendor: v, owner, category }: Props) {
@@ -38,29 +28,29 @@ export default function OverviewTab({ vendor: v, owner, category }: Props) {
           <InfoCard title="Business details">
             <Grid container spacing={2.5}>
               <Grid item xs={6}>
-                <Field label="Category">{category?.name ?? '—'}</Field>
+                <InfoField label="Category">{category?.name ?? '—'}</InfoField>
               </Grid>
               <Grid item xs={6}>
-                <Field label="Base city">{v.base_city ?? '—'}</Field>
+                <InfoField label="Base city">{v.base_city ?? '—'}</InfoField>
               </Grid>
               <Grid item xs={6}>
-                <Field label="Pricing model">
+                <InfoField label="Pricing model">
                   {v.pricing_model ? titleize(v.pricing_model) : '—'}
-                </Field>
+                </InfoField>
               </Grid>
               <Grid item xs={6}>
-                <Field label="Starting price">{price}</Field>
+                <InfoField label="Starting price">{price}</InfoField>
               </Grid>
               <Grid item xs={6}>
-                <Field label="Years in operation">
+                <InfoField label="Years in operation">
                   {v.years_in_operation ? titleize(v.years_in_operation) : '—'}
-                </Field>
+                </InfoField>
               </Grid>
               <Grid item xs={6}>
-                <Field label="Member since">{formatDate(v.created_at)}</Field>
+                <InfoField label="Member since">{formatDate(v.created_at)}</InfoField>
               </Grid>
               <Grid item xs={12}>
-                <Field label="Website">
+                <InfoField label="Website">
                   {v.website ? (
                     <Link href={v.website} target="_blank" rel="noopener">
                       {v.website}
@@ -68,7 +58,7 @@ export default function OverviewTab({ vendor: v, owner, category }: Props) {
                   ) : (
                     '—'
                   )}
-                </Field>
+                </InfoField>
               </Grid>
             </Grid>
           </InfoCard>
@@ -81,14 +71,14 @@ export default function OverviewTab({ vendor: v, owner, category }: Props) {
 
           <InfoCard title="Owner">
             <Stack spacing={2.5}>
-              <Field label="Name">{owner?.full_name ?? '—'}</Field>
-              <Field label="Email">
+              <InfoField label="Name">{owner?.full_name ?? '—'}</InfoField>
+              <InfoField label="Email">
                 {owner?.email ? <Link href={`mailto:${owner.email}`}>{owner.email}</Link> : '—'}
-              </Field>
-              <Field label="Phone">
+              </InfoField>
+              <InfoField label="Phone">
                 {owner?.phone ? <Link href={`tel:${owner.phone}`}>{owner.phone}</Link> : '—'}
-              </Field>
-              <Field label="Slug">{v.slug}</Field>
+              </InfoField>
+              <InfoField label="Slug">{v.slug}</InfoField>
             </Stack>
           </InfoCard>
         </Stack>

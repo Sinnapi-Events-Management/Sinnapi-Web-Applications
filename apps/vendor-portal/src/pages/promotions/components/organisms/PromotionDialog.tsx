@@ -7,7 +7,7 @@ type Props = {
   vendorId: string;
   /** The campaign being edited, or null to create a new one. */
   promotion: PromotionModel | null;
-  onClose: () => void;
+  onClose: (warning?: string) => void;
 };
 
 /**
@@ -27,13 +27,16 @@ export default function PromotionDialog({ open, vendorId, promotion, onClose }: 
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
+    // `md`, not `sm`: the scope picker below the fold is a scrolling list of
+    // packages and their tiers, and at `sm` a vendor with four packages reads
+    // it through a 260px window.
+    <Dialog open={open} onClose={() => onClose()} fullWidth maxWidth="md" fullScreen={fullScreen}>
       <DialogTitle>{promotion ? 'Edit campaign' : 'New campaign'}</DialogTitle>
       {open && (
         <PromotionForm
           vendorId={vendorId}
           promotion={promotion}
-          onCancel={onClose}
+          onCancel={() => onClose()}
           onSuccess={onClose}
         />
       )}

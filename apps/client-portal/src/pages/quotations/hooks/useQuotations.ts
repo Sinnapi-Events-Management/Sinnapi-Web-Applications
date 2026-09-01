@@ -31,20 +31,19 @@ export function useQuotations() {
    * The quote page decides whether to honour it — see `useQuotationBooking` —
    * because a list row can be a page old and the quote may have moved on.
    *
-   * The section is named as well as the dialog. The booking card owns that
-   * dialog and now lives in the quote page's Progress tab, and an inactive tab
-   * panel is unmounted — so a bare `?book=1` would land on Overview, mount
-   * nothing that could honour it, and open nothing at all. Naming the tab in
-   * the link fixes that in the one place that knows where the card went, rather
-   * than with an effect on the page that would be racing `?book`'s own cleanup
-   * to write the same query string.
+   * The dialog alone, with no section named. It used to carry
+   * `?tab=progress&book=1` because the booking card owned the dialog and lived
+   * in that tab, and an inactive tab panel is unmounted — so a bare `?book=1`
+   * mounted nothing that could honour it. The quote page now mounts the dialog
+   * itself, above the tabs, so this link no longer has to know where any card
+   * lives and stops sending the client to the history section to book.
    *
    * Memoized because it is handed to the column factory, which is itself
    * memoized: an identity that changed every render would rebuild the columns
    * every render and undo the point of that.
    */
   const openBookingForm = useCallback(
-    (id: string) => navigate(`/quotations/${id}?tab=progress&book=1`),
+    (id: string) => navigate(`/quotations/${id}?book=1`),
     [navigate],
   );
 

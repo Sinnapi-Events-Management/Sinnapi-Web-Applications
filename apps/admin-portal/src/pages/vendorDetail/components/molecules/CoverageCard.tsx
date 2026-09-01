@@ -1,7 +1,7 @@
 import { InfoCard, Stack, Chip, Typography, Button, Skeleton } from '@sinnapi/ui';
 import EditIcon from '@mui/icons-material/Edit';
-import CoverageDialog from './CoverageDialog';
-import { useVendorCoverageEdit } from '../hooks/useVendorCoverageEdit';
+import CoverageDialog from '../organisms/CoverageDialog';
+import { useVendorCoverageEdit } from '../../hooks/useVendorCoverageEdit';
 
 /**
  * The regions this vendor serves, and the control to change them.

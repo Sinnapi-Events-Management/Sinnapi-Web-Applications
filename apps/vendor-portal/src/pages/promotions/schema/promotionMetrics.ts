@@ -1,5 +1,12 @@
 import type { Kpi } from '@sinnapi/ui/analytics';
-import type { PromotionDiscountModel, PromotionModel } from '@/lib/types';
+import type {
+  OfferTargetModel,
+  PackageModel,
+  PromotionDiscountModel,
+  PromotionModel,
+  ServiceModel,
+} from '@/lib/types';
+import { targetSummary, toTargetKeys } from '@/components/offers/schema/offerTargets';
 import { promotionStatus, type PromotionFilter, type PromotionStatus } from './promotionStatus';
 
 /** A campaign with the codes attached to it and their redemptions resolved. */
@@ -8,6 +15,15 @@ export type PromotionRow = PromotionModel & {
   codes: PromotionDiscountModel[];
   /** Total redemptions across every code attached to this campaign. */
   redemptions: number;
+  /**
+   * What this campaign is an offer on, in one phrase.
+   *
+   * Every code under a campaign inherits this unless it names packages of its
+   * own, so it is the campaign's scope that usually decides what a client
+   * actually sees a saving on — which makes it the one thing about a campaign
+   * this card could not say before targets existed.
+   */
+  coverage: string;
 };
 
 /** Joins each campaign to its codes and resolves the state it is really in. */
@@ -15,6 +31,9 @@ export function toPromotionRows(
   promotions: PromotionModel[],
   discounts: PromotionDiscountModel[],
   now: number,
+  targets: OfferTargetModel[] = [],
+  packages: PackageModel[] = [],
+  services: ServiceModel[] = [],
 ): PromotionRow[] {
   // Grouped once rather than filtered per card: a vendor with fifty campaigns
   // and fifty codes would otherwise do 2,500 comparisons on every render.
@@ -25,6 +44,15 @@ export function toPromotionRows(
     else byPromotion.set(discount.promotion_id, [discount]);
   }
 
+  // Grouped once, for the same reason the codes are.
+  const targetsByPromotion = new Map<string, OfferTargetModel[]>();
+  for (const target of targets) {
+    if (!target.promotion_id) continue;
+    const bucket = targetsByPromotion.get(target.promotion_id);
+    if (bucket) bucket.push(target);
+    else targetsByPromotion.set(target.promotion_id, [target]);
+  }
+
   return promotions.map((promotion) => {
     const codes = byPromotion.get(promotion.id) ?? [];
     return {
@@ -32,6 +60,11 @@ export function toPromotionRows(
       status: promotionStatus(promotion, now),
       codes,
       redemptions: codes.reduce((total, code) => total + (code.used_count ?? 0), 0),
+      coverage: targetSummary(
+        new Set(toTargetKeys(targetsByPromotion.get(promotion.id) ?? [])),
+        packages,
+        services,
+      ),
     };
   });
 }

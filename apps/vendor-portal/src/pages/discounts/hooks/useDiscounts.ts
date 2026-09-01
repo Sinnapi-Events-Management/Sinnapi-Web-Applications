@@ -3,6 +3,9 @@ import { useNow } from '@sinnapi/ui';
 import {
   useDiscounts as useDiscountsQuery,
   usePromotions as usePromotionsQuery,
+  useOfferTargets,
+  usePackages,
+  useServices,
 } from '@/hooks/queries';
 import {
   matchesDiscountTerm,
@@ -38,6 +41,13 @@ import {
 export function useDiscounts(vendorId: string) {
   const discounts = useDiscountsQuery(vendorId);
   const promotions = usePromotionsQuery(vendorId);
+  // The catalogue and the targets are what turn "20% off" into "20% off the
+  // Gold tier of Full Day Wedding". Secondary to the codes in every sense: a
+  // slow or failed read here costs each card its coverage line and nothing
+  // else, which is why none of them gates the screen below.
+  const targets = useOfferTargets(vendorId);
+  const packages = usePackages(vendorId);
+  const services = useServices(vendorId);
   // Hourly: every boundary on this screen is a calendar day, so a minute tick
   // would re-render the grid sixty times for nothing.
   const now = useNow(3_600_000);
@@ -46,10 +56,26 @@ export function useDiscounts(vendorId: string) {
   const [term, setTerm] = useState('');
   const [editing, setEditing] = useState<DiscountRow | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
+  /**
+   * A code that saved but whose scope did not.
+   *
+   * Surfaced on the screen rather than in the dialog: by the time it happens the
+   * code row exists, and holding the dialog open on it would have the vendor
+   * submit again and hit the unique index on `code`.
+   */
+  const [editorWarning, setEditorWarning] = useState<string | null>(null);
 
   const rows = useMemo(
-    () => toDiscountRows(discounts.data ?? [], promotions.data ?? [], now),
-    [discounts.data, promotions.data, now],
+    () =>
+      toDiscountRows(
+        discounts.data ?? [],
+        promotions.data ?? [],
+        now,
+        targets.data ?? [],
+        packages.data ?? [],
+        services.data ?? [],
+      ),
+    [discounts.data, promotions.data, now, targets.data, packages.data, services.data],
   );
 
   const visible = useMemo(
@@ -71,17 +97,20 @@ export function useDiscounts(vendorId: string) {
 
   const create = useCallback(() => {
     setEditing(null);
+    setEditorWarning(null);
     setEditorOpen(true);
   }, []);
 
   const edit = useCallback((discount: DiscountRow) => {
     setEditing(discount);
+    setEditorWarning(null);
     setEditorOpen(true);
   }, []);
 
   // Cleared on close as well as on open, so a re-open before the next render
   // cannot flash the previous code's values.
-  const closeEditor = useCallback(() => {
+  const closeEditor = useCallback((warning?: string) => {
+    setEditorWarning(warning ?? null);
     setEditorOpen(false);
     setEditing(null);
   }, []);
@@ -113,6 +142,8 @@ export function useDiscounts(vendorId: string) {
     isFiltered: rows.length > 0 && visible.length === 0,
     editing,
     isEditorOpen,
+    editorWarning,
+    dismissEditorWarning: () => setEditorWarning(null),
     create,
     edit,
     closeEditor,

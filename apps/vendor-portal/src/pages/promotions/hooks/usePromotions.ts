@@ -3,6 +3,9 @@ import { useNow } from '@sinnapi/ui';
 import {
   usePromotions as usePromotionsQuery,
   usePromotionDiscounts as usePromotionDiscountsQuery,
+  useOfferTargets,
+  usePackages,
+  useServices,
 } from '@/hooks/queries';
 import {
   toPromotionCounts,
@@ -32,6 +35,12 @@ import {
 export function usePromotions(vendorId: string) {
   const promotions = usePromotionsQuery(vendorId);
   const discounts = usePromotionDiscountsQuery(vendorId);
+  // The catalogue and the targets turn "Festive Season" into "Festive Season,
+  // on Full Day Wedding and 2 more". Secondary in every sense: a slow or failed
+  // read costs each card its coverage line and nothing else.
+  const targets = useOfferTargets(vendorId);
+  const packages = usePackages(vendorId);
+  const services = useServices(vendorId);
   // Hourly: every boundary on this screen is a calendar day, so a minute tick
   // would re-render the grid sixty times for nothing.
   const now = useNow(3_600_000);
@@ -39,10 +48,28 @@ export function usePromotions(vendorId: string) {
   const [filter, setFilter] = useState<PromotionFilter>('all');
   const [editing, setEditing] = useState<PromotionRow | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
+  /**
+   * A campaign that saved but whose scope did not.
+   *
+   * Surfaced on the screen rather than in the dialog because by the time it
+   * happens the dialog's subject — the campaign — has been written. Holding the
+   * dialog open on it would invite the vendor to submit again and create a
+   * second campaign; closing silently would leave them believing a sale covers
+   * four packages when it covers their whole catalogue.
+   */
+  const [editorWarning, setEditorWarning] = useState<string | null>(null);
 
   const rows = useMemo(
-    () => toPromotionRows(promotions.data ?? [], discounts.data ?? [], now),
-    [promotions.data, discounts.data, now],
+    () =>
+      toPromotionRows(
+        promotions.data ?? [],
+        discounts.data ?? [],
+        now,
+        targets.data ?? [],
+        packages.data ?? [],
+        services.data ?? [],
+      ),
+    [promotions.data, discounts.data, now, targets.data, packages.data, services.data],
   );
 
   const visible = useMemo(
@@ -55,19 +82,22 @@ export function usePromotions(vendorId: string) {
 
   const create = useCallback(() => {
     setEditing(null);
+    setEditorWarning(null);
     setEditorOpen(true);
   }, []);
 
   const edit = useCallback((promotion: PromotionRow) => {
     setEditing(promotion);
+    setEditorWarning(null);
     setEditorOpen(true);
   }, []);
 
   // Cleared on close as well as on open, so a re-open before the next render
   // cannot flash the previous campaign's copy.
-  const closeEditor = useCallback(() => {
+  const closeEditor = useCallback((warning?: string) => {
     setEditorOpen(false);
     setEditing(null);
+    setEditorWarning(warning ?? null);
   }, []);
 
   return {
@@ -90,6 +120,8 @@ export function usePromotions(vendorId: string) {
     isFiltered: rows.length > 0 && visible.length === 0,
     editing,
     isEditorOpen,
+    editorWarning,
+    dismissEditorWarning: () => setEditorWarning(null),
     create,
     edit,
     closeEditor,

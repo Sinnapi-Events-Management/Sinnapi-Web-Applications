@@ -10,6 +10,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Typography,
 } from '@sinnapi/ui';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -21,6 +22,7 @@ import type { DiscountRow } from '../../schema';
 import DiscountStatusChip from '../atoms/DiscountStatusChip';
 import DiscountValue from '../atoms/DiscountValue';
 import DiscountCode from './DiscountCode';
+import DiscountCoverage from './DiscountCoverage';
 import DiscountTerms from './DiscountTerms';
 import DiscountUsage from './DiscountUsage';
 import DiscountWindow from './DiscountWindow';
@@ -122,8 +124,25 @@ export default function DiscountCard({
       )}
 
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="flex-start" spacing={1}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
+            {/* The name above the code. The code is still what leaves the
+                screen and still gets the copy affordance, but "Early-bird 20%
+                off" is what the client reads on the package card, and a vendor
+                scanning a grid of six recognises the name faster than a token
+                they invented last season. */}
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 700,
+                mb: 0.75,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {discount.title ?? discount.code ?? 'Automatic discount'}
+            </Typography>
             <DiscountCode code={discount.code} copied={copied} onCopy={onCopy} />
           </Box>
           <IconButton
@@ -143,6 +162,8 @@ export default function DiscountCard({
             <DiscountStatusChip status={discount.status} />
           </Box>
         </Stack>
+
+        <DiscountCoverage discount={discount} />
 
         <DiscountTerms discount={discount} />
 

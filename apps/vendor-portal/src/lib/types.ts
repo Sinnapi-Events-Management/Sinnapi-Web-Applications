@@ -349,8 +349,63 @@ export type QuotationDetailModel = {
   discount_rate: number | null;
   tax_rate: number | null;
   tax_inclusive: boolean | null;
+  /**
+   * Which lifecycle this quote is on. `'package'` means the client ordered a
+   * published tier at its published price and this is waiting on the vendor's
+   * approval — not on the vendor's price. See migration 0903a.
+   */
+  quote_origin: string | null;
+  /** When the event is. Always set on a package order; null on older rows. */
+  event_date: string | null;
+  /** Where it is. Required by both request RPCs; null on rows written before 0903f. */
+  event_address: string | null;
+  event_type_id: string | null;
+  event_types: { id: string; name: string } | { id: string; name: string }[] | null;
   quotation_items: QuotationItemModel[] | null;
   events: EventRefModel | EventRefModel[] | null;
+};
+
+/**
+ * The terms a package order is locked to, from `package_quote_terms`.
+ *
+ * Read rather than derived from the quotation row, because two of these are
+ * questions only the database can answer: whether the vendor has edited the
+ * package since the client ordered it, and what the offer's date window is —
+ * the discount may well have expired, and `discounts_read` would not return it.
+ */
+export type PackageQuoteTermsModel = {
+  currency: string | null;
+  locked_subtotal: number | null;
+  /** The combined saving the client was shown. The vendor may beat it, not undercut it. */
+  locked_discount_floor: number | null;
+  current_discount: number | null;
+  discount_rate: number | null;
+  /** The lowest tier rate that still meets the floor — the field's `min`. */
+  min_discount_rate: number | null;
+  offer_discount_id: string | null;
+  offer_total: number | null;
+  /**
+   * The offer's own terms, so the approval dialog can price a candidate rate
+   * without a round trip. Null throughout when the order carries no offer.
+   *
+   * Needed because raising the tier rate does NOT move the total predictably: a
+   * percentage offer sits on the post-discount net and shrinks underneath it, a
+   * fixed one does not move until it caps out, and `max_discount_amount` can
+   * decide either. See migration 0903g.
+   */
+  offer_type: string | null;
+  offer_value: number | null;
+  offer_max_discount_amount: number | null;
+  tax_rate: number | null;
+  tax_inclusive: boolean | null;
+  /** What the client owes as the order stands, for the before/after line. */
+  current_total: number | null;
+  event_date: string | null;
+  event_address: string | null;
+  offer_starts_on: string | null;
+  offer_ends_on: string | null;
+  /** The package's lines have moved since the order. Approval will refuse. */
+  package_changed: boolean;
 };
 
 export type EventRefModel = {
@@ -742,9 +797,20 @@ export type PromotionModel = {
   description: string | null;
   /** The campaign artwork, in `public-media`. Null until the vendor adds one. */
   banner_url: string | null;
+  /** The vendor's fine print, shown to clients under the saving. */
+  terms: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean | null;
+  /**
+   * A moderator's take-down, separate from `is_active` so the vendor's own
+   * pause switch cannot undo it. Read-only here — the console writes it through
+   * `admin_set_promotion_suspended`.
+   */
+  admin_suspended_at: string | null;
+  admin_suspended_reason: string | null;
+  /** Placed at the top of the public offers directory by an operator. */
+  featured_at: string | null;
 };
 
 /**
@@ -778,6 +844,10 @@ export type PromotionDiscountModel = {
 export type DiscountModel = {
   id: string;
   code: string | null;
+  /** The client-facing name. A code is a token, not a title. */
+  title: string | null;
+  description: string | null;
+  terms: string | null;
   type: string;
   value: number;
   currency: string | null;
@@ -785,11 +855,57 @@ export type DiscountModel = {
   used_count: number;
   /** Only redeemable on bookings at or above this figure. Null = no floor. */
   min_amount: number | null;
+  /** Ceiling on what a percentage may take off. Null = uncapped. */
+  max_discount_amount: number | null;
+  /** How many times one client may use it. Null = no per-client limit. */
+  max_per_client: number | null;
+  /** Applies with no code typed — the client sees the price already reduced. */
+  is_automatic: boolean | null;
   /** The campaign this code prices, or null for a standalone code. */
   promotion_id: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean | null;
+  admin_suspended_at: string | null;
+  admin_suspended_reason: string | null;
+};
+
+/**
+ * One thing an offer has been attached to.
+ *
+ * The row shape of `offer_targets`, read for every offer a vendor owns in one
+ * query and grouped in the browser. Exactly one of `promotion_id` /
+ * `discount_id` is set, and which of `package_id` / `tier_id` /
+ * `vendor_service_id` carries a value is pinned to `kind` by a check
+ * constraint — so a reader may switch on `kind` and trust the rest.
+ *
+ * An offer with NO rows here covers everything the vendor sells. That is the
+ * legacy shape (nothing could attach a target before 0902a) and it stays legal
+ * in the database; the picker requires a target for anything authored now.
+ */
+export type OfferTargetModel = {
+  id: string;
+  promotion_id: string | null;
+  discount_id: string | null;
+  kind: 'package' | 'package_tier' | 'vendor_service';
+  package_id: string | null;
+  tier_id: string | null;
+  vendor_service_id: string | null;
+};
+
+/** What a campaign actually returned, from `vendor_offer_performance`. */
+export type OfferPerformanceModel = {
+  discount_id: string;
+  /** Quotes sent under this offer that the client has not answered yet. */
+  reserved_count: number;
+  /** Quotes accepted. These are the uses that were actually spent. */
+  redeemed_count: number;
+  /** Declined, withdrawn or lapsed — the uses that went back to the pool. */
+  released_count: number;
+  /** What the offer gave away, on redeemed quotes only. */
+  discounted_value: number;
+  /** What those quotes were worth in total. */
+  booked_value: number;
 };
 
 export type ReviewResponseRel = {

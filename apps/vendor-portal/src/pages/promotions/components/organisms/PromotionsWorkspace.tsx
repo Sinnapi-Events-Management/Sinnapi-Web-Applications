@@ -42,6 +42,8 @@ export default function PromotionsWorkspace({ vendorId }: { vendorId: string }) 
     isFiltered,
     editing,
     isEditorOpen,
+    editorWarning,
+    dismissEditorWarning,
     create,
     edit,
     closeEditor,
@@ -68,6 +70,16 @@ export default function PromotionsWorkspace({ vendorId }: { vendorId: string }) 
       {actionError && (
         <Alert severity="error" onClose={dismissError} sx={{ mb: 2 }}>
           {actionError}
+        </Alert>
+      )}
+
+      {/* The campaign saved; what it covers did not. Warning rather than error:
+          the vendor's work is not lost, and the campaign is live on their whole
+          catalogue until they reopen it and narrow the scope. */}
+      {editorWarning && (
+        <Alert severity="warning" onClose={dismissEditorWarning} sx={{ mb: 2 }}>
+          {editorWarning} The campaign was saved and currently applies to everything you sell — open
+          it again to choose which packages it covers.
         </Alert>
       )}
 

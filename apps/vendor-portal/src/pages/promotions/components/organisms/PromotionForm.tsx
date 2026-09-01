@@ -8,12 +8,18 @@ type Props = {
   /** The campaign being edited, or null when this is a new one. */
   promotion: PromotionModel | null;
   onCancel: () => void;
-  onSuccess: () => void;
+  /**
+   * `warning` carries a scope write that failed after the campaign itself was
+   * saved. The dialog still closes — the campaign exists — and the screen behind
+   * reports it, which is where the campaign now is and where it can be fixed.
+   */
+  onSuccess: (warning?: string) => void;
 };
 
 /** The campaign fields and the write behind them, for both create and edit. */
 export default function PromotionForm({ vendorId, promotion, onCancel, onSuccess }: Props) {
-  const { control, error, busy, isEdit, submit } = usePromotionForm(vendorId, promotion, onSuccess);
+  const { control, error, busy, isEdit, submit, picker, packages, services, catalogueLoading } =
+    usePromotionForm(vendorId, promotion, onSuccess);
 
   return (
     <Box component="form" onSubmit={submit} noValidate>
@@ -23,7 +29,16 @@ export default function PromotionForm({ vendorId, promotion, onCancel, onSuccess
             {error}
           </Alert>
         )}
-        <PromotionFormFields control={control} vendorId={vendorId} />
+        <PromotionFormFields
+          control={control}
+          vendorId={vendorId}
+          packages={packages}
+          services={services}
+          selectedTargets={picker.selected}
+          onToggleTarget={picker.toggle}
+          onClearTargets={picker.clear}
+          catalogueLoading={catalogueLoading}
+        />
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onCancel} disabled={busy} color="inherit">

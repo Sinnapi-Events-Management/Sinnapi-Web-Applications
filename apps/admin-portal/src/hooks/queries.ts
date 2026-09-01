@@ -6,12 +6,14 @@ import {
   keepPreviousData,
 } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
+import type { PackageOfferRow } from '@sinnapi/ui/offers';
 import { supabase } from '@/lib/supabase';
 import {
   applyFilters,
   paginate,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
   PACKAGE_ADMIN_COLUMNS,
+  rpcErrorMessage,
   type PageParams,
   type Paged,
 } from '@sinnapi/ui';
@@ -62,6 +64,7 @@ import type {
   BookingPaymentEventModel,
   UnpaidBookingCounts,
   UnpaidBookingModel,
+  AdminOfferModel,
   BookingAdminModel,
   BookingActivityModel,
   SettlementRequestModel,
@@ -2497,6 +2500,155 @@ export function useEmailSuppressions(params: PageParams) {
 
 /** Which slice of the unpaid queue to show. `all` is both. */
 export type UnpaidBookingState = 'all' | 'awaiting' | 'overdue';
+
+/**
+ * Every live offer on every published package of one vendor.
+ *
+ * The console reads this so the moderation view of a package shows the price a
+ * client is actually being quoted, discount and all. An operator judging
+ * whether a package is misleading has to see what the complainant saw — and a
+ * showcase rendered at list price while the public one shows 20% off is the
+ * console looking at a different offer from the one it is deciding about.
+ *
+ * Never gates the packages tab: a failure costs the cards their offer ribbons,
+ * which is worse than having them and much better than an empty tab.
+ */
+export function useAdminVendorPackageOffers(vendorId?: string) {
+  return useQuery({
+    queryKey: ['admin-vendor-package-offers', vendorId] as const,
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_package_offers', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as PackageOfferRow[];
+    },
+  });
+}
+
+/** The tab an operator is filtering the offers console by. */
+export type OfferStatusFilter =
+  | 'all'
+  | 'live'
+  | 'scheduled'
+  | 'paused'
+  | 'suspended'
+  | 'ended'
+  | 'exhausted';
+
+export type AdminOfferParams = PageParams & {
+  search?: string;
+  status?: OfferStatusFilter;
+  vendorId?: string | null;
+};
+
+/**
+ * One page of vendor offers, for moderation.
+ *
+ * An RPC rather than a PostgREST select for the same reason the unpaid queue
+ * uses one: the row an operator triages spans the discount, the campaign above
+ * it, the vendor running it, the packages it covers and its redemption tally —
+ * and `offer_targets_package` is a function, not a join, so the "which packages"
+ * column cannot be expressed as an embed at all.
+ *
+ * `admin_search_offers` checks `can_moderate_offers` itself and returns nothing
+ * to an operator without it, which is why this hook has no permission gate: an
+ * empty table for someone who may not moderate is the correct result, and a
+ * client-side check would be a second place for the rule to live.
+ */
+export function useAdminOffers(params: AdminOfferParams) {
+  return useQuery({
+    queryKey: ['admin-offers', params] as const,
+    queryFn: async (): Promise<Paged<AdminOfferModel>> => {
+      const { data, error } = await supabase.rpc('admin_search_offers', {
+        p_status: params.status && params.status !== 'all' ? params.status : null,
+        p_search: params.search || null,
+        p_vendor_id: params.vendorId ?? null,
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (AdminOfferModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The tab badges.
+ *
+ * Its own read rather than counts derived from the page, because a page is 25
+ * rows and a badge that says "Live (25)" when 60 are live is worse than no
+ * badge. Shares the `admin-offers` key prefix so a suspension refreshes the
+ * badges alongside the list it was performed from.
+ */
+export function useAdminOfferCounts() {
+  return useQuery({
+    queryKey: ['admin-offers', 'counts'] as const,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase.rpc('admin_offer_counts');
+      if (error) throw error;
+      return Object.fromEntries(
+        ((data ?? []) as { status: string; count: number | string }[]).map((row) => [
+          row.status,
+          Number(row.count),
+        ]),
+      );
+    },
+  });
+}
+
+/**
+ * The three moderation writes, behind one hook.
+ *
+ * Together rather than as three, because they invalidate exactly the same
+ * things and always appear on the same screen — and because suspending a
+ * campaign clears its featured flag server-side, so a suspend has to refresh
+ * what a feature would have.
+ */
+export function useOfferModeration() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-offers'] });
+
+  const suspendDiscount = useMutation({
+    mutationFn: async (input: { id: string; suspended: boolean; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_set_discount_suspended', {
+        p_discount_id: input.id,
+        p_suspended: input.suspended,
+        p_reason: input.reason ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  const suspendPromotion = useMutation({
+    mutationFn: async (input: { id: string; suspended: boolean; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_set_promotion_suspended', {
+        p_promotion_id: input.id,
+        p_suspended: input.suspended,
+        p_reason: input.reason ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  const setFeatured = useMutation({
+    mutationFn: async (input: { id: string; featured: boolean }) => {
+      const { error } = await supabase.rpc('admin_set_promotion_featured', {
+        p_promotion_id: input.id,
+        p_featured: input.featured,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  return { suspendDiscount, suspendPromotion, setFeatured };
+}
 
 export type UnpaidBookingParams = PageParams & { search?: string; state?: UnpaidBookingState };
 

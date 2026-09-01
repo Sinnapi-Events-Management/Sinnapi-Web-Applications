@@ -13,6 +13,11 @@ export const SITE = {
 
 export const PRIMARY_NAV = [
   { label: 'Vendors', href: '/vendors' },
+  // Second, beside Vendors: both answer "who should I book", and a visitor
+  // shopping on price is doing the same job as one browsing — from the other
+  // end. Ahead of Events because an offer has a deadline and an event listing
+  // does not.
+  { label: 'Offers', href: '/offers' },
   { label: 'Events', href: '/events' },
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Pricing', href: '/pricing' },
@@ -33,6 +38,7 @@ export const FOOTER_NAV = {
   ],
   Marketplace: [
     { label: 'Browse Vendors', href: '/vendors' },
+    { label: 'Offers & discounts', href: '/offers' },
     { label: 'Events', href: '/events' },
     { label: 'Become a Vendor', href: '/apply' },
     { label: 'Pricing', href: '/pricing' },

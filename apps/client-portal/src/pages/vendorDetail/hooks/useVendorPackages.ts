@@ -1,10 +1,26 @@
 import { useCallback, useMemo, useState } from 'react';
 import { defaultPackageTier, packageTiers } from '@sinnapi/ui';
-import { useVendorPackages as useVendorPackagesQuery } from '@/hooks/queries';
+import { groupOffersByPackage, offersForTier, type OfferModel } from '@sinnapi/ui/offers';
+import {
+  useVendorPackages as useVendorPackagesQuery,
+  useVendorPackageOffers,
+} from '@/hooks/queries';
 import type { PackageModel } from '@/lib/types';
 
-/** The package and tier a client has decided to ask about. */
-export type PackageRequest = { pkg: PackageModel; tierId: string; tierName: string };
+/**
+ * The package, tier and offer a client has decided to ask about.
+ *
+ * The offer travels with the request because `request_quotation` takes a code:
+ * a client who clicked "Request this package" while a saving was on the card
+ * has already chosen the offer, and making them re-type the code into the brief
+ * is asking them to claim something they were just shown.
+ */
+export type PackageRequest = {
+  pkg: PackageModel;
+  tierId: string;
+  tierName: string;
+  offer: OfferModel | null;
+};
 
 /**
  * A vendor's published packages, and the request a client starts from one.
@@ -20,6 +36,10 @@ export type PackageRequest = { pkg: PackageModel; tierId: string; tierName: stri
  */
 export function useVendorPackages(vendorId?: string) {
   const { data, isLoading, error } = useVendorPackagesQuery(vendorId);
+  // Secondary to the packages in every sense. A profile whose offers read fails
+  // shows correct list prices, which is a worse page but not a wrong one — so
+  // this never gates and its error is never surfaced.
+  const offers = useVendorPackageOffers(vendorId);
   const [tierByPackage, setTierByPackage] = useState<Record<string, string>>({});
   const [request, setRequest] = useState<PackageRequest | null>(null);
 
@@ -31,6 +51,23 @@ export function useVendorPackages(vendorId?: string) {
     [data],
   );
 
+  // Indexed once per fetch. Doing it per card would walk the whole row set on
+  // every tier switch, which is the interaction this data exists for.
+  const offersByPackage = useMemo(() => groupOffersByPackage(offers.data), [offers.data]);
+
+  /**
+   * The offers that apply to one package, at the tier on screen.
+   *
+   * `PackageShowcase` picks the best of them and prices it; this only has to
+   * narrow the batch read to the card asking. Passing the package-level set
+   * (tier null) would put a Gold-only saving on the Silver tab.
+   */
+  const offersFor = useCallback(
+    (pkg: PackageModel, tierId: string | null) =>
+      offersForTier(offersByPackage.get(pkg.id), tierId),
+    [offersByPackage],
+  );
+
   const selectTier = useCallback((packageId: string, tierId: string) => {
     setTierByPackage((current) => ({ ...current, [packageId]: tierId }));
   }, []);
@@ -40,9 +77,12 @@ export function useVendorPackages(vendorId?: string) {
     [tierByPackage],
   );
 
-  const openRequest = useCallback((pkg: PackageModel, tierId: string, tierName: string) => {
-    setRequest({ pkg, tierId, tierName });
-  }, []);
+  const openRequest = useCallback(
+    (pkg: PackageModel, tierId: string, tierName: string, offer: OfferModel | null) => {
+      setRequest({ pkg, tierId, tierName, offer });
+    },
+    [],
+  );
 
   return {
     packages,
@@ -51,6 +91,7 @@ export function useVendorPackages(vendorId?: string) {
     hasPackages: packages.length > 0,
     selectedTierId,
     selectTier,
+    offersFor,
     request,
     openRequest,
     closeRequest: () => setRequest(null),

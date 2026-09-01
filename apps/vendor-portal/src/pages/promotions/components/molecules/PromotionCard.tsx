@@ -19,6 +19,7 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import type { PromotionRow } from '../../schema';
 import PromotionBanner from '../atoms/PromotionBanner';
+import PromotionCoverage from './PromotionCoverage';
 import PromotionStatusChip from '../atoms/PromotionStatusChip';
 import PromotionWindow from './PromotionWindow';
 import PromotionCodes from './PromotionCodes';
@@ -144,6 +145,8 @@ export default function PromotionCard({
             {promotion.description}
           </Typography>
         )}
+
+        <PromotionCoverage promotion={promotion} />
 
         <Box sx={{ flex: 1 }} />
         <Divider />

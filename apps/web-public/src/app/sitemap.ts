@@ -9,6 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     '',
     '/vendors',
+    '/offers',
     '/events',
     '/about',
     '/mission',
@@ -36,6 +37,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly' as const,
     priority: 0.6,
   }));
+  // The filtered offers pages, which are the ones that rank for "<category>
+  // offers". Daily rather than weekly: their content is defined by what is live
+  // today, and a weekly crawl of a page about deadlines is a weekly crawl of
+  // stale claims.
+  const offerCategoryRoutes = VENDOR_CATEGORIES.map((c) => ({
+    url: `${base}/offers?category=${c}`,
+    lastModified: now,
+    changeFrequency: 'daily' as const,
+    priority: 0.6,
+  }));
   const regionRoutes = SERVICE_REGIONS.map((r) => ({
     url: `${base}/vendors/region/${r}`,
     lastModified: now,
@@ -57,5 +68,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...categoryRoutes, ...regionRoutes, ...vendorRoutes, ...eventRoutes];
+  return [
+    ...staticRoutes,
+    ...categoryRoutes,
+    ...offerCategoryRoutes,
+    ...regionRoutes,
+    ...vendorRoutes,
+    ...eventRoutes,
+  ];
 }

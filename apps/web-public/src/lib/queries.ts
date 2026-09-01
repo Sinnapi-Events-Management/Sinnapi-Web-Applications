@@ -1,4 +1,5 @@
 import { PACKAGE_PUBLIC_COLUMNS } from '@sinnapi/ui/molecules';
+import type { PackageOfferRow } from '@sinnapi/ui/offers';
 import { createAnonClient as createPublicClient } from './supabase/anon';
 import { EVENT_LOCATIONS } from './config/site';
 import type {
@@ -18,6 +19,9 @@ import type {
   PricingPlanModel,
   PlanFeatureModel,
   PackageModel,
+  PublicVendorOfferModel,
+  PublicOfferModel,
+  CategoryOption,
 } from './types';
 
 // Public columns only — vendor email/phone are intentionally excluded everywhere.
@@ -96,6 +100,73 @@ export async function getVendorPackages(vendorId: string): Promise<PackageModel[
     .is('quote_template_items.tier_id', null)
     .order('sort_order', { ascending: true });
   return (data ?? []) as unknown as PackageModel[];
+}
+
+/**
+ * Every live offer on every published package of one vendor, in one read.
+ *
+ * ONE ROUND TRIP, AND ON THIS SITE THAT IS NOT A MICRO-OPTIMISATION
+ * The vendor page is server-rendered, so a per-package read would put six
+ * sequential round trips inside the visitor's time-to-first-byte rather than
+ * behind a spinner they can watch. `vendor_package_offers` does the fan-out in
+ * SQL for exactly that reason.
+ *
+ * The RPC redacts `code` for a caller with no session — which is every caller
+ * here, since this module uses the anon client. That is the whole
+ * teaser-public / code-gated arrangement: a visitor sees the saving, the
+ * deadline and what it covers, and has to sign in to get the token. Nothing in
+ * this file has to remember to strip anything.
+ *
+ * Returns `[]` on failure like every other read in this module: a vendor page
+ * that renders at list price is worse than one that does not render.
+ */
+export async function getVendorPackageOffers(vendorId: string): Promise<PackageOfferRow[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa.rpc('vendor_package_offers', { p_vendor_id: vendorId });
+  return (data ?? []) as PackageOfferRow[];
+}
+
+/** What this vendor is running, one row per offer, for the strip on their page. */
+export async function getVendorOffers(vendorId: string): Promise<PublicVendorOfferModel[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa.rpc('vendor_offers', { p_vendor_id: vendorId });
+  return (data ?? []) as PublicVendorOfferModel[];
+}
+
+/**
+ * The public offers directory.
+ *
+ * The most indexable page this feature produces: real savings, real deadlines,
+ * real vendors, and no code anywhere in the payload — `search_public_offers`
+ * omits it entirely rather than redacting it, precisely because this result set
+ * is meant to be crawled.
+ */
+export async function searchPublicOffers(
+  params: {
+    q?: string;
+    categoryId?: string | null;
+    regionId?: string | null;
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<{ offers: PublicOfferModel[]; total: number }> {
+  const supa = createPublicClient();
+  if (!supa) return { offers: [], total: 0 };
+
+  const { data } = await supa.rpc('search_public_offers', {
+    p_search: params.q?.trim() || null,
+    p_category_id: params.categoryId ?? null,
+    p_region_id: params.regionId ?? null,
+    p_limit: params.limit ?? 24,
+    p_offset: params.offset ?? 0,
+  });
+
+  const offers = (data ?? []) as PublicOfferModel[];
+  // The count rides on every row as a window function, so the page and its
+  // total come from one scan and cannot disagree with each other.
+  return { offers, total: Number(offers[0]?.total_count ?? 0) };
 }
 
 export async function getVendorMedia(vendorId: string): Promise<VendorMediaModel[]> {
@@ -200,6 +271,27 @@ export async function getServiceCategories(): Promise<ReferenceOption[]> {
     .select('key,name')
     .order('sort_order', { ascending: true });
   return (data ?? []) as ReferenceOption[];
+}
+
+/**
+ * Service categories with their ids as well as their keys.
+ *
+ * `getServiceCategories` returns `key`/`name` because the vendor directory
+ * filters on a key — a readable segment in a URL people share. The offers
+ * directory has to pass an `id` to `search_public_offers`, so it needs both:
+ * the key stays in the URL and is resolved to an id here, server-side, which is
+ * what keeps `/offers?category=photography` indexable rather than
+ * `/offers?category=3f2b…`.
+ */
+export async function getServiceCategoryOptions(): Promise<CategoryOption[]> {
+  const supa = createPublicClient();
+  if (!supa) return [];
+  const { data } = await supa
+    .from('service_categories')
+    .select('id,key,name')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as CategoryOption[];
 }
 
 /**

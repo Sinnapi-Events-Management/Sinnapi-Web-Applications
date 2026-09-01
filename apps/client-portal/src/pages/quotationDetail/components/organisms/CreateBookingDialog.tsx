@@ -11,7 +11,12 @@ import {
   Typography,
 } from '@sinnapi/ui';
 import type { QuotationPricing } from '@sinnapi/ui';
-import type { EventRefModel, QuotationDetailModel, VendorRefModel } from '@/lib/types';
+import type {
+  EventRefModel,
+  QuotationDetailModel,
+  QuotationOfferModel,
+  VendorRefModel,
+} from '@/lib/types';
 import PaymentTermsStep from '@/components/paymentTerms/components/organisms/PaymentTermsStep';
 import { useCreateBookingFromQuotation } from '../../hooks/useCreateBookingFromQuotation';
 import BookingCarryOver from '../molecules/BookingCarryOver';
@@ -22,6 +27,8 @@ type Props = {
   vendor: VendorRefModel | null;
   event: EventRefModel | null;
   pricing: QuotationPricing;
+  /** The offer the quote was priced with — its window bounds the calendar. */
+  offer: QuotationOfferModel | null;
   open: boolean;
   onClose: () => void;
 };
@@ -41,6 +48,7 @@ export default function CreateBookingDialog({
   vendor,
   event,
   pricing,
+  offer,
   open,
   onClose,
 }: Props) {
@@ -57,6 +65,7 @@ export default function CreateBookingDialog({
           vendor={vendor}
           event={event}
           pricing={pricing}
+          offer={offer}
           onClose={onClose}
         />
       )}
@@ -74,9 +83,10 @@ function CreateBookingForm({
   vendor,
   event,
   pricing,
+  offer,
   onClose,
 }: Omit<Props, 'open' | 'onClose'> & { onClose: () => void }) {
-  const form = useCreateBookingFromQuotation(quotation, event, pricing.total, onClose);
+  const form = useCreateBookingFromQuotation(quotation, event, pricing.total, offer, onClose);
 
   return (
     <Box component="form" onSubmit={form.submit} noValidate>
@@ -102,6 +112,9 @@ function CreateBookingForm({
             slotMinutes={form.slotMinutes}
             endMinTime={form.endMinTime}
             endDisabled={form.endDisabled}
+            minDate={form.minDate}
+            maxDate={form.maxDate}
+            isOfferBound={form.isOfferBound}
           />
         </Stack>
 

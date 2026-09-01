@@ -6,10 +6,12 @@ import { bookingFromQuotationError, fromMinutes, localToday, toMinutes } from '@
 import { useZodForm } from '@sinnapi/ui/forms';
 import { supabase } from '@/lib/supabase';
 import { usePaymentTermsChoice } from '@/components/paymentTerms/hooks/usePaymentTermsChoice';
-import type { EventRefModel, QuotationDetailModel } from '@/lib/types';
+import type { EventRefModel, QuotationDetailModel, QuotationOfferModel } from '@/lib/types';
 import {
+  bookingDateBounds,
   bookingFromQuotationSchema,
   defaultBookingDate,
+  defaultBookingLocation,
   emptyBookingFromQuotationValues,
   toBookingFromQuotationArgs,
 } from '../schema';
@@ -40,6 +42,11 @@ export function useCreateBookingFromQuotation(
   event: EventRefModel | null,
   /** The quote's total, already resolved against its line items. */
   total: number,
+  /**
+   * The offer this quote was priced with, when it carries one. Only its date
+   * window is used here — it is what the booking's own date must fall inside.
+   */
+  offer: QuotationOfferModel | null,
   onDone: () => void,
 ) {
   const navigate = useNavigate();
@@ -47,6 +54,11 @@ export function useCreateBookingFromQuotation(
   const [error, setError] = useState<string | null>(null);
 
   const today = localToday();
+
+  // The offer's window, as calendar bounds. Derived before the form so the
+  // picker is fenced from its first render — a date greyed out is a rule
+  // explained, where the same date accepted and then refused is an argument.
+  const dateBounds = bookingDateBounds(offer, today);
 
   // Priced against the quote's own total rather than `quotation.total`: the
   // stored column can be zero on a quote whose lines are not — see
@@ -66,9 +78,13 @@ export function useCreateBookingFromQuotation(
   } = useZodForm(bookingFromQuotationSchema, {
     defaultValues: {
       ...emptyBookingFromQuotationValues,
-      // A quote requested against one of the client's own events already knows
-      // the date. Pre-filling it makes the common case a confirmation.
-      event_date: defaultBookingDate(event?.event_date, today),
+      // A package order already carries the date the client gave and the
+      // vendor approved; a quote against one of the client's own events knows
+      // the event's. Either way, pre-filling makes the common case a
+      // confirmation rather than a second entry.
+      event_date: defaultBookingDate(quotation.event_date, event?.event_date, today),
+      // The address the vendor already approved. Editable — see the schema.
+      location: defaultBookingLocation(quotation.event_address),
     },
   });
 
@@ -117,6 +133,8 @@ export function useCreateBookingFromQuotation(
     busy: isSubmitting,
     submit,
     slotMinutes: SLOT_MINUTES,
+    /** The days the calendar will offer, narrowed by the offer when there is one. */
+    ...dateBounds,
     endMinTime,
     /** An end time means nothing until a start exists to measure it from. */
     endDisabled: startMinutes === null,

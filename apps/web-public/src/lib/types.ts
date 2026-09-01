@@ -279,3 +279,58 @@ export type PackageModel = {
   /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
   quote_template_items: PackageLineModel[] | null;
 };
+
+/**
+ * One live offer a vendor is running, from `vendor_offers`.
+ *
+ * `code` is always null here and the type says so with a comment rather than
+ * `never`: the RPC redacts it for a caller with no session, and every caller in
+ * this app is the anon client. Keeping the field means the same component
+ * renders this row and the client portal's — where a code IS present — without
+ * two types describing one shape.
+ */
+export type PublicVendorOfferModel = {
+  discount_id: string;
+  promotion_id: string | null;
+  promotion_title: string | null;
+  banner_url: string | null;
+  title: string;
+  description: string | null;
+  terms: string | null;
+  /** Always null on this site. Sign-in is what reveals it. */
+  code: string | null;
+  is_automatic: boolean | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  max_discount_amount: number | null;
+  min_amount: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  remaining_uses: number | null;
+  package_ids: string[] | null;
+  package_names: string[] | null;
+};
+
+/** One card of the public offers directory, from `search_public_offers`. */
+export type PublicOfferModel = PublicVendorOfferModel & {
+  vendor_id: string;
+  vendor_name: string;
+  vendor_slug: string;
+  vendor_image_url: string | null;
+  vendor_rating: number | null;
+  vendor_review_count: number | null;
+  category_id: string | null;
+  category_name: string | null;
+  promotion_public_id: string | null;
+  /** Placed at the top of the directory by an operator. */
+  is_featured: boolean | null;
+  package_count: number | null;
+  /** The cheapest tier this offer touches, before the offer is applied. */
+  from_price: number | null;
+  /** Repeated on every row — the RPC counts and pages in one scan. */
+  total_count: number | null;
+};
+
+/** A service category with both identifiers: the key for URLs, the id for RPCs. */
+export type CategoryOption = { id: string; key: string; name: string };

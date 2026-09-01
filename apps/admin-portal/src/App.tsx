@@ -19,6 +19,7 @@ import Vendors from '@/pages/vendors';
 import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
 import UnpaidBookings from '@/pages/unpaidBookings';
+import Offers from '@/pages/offers';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
 import QuotationDetail from '@/pages/quotationDetail';
@@ -117,6 +118,11 @@ export default function App() {
             path="/bookings-awaiting-payment"
             element={g('booking.payment.chase', <UnpaidBookings />)}
           />
+          {/* Gated on the moderation permission, not on a read one: every row
+              on this page exists to be acted on, and `admin_search_offers`
+              returns nothing to a caller without it — a read-only visitor would
+              get an empty table with no explanation. */}
+          <Route path="/offers" element={g('offers.moderate', <Offers />)} />
           <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
           {/* The detail page reads on the same permission as the list. There is
               no write to gate separately: `quotations_update` admits only the

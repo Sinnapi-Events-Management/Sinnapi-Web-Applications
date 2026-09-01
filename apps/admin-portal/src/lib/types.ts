@@ -1390,3 +1390,48 @@ export type PackageModel = {
   /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
   quote_template_items: PackageLineModel[] | null;
 };
+
+/**
+ * One offer as the moderation console reads it, from `admin_search_offers`.
+ *
+ * The discount with its campaign folded in, the vendor running it, what it
+ * covers and what it has returned. `status` is derived by the RPC, not stored —
+ * and it is the same vocabulary the vendor's own screen uses, so an operator
+ * and a vendor discussing a campaign are using the same word for its state.
+ */
+export type AdminOfferModel = {
+  discount_id: string;
+  promotion_id: string | null;
+  promotion_public_id: string | null;
+  promotion_title: string | null;
+  vendor_id: string | null;
+  vendor_name: string | null;
+  vendor_slug: string | null;
+  vendor_public_id: string | null;
+  title: string;
+  description: string | null;
+  code: string | null;
+  is_automatic: boolean | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  min_amount: number | null;
+  max_discount_amount: number | null;
+  max_uses: number | null;
+  max_per_client: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: string;
+  /** Placed at the top of the public offers directory by an operator. */
+  is_featured: boolean | null;
+  admin_suspended_at: string | null;
+  admin_suspended_reason: string | null;
+  package_count: number | null;
+  package_names: string[] | null;
+  /** Quotes sent under this offer that the client has not answered yet. */
+  reserved_count: number | null;
+  /** Quotes accepted — the uses that were actually spent. */
+  redeemed_count: number | null;
+  /** What the offer gave away, on redeemed quotes only. */
+  discounted_value: number | null;
+};

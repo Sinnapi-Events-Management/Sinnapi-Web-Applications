@@ -378,6 +378,18 @@ export type QuotationDetailModel = {
   vendor_id: string | null;
   event_id: string | null;
   vendors: VendorRefModel | VendorRefModel[] | null;
+  /**
+   * Which lifecycle this quote is on. `'package'` means the client ordered a
+   * published tier at its published price and is waiting on the vendor to
+   * approve it — not to price it. See migration 0903a.
+   */
+  quote_origin: string | null;
+  /** The date the client gave when ordering. Null on a bespoke request. */
+  event_date: string | null;
+  /** Where it is. Required by both request RPCs; null on rows written before 0903f. */
+  event_address: string | null;
+  event_type_id: string | null;
+  event_types: { id: string; name: string } | { id: string; name: string }[] | null;
   quotation_items: QuotationItemModel[] | null;
   events: EventRefModel | EventRefModel[] | null;
 };
@@ -1043,4 +1055,88 @@ export type ProfileModel = {
   mfa_enabled: boolean;
   /** Account creation timestamp — the "member since" fact on the profile page. */
   created_at: string | null;
+};
+
+/**
+ * One live offer a vendor is running, from `vendor_offers`.
+ *
+ * The row shape the RPC returns, not the `discounts` table: the campaign is
+ * already folded in and the code is already redacted for a caller who is not
+ * signed in. A client portal reader always is, so `code` is present here — the
+ * field stays nullable because the same RPC serves the marketing site.
+ */
+export type VendorOfferModel = {
+  discount_id: string;
+  promotion_id: string | null;
+  promotion_title: string | null;
+  banner_url: string | null;
+  title: string;
+  description: string | null;
+  terms: string | null;
+  code: string | null;
+  is_automatic: boolean | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  max_discount_amount: number | null;
+  min_amount: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  /** Null when uncapped. Never zero — an exhausted offer is not returned. */
+  remaining_uses: number | null;
+  /** The published packages this offer covers. Empty = the whole catalogue. */
+  package_ids: string[] | null;
+  package_names: string[] | null;
+};
+
+/** One card of the offers directory, from `search_public_offers`. */
+export type PublicOfferModel = VendorOfferModel & {
+  vendor_id: string;
+  vendor_name: string;
+  vendor_slug: string;
+  vendor_image_url: string | null;
+  vendor_rating: number | null;
+  vendor_review_count: number | null;
+  category_id: string | null;
+  category_name: string | null;
+  promotion_public_id: string | null;
+  /** Placed at the top of the directory by an operator. */
+  is_featured: boolean | null;
+  package_count: number | null;
+  /** The cheapest tier this offer touches, before the offer is applied. */
+  from_price: number | null;
+  /** Repeated on every row — the RPC counts and pages in one scan. */
+  total_count: number | null;
+};
+
+/**
+ * The offer a quotation was priced with, from `quotation_offer`.
+ *
+ * `status` is the redemption's, not the offer's: `reserved` while the client
+ * has not answered, `redeemed` once they accept. That distinction is what lets
+ * a quote say "you will save" before acceptance and "you saved" after.
+ */
+export type QuotationOfferModel = {
+  discount_id: string;
+  title: string;
+  description: string | null;
+  terms: string | null;
+  code: string | null;
+  type: string;
+  value: number;
+  /** What it actually took off this quote. */
+  amount: number;
+  promotion_title: string | null;
+  status: string;
+  /**
+   * The days an event must fall on to qualify for this offer.
+   *
+   * The browser's only way to know the window: `discounts_read` admits a live
+   * discount only, and by the time a client is scheduling their booking the
+   * campaign has often ended — while the trigger on `bookings.event_date` still
+   * enforces it. Without these the booking calendar could offer a date the
+   * database is going to refuse.
+   */
+  starts_on: string | null;
+  ends_on: string | null;
 };

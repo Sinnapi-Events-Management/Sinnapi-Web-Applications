@@ -10,6 +10,7 @@ export * from './SavedFormActions';
 export * from './ControlledField';
 export * from './ControlledPasswordField';
 export * from './ControlledCheckbox';
+export * from './ControlledSwitch';
 export * from './ControlledDateField';
 export * from './ControlledDateRangeField';
 export * from './ControlledTimeField';

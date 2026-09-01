@@ -18,6 +18,16 @@ export type QuotationLineItemsProps<Line extends QuotationLineLike> = {
   emptyMessage?: ReactNode;
   /** Label on the summed figure — "Quoted total" reads oddly on an invoice. */
   totalLabel?: string;
+  /**
+   * The name of the promotion this quote was priced with.
+   *
+   * Passed in rather than read: the offer's name lives on `discounts`, which a
+   * client can only read while the campaign is live — and by the time they open
+   * an old quote it usually is not. `quotation_offer` is the RPC that answers
+   * it, and each portal calls that itself. Falls back to "Promotion", which is
+   * true and unhelpful, rather than to nothing.
+   */
+  offerLabel?: string | null;
 };
 
 /**
@@ -41,6 +51,7 @@ export function QuotationLineItems<Line extends QuotationLineLike>({
   pricing,
   emptyMessage = 'This quote has no line items.',
   totalLabel = 'Quoted total',
+  offerLabel,
 }: QuotationLineItemsProps<Line>) {
   const rows = useMemo(() => quotationLineRows(items), [items]);
   const columns = useMemo(() => quotationLineColumns<Line>(pricing.currency), [pricing.currency]);
@@ -64,6 +75,19 @@ export function QuotationLineItems<Line extends QuotationLineLike>({
               { label: 'Subtotal', amount: pricing.subtotal },
               ...(pricing.discount > 0
                 ? [{ label: 'Discount', amount: -pricing.discount, hint: 'Applied by the vendor.' }]
+                : []),
+              // Its own line, never folded into the one above. The vendor's
+              // discount is part of the package's published price; this one the
+              // client claimed, and collapsing them would hide the value of the
+              // thing they did.
+              ...(pricing.offerDiscount > 0
+                ? [
+                    {
+                      label: offerLabel ?? 'Promotion',
+                      amount: -pricing.offerDiscount,
+                      hint: 'A promotion you claimed on this booking.',
+                    },
+                  ]
                 : []),
               ...(pricing.tax > 0 ? [{ label: 'Tax', amount: pricing.tax, additive: true }] : []),
             ]}

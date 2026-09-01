@@ -10,7 +10,12 @@ type Props = {
   discount: DiscountRow | null;
   promotions: PromotionModel[];
   onCancel: () => void;
-  onSuccess: () => void;
+  /**
+   * `warning` carries a scope write that failed after the code itself was
+   * saved. The dialog still closes — the code exists, and re-submitting would
+   * hit the unique index — and the screen behind reports it.
+   */
+  onSuccess: (warning?: string) => void;
 };
 
 /** The discount fields and the write behind them, for both create and edit. */
@@ -28,9 +33,14 @@ export default function DiscountForm({
     isEdit,
     codeLocked,
     isFixed,
+    isAutomatic,
     valueLabel,
     promotionOptions,
     submit,
+    picker,
+    packages,
+    services,
+    catalogueLoading,
   } = useDiscountForm(vendorId, discount, promotions, onSuccess);
 
   return (
@@ -45,8 +55,15 @@ export default function DiscountForm({
           control={control}
           codeLocked={codeLocked}
           isFixed={isFixed}
+          isAutomatic={isAutomatic}
           valueLabel={valueLabel}
           promotionOptions={promotionOptions}
+          packages={packages}
+          services={services}
+          selectedTargets={picker.selected}
+          onToggleTarget={picker.toggle}
+          onClearTargets={picker.clear}
+          catalogueLoading={catalogueLoading}
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>

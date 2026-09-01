@@ -1,4 +1,4 @@
-import { Button, Grid, Paper, QueryState, Typography } from '@sinnapi/ui';
+import { Button, formatAmount, Grid, Paper, QueryState, Typography } from '@sinnapi/ui';
 import { PackageShowcase } from '@sinnapi/ui';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
@@ -27,7 +27,12 @@ type Props = {
  * The showcase is the same component the vendor previews in their editor and
  * the marketing site renders to signed-out visitors. One renderer, so the
  * package a client compares here is the package they were shown before they
- * signed in.
+ * signed in — including, now, the offer on it and the price it makes.
+ *
+ * The offers are threaded in per package AND per tier. A saving scoped to Gold
+ * must not move the Silver price, and the showcase re-derives the best one
+ * every time the reader switches tabs, so the ribbon, the breakdown and the
+ * button always describe the same tier.
  */
 export default function VendorPackagesSection({ vendorId, vendorName }: Props) {
   const state = useVendorPackages(vendorId);
@@ -37,7 +42,7 @@ export default function VendorPackagesSection({ vendorId, vendorName }: Props) {
       <VendorSectionHeading
         eyebrow="Packages"
         title="Packages & pricing"
-        subtitle={`Priced offers from ${vendorName}. Ask for one and it arrives as a quote you can accept.`}
+        subtitle={`Priced offers from ${vendorName}. Order one at the price shown — ${vendorName} confirms your date.`}
       />
 
       <QueryState isLoading={state.isLoading} error={state.error}>
@@ -53,14 +58,23 @@ export default function VendorPackagesSection({ vendorId, vendorName }: Props) {
                   pkg={pkg}
                   defaultTierId={state.selectedTierId(pkg)}
                   onTierChange={(tierId) => state.selectTier(pkg.id, tierId)}
-                  renderAction={(tier) => (
+                  offers={state.offersFor(pkg, state.selectedTierId(pkg))}
+                  renderAction={(tier, pricing, offer) => (
                     <Button
                       fullWidth
                       variant="contained"
                       startIcon={<RequestQuoteIcon />}
-                      onClick={() => state.openRequest(pkg, tier.id, tier.name)}
+                      onClick={() => state.openRequest(pkg, tier.id, tier.name, offer)}
                     >
-                      Request this package
+                      {/* The saving is repeated on the button because this is
+                          the last thing read before the click. A button that
+                          says only "Request this package" under a discounted
+                          total leaves the client to remember, across the whole
+                          card, that the price they are acting on is the reduced
+                          one. */}
+                      {offer
+                        ? `Request this package and save ${formatAmount(pricing.offerSaving, pricing.currency)}`
+                        : 'Request this package'}
                     </Button>
                   )}
                 />
@@ -72,11 +86,9 @@ export default function VendorPackagesSection({ vendorId, vendorName }: Props) {
         )}
       </QueryState>
 
-      <PackageQuoteDialog
-        vendorId={vendorId}
-        request={state.request}
-        onClose={state.closeRequest}
-      />
+      {/* No `vendorId` — the package carries its own, and the order RPC checks
+          that the tier really belongs to the vendor whose profile this is. */}
+      <PackageQuoteDialog request={state.request} onClose={state.closeRequest} />
     </section>
   );
 }

@@ -53,10 +53,30 @@ export function toPromotionOptions(
 
 export const discountFormSchema = z
   .object({
+    // The client-facing name. A code is a token printed on a flyer; it is not
+    // what an offer is called, and a card whose title is "EARLY-BIRD" reads as
+    // a voucher the reader was supposed to already know about.
+    title: z
+      .string()
+      .trim()
+      .min(3, 'Give the offer a name at least 3 characters long.')
+      .max(120, 'Name must be 120 characters or fewer.'),
+    description: z.string().trim().max(500, 'Description must be 500 characters or fewer.'),
+    terms: z.string().trim().max(600, 'Terms must be 600 characters or fewer.'),
     code: z.union([
       z.string().trim().regex(CODE_RE, 'Use 2–24 letters, numbers or hyphens, e.g. EARLY-BIRD.'),
       z.literal(''),
     ]),
+    /**
+     * Applies with no code typed. Independent of `code`: a vendor may want a
+     * named code for a poster that ALSO applies automatically to anyone who
+     * never sees the poster.
+     */
+    is_automatic: z.boolean(),
+    /** Ceiling on what a percentage may take off. Blank = uncapped. */
+    max_discount_amount: optionalAmountField('Maximum discount'),
+    /** How many times one client may use it. Blank = no per-client limit. */
+    max_per_client: optionalAmountField('Per-client limit'),
     type: z.enum(DISCOUNT_TYPES, { errorMap: () => ({ message: 'Choose a discount type.' }) }),
     value: z
       .string()
@@ -81,6 +101,40 @@ export const discountFormSchema = z
     message: 'Max uses must be at least 1.',
     path: ['max_uses'],
   })
+  .refine((v) => v.max_per_client.trim() === '' || Number(v.max_per_client) >= 1, {
+    message: 'The per-client limit must be at least 1.',
+    path: ['max_per_client'],
+  })
+  // A per-client limit above the total cap cannot bind on anything, and a
+  // vendor who set one meant it to.
+  .refine(
+    (v) =>
+      v.max_per_client.trim() === '' ||
+      v.max_uses.trim() === '' ||
+      Number(v.max_per_client) <= Number(v.max_uses),
+    {
+      message: 'The per-client limit cannot be higher than the total number of uses.',
+      path: ['max_per_client'],
+    },
+  )
+  // A cap belongs to a percentage. On a fixed amount the value IS the cap, and
+  // a second, lower ceiling beside it is two numbers claiming to be the same
+  // thing.
+  .refine((v) => v.type !== 'fixed' || v.max_discount_amount.trim() === '', {
+    message: 'A fixed discount is already its own maximum — leave this blank.',
+    path: ['max_discount_amount'],
+  })
+  .refine((v) => v.max_discount_amount.trim() === '' || Number(v.max_discount_amount) > 0, {
+    message: 'The maximum discount must be more than zero.',
+    path: ['max_discount_amount'],
+  })
+  // An offer nobody can claim. A code with no string and no automatic flag is
+  // live, priced and unreachable — the failure this refine exists to prevent
+  // is a vendor building a campaign that quietly does nothing.
+  .refine((v) => v.is_automatic || v.code.trim() !== '', {
+    message: 'Give the offer a code, or switch on “apply automatically”.',
+    path: ['code'],
+  })
   // A fixed discount at or above the floor that qualifies for it would settle
   // the booking to nothing — the two terms have to leave something to pay.
   .refine(
@@ -99,7 +153,13 @@ export const discountFormSchema = z
 export type DiscountFormValues = z.infer<typeof discountFormSchema>;
 
 export const emptyDiscountValues: DiscountFormValues = {
+  title: '',
+  description: '',
+  terms: '',
   code: '',
+  is_automatic: false,
+  max_discount_amount: '',
+  max_per_client: '',
   type: 'percentage',
   value: '',
   max_uses: '',
@@ -125,7 +185,14 @@ function toDateInput(value: string | null): string {
 /** Seeds the editor from a code the list already holds. */
 export function toDiscountValues(discount: DiscountModel): DiscountFormValues {
   return {
+    title: discount.title ?? discount.code ?? '',
+    description: discount.description ?? '',
+    terms: discount.terms ?? '',
     code: discount.code ?? '',
+    is_automatic: discount.is_automatic === true,
+    max_discount_amount:
+      discount.max_discount_amount == null ? '' : String(discount.max_discount_amount),
+    max_per_client: discount.max_per_client == null ? '' : String(discount.max_per_client),
     type: discount.type === 'fixed' ? 'fixed' : 'percentage',
     value: String(discount.value),
     max_uses: discount.max_uses == null ? '' : String(discount.max_uses),
@@ -151,7 +218,19 @@ export function toDiscountValues(discount: DiscountModel): DiscountFormValues {
  */
 function toDiscountColumns(values: DiscountFormValues) {
   return {
+    title: values.title.trim(),
+    description: values.description.trim() || null,
+    terms: values.terms.trim() || null,
     code: values.code.trim() || null,
+    is_automatic: values.is_automatic,
+    // Rewritten on every save rather than left alone, for the same reason
+    // `currency` is: a code switched from percentage to fixed must not keep a
+    // ceiling that no longer means anything.
+    max_discount_amount:
+      values.type === 'fixed' || values.max_discount_amount.trim() === ''
+        ? null
+        : Number(values.max_discount_amount),
+    max_per_client: values.max_per_client.trim() === '' ? null : Number(values.max_per_client),
     type: values.type,
     value: Number(values.value),
     currency: values.type === 'fixed' ? 'UGX' : null,

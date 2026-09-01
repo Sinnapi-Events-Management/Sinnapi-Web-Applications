@@ -1,5 +1,12 @@
 import type { Kpi } from '@sinnapi/ui/analytics';
-import type { DiscountModel, PromotionModel } from '@/lib/types';
+import type {
+  DiscountModel,
+  OfferTargetModel,
+  PackageModel,
+  PromotionModel,
+  ServiceModel,
+} from '@/lib/types';
+import { targetSummary, toTargetKeys } from '@/components/offers/schema/offerTargets';
 import { discountStatus, type DiscountFilter, type DiscountStatus } from './discountStatus';
 
 /** A code with its real state resolved and the campaign it prices named. */
@@ -7,6 +14,18 @@ export type DiscountRow = DiscountModel & {
   status: DiscountStatus;
   /** The title of the attached campaign, or null when the code stands alone. */
   promotionTitle: string | null;
+  /**
+   * What this code covers, in one phrase.
+   *
+   * Resolved through the same one-way inheritance the database uses: the code's
+   * own targets, else its campaign's, else everything the vendor sells. A card
+   * that showed only the code's own rows would report "Everything you sell" for
+   * a code correctly scoped by the campaign above it, which is the opposite of
+   * the truth.
+   */
+  coverage: string;
+  /** True when the coverage came from the campaign rather than the code itself. */
+  coverageInherited: boolean;
 };
 
 /**
@@ -20,14 +39,39 @@ export function toDiscountRows(
   discounts: DiscountModel[],
   promotions: PromotionModel[],
   now: number,
+  targets: OfferTargetModel[] = [],
+  packages: PackageModel[] = [],
+  services: ServiceModel[] = [],
 ): DiscountRow[] {
   const titleById = new Map(promotions.map((promotion) => [promotion.id, promotion.title]));
 
-  return discounts.map((discount) => ({
-    ...discount,
-    status: discountStatus(discount, now),
-    promotionTitle: discount.promotion_id ? (titleById.get(discount.promotion_id) ?? null) : null,
-  }));
+  // Grouped once rather than filtered per card: a vendor with forty codes and
+  // two hundred targets would otherwise walk the whole target list forty times
+  // on every tick of the clock.
+  const byDiscount = new Map<string, OfferTargetModel[]>();
+  const byPromotion = new Map<string, OfferTargetModel[]>();
+  for (const target of targets) {
+    const key = target.discount_id ?? target.promotion_id;
+    if (!key) continue;
+    const bucket = target.discount_id ? byDiscount : byPromotion;
+    const existing = bucket.get(key);
+    if (existing) existing.push(target);
+    else bucket.set(key, [target]);
+  }
+
+  return discounts.map((discount) => {
+    const own = byDiscount.get(discount.id) ?? [];
+    const inherited = discount.promotion_id ? (byPromotion.get(discount.promotion_id) ?? []) : [];
+    const effective = own.length > 0 ? own : inherited;
+
+    return {
+      ...discount,
+      status: discountStatus(discount, now),
+      promotionTitle: discount.promotion_id ? (titleById.get(discount.promotion_id) ?? null) : null,
+      coverage: targetSummary(new Set(toTargetKeys(effective)), packages, services),
+      coverageInherited: own.length === 0 && inherited.length > 0,
+    };
+  });
 }
 
 /** How many codes sit under each toolbar tab. */
@@ -55,7 +99,16 @@ export function matchesDiscountTerm(row: DiscountRow, term: string): boolean {
   const needle = term.trim().toLowerCase();
   if (!needle) return true;
 
-  const haystack = [row.code ?? 'automatic', row.promotionTitle ?? ''].join(' ').toLowerCase();
+  // The name is searched too, and leads: a vendor looking for last season's
+  // sale types "early bird", not the token they printed on the flyer.
+  const haystack = [
+    row.title ?? '',
+    row.code ?? 'automatic',
+    row.promotionTitle ?? '',
+    row.coverage,
+  ]
+    .join(' ')
+    .toLowerCase();
   return haystack.includes(needle);
 }
 

@@ -20,10 +20,11 @@
  * far-right slot is the one that has to be discovered. `progress` keeps the end
  * because it is the only section that is purely a record.
  *
- * `progress` is also linked to by name: the quotations list's "Create booking"
- * shortcut carries `?tab=progress&book=1`, because the card holding that dialog
- * lives in that section and an inactive panel is unmounted. Renaming a value
- * here means fixing that link too.
+ * No value here is linked to by name any more. The quotations list's "Create
+ * booking" shortcut used to carry `?tab=progress&book=1`, because the card
+ * holding that dialog lived in that section and an inactive panel is unmounted;
+ * the dialog is now mounted by the page above the tabs, and the shortcut is a
+ * bare `?book=1`.
  *
  * The vendor's page uses the same five names in the same order, which is
  * deliberate: the two sides are looking at one object and should recognise each

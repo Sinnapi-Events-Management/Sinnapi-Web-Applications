@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@sinnapi/ui';
 import { useVendorEscrow, useVendorPayouts } from '@/hooks/queries';
-import VendorRelatedTable from './VendorRelatedTable';
-import { escrowColumns, payoutColumns } from '../schema';
+import VendorRelatedTable from '../molecules/VendorRelatedTable';
+import { escrowColumns, payoutColumns } from '../../schema';
 
 /** Combined finance view: escrow holds and their resulting payouts. */
 export default function PayoutsTab({ vendorId }: { vendorId: string }) {

@@ -8,18 +8,21 @@ import VendorMediaSection from './components/organisms/VendorMediaSection';
 import VendorPackagesSection from './components/organisms/VendorPackagesSection';
 import VendorAvailabilitySection from './components/organisms/VendorAvailabilitySection';
 import VendorEngagePanel from './components/organisms/VendorEngagePanel';
+import VendorOffersStrip from './components/organisms/VendorOffersStrip';
+import VendorOffersSection from './components/organisms/VendorOffersSection';
 import { useVendorDetailPage } from './hooks/useVendorDetailPage';
 
 /**
  * A single vendor's public profile: who they are, the work they've shown, and
  * the ways to engage them.
  *
- * Two things sit above the tabs and never move: the identity block, which says
- * whose profile this is, and — on a phone — the engage panel, which is the only
- * part of the page that *does* anything. Everything below them is one of five
- * sections that each fit a screen. Stacked in one column, a portfolio of forty
- * photos sat between the price and the calendar, so a visitor checking a date
- * scrolled the vendor's entire body of work to reach it.
+ * Three things sit above the tabs and never move: the identity block, which
+ * says whose profile this is, the offers strip when the vendor is running one,
+ * and — on a phone — the engage panel, which is the only part of the page that
+ * *does* anything. Everything below them is one of six sections that each fit a
+ * screen. Stacked in one column, a portfolio of forty photos sat between the
+ * price and the calendar, so a visitor checking a date scrolled the vendor's
+ * entire body of work to reach it.
  *
  * Layout only — `useVendorDetailPage` owns the reads, the open section and the
  * breakpoint, and each section owns its own content.
@@ -57,6 +60,14 @@ export default function VendorDetail() {
               </Box>
             )}
 
+            {/* Above the tab bar AND in a tab of its own. An offer is a fact
+                about every price on the profile, so the claim goes where nobody
+                can miss it; the terms that decide whether it applies to this
+                client do not fit on a strip row, so they get the tab. */}
+            <Box sx={{ mb: 3 }}>
+              <VendorOffersStrip vendorId={vendor.id} onSeeOffers={() => setTab('offers')} />
+            </Box>
+
             <VendorDetailTabs value={tab} onChange={setTab} />
 
             <DetailTabPanel value="overview" active={tab} idPrefix="vendor">
@@ -64,6 +75,13 @@ export default function VendorDetail() {
             </DetailTabPanel>
             <DetailTabPanel value="packages" active={tab} idPrefix="vendor">
               <VendorPackagesSection vendorId={vendor.id} vendorName={vendor.business_name} />
+            </DetailTabPanel>
+            <DetailTabPanel value="offers" active={tab} idPrefix="vendor">
+              <VendorOffersSection
+                vendorId={vendor.id}
+                vendorName={vendor.business_name}
+                onSeePackages={() => setTab('packages')}
+              />
             </DetailTabPanel>
             <DetailTabPanel value="portfolio" active={tab} idPrefix="vendor">
               <VendorMediaSection

@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { packageActionError } from '@sinnapi/ui';
+import { groupOffersByPackage, offersForTier } from '@sinnapi/ui/offers';
 import { supabase } from '@/lib/supabase';
-import { useVendorPackagesAdmin } from '@/hooks/queries';
+import { useAdminVendorPackageOffers, useVendorPackagesAdmin } from '@/hooks/queries';
 import type { PackageModel } from '@/lib/types';
 
 /**
@@ -18,10 +19,40 @@ import type { PackageModel } from '@/lib/types';
  * dialog: the vendor is notified with the reason quoted back to them, so an
  * empty one would produce a notification that says a package vanished and
  * nothing about why.
+ *
+ * The live offers on those packages are read here too, and for a reason that is
+ * not convenience: a complaint about a package is nearly always a complaint
+ * about its price, and the price a client sees is the discounted one. A console
+ * showing a list price while the public sees a sale price is deciding about a
+ * different offer from the one that was reported.
+ *
+ * That read never gates the tab. A failure costs the cards their offer ribbons,
+ * which is a worse page than one with them and a much better page than an empty
+ * one — so its loading and error state are deliberately not returned.
  */
 export function useVendorPackageModeration(vendorId?: string) {
   const qc = useQueryClient();
   const { data, isLoading, error } = useVendorPackagesAdmin(vendorId);
+
+  const offers = useAdminVendorPackageOffers(vendorId);
+
+  // Indexed once per fetch. Filtering inside the card map would walk the whole
+  // row set per card on every render, which is thirty comparisons a card for a
+  // list that changes only when the query does.
+  const offersByPackage = useMemo(() => groupOffersByPackage(offers.data), [offers.data]);
+
+  /**
+   * The offers touching one package, at package level.
+   *
+   * `null` for the tier asks "does anything here touch this package at all",
+   * which is the right question for a console that shows every tier of the
+   * showcase rather than following a client's tier selection — a tier-scoped
+   * saving still has to appear, labelled by the showcase as the tier's own.
+   */
+  const offersFor = useCallback(
+    (pkg: PackageModel) => offersForTier(offersByPackage.get(pkg.id), null),
+    [offersByPackage],
+  );
 
   const [pending, setPending] = useState<PackageModel | null>(null);
   const [reason, setReason] = useState('');
@@ -80,6 +111,7 @@ export function useVendorPackageModeration(vendorId?: string) {
     packages: data ?? [],
     isLoading,
     error,
+    offersFor,
     busyId,
     actionError,
     dismissError: () => setActionError(null),

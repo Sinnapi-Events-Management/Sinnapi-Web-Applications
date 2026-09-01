@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { advanceSplit, isQuoteLapsed, quotationPricing } from '@sinnapi/ui';
-import { useQuotation } from '@/hooks/queries';
+import { useQuotation, useQuotationOffer } from '@/hooks/queries';
 import { one } from '@/lib/rel';
 import type { EventRefModel, QuotationItemModel, VendorRefModel } from '@/lib/types';
 
@@ -42,6 +42,14 @@ export function useQuotationDetail() {
 
   const pricing = useMemo(() => quotationPricing(quotation, items), [quotation, items]);
 
+  // Its own read, because `discounts_read` only admits a LIVE discount and a
+  // client opening last month's quote is almost always looking at a campaign
+  // that has since ended. Without it the saving on the breakdown renders as an
+  // amount with no name. Never gates the page: a quote with an unnamed
+  // promotion line is worse than one with a named one, and far better than no
+  // quote at all.
+  const offer = useQuotationOffer(pricing.offerDiscount > 0 ? id : undefined);
+
   const advance = useMemo(
     () => advanceSplit(pricing.total, quotation?.advance_rate),
     [pricing.total, quotation?.advance_rate],
@@ -58,6 +66,15 @@ export function useQuotationDetail() {
      * see `quotationPricing`. Every figure on this page comes from here.
      */
     pricing,
+    /**
+     * The promotion this quote was priced with, by name — null when none was.
+     *
+     * `status` on it is the redemption's, not the offer's: `reserved` until the
+     * client accepts, `redeemed` after. That is what lets the page say "you
+     * will save" before acceptance and "you saved" after, which are different
+     * claims and only one is true at a time.
+     */
+    offer: offer.data ?? null,
     /**
      * How that total divides under the vendor's proposed advance terms, and
      * whether terms were proposed at all. Both the terms card and the booking

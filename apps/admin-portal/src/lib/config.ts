@@ -3,6 +3,7 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -66,6 +67,11 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon, perm: 'quotations.read' },
       { label: 'Events', to: '/events', icon: CelebrationIcon, perm: 'events.manage' },
+      // Last in Operations, because it is the only item here that is patrolled
+      // rather than worked: the other queues have rows waiting on a decision,
+      // this one is a shelf an operator scans for a claim that should not be on
+      // the site.
+      { label: 'Offers', to: '/offers', icon: LocalOfferIcon, perm: 'offers.moderate' },
     ],
   },
   {

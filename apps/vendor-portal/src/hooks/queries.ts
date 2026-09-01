@@ -24,6 +24,7 @@ import type {
   SettlementEventModel,
   BookingStatusEventModel,
   VendorQuotationModel,
+  PackageQuoteTermsModel,
   QuotationDetailModel,
   QuotationStatusEventModel,
   QuotationBookingModel,
@@ -53,6 +54,8 @@ import type {
   VendorClientModel,
   NotificationModel,
   NotificationPage,
+  OfferTargetModel,
+  OfferPerformanceModel,
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
@@ -375,7 +378,7 @@ export function useQuotation(id: string) {
       const { data, error } = await supabase
         .from('quotations')
         .select(
-          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date)',
+          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date),event_types(id,name)',
         )
         .eq('id', id)
         .maybeSingle();
@@ -383,6 +386,33 @@ export function useQuotation(id: string) {
       return (data as QuotationDetailModel) ?? null;
     },
     enabled: !!id,
+  });
+}
+
+/**
+ * What a package order is locked to, for the approval panel.
+ *
+ * Its own query rather than more columns on `useQuotation`, because two of the
+ * fields are computed against the package as it stands RIGHT NOW — a vendor who
+ * edits the package in another tab should see `package_changed` flip on a
+ * refetch, and folding that into the quotation's cache entry would tie it to a
+ * key that has no reason to invalidate.
+ *
+ * Returns null for a quote that is not a package order, which is what the RPC
+ * itself does: it returns no rows rather than raising, so a vendor opening an
+ * ordinary quote gets a quiet null instead of an error boundary.
+ */
+export function usePackageQuoteTerms(id: string | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['v-package-quote-terms', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('package_quote_terms', { p_quotation_id: id })
+        .maybeSingle();
+      if (error) throw error;
+      return (data as PackageQuoteTermsModel) ?? null;
+    },
+    enabled: !!id && enabled,
   });
 }
 
@@ -1104,7 +1134,9 @@ export function usePromotions(vendorId?: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('promotions')
-        .select('id,title,description,banner_url,starts_at,ends_at,is_active')
+        .select(
+          'id,title,description,banner_url,terms,starts_at,ends_at,is_active,admin_suspended_at,admin_suspended_reason,featured_at',
+        )
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
         .order('starts_at', { ascending: false });
@@ -1157,12 +1189,82 @@ export function useDiscounts(vendorId?: string) {
       const { data } = await supabase
         .from('discounts')
         .select(
-          'id,code,type,value,currency,max_uses,used_count,min_amount,promotion_id,starts_at,ends_at,is_active',
+          'id,code,title,description,terms,type,value,currency,max_uses,used_count,min_amount,max_discount_amount,max_per_client,is_automatic,promotion_id,starts_at,ends_at,is_active,admin_suspended_at,admin_suspended_reason',
         )
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
         .order('starts_at', { ascending: false });
       return (data ?? []) as DiscountModel[];
+    },
+  });
+}
+
+/**
+ * Every target on every offer this vendor owns, in one read.
+ *
+ * One query rather than one per offer, and grouped in the browser. A vendor
+ * runs offers in tens and targets in low hundreds; twenty round trips to draw
+ * one grid is the shape that makes a Promotions screen feel slow, and the join
+ * that would avoid them cannot be expressed here because `offer_targets` hangs
+ * off two different parents.
+ *
+ * Scoped by the offers the vendor owns rather than by a vendor column, because
+ * `offer_targets` deliberately has none: a target belongs to an offer, and the
+ * offer is what belongs to a vendor. The read policy enforces the same thing;
+ * this filter is what keeps the payload to the rows the screen will use.
+ */
+export function useOfferTargets(vendorId?: string) {
+  const promotions = usePromotions(vendorId);
+  const discounts = useDiscounts(vendorId);
+
+  const promotionIds = (promotions.data ?? []).map((row) => row.id);
+  const discountIds = (discounts.data ?? []).map((row) => row.id);
+  const ready = promotions.isSuccess && discounts.isSuccess;
+
+  return useQuery({
+    // The ids are in the key because the rows this read returns are only
+    // meaningful for the set that produced them: a campaign created in another
+    // tab must not leave the picker showing targets for a list it is not in.
+    queryKey: ['v-offer-targets', vendorId, promotionIds.join(','), discountIds.join(',')],
+    enabled: !!vendorId && ready && (promotionIds.length > 0 || discountIds.length > 0),
+    queryFn: async () => {
+      const filters: string[] = [];
+      if (promotionIds.length > 0) filters.push(`promotion_id.in.(${promotionIds.join(',')})`);
+      if (discountIds.length > 0) filters.push(`discount_id.in.(${discountIds.join(',')})`);
+
+      const { data, error } = await supabase
+        .from('offer_targets')
+        .select('id,promotion_id,discount_id,kind,package_id,tier_id,vendor_service_id')
+        .or(filters.join(','));
+      if (error) throw error;
+      return (data ?? []) as OfferTargetModel[];
+    },
+  });
+}
+
+/**
+ * What each of this vendor's codes actually returned.
+ *
+ * Its own read rather than columns on `useDiscounts`, because it counts rows in
+ * `discount_redemptions` and a grid of twenty cards must not each run that
+ * count. `used_count` on the discount row is the cheap cache the cards use for
+ * "X of Y left"; this is the breakdown behind it — reserved, redeemed, released
+ * — which is the only view that tells a vendor whether an offer is bringing in
+ * bookings or just quotes.
+ *
+ * A failure here costs the cards their performance line and nothing else, so it
+ * must never gate the screen.
+ */
+export function useOfferPerformance(vendorId?: string) {
+  return useQuery({
+    queryKey: ['v-offer-performance', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_offer_performance', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as OfferPerformanceModel[];
     },
   });
 }

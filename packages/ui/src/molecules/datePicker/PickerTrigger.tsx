@@ -43,7 +43,13 @@ export const PickerTrigger = forwardRef<HTMLDivElement, PickerTriggerProps>(func
     error,
     required,
     disabled,
-    size = 'medium',
+    // NOT defaulted. It used to be `'medium'`, which quietly beat the portal
+    // theme's `MuiTextField: { defaultProps: { size: 'small' } }` — so every
+    // date and time picker in all three portals stood 56px tall in a column of
+    // 40px fields. Alone in a form that reads as generous spacing; the moment
+    // one sits beside a select it reads as broken. Left undefined so the field
+    // takes whatever size the surrounding theme gives every other field.
+    size,
     fullWidth = true,
     clearable = true,
     name,
