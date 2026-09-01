@@ -76,13 +76,63 @@ export function toBookingFromQuotationArgs(
 }
 
 /**
- * The date to open the picker on: the event's own date when the quote was
- * requested against one, so the common case is a client confirming a date they
- * already told us rather than re-entering it.
+ * The date to open the picker on.
  *
- * Only when it is still in the future — an event date that has passed is not a
+ * Two sources, in order of how much the client has already committed to them:
+ * the date they gave when ORDERING a package — which the offer was validated
+ * against and which the vendor approved — and then the planned event's own
+ * date, which is a softer suggestion. Either way the common case is a client
+ * confirming a date they already told us rather than re-entering it.
+ *
+ * Only when it is still in the future — a date that has passed is not a
  * default, it is a validation error waiting to happen.
  */
-export function defaultBookingDate(eventDate: string | null | undefined, today: string): string {
-  return eventDate && eventDate >= today ? eventDate : '';
+/**
+ * The location to open the booking form on.
+ *
+ * The address the client gave when they requested the quote — the one the
+ * vendor read before approving, and so the one the booking should default to.
+ * Editable, not locked: nothing downstream depends on it the way the date
+ * depends on the offer's window, and a client who has since moved the venue
+ * must be able to say so here rather than in a message.
+ *
+ * Truncated to the booking's own cap rather than dropped if it somehow exceeds
+ * it — a prefill that silently fails validation is worse than a blank box.
+ */
+export function defaultBookingLocation(eventAddress: string | null | undefined): string {
+  return (eventAddress ?? '').slice(0, 160);
+}
+
+export function defaultBookingDate(
+  quotationEventDate: string | null | undefined,
+  eventDate: string | null | undefined,
+  today: string,
+): string {
+  const candidate = quotationEventDate ?? eventDate;
+  return candidate && candidate >= today ? candidate : '';
+}
+
+/**
+ * The days the booking calendar will accept.
+ *
+ * A quote carrying an offer is bound to that offer's window — the trigger on
+ * `bookings.event_date` refuses anything outside it, on insert AND on a later
+ * reschedule. Bounding the picker is what turns that from an error message into
+ * a calendar that simply does not offer the wrong days.
+ *
+ * `minDate` never precedes today even when the offer opened months ago: an
+ * offer that has been running since August does not make August bookable.
+ */
+export function bookingDateBounds(
+  offer: { starts_on?: string | null; ends_on?: string | null } | null | undefined,
+  today: string,
+): { minDate: string; maxDate?: string; isOfferBound: boolean } {
+  const startsOn = offer?.starts_on ?? null;
+  const endsOn = offer?.ends_on ?? null;
+  if (!startsOn || !endsOn) return { minDate: today, isOfferBound: false };
+  return {
+    minDate: startsOn > today ? startsOn : today,
+    maxDate: endsOn,
+    isOfferBound: true,
+  };
 }

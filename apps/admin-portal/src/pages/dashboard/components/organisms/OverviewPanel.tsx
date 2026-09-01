@@ -2,7 +2,7 @@ import { Box, Grid, Skeleton, Stack } from '@sinnapi/ui';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import InboxIcon from '@mui/icons-material/Inbox';
-import HeroStat from '@/components/analytics/HeroStat';
+import { HeroStat } from '@sinnapi/ui/analytics';
 import type { DashboardModel, SectionKey } from '../../schema';
 import ActionQueuesSection from './ActionQueuesSection';
 import ActivityFeed from './ActivityFeed';

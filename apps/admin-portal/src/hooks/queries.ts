@@ -6,11 +6,14 @@ import {
   keepPreviousData,
 } from '@tanstack/react-query';
 import type { SortModel } from '@sinnapi/ui';
+import type { PackageOfferRow } from '@sinnapi/ui/offers';
 import { supabase } from '@/lib/supabase';
 import {
   applyFilters,
   paginate,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
+  PACKAGE_ADMIN_COLUMNS,
+  rpcErrorMessage,
   type PageParams,
   type Paged,
 } from '@sinnapi/ui';
@@ -61,11 +64,14 @@ import type {
   BookingPaymentEventModel,
   UnpaidBookingCounts,
   UnpaidBookingModel,
+  AdminOfferModel,
   BookingAdminModel,
   BookingActivityModel,
   SettlementRequestModel,
   SettlementEventModel,
   QuotationModel,
+  AdminQuotationDetailModel,
+  QuotationStatusEventModel,
   EventModel,
   EventDetailModel,
   EventTypeModel,
@@ -96,7 +102,9 @@ import type {
   ContactListSaveResult,
   MarketingSubscriptionModel,
   EmailSuppressionModel,
+  PackageModel,
 } from '@/lib/types';
+import type { PublicIdLookupModel } from '@/lib/publicIdLookup';
 
 // Reads are RLS-gated by the admin's permissions (UI also hides via RBAC).
 // A head+count query resolves to a result carrying only `count`.
@@ -122,7 +130,7 @@ function pagedOptions<Row>(key: string, params: PageParams, fetcher: () => Promi
 // parts, phone, account facts) need, so both share one `['profile']` cache entry
 // — saving the page therefore refreshes the AppBar avatar in the same tick.
 const MY_PROFILE_SELECT =
-  'id,full_name,first_name,middle_name,last_name,email,phone,avatar_url,status,created_at,last_login_at';
+  'id,public_id,full_name,first_name,middle_name,last_name,email,phone,avatar_url,status,created_at,last_login_at';
 
 export function useProfile() {
   return useQuery({
@@ -1275,6 +1283,54 @@ export function useBookingActivity(id: string) {
       return (data ?? []) as BookingActivityModel[];
     },
     enabled: !!id,
+  });
+}
+
+/**
+ * One quotation, whole, for the console's detail page.
+ *
+ * A SECURITY DEFINER RPC rather than a PostgREST select with an embedded
+ * `quotation_items(...)`. That embed resolves to an empty array for an
+ * operations admin and always has: `q_items_rw` names the client and the vendor
+ * owner and nobody else, so the console could read that a quote totalled 4.2m
+ * and not one line of what made it up. The RPC checks `quotations.read` in its
+ * body and discloses exactly one quotation.
+ *
+ * Returns `null` for a deleted or unknown id — the page renders an empty state
+ * for that rather than an error.
+ */
+export function useQuotationAdmin(id: string) {
+  return useQuery({
+    queryKey: ['admin-quotation', id],
+    enabled: !!id,
+    queryFn: async (): Promise<AdminQuotationDetailModel | null> => {
+      const { data, error } = await supabase.rpc('get_quotation_admin', {
+        p_quotation_id: id,
+      });
+      if (error) throw error;
+      return (data as AdminQuotationDetailModel | null) ?? null;
+    },
+  });
+}
+
+/**
+ * A quotation's status trail. A plain select, unlike the quotation itself:
+ * `q_hist_read` already admits `quotations.read`, so the console can read this
+ * table directly and no function is needed for it.
+ */
+export function useQuotationStatusHistory(id: string) {
+  return useQuery({
+    queryKey: ['admin-quotation-history', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotation_status_history')
+        .select('id,from_status,to_status,reason,occurred_at')
+        .eq('quotation_id', id)
+        .order('occurred_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as QuotationStatusEventModel[];
+    },
   });
 }
 
@@ -2445,6 +2501,155 @@ export function useEmailSuppressions(params: PageParams) {
 /** Which slice of the unpaid queue to show. `all` is both. */
 export type UnpaidBookingState = 'all' | 'awaiting' | 'overdue';
 
+/**
+ * Every live offer on every published package of one vendor.
+ *
+ * The console reads this so the moderation view of a package shows the price a
+ * client is actually being quoted, discount and all. An operator judging
+ * whether a package is misleading has to see what the complainant saw — and a
+ * showcase rendered at list price while the public one shows 20% off is the
+ * console looking at a different offer from the one it is deciding about.
+ *
+ * Never gates the packages tab: a failure costs the cards their offer ribbons,
+ * which is worse than having them and much better than an empty tab.
+ */
+export function useAdminVendorPackageOffers(vendorId?: string) {
+  return useQuery({
+    queryKey: ['admin-vendor-package-offers', vendorId] as const,
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_package_offers', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as PackageOfferRow[];
+    },
+  });
+}
+
+/** The tab an operator is filtering the offers console by. */
+export type OfferStatusFilter =
+  | 'all'
+  | 'live'
+  | 'scheduled'
+  | 'paused'
+  | 'suspended'
+  | 'ended'
+  | 'exhausted';
+
+export type AdminOfferParams = PageParams & {
+  search?: string;
+  status?: OfferStatusFilter;
+  vendorId?: string | null;
+};
+
+/**
+ * One page of vendor offers, for moderation.
+ *
+ * An RPC rather than a PostgREST select for the same reason the unpaid queue
+ * uses one: the row an operator triages spans the discount, the campaign above
+ * it, the vendor running it, the packages it covers and its redemption tally —
+ * and `offer_targets_package` is a function, not a join, so the "which packages"
+ * column cannot be expressed as an embed at all.
+ *
+ * `admin_search_offers` checks `can_moderate_offers` itself and returns nothing
+ * to an operator without it, which is why this hook has no permission gate: an
+ * empty table for someone who may not moderate is the correct result, and a
+ * client-side check would be a second place for the rule to live.
+ */
+export function useAdminOffers(params: AdminOfferParams) {
+  return useQuery({
+    queryKey: ['admin-offers', params] as const,
+    queryFn: async (): Promise<Paged<AdminOfferModel>> => {
+      const { data, error } = await supabase.rpc('admin_search_offers', {
+        p_status: params.status && params.status !== 'all' ? params.status : null,
+        p_search: params.search || null,
+        p_vendor_id: params.vendorId ?? null,
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (AdminOfferModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The tab badges.
+ *
+ * Its own read rather than counts derived from the page, because a page is 25
+ * rows and a badge that says "Live (25)" when 60 are live is worse than no
+ * badge. Shares the `admin-offers` key prefix so a suspension refreshes the
+ * badges alongside the list it was performed from.
+ */
+export function useAdminOfferCounts() {
+  return useQuery({
+    queryKey: ['admin-offers', 'counts'] as const,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase.rpc('admin_offer_counts');
+      if (error) throw error;
+      return Object.fromEntries(
+        ((data ?? []) as { status: string; count: number | string }[]).map((row) => [
+          row.status,
+          Number(row.count),
+        ]),
+      );
+    },
+  });
+}
+
+/**
+ * The three moderation writes, behind one hook.
+ *
+ * Together rather than as three, because they invalidate exactly the same
+ * things and always appear on the same screen — and because suspending a
+ * campaign clears its featured flag server-side, so a suspend has to refresh
+ * what a feature would have.
+ */
+export function useOfferModeration() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-offers'] });
+
+  const suspendDiscount = useMutation({
+    mutationFn: async (input: { id: string; suspended: boolean; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_set_discount_suspended', {
+        p_discount_id: input.id,
+        p_suspended: input.suspended,
+        p_reason: input.reason ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  const suspendPromotion = useMutation({
+    mutationFn: async (input: { id: string; suspended: boolean; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_set_promotion_suspended', {
+        p_promotion_id: input.id,
+        p_suspended: input.suspended,
+        p_reason: input.reason ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  const setFeatured = useMutation({
+    mutationFn: async (input: { id: string; featured: boolean }) => {
+      const { error } = await supabase.rpc('admin_set_promotion_featured', {
+        p_promotion_id: input.id,
+        p_featured: input.featured,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  return { suspendDiscount, suspendPromotion, setFeatured };
+}
+
 export type UnpaidBookingParams = PageParams & { search?: string; state?: UnpaidBookingState };
 
 /**
@@ -2516,5 +2721,73 @@ export function useBookingPaymentEvents(bookingId: string | undefined) {
       return (data ?? []) as BookingPaymentEventModel[];
     },
     enabled: !!bookingId,
+  });
+}
+
+/**
+ * Every package a vendor has, for the console's moderation tab.
+ *
+ * Unfiltered by visibility on purpose: an operator deciding whether a public
+ * package should stay up needs to see the drafts beside it — a vendor who
+ * publishes and unpublishes the same package around a complaint is a pattern
+ * only a full list shows. The read policy grants this to `vendor.review` and
+ * `vendor.manage` and to nobody else.
+ *
+ * Soft-deleted packages are excluded. A deleted package is off the market by
+ * every measure the console cares about, and listing them would bury the ones
+ * an operator can still act on.
+ */
+export function useVendorPackagesAdmin(vendorId?: string) {
+  return useQuery({
+    queryKey: ['admin-vendor-packages', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_templates')
+        .select(PACKAGE_ADMIN_COLUMNS)
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .is('quote_template_items.tier_id', null)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as PackageModel[];
+    },
+  });
+}
+
+// --- public identifier lookup ------------------------------------------------
+
+/**
+ * Resolve a public identifier — `SV285K7BV9`, or a legacy `Q-7657H8YH` — to the
+ * record it names.
+ *
+ * `enabled` is what makes this a search rather than a subscription: the hook is
+ * mounted for the life of the page but only fires once the caller has a term
+ * worth asking about, so an empty field costs nothing and every keystroke does
+ * not become a round trip.
+ *
+ * `staleTime: Infinity` because the answer cannot change. An identifier resolves
+ * to exactly one record forever — the registry never reissues one — so a repeat
+ * search for the same string is served from cache. The only thing that could
+ * shift is the record's *label*, which is not what an agent is here for.
+ *
+ * `retry: false`: the two ways this fails are a `forbidden` from the RPC's
+ * `is_admin()` gate and a network error, and neither is improved by asking
+ * again. A support agent typing an id wants an answer or a reason, quickly.
+ */
+export function usePublicIdLookup(query: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['public-id-lookup', query] as const,
+    enabled: enabled && query.length > 0,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async (): Promise<PublicIdLookupModel | null> => {
+      const { data, error } = await supabase.rpc('admin_lookup_public_id', { p_query: query });
+      if (error) throw error;
+      // The RPC returns a set; an empty term returns no rows at all, which is a
+      // distinct case from the single `found: false` row a real miss produces.
+      const row = (data as PublicIdLookupModel[] | null)?.[0];
+      return row ?? null;
+    },
   });
 }

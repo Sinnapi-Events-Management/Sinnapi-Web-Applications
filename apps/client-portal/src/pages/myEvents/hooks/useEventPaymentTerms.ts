@@ -4,12 +4,14 @@ import { isPaymentRail, paymentTermsError, type PaymentRail } from '@sinnapi/ui'
 import { supabase } from '@/lib/supabase';
 import { usePaymentTermsPreview } from '@/hooks/queries';
 import type { MyEventModel } from '@/lib/types';
+import { useEventBudgetForm } from './useEventBudgetForm';
 
 /** The most a note about payment terms may run to. Matches the RPC's guard. */
 const NOTE_LIMIT = 500;
 
 /**
- * Setting the payment terms that bind every booking made under one event.
+ * Setting the budget and the payment terms that bind every booking made under
+ * one event.
  *
  * WHY AN EVENT CARRIES TERMS AT ALL
  * An event is one occasion with many vendors against it — a venue, a caterer, a
@@ -17,6 +19,13 @@ const NOTE_LIMIT = 500;
  * decision about the occasion, not about each supplier in turn. Making it once
  * here is the difference between one choice and five, and it is what stops the
  * same wedding being half protected and half not.
+ *
+ * WHY THE BUDGET IS EDITED HERE TOO
+ * The terms comparison is priced against the event's budget, and until it was
+ * editable this dialog could tell a client "add a budget and we will show you
+ * the numbers" while offering nowhere in the whole portal to add one. The two
+ * belong on one screen because they are one question: what do you expect to
+ * spend, and how do you want to pay it.
  *
  * WHAT SAVING ACTUALLY DOES
  * `set_event_payment_terms` re-proposes the new rail on every booking under the
@@ -31,6 +40,7 @@ const NOTE_LIMIT = 500;
  */
 export function useEventPaymentTerms(event: MyEventModel, onDone: () => void) {
   const qc = useQueryClient();
+  const budget = useEventBudgetForm(event);
 
   const current = isPaymentRail(event.payment_type) ? event.payment_type : null;
 
@@ -53,42 +63,68 @@ export function useEventPaymentTerms(event: MyEventModel, onDone: () => void) {
     isFetching,
     error: previewError,
   } = usePaymentTermsPreview(
-    // The upper end of the stated budget, falling back to the lower. Null when
-    // neither was given, which disables the query and leaves the cards
-    // unpriced — an illustration built on a number the client never supplied
-    // would be a figure we invented.
-    event.budget_max ?? event.budget_min,
-    event.currency,
+    // The figure being typed above, not the one on the saved row: the client is
+    // deciding what to spend and how to pay it in the same moment, so the cards
+    // have to answer the number in front of them. Null while nothing has been
+    // stated, which disables the query and leaves the cards unpriced.
+    budget.previewAmount,
+    budget.currency,
   );
+
+  const termsUnchanged =
+    rail === current && note.trim() === (event.payment_terms_note ?? '').trim();
 
   async function save() {
     if (note.length > NOTE_LIMIT) {
       setError(`That note is too long — keep it under ${NOTE_LIMIT} characters.`);
       return;
     }
+    if (!(await budget.validate())) {
+      setError('Check the budget figures above.');
+      return;
+    }
 
     setBusy(true);
     setError(null);
 
-    const { error: rpcError } = await supabase.rpc('set_event_payment_terms', {
-      p_event_id: event.id,
-      p_payment_type: rail,
-      p_note: note.trim() || null,
-    });
-
-    setBusy(false);
-
-    if (rpcError) {
-      setError(paymentTermsError(rpcError));
-      return;
+    // Budget first, terms second, and each only if it moved.
+    //
+    // The order is the point: writing the budget is a plain column update that
+    // nobody is told about, while the terms RPC re-proposes pending bookings and
+    // emails their vendors. Doing the harmless one first means a failure in the
+    // loud one leaves the quiet one already saved rather than the other way
+    // round — and skipping the RPC when the rail and note are untouched means a
+    // client correcting a budget does not notify every vendor that terms they
+    // never changed have "changed".
+    if (budget.isDirty) {
+      const budgetError = await budget.save();
+      if (budgetError) {
+        setBusy(false);
+        setError(budgetError);
+        return;
+      }
     }
 
-    qc.invalidateQueries({ queryKey: ['my-events'] });
-    // Re-proposing terms rewrites the pending bookings under this event, so
-    // every list showing one of them is now stale.
-    qc.invalidateQueries({ queryKey: ['bookings'] });
-    qc.invalidateQueries({ queryKey: ['booking'] });
+    if (!termsUnchanged) {
+      const { error: rpcError } = await supabase.rpc('set_event_payment_terms', {
+        p_event_id: event.id,
+        p_payment_type: rail,
+        p_note: note.trim() || null,
+      });
+      if (rpcError) {
+        setBusy(false);
+        setError(paymentTermsError(rpcError));
+        return;
+      }
+      // Re-proposing terms rewrites the pending bookings under this event, so
+      // every list showing one of them is now stale. A budget-only save touches
+      // no booking, so it does not drag these caches with it.
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['booking'] });
+    }
 
+    setBusy(false);
+    qc.invalidateQueries({ queryKey: ['my-events'] });
     onDone();
   }
 
@@ -98,6 +134,8 @@ export function useEventPaymentTerms(event: MyEventModel, onDone: () => void) {
     note,
     setNote,
     noteLimit: NOTE_LIMIT,
+    /** The budget form the dialog renders, and the figure it prices against. */
+    budget,
     preview,
     isPricing: isLoading || isFetching,
     /** The first load, where there are no figures to dim yet. */
@@ -109,12 +147,13 @@ export function useEventPaymentTerms(event: MyEventModel, onDone: () => void) {
      * and simply says the figures are unavailable.
      */
     unavailableReason: preview ? null : previewError ? paymentTermsError(previewError) : null,
-    /** No budget on the event, so there is nothing to price the cards against. */
-    hasBudget: (event.budget_max ?? event.budget_min ?? 0) > 0,
-    /** Whether terms were already set — changing them reads differently. */
-    isChange: current != null,
+    /**
+     * The action's label. A budget-only edit is not "updating terms" — saying so
+     * would describe a vendor-facing change the save is deliberately not making.
+     */
+    saveLabel: termsUnchanged ? 'Save budget' : current != null ? 'Update terms' : 'Set terms',
     /** True when the client has not actually moved anything. */
-    isUnchanged: rail === current && note.trim() === (event.payment_terms_note ?? '').trim(),
+    isUnchanged: termsUnchanged && !budget.isDirty,
     busy,
     error,
     save,

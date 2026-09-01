@@ -24,8 +24,12 @@ const SLOT_MINUTES = 15;
  * that cannot be earlier than its start is better than one that can be, and
  * then complains. It sits one slot above the start, because a zero-length
  * booking is not a booking.
+ *
+ * `eventDate` seeds the form when the request was started by tapping a free day
+ * on the vendor's calendar. Showing somebody their date is available and then
+ * handing them an empty date field is asking them to enter it twice.
  */
-export function useBookingRequestForm(vendorId: string, onSuccess: () => void) {
+export function useBookingRequestForm(vendorId: string, onSuccess: () => void, eventDate?: string) {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +37,12 @@ export function useBookingRequestForm(vendorId: string, onSuccess: () => void) {
     control,
     handleSubmit,
     formState: { isSubmitting },
-  } = useZodForm(bookingRequestSchema, { defaultValues: emptyBookingRequestValues });
+  } = useZodForm(bookingRequestSchema, {
+    // A default rather than a `values` sync: the dialog unmounts this form on
+    // close, so it is rebuilt with the current seed every time it opens, and a
+    // date the client then edited would be overwritten by a `values` prop.
+    defaultValues: { ...emptyBookingRequestValues, event_date: eventDate ?? '' },
+  });
 
   const [startTime, amount] = useWatch({ control, name: ['start_time', 'amount'] });
   const startMinutes = toMinutes(startTime);

@@ -41,9 +41,9 @@ export function useNewBooking(onDone: () => void) {
     formState: { isSubmitting },
   } = useZodForm(newBookingSchema, { defaultValues: emptyNewBookingValues });
 
-  const [amount, eventId, startTime] = useWatch({
+  const [amount, eventId, startTime, vendorId] = useWatch({
     control,
-    name: ['amount', 'event_id', 'start_time'],
+    name: ['amount', 'event_id', 'start_time', 'vendor_id'],
   });
 
   const startMinutes = toMinutes(startTime);
@@ -102,6 +102,13 @@ export function useNewBooking(onDone: () => void) {
     endDisabled: startMinutes === null,
     /** The client's own events, offered as an optional filing cabinet. */
     events,
+    /**
+     * Who the booking is for, once they have been picked. The date field checks
+     * their calendar, so it has to hear about the choice the moment it is made
+     * rather than on submit — `undefined` until then, which is what keeps the
+     * availability query from firing for nobody.
+     */
+    vendorId: vendorId || undefined,
     terms,
     /**
      * Whether the estimate is high enough for either rail to be priced. Taken

@@ -1,4 +1,4 @@
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import type { DashboardTab, TabDef } from '../../schema';
 
 type Props = {

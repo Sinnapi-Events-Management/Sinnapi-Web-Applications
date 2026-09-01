@@ -13,7 +13,7 @@ import {
 } from '@sinnapi/ui';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import DownloadIcon from '@mui/icons-material/Download';
-import { downloadQuotationPdf } from '@/lib/quotationPdf';
+import { downloadQuotationPdf } from '@sinnapi/utils/quotationPdf';
 import type { BookingAdminModel, QuotationDocument } from '@/lib/types';
 
 type Props = {

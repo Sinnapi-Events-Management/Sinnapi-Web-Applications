@@ -1,7 +1,8 @@
 import type { Control } from 'react-hook-form';
-import { Stack } from '@sinnapi/ui';
+import { Stack, Typography } from '@sinnapi/ui';
 import { ControlledField, ControlledDateField, type SelectOption } from '@sinnapi/ui/forms';
 import type { EventFormValues } from '../../schema';
+import EventBudgetFields from './EventBudgetFields';
 
 type Props = {
   control: Control<EventFormValues>;
@@ -53,6 +54,20 @@ export default function EventFormFields({ control, eventTypeOptions, eventTypesL
         multiline
         minRows={4}
       />
+
+      {/* Optional, and asked for here rather than only after the fact: a budget
+          is what vendors weigh an event by before expressing interest, and it
+          is the figure the event's payment terms are priced against. The same
+          control the terms dialog uses, so the rules cannot drift apart. */}
+      <Stack spacing={1}>
+        <Typography variant="subtitle2" fontWeight={700}>
+          Budget (optional)
+        </Typography>
+        <EventBudgetFields
+          control={control}
+          helperText="Roughly what you expect to spend. Vendors use it to judge whether they can help."
+        />
+      </Stack>
     </Stack>
   );
 }

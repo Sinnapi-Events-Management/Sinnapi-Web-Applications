@@ -1,4 +1,4 @@
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 
 /** The moderation queue is filtered one status at a time (plus an "all" view). */
 export type FlagTab = 'open' | 'actioned' | 'dismissed' | 'all';

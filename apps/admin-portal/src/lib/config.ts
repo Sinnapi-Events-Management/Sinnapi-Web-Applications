@@ -3,6 +3,7 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -22,6 +23,7 @@ import LockPersonIcon from '@mui/icons-material/LockPerson';
 import StarIcon from '@mui/icons-material/Star';
 import InsightsIcon from '@mui/icons-material/Insights';
 import HistoryIcon from '@mui/icons-material/History';
+import ManageSearchIcon from '@mui/icons-material/ManageSearchOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PolicyIcon from '@mui/icons-material/Policy';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -65,6 +67,11 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon, perm: 'quotations.read' },
       { label: 'Events', to: '/events', icon: CelebrationIcon, perm: 'events.manage' },
+      // Last in Operations, because it is the only item here that is patrolled
+      // rather than worked: the other queues have rows waiting on a decision,
+      // this one is a shelf an operator scans for a claim that should not be on
+      // the site.
+      { label: 'Offers', to: '/offers', icon: LocalOfferIcon, perm: 'offers.moderate' },
     ],
   },
   {
@@ -153,6 +160,10 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'System',
     items: [
       { label: 'Reports', to: '/reports', icon: InsightsIcon },
+      // Ungated, unlike its neighbours: it reveals a record's name and a link,
+      // never its contents, and it is the first thing a support agent reaches
+      // for when a caller starts by reading out a reference.
+      { label: 'ID Lookup', to: '/lookup', icon: ManageSearchIcon },
       { label: 'Audit Log', to: '/audit', icon: HistoryIcon, perm: 'audit.read' },
       { label: 'Settings', to: '/settings', icon: SettingsIcon, perm: 'settings.manage' },
       { label: 'Retention', to: '/retention', icon: PolicyIcon, perm: 'compliance.manage' },

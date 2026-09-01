@@ -61,6 +61,7 @@ function NewBookingForm({ onClose }: { onClose: () => void }) {
         <NewBookingFields
           control={form.control}
           events={form.events}
+          vendorId={form.vendorId}
           slotMinutes={form.slotMinutes}
           endMinTime={form.endMinTime}
           endDisabled={form.endDisabled}

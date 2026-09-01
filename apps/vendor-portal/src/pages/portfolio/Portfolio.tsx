@@ -1,46 +1,19 @@
-import { Stack, Button, Box, PageTitle, QueryState } from '@sinnapi/ui';
-import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import { PageTitle } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
-import { usePortfolio } from './hooks/usePortfolio';
-import MediaGallery from './components/molecules/MediaGallery';
-import MediaDialog from './components/organisms/MediaDialog';
-import { EmptyState } from '@sinnapi/ui/router';
+import PortfolioWorkspace from './components/organisms/PortfolioWorkspace';
 
-function Gallery({ vendorId }: { vendorId: string }) {
-  const { rows, isLoading, error, open, openDialog, closeDialog, remove } = usePortfolio(vendorId);
-
-  return (
-    <>
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-        <Button variant="contained" startIcon={<AddPhotoAlternateIcon />} onClick={openDialog}>
-          Add media
-        </Button>
-      </Stack>
-      <QueryState isLoading={isLoading} error={error}>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="No portfolio media"
-            description="Showcase your work. Image limits depend on your plan."
-          />
-        ) : (
-          <MediaGallery rows={rows} onRemove={remove} />
-        )}
-      </QueryState>
-
-      <MediaDialog open={open} vendorId={vendorId} onClose={closeDialog} />
-      <Box sx={{ height: 8 }} />
-    </>
-  );
-}
-
+/**
+ * The vendor's portfolio — the photos and video a client sees on their public
+ * profile, in the order the vendor arranged them.
+ */
 export default function Portfolio() {
   return (
     <>
       <PageTitle
         title="Portfolio"
-        subtitle="Your gallery and videos. Limits depend on your subscription plan."
+        subtitle="Photos and video from your past events. Drag to set the order clients see."
       />
-      <VendorGate>{(vendorId) => <Gallery vendorId={vendorId} />}</VendorGate>
+      <VendorGate>{(vendorId) => <PortfolioWorkspace vendorId={vendorId} />}</VendorGate>
     </>
   );
 }

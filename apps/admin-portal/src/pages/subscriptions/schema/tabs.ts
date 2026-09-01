@@ -1,4 +1,4 @@
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 import { ALL_STATUSES, type StatusFilterValue } from '@/hooks/useStatusFilter';
 import type { SubscriptionAdminCounts } from '@/hooks/queries';
 import { SUBSCRIPTION_STATUSES, type SubscriptionStatus } from '@/lib/status';

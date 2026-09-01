@@ -33,7 +33,7 @@ const columns: DataTableColumn<QuotationModel>[] = [
 ];
 
 export default function Quotations() {
-  const { rows, total, isLoading, isFetching, error, table } = useQuotations();
+  const { rows, total, isLoading, isFetching, error, table, viewQuotation } = useQuotations();
 
   return (
     <>
@@ -50,6 +50,7 @@ export default function Quotations() {
         rowCount={total}
         loading={isLoading || isFetching}
         emptyMessage="No quotations yet."
+        onRowClick={(q) => viewQuotation(q.id)}
         {...table.controls}
       />
     </>

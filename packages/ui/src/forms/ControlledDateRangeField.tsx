@@ -17,6 +17,7 @@ import {
   type DateRangeFieldProps,
   type IsoDateRange,
 } from '../molecules/datePicker';
+import { useFieldError } from './useFieldError';
 
 export type ControlledDateRangeFieldProps<T extends FieldValues> = Omit<
   DateRangeFieldProps,
@@ -37,6 +38,11 @@ export function ControlledDateRangeField<T extends FieldValues>({
 }: ControlledDateRangeFieldProps<T>) {
   const from = useController({ name: fromName, control });
   const to = useController({ name: toName, control });
+  // One binding for the pair: the range is one control, so a message from
+  // either end is this control's message and either end being picked counts
+  // as the user having engaged with it.
+  const fromError = useFieldError(from.fieldState, from.formState);
+  const toError = useFieldError(to.fieldState, to.formState);
 
   const value: IsoDateRange = {
     from: from.field.value ?? '',
@@ -44,6 +50,8 @@ export function ControlledDateRangeField<T extends FieldValues>({
   };
 
   const handleChange = (next: IsoDateRange) => {
+    fromError.onEngage();
+    toError.onEngage();
     from.field.onChange(next.from);
     to.field.onChange(next.to);
   };
@@ -62,7 +70,7 @@ export function ControlledDateRangeField<T extends FieldValues>({
       value={value}
       onChange={handleChange}
       onBlur={handleBlur}
-      error={from.fieldState.error?.message ?? to.fieldState.error?.message}
+      error={fromError.error ?? toError.error}
     />
   );
 }

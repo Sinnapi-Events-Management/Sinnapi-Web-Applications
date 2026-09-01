@@ -1,4 +1,4 @@
-import type { BreakdownSlice, TrendPoint } from '@/lib/analytics';
+import type { BreakdownSlice, TrendPoint } from '@sinnapi/ui/analytics';
 
 // The wire shape of `admin_dashboard_overview`. Postgres `numeric`/`bigint`
 // arrive as JSON numbers here (jsonb_build_object casts them), but every field a

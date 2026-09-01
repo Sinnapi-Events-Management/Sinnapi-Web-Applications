@@ -13,6 +13,7 @@ import Privacy from '@/pages/privacy';
 
 import Dashboard from '@/pages/dashboard';
 import Discover from '@/pages/discover';
+import Offers from '@/pages/offers';
 import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
 import BookingDetail from '@/pages/bookingDetail';
@@ -20,6 +21,7 @@ import Quotations from '@/pages/quotations';
 import CompareQuotes from '@/pages/compareQuotes';
 import QuotationDetail from '@/pages/quotationDetail';
 import MyEvents from '@/pages/myEvents';
+import EventDetail from '@/pages/eventDetail';
 import Messages from '@/pages/messages';
 import Payments from '@/pages/payments';
 import Escrow from '@/pages/escrow';
@@ -56,6 +58,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/offers" element={<Offers />} />
           <Route path="/discover/vendors/:slug" element={<VendorDetail />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/bookings/:id" element={<BookingDetail />} />
@@ -63,6 +66,7 @@ export default function App() {
           <Route path="/quotations/compare" element={<CompareQuotes />} />
           <Route path="/quotations/:id" element={<QuotationDetail />} />
           <Route path="/my-events" element={<MyEvents />} />
+          <Route path="/my-events/:id" element={<EventDetail />} />
           <Route path="/messages" element={<Messages />} />
           {/* The inbox renders the open thread itself — master–detail on
               desktop, a full-height drawer on mobile — so a deep link lands in

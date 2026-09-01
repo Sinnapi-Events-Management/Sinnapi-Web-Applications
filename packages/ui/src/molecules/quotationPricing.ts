@@ -36,6 +36,17 @@ export type QuotationMoneyLike = {
   currency?: string | null;
   subtotal?: number | string | null;
   discount_total?: number | string | null;
+  /**
+   * What a promotion or discount code took off, on top of `discount_total`.
+   *
+   * Two columns, not one, and that is a product decision rather than a schema
+   * accident: `discount_total` is the reduction the VENDOR built into the tier
+   * they published, and this is the one the CLIENT claimed with a code. A
+   * client is entitled to see which is which — "you saved 200,000 because this
+   * package is discounted, and another 360,000 because you used FESTIVE20" is
+   * two different pieces of information, and one summed line can state neither.
+   */
+  offer_discount_total?: number | string | null;
   tax_total?: number | string | null;
   total?: number | string | null;
 };
@@ -43,8 +54,12 @@ export type QuotationMoneyLike = {
 export type QuotationPricing = {
   currency: string;
   subtotal: number;
-  /** Always positive. Presentation decides whether to render it as a minus. */
+  /** The vendor's own tier discount. Always positive. */
   discount: number;
+  /** What the client's promotion or code took off, on top of `discount`. */
+  offerDiscount: number;
+  /** The two reductions together, for a screen with room for only one line. */
+  totalSaving: number;
   tax: number;
   total: number;
   /**
@@ -131,19 +146,26 @@ export function quotationPricing(
   const storedSubtotal = toAmount(quotation?.subtotal);
   const storedTotal = toAmount(quotation?.total);
   const discount = Math.abs(toAmount(quotation?.discount_total));
+  const offerDiscount = Math.abs(toAmount(quotation?.offer_discount_total));
   const tax = toAmount(quotation?.tax_total);
 
   // A stored zero next to priced lines is the failure this module exists for.
   // Anything non-zero is the vendor's own arithmetic and is left alone — including
   // a hand-adjusted total that does not match its lines, which is theirs to set.
   const subtotal = storedSubtotal !== 0 ? storedSubtotal : lines;
-  const derived = round2(subtotal - discount + tax);
+  // The offer joins the fallback arithmetic for the same reason the tier
+  // discount does: where the stored total is missing, a derived figure that
+  // ignored the offer would OVERSTATE what the client owes — and a price this
+  // module derives too high is the one error it must never make.
+  const derived = round2(subtotal - discount - offerDiscount + tax);
   const total = storedTotal !== 0 ? storedTotal : derived;
 
   return {
     currency,
     subtotal,
     discount,
+    offerDiscount,
+    totalSaving: round2(discount + offerDiscount),
     tax,
     total,
     isPriced: items.length > 0,

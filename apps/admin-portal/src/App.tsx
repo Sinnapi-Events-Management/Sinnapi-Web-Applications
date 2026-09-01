@@ -19,8 +19,10 @@ import Vendors from '@/pages/vendors';
 import VendorDetail from '@/pages/vendorDetail';
 import Bookings from '@/pages/bookings';
 import UnpaidBookings from '@/pages/unpaidBookings';
+import Offers from '@/pages/offers';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
+import QuotationDetail from '@/pages/quotationDetail';
 import Events from '@/pages/events';
 import EventDetail from '@/pages/eventDetail';
 import Escrow from '@/pages/escrow';
@@ -47,6 +49,7 @@ import NewsletterDetail from '@/pages/newsletterDetail';
 import Subscribers from '@/pages/subscribers';
 import Reports from '@/pages/reports';
 import Audit from '@/pages/audit';
+import Lookup from '@/pages/lookup';
 import Settings from '@/pages/settings';
 import Retention from '@/pages/retention';
 import ServiceCategories from '@/pages/serviceCategories';
@@ -115,7 +118,17 @@ export default function App() {
             path="/bookings-awaiting-payment"
             element={g('booking.payment.chase', <UnpaidBookings />)}
           />
+          {/* Gated on the moderation permission, not on a read one: every row
+              on this page exists to be acted on, and `admin_search_offers`
+              returns nothing to a caller without it — a read-only visitor would
+              get an empty table with no explanation. */}
+          <Route path="/offers" element={g('offers.moderate', <Offers />)} />
           <Route path="/quotations" element={g('quotations.read', <Quotations />)} />
+          {/* The detail page reads on the same permission as the list. There is
+              no write to gate separately: `quotations_update` admits only the
+              client and the vendor owner, so the console reads a quote and
+              cannot change one. */}
+          <Route path="/quotations/:id" element={g('quotations.read', <QuotationDetail />)} />
           <Route path="/events" element={g('events.manage', <Events />)} />
           <Route path="/events/:id" element={g('events.manage', <EventDetail />)} />
 
@@ -165,6 +178,10 @@ export default function App() {
 
           <Route path="/reports" element={<Reports />} />
           <Route path="/audit" element={g('audit.read', <Audit />)} />
+          {/* No `perm` guard: the page resolves an ID to a label and a link and
+              nothing more, and every page it links to applies its own check. Any
+              member of staff who answers a call needs it. */}
+          <Route path="/lookup" element={<Lookup />} />
           <Route path="/settings" element={g('settings.manage', <Settings />)} />
           <Route path="/retention" element={g('compliance.manage', <Retention />)} />
           <Route path="/service-categories" element={g('settings.manage', <ServiceCategories />)} />

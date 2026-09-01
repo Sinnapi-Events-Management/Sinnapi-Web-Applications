@@ -7,7 +7,7 @@ import {
   toSeriesSlices,
   toStatusSlices,
   type TrendPoint,
-} from '@/lib/analytics';
+} from '@sinnapi/ui/analytics';
 import { describeAction } from '@/lib/audit';
 import { formatRelative } from '@/lib/config';
 import { QUEUES } from './queues';

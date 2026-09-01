@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { getPeriodOption, type ReportPeriod, type ReportTable } from '../schema';
-import { exportReport, type ExportFormat } from '../data/reportExport';
+import { exportTables, type ExportFormat } from '@sinnapi/ui/export';
 
 /**
  * Binds a report's title + active period into a single export callback, so both
@@ -9,8 +9,11 @@ import { exportReport, type ExportFormat } from '../data/reportExport';
  */
 export function useReportExport(title: string, period: ReportPeriod) {
   return useCallback(
-    (tables: ReportTable[], format: ExportFormat) =>
-      exportReport(format, tables, { title, period: getPeriodOption(period).longLabel }),
+    (tables: ReportTable[], format: ExportFormat) => {
+      // Fire-and-forget: `exportTables` is async only because it code-splits
+      // the serialisers, and the caller is a menu item with nothing to await.
+      void exportTables(format, tables, { title, period: getPeriodOption(period).longLabel });
+    },
     [title, period],
   );
 }

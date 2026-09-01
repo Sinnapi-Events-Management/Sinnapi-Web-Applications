@@ -40,6 +40,14 @@ export type BookingRel = {
 
 export type ProfileModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SC48213MQH`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -47,6 +55,25 @@ export type ProfileModel = {
   preferred_currency: string | null;
   /** Account creation timestamp — the "member since" fact on the profile page. */
   created_at: string | null;
+};
+
+/**
+ * The payout account on file, as much of it as a client is ever allowed to see.
+ *
+ * `account_number_encrypted` is deliberately absent: the column is pgp ciphertext
+ * that only `get_vendor_bank_account_secure` may decrypt, and only for a caller
+ * holding `payout.process`. What the vendor gets back is the last four digits the
+ * RPC stored alongside it — enough to recognise their own account, useless to
+ * anyone who shouldn't have it.
+ */
+export type VendorBankAccountModel = {
+  id: string;
+  bank_name: string;
+  account_name: string;
+  account_number_last4: string | null;
+  branch: string | null;
+  is_verified: boolean;
+  updated_at: string | null;
 };
 
 export type MyApplicationModel = {
@@ -311,8 +338,74 @@ export type QuotationDetailModel = {
   vendor_id: string | null;
   client_id: string | null;
   event_id: string | null;
+  /**
+   * The package this quote was asked for or built from. Set by the client when
+   * they request a quote against a published package, and again by
+   * `send_quotation` when the vendor answers from one.
+   */
+  template_id: string | null;
+  template_tier_id: string | null;
+  /** The rates behind `discount_total` / `tax_total`, stored with the quote. */
+  discount_rate: number | null;
+  tax_rate: number | null;
+  tax_inclusive: boolean | null;
+  /**
+   * Which lifecycle this quote is on. `'package'` means the client ordered a
+   * published tier at its published price and this is waiting on the vendor's
+   * approval — not on the vendor's price. See migration 0903a.
+   */
+  quote_origin: string | null;
+  /** When the event is. Always set on a package order; null on older rows. */
+  event_date: string | null;
+  /** Where it is. Required by both request RPCs; null on rows written before 0903f. */
+  event_address: string | null;
+  event_type_id: string | null;
+  event_types: { id: string; name: string } | { id: string; name: string }[] | null;
   quotation_items: QuotationItemModel[] | null;
   events: EventRefModel | EventRefModel[] | null;
+};
+
+/**
+ * The terms a package order is locked to, from `package_quote_terms`.
+ *
+ * Read rather than derived from the quotation row, because two of these are
+ * questions only the database can answer: whether the vendor has edited the
+ * package since the client ordered it, and what the offer's date window is —
+ * the discount may well have expired, and `discounts_read` would not return it.
+ */
+export type PackageQuoteTermsModel = {
+  currency: string | null;
+  locked_subtotal: number | null;
+  /** The combined saving the client was shown. The vendor may beat it, not undercut it. */
+  locked_discount_floor: number | null;
+  current_discount: number | null;
+  discount_rate: number | null;
+  /** The lowest tier rate that still meets the floor — the field's `min`. */
+  min_discount_rate: number | null;
+  offer_discount_id: string | null;
+  offer_total: number | null;
+  /**
+   * The offer's own terms, so the approval dialog can price a candidate rate
+   * without a round trip. Null throughout when the order carries no offer.
+   *
+   * Needed because raising the tier rate does NOT move the total predictably: a
+   * percentage offer sits on the post-discount net and shrinks underneath it, a
+   * fixed one does not move until it caps out, and `max_discount_amount` can
+   * decide either. See migration 0903g.
+   */
+  offer_type: string | null;
+  offer_value: number | null;
+  offer_max_discount_amount: number | null;
+  tax_rate: number | null;
+  tax_inclusive: boolean | null;
+  /** What the client owes as the order stands, for the before/after line. */
+  current_total: number | null;
+  event_date: string | null;
+  event_address: string | null;
+  offer_starts_on: string | null;
+  offer_ends_on: string | null;
+  /** The package's lines have moved since the order. Approval will refuse. */
+  package_changed: boolean;
 };
 
 export type EventRefModel = {
@@ -333,25 +426,117 @@ export type QuotationStatusEventModel = {
   to_status: string;
   reason: string | null;
   occurred_at: string;
+  /**
+   * Who made the transition — `auth.uid()` at the moment the trigger fired.
+   *
+   * The only column that says whose words `reason` is, and the reason the
+   * feedback callout can name an author instead of guessing one. Guessing is
+   * not available: `voided` is written by `void_quotation`, which either side
+   * may call, so the status alone would have us telling a client they had
+   * cancelled a quote their vendor withdrew.
+   */
+  actor_id: string | null;
 };
 
-export type TemplateModel = {
+/**
+ * A vendor's quote package, read whole: header, tiers, tier lines and the
+ * add-ons shared across every tier.
+ *
+ * The field names are the column names because this is what PostgREST hands
+ * back, and because `@sinnapi/ui`'s `QuotePackageLike` — the shape all four
+ * apps compute and render from — is defined against those names. Renaming here
+ * would mean mapping on the way into every component that reads one.
+ */
+export type PackageLineModel = {
+  id: string;
+  tier_id: string | null;
+  description: string;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  unit_label: string | null;
+  notes: string | null;
+  is_optional: boolean | null;
+  sort_order: number | null;
+};
+
+export type PackageTierModel = {
   id: string;
   name: string;
-  currency: string | null;
-  notes: string | null;
-  is_active: boolean | null;
-  quote_template_items: { id: string }[] | null;
+  description: string | null;
+  is_recommended: boolean | null;
+  discount_rate: number | string | null;
+  sort_order: number | null;
+  quote_template_items: PackageLineModel[] | null;
 };
 
+export type PackageModel = {
+  id: string;
+  vendor_id: string;
+  name: string;
+  summary: string | null;
+  notes: string | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  vendor_service_id: string | null;
+  category_id: string | null;
+  /** How this package is sold — one of the models its service offers. */
+  pricing_model: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  lead_time_days: number | null;
+  tax_rate: number | string | null;
+  tax_inclusive: boolean | null;
+  valid_days: number | null;
+  advance_rate: number | string | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  visibility: 'private' | 'public' | null;
+  is_active: boolean | null;
+  published_at: string | null;
+  sort_order: number | null;
+  admin_unpublished_at: string | null;
+  admin_unpublished_reason: string | null;
+  quote_template_tiers: PackageTierModel[] | null;
+  /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
+  quote_template_items: PackageLineModel[] | null;
+};
+
+/**
+ * One line of a vendor's catalogue: WHAT they do, not what it costs.
+ *
+ * Price lives on the packages that hang off a service, and the "from" figure a
+ * service card shows is derived from the cheapest published tier among them —
+ * see `useServicePricing`. `base_price`/`currency` are the pre-0823c columns,
+ * still selected so the type matches the row and still read by the data-export
+ * document for historical services, but no longer written by this portal.
+ */
 export type ServiceModel = {
   id: string;
   title: string;
   description: string | null;
+  /** @deprecated Superseded by package pricing. Never written by this portal. */
   base_price: number | null;
+  /** @deprecated Meaningless without `base_price`. */
   currency: string | null;
   is_active: boolean | null;
   category_id: string | null;
+  /** `vendor_services.pricing_models` — the ways this vendor will be paid. */
+  pricing_models: string[] | null;
+  /**
+   * Set when the vendor archived the service.
+   *
+   * A service is never physically deleted: `trg_soft_delete` turns a DELETE on
+   * any table with this column into an UPDATE that stamps it, so the row —
+   * and every booking and package still pointing at it — survives. Only the
+   * services screen reads archived rows, and only so it can offer them back.
+   */
+  deleted_at: string | null;
+};
+
+/** A row of `service_categories`, as the service form's picker reads it. */
+export type ServiceCategoryModel = {
+  id: string;
+  name: string;
 };
 
 export type MediaModel = {
@@ -372,11 +557,32 @@ export type AvailabilityModel = {
   is_available: boolean | null;
 };
 
+/**
+ * One day the vendor is not available, and why.
+ *
+ * `source` is the whole grammar of this table: `manual` is the vendor's own
+ * decision and can be lifted here, anything else was inserted by a confirmed
+ * booking and clears only when that booking does. The embedded booking is what
+ * lets the calendar name the job rather than saying "unavailable" — it is null
+ * for a manual block, and legitimately so.
+ */
 export type BlockedDateModel = {
   id: string;
   blocked_date: string;
   reason: string | null;
   source: string | null;
+  booking_id: string | null;
+  bookings: {
+    id: string;
+    reference_no: string | null;
+    status: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    location: string | null;
+    amount: number | null;
+    currency: string | null;
+    client_id: string | null;
+  } | null;
 };
 
 /**
@@ -455,6 +661,91 @@ export type EventInterestModel = {
 };
 
 /**
+ * One public event as its own page reads it — the same row the feed's card
+ * shows, plus the fields only worth a round trip when someone has actually
+ * opened the brief.
+ *
+ * Read straight from `events` rather than through `search_events_public`:
+ * `events_public_read` already scopes the table to published, public events
+ * (or the caller's own), so a single-row read needs no RPC. `event_types` is
+ * embedded because the occasion's display name lives there now — the RPC's
+ * flat `event_type_name` has no equivalent on a plain select.
+ *
+ * `posted_by` is deliberately NOT selected. The feed withholds the client
+ * behind a brief and the event page keeps that promise; the vendor meets them
+ * through the quotation, once there is one. `status` and `is_public` are absent
+ * for a different reason: `events_public_read` only ever hands this reader a
+ * published, public event, so both are constants here and a page branching on
+ * them would be branching on a value it cannot see change.
+ */
+export type PublicEventDetailModel = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string | null;
+  location: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string | null;
+  source: 'admin' | 'client' | string;
+  created_at: string;
+  /** PostgREST may widen a to-one embed to an array — read through `one()`. */
+  event_types: EventTypeRef | EventTypeRef[] | null;
+};
+
+/**
+ * One line of a client's plan, as a vendor may read it — a row of
+ * `list_event_requirements_public`.
+ *
+ * FOUR COLUMNS ARE MISSING ON PURPOSE, and this is the one type in the file
+ * where that is the point: `allocated_amount`, and everything derived from it,
+ * never leaves the client's own portal. What a client has set aside for a line
+ * is their negotiating position, and a vendor who can read it prices to it.
+ * `is_open` is the safe half of that question — whether the line still needs
+ * someone — and it is derived from committed bookings only, so a line with two
+ * quotes already out still reads as open.
+ */
+export type PublicEventRequirementModel = {
+  id: string;
+  category_id: string;
+  category_key: string;
+  category_name: string;
+  title: string | null;
+  brief: string | null;
+  priority: string;
+  sort_order: number | null;
+  is_open: boolean;
+};
+
+/** One of this vendor's quotations against one event, as its summary card reads it. */
+export type VendorEventQuotationModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  total: number | null;
+  currency: string | null;
+  valid_until: string | null;
+  sent_at: string | null;
+  created_at: string;
+  requirement_id: string | null;
+};
+
+/** One of this vendor's bookings against one event. */
+export type VendorEventBookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  amount: number | null;
+  currency: string | null;
+  quotation_id: string | null;
+  requirement_id: string | null;
+};
+
+/**
  * Escrow as the vendor sees it.
  *
  * `agreed_amount` is what they actually receive — commission and the
@@ -504,22 +795,117 @@ export type PromotionModel = {
   id: string;
   title: string;
   description: string | null;
+  /** The campaign artwork, in `public-media`. Null until the vendor adds one. */
+  banner_url: string | null;
+  /** The vendor's fine print, shown to clients under the saving. */
+  terms: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean | null;
+  /**
+   * A moderator's take-down, separate from `is_active` so the vendor's own
+   * pause switch cannot undo it. Read-only here — the console writes it through
+   * `admin_set_promotion_suspended`.
+   */
+  admin_suspended_at: string | null;
+  admin_suspended_reason: string | null;
+  /** Placed at the top of the public offers directory by an operator. */
+  featured_at: string | null;
 };
 
-export type DiscountModel = {
+/**
+ * A discount code as it is read *through* the promotion that owns it.
+ *
+ * Narrower than {@link DiscountModel} on purpose: the promotions screen shows a
+ * code and how often it has been redeemed, and carrying the whole discount row
+ * would invite that screen to start editing one.
+ */
+export type PromotionDiscountModel = {
   id: string;
+  promotion_id: string;
   code: string | null;
   type: string;
   value: number;
   currency: string | null;
   max_uses: number | null;
   used_count: number;
+  is_active: boolean | null;
+};
+
+/**
+ * A discount code as the vendor who owns it manages it.
+ *
+ * Wider than {@link PromotionDiscountModel}: this is the row the Discounts
+ * screen edits, so it carries the two terms that screen sets and the campaign
+ * the code prices — `promotion_id` is what rolls a redemption up into a
+ * campaign's return, and is the same relationship the Promotions screen reads
+ * back through.
+ */
+export type DiscountModel = {
+  id: string;
+  code: string | null;
+  /** The client-facing name. A code is a token, not a title. */
+  title: string | null;
+  description: string | null;
+  terms: string | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  max_uses: number | null;
+  used_count: number;
+  /** Only redeemable on bookings at or above this figure. Null = no floor. */
+  min_amount: number | null;
+  /** Ceiling on what a percentage may take off. Null = uncapped. */
+  max_discount_amount: number | null;
+  /** How many times one client may use it. Null = no per-client limit. */
+  max_per_client: number | null;
+  /** Applies with no code typed — the client sees the price already reduced. */
+  is_automatic: boolean | null;
+  /** The campaign this code prices, or null for a standalone code. */
+  promotion_id: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean | null;
+  admin_suspended_at: string | null;
+  admin_suspended_reason: string | null;
+};
+
+/**
+ * One thing an offer has been attached to.
+ *
+ * The row shape of `offer_targets`, read for every offer a vendor owns in one
+ * query and grouped in the browser. Exactly one of `promotion_id` /
+ * `discount_id` is set, and which of `package_id` / `tier_id` /
+ * `vendor_service_id` carries a value is pinned to `kind` by a check
+ * constraint — so a reader may switch on `kind` and trust the rest.
+ *
+ * An offer with NO rows here covers everything the vendor sells. That is the
+ * legacy shape (nothing could attach a target before 0902a) and it stays legal
+ * in the database; the picker requires a target for anything authored now.
+ */
+export type OfferTargetModel = {
+  id: string;
+  promotion_id: string | null;
+  discount_id: string | null;
+  kind: 'package' | 'package_tier' | 'vendor_service';
+  package_id: string | null;
+  tier_id: string | null;
+  vendor_service_id: string | null;
+};
+
+/** What a campaign actually returned, from `vendor_offer_performance`. */
+export type OfferPerformanceModel = {
+  discount_id: string;
+  /** Quotes sent under this offer that the client has not answered yet. */
+  reserved_count: number;
+  /** Quotes accepted. These are the uses that were actually spent. */
+  redeemed_count: number;
+  /** Declined, withdrawn or lapsed — the uses that went back to the pool. */
+  released_count: number;
+  /** What the offer gave away, on redeemed quotes only. */
+  discounted_value: number;
+  /** What those quotes were worth in total. */
+  booked_value: number;
 };
 
 export type ReviewResponseRel = {
@@ -640,6 +1026,14 @@ export type NotificationPage = {
 
 export type VendorProfileEditModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SV285K7BV9`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   business_name: string;
   biography: string | null;
   base_city: string | null;

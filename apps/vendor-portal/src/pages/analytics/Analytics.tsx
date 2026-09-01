@@ -1,74 +1,42 @@
-import { Grid, Card, CardContent, Typography, Alert, PageTitle, QueryState } from '@sinnapi/ui';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import StarIcon from '@mui/icons-material/Star';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import { PageTitle } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
 import { useAnalytics } from './hooks/useAnalytics';
-import { StatCard } from '@sinnapi/ui/router';
+import AnalyticsWorkspace from './components/organisms/AnalyticsWorkspace';
+import AnalyticsUpgradeCard from './components/organisms/AnalyticsUpgradeCard';
+import AnalyticsPageSkeleton from './components/organisms/AnalyticsPageSkeleton';
 
-// Client analytics is a Professional/Elite entitlement. Detailed charts would be
-// gated on the plan's `client_analytics` feature; this summary is always shown.
+/**
+ * The vendor's analysis surface.
+ *
+ * Where the dashboard reports the figures, this reports where they come from —
+ * the same reads at the same period, one level deeper, plus the attribution
+ * cuts (`vendor_analytics_detail`) that only a paid plan is shown.
+ *
+ * State, both reads, the derived insights and the export tables all live in
+ * `useAnalytics`; layout, tabs and every panel live in the workspace. This
+ * stays the wiring point between the two, plus the one branch that decides
+ * which of the three surfaces a caller gets.
+ */
 function AnalyticsView({ vendorId }: { vendorId: string }) {
-  const { dash } = useAnalytics(vendorId);
-  return (
-    <>
-      <Alert severity="info" sx={{ mb: 3 }}>
-        Detailed client analytics (views, conversion, trends) are available on the Professional and
-        Elite plans.
-      </Alert>
-      <QueryState isLoading={dash.isLoading} error={dash.error}>
-        <Grid container spacing={3}>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="Booking requests"
-              value={dash.data?.bookingRequests ?? 0}
-              icon={<EventNoteIcon />}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="Quote requests"
-              value={dash.data?.quoteRequests ?? 0}
-              icon={<RequestQuoteIcon />}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="In escrow"
-              value={dash.data?.escrowHeld ?? 0}
-              icon={<AccountBalanceIcon />}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <StatCard
-              size="lg"
-              label="Reviews"
-              value={dash.data?.reviews ?? 0}
-              icon={<StarIcon />}
-            />
-          </Grid>
-        </Grid>
-        <Card variant="outlined" sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6">Trends</Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Charts appear here as your activity grows (plan-gated).
-            </Typography>
-          </CardContent>
-        </Card>
-      </QueryState>
-    </>
-  );
+  const analytics = useAnalytics(vendorId);
+
+  // Resolving the plan. Shaped like the page it precedes so the layout does not
+  // jump, and rendered before either branch so we never flash one surface at
+  // the other's plan.
+  if (analytics.entitlementLoading) return <AnalyticsPageSkeleton />;
+
+  if (!analytics.entitled) return <AnalyticsUpgradeCard />;
+
+  return <AnalyticsWorkspace {...analytics} />;
 }
 
 export default function Analytics() {
   return (
     <>
-      <PageTitle title="Analytics" subtitle="Understand your performance on Sinnapi." />
+      <PageTitle
+        title="Analytics"
+        subtitle="What is driving your bookings, your earnings and your reputation."
+      />
       <VendorGate>{(vendorId) => <AnalyticsView vendorId={vendorId} />}</VendorGate>
     </>
   );

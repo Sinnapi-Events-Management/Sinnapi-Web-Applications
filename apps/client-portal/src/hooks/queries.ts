@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import {
   useQuery,
   useInfiniteQuery,
@@ -8,15 +9,19 @@ import {
 import {
   paginate,
   rpcErrorMessage,
+  PACKAGE_PUBLIC_COLUMNS,
+  todayIso,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
   type PageParams,
   type Paged,
   type PaymentTermsPreview,
 } from '@sinnapi/ui';
+import type { PackageOfferRow } from '@sinnapi/ui/offers';
 import { supabase } from '@/lib/supabase';
 import { readFunctionError } from '@/lib/functions';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
 import type {
+  PackageModel,
   VendorDetailModel,
   VendorMediaModel,
   VendorSearchCardModel,
@@ -33,6 +38,15 @@ import type {
   QuotationStatusEventModel,
   QuotationBookingModel,
   MyEventModel,
+  MyEventDetailModel,
+  MyEventBudgetModel,
+  EventBudgetSummaryModel,
+  EventRequirementModel,
+  EventVendorModel,
+  VendorRecommendationModel,
+  QuoteComparisonModel,
+  BudgetCheckModel,
+  ServiceCategoryOption,
   EventTypeOption,
   EscrowModel,
   EscrowDetailModel,
@@ -49,6 +63,9 @@ import type {
   NotificationModel,
   NotificationPage,
   ProfileModel,
+  VendorOfferModel,
+  PublicOfferModel,
+  QuotationOfferModel,
 } from '@/lib/types';
 
 const VENDOR_CARD =
@@ -300,6 +317,142 @@ export function useVendor(slug: string) {
 }
 
 /**
+ * A vendor's published packages, for the profile page and the quote request.
+ *
+ * No `visibility` filter here, and deliberately: the read policy already
+ * decides what a client may see, and repeating the rule in the query is how the
+ * two come to disagree. What the query does add is the ordering the vendor
+ * arranged, and the `tier_id is null` scope on the add-on embed — without it
+ * every tier line arrives twice and each tier's total is computed over the
+ * whole package.
+ */
+export function useVendorPackages(vendorId?: string) {
+  return useQuery({
+    queryKey: ['vendor-packages', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_templates')
+        .select(PACKAGE_PUBLIC_COLUMNS)
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .is('quote_template_items.tier_id', null)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as PackageModel[];
+    },
+  });
+}
+
+/**
+ * Every live offer on every published package of one vendor, in one read.
+ *
+ * One RPC rather than one `package_offers` call per card. A profile shows up to
+ * six packages and this page is navigated back to constantly (a client compares
+ * two vendors by flipping between them), so six round trips per visit is six
+ * too many.
+ *
+ * The rows are grouped and matched to a tier by `groupOffersByPackage` and
+ * `offersForTier` from the shared kit — not re-derived here, because the same
+ * grouping backs the marketing site's server-rendered profile and the two must
+ * not disagree about which tier an offer covers.
+ *
+ * A failure costs the profile its offer badges and nothing else, so nothing on
+ * that page gates on this.
+ */
+export function useVendorPackageOffers(vendorId?: string) {
+  return useQuery({
+    queryKey: ['vendor-package-offers', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_package_offers', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as PackageOfferRow[];
+    },
+  });
+}
+
+/**
+ * What this vendor is running, for the strip at the top of their profile.
+ *
+ * Distinct from `useVendorPackageOffers`, which is per package: this is one row
+ * per offer with the packages it covers named on it, which is what a summary
+ * strip needs and what a per-package read cannot give without the caller
+ * de-duplicating.
+ */
+export function useVendorOffers(vendorId?: string) {
+  return useQuery({
+    queryKey: ['vendor-offers', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_offers', { p_vendor_id: vendorId! });
+      if (error) throw error;
+      return (data ?? []) as VendorOfferModel[];
+    },
+  });
+}
+
+/**
+ * The offers directory — every live offer on the platform, filtered.
+ *
+ * Paged through `total_count`, which the RPC returns as a window function on
+ * every row rather than as a second query: the count and the page are one scan,
+ * and a count fetched separately can disagree with the page beside it when a
+ * campaign ends between the two.
+ */
+export function useOfferDirectory(params: {
+  search?: string;
+  categoryId?: string | null;
+  regionId?: string | null;
+  page: number;
+  pageSize: number;
+}) {
+  const { search, categoryId, regionId, page, pageSize } = params;
+
+  return useQuery({
+    queryKey: ['offer-directory', search, categoryId, regionId, page, pageSize],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_public_offers', {
+        p_search: search?.trim() || null,
+        p_category_id: categoryId ?? null,
+        p_region_id: regionId ?? null,
+        p_limit: pageSize,
+        p_offset: page * pageSize,
+      });
+      if (error) throw error;
+
+      const rows = (data ?? []) as PublicOfferModel[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+  });
+}
+
+/**
+ * The offer a quotation was priced with, by name.
+ *
+ * A quotation carries `offer_discount_id` and `offer_discount_total`, but
+ * `discounts_read` only admits a LIVE discount — and by the time a client opens
+ * an old quote the campaign behind it has usually ended. Without this the
+ * saving on a past quote renders as an amount with no name, which is the one
+ * thing a client will ask support about.
+ */
+export function useQuotationOffer(quotationId?: string) {
+  return useQuery({
+    queryKey: ['quotation-offer', quotationId],
+    enabled: !!quotationId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('quotation_offer', {
+        p_quotation_id: quotationId!,
+      });
+      if (error) throw error;
+      return ((data ?? []) as QuotationOfferModel[])[0] ?? null;
+    },
+  });
+}
+
+/**
  * A public vendor's portfolio — the gallery on the vendor detail page.
  *
  * Ordered the way the vendor curated it: the primary shot first, then their own
@@ -310,6 +463,39 @@ export function useVendor(slug: string) {
  * `vmedia_read` exposes these rows to anon and authenticated alike for public
  * vendors, so no session is required.
  */
+/**
+ * The days a vendor cannot take work, from today forward.
+ *
+ * Readable without being the vendor: `blocked_read` discloses blocked dates for
+ * any published vendor, which is the whole point — a client deciding on a date
+ * should not have to send a request to find out it was never available.
+ *
+ * Only the date is selected. The row also carries a `reason` and a `source`,
+ * and both are the vendor's business: "unavailable" is all a client needs, and
+ * "blocked — hospital appointment" is not something to publish on their
+ * profile. Past days are dropped server-side; nobody can book them anyway.
+ */
+export function useVendorUnavailableDates(vendorId: string | undefined) {
+  return useQuery({
+    queryKey: ['vendor-unavailable', vendorId],
+    enabled: Boolean(vendorId),
+    // Availability changes when the vendor blocks a day, not when a client
+    // reopens a profile — a minute of staleness saves the round trip on every
+    // tab back to the page.
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_blocked_dates')
+        .select('blocked_date')
+        .eq('vendor_id', vendorId!)
+        .gte('blocked_date', todayIso())
+        .order('blocked_date', { ascending: true });
+      if (error) throw error;
+      return (data ?? []).map((row) => row.blocked_date as string);
+    },
+  });
+}
+
 export function useVendorMedia(vendorId: string | undefined) {
   return useQuery({
     queryKey: ['vendor-media', vendorId],
@@ -396,7 +582,10 @@ export function useUpcomingBookings(limit = 5) {
 const BOOKING_DETAIL_SELECT = [
   '*',
   'vendors(business_name,slug,primary_image_url)',
-  'quotations(id,reference_no,status,currency,subtotal,discount_total,tax_total,total,' +
+  // `offer_discount_total` rides along so the booking's copy of the quote adds
+  // up: without it `quotationPricing` would fall back to a derived total that
+  // ignores the promotion and overstate what the client owes.
+  'quotations(id,reference_no,status,currency,subtotal,discount_total,offer_discount_total,tax_total,total,' +
     'valid_until,request_details,version_no,advance_rate,advance_release_days_before,' +
     'advance_terms_note,sent_at,responded_at,created_at,' +
     'quotation_items(id,description,quantity,unit_price,line_total,sort_order))',
@@ -497,7 +686,7 @@ export function useQuotation(id: string) {
       const { data, error } = await supabase
         .from('quotations')
         .select(
-          '*,vendors(business_name,slug,primary_image_url),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date,payment_type,payment_terms_note)',
+          '*,vendors(business_name,slug,primary_image_url),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date,payment_type,payment_terms_note),event_types(id,name)',
         )
         .eq('id', id)
         .maybeSingle();
@@ -602,7 +791,7 @@ export function useQuotationStatusHistory(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quotation_status_history')
-        .select('id,from_status,to_status,reason,occurred_at')
+        .select('id,from_status,to_status,reason,occurred_at,actor_id')
         .eq('quotation_id', id)
         .order('occurred_at', { ascending: true });
       if (error) throw error;
@@ -628,6 +817,388 @@ export function useMyEvents() {
       return (data ?? []) as unknown as MyEventModel[];
     },
   });
+}
+
+/**
+ * One posted event, for its detail page.
+ *
+ * Reads the same columns as the list rather than a wider set, because the event
+ * page's extra content does not live on `events` — the budget rollup is an RPC
+ * and the requirements are their own table. Sharing the projection means the
+ * grid's cache warms the page it opens.
+ */
+export function useMyEvent(id: string) {
+  return useQuery({
+    queryKey: ['my-event', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(
+          'id,title,description,event_date,location,status,source,budget_min,budget_max,currency,payment_type,payment_terms_note,event_type:event_types(key,name)',
+        )
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as MyEventDetailModel | null;
+    },
+  });
+}
+
+/**
+ * The budget rollup for every event the client posted, keyed by event id.
+ *
+ * One request for the whole grid rather than one per card — see
+ * `list_my_event_budgets` (0901g) for why that mattered enough to be its own
+ * RPC. Returned as a Map because every consumer looks a row up by event id and
+ * none of them iterates it.
+ *
+ * Invalidated by anything that moves money on an event, which is why the key is
+ * flat: `['my-event-budgets']` is cheap to invalidate wholesale, and a client
+ * has a handful of events, not a page of them.
+ */
+export function useMyEventBudgets() {
+  return useQuery({
+    queryKey: ['my-event-budgets'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_my_event_budgets');
+      if (error) throw error;
+      const rows = (data ?? []) as MyEventBudgetModel[];
+      return new Map(rows.map((row) => [row.event_id, row]));
+    },
+  });
+}
+
+/**
+ * The budget rollup for one event.
+ *
+ * Deliberately a separate read from `useMyEventBudgets` rather than a lookup
+ * into it: the event page is reachable by deep link with no grid behind it, and
+ * it shows two figures the grid does not (`unallocated_amount` and the band
+ * counts). Both call through to the same `event_money_lines`, so the card and
+ * the page cannot disagree about what is committed.
+ */
+export function useEventBudget(id: string) {
+  return useQuery({
+    queryKey: ['event-budget', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('event_budget_summary', { p_event_id: id });
+      if (error) throw error;
+      // `returns table` arrives as an array of one.
+      const row = (data ?? [])[0] as EventBudgetSummaryModel | undefined;
+      return row ?? null;
+    },
+  });
+}
+
+/**
+ * The budget lines on one event, in the order the client arranged them.
+ *
+ * Cancelled lines are returned rather than filtered out. A line the client has
+ * called off is still part of the plan's history — it keeps whatever quotes and
+ * bookings were made against it — and hiding it would leave a client wondering
+ * where the caterer they had been talking to went. The list decides how to show
+ * them; the read does not decide for it.
+ */
+export function useEventRequirements(eventId: string) {
+  return useQuery({
+    queryKey: ['event-requirements', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('event_requirement_summary', {
+        p_event_id: eventId,
+      });
+      if (error) throw error;
+      return (data ?? []) as EventRequirementModel[];
+    },
+  });
+}
+
+/**
+ * Every vendor engagement on one event.
+ *
+ * Not paginated. A client's event has a handful of vendors in the running, not
+ * a catalogue — and the board groups, filters and counts across the whole set,
+ * all of which a page boundary would break. If an event ever attracts hundreds
+ * of vendors this becomes a paged read and the grouping moves to the server;
+ * until then, paging would be machinery serving nobody.
+ */
+export function useEventVendors(eventId: string, requirementId?: string | null) {
+  return useQuery({
+    queryKey: ['event-vendors', eventId, requirementId ?? null],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_event_vendors', {
+        p_event_id: eventId,
+        p_requirement_id: requirementId ?? null,
+      });
+      if (error) throw error;
+      return (data ?? []) as EventVendorModel[];
+    },
+  });
+}
+
+/**
+ * "Would committing this take me over?", asked on demand.
+ *
+ * A callback rather than a `useQuery`, because the question is asked at the
+ * moment of a click and its answer must be current. Caching it would mean a
+ * client who left the dialog open while a vendor's quote landed would accept
+ * against figures that had moved — and the RPC would then refuse them with a
+ * number the dialog never showed.
+ *
+ * The dialog it feeds is advisory: the same check runs again inside
+ * `respond_quotation`, which is what actually refuses. This exists so the
+ * client sees the figure BEFORE they commit rather than as an error afterwards.
+ */
+export function useBudgetCheck(eventId: string) {
+  return useCallback(
+    async (args: {
+      amount: number;
+      currency: string;
+      requirementId?: string | null;
+      excludeQuotationId?: string | null;
+      excludeBookingId?: string | null;
+    }): Promise<BudgetCheckModel | null> => {
+      const { data, error } = await supabase.rpc('event_budget_check', {
+        p_event_id: eventId,
+        p_amount: args.amount,
+        p_currency: args.currency,
+        p_requirement_id: args.requirementId ?? null,
+        p_exclude_quotation_id: args.excludeQuotationId ?? null,
+        p_exclude_booking_id: args.excludeBookingId ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+      return ((data ?? [])[0] as BudgetCheckModel | undefined) ?? null;
+    },
+    [eventId],
+  );
+}
+
+/**
+ * The writes on the vendor board.
+ *
+ * All three move something the budget cards are drawn from, so they invalidate
+ * the same set: accepting a quote turns it into pending money, declining a
+ * vendor closes their open quotes, and an invitation creates one. The event
+ * page and the grid behind it both read those totals.
+ */
+export function useEventVendorMutations(eventId: string) {
+  const queryClient = useQueryClient();
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['event-vendors', eventId] });
+    queryClient.invalidateQueries({ queryKey: ['event-requirements', eventId] });
+    queryClient.invalidateQueries({ queryKey: ['event-budget', eventId] });
+    queryClient.invalidateQueries({ queryKey: ['my-event-budgets'] });
+    queryClient.invalidateQueries({ queryKey: ['quotations'] });
+  };
+
+  const setInterest = useMutation({
+    mutationFn: async (input: { vendorId: string; status: string; reason?: string | null }) => {
+      const { error } = await supabase.rpc('set_event_interest_status', {
+        p_event_id: eventId,
+        p_vendor_id: input.vendorId,
+        p_status: input.status,
+        p_reason: input.reason ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  const invite = useMutation({
+    mutationFn: async (input: {
+      vendorId: string;
+      requirementId?: string | null;
+      details?: string | null;
+    }) => {
+      const { data, error } = await supabase.rpc('invite_vendor_to_event', {
+        p_event_id: eventId,
+        p_vendor_id: input.vendorId,
+        p_requirement_id: input.requirementId ?? null,
+        p_details: input.details ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+      return data as string;
+    },
+    onSuccess: invalidate,
+  });
+
+  /**
+   * Accepting a price.
+   *
+   * `acknowledgeOverBudget` is passed through rather than defaulted true, and
+   * that is the whole point of the guard: the first call goes without it, is
+   * refused with `budget_exceeded`, and only a client who has seen the figure
+   * sends the second. Defaulting it here would silently disarm the feature.
+   */
+  const acceptQuote = useMutation({
+    mutationFn: async (input: { quotationId: string; acknowledgeOverBudget?: boolean }) => {
+      const { error } = await supabase.rpc('respond_quotation', {
+        p_quotation_id: input.quotationId,
+        p_action: 'accept',
+        p_reason: null,
+        p_acknowledge_over_budget: input.acknowledgeOverBudget ?? false,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  return { setInterest, invite, acceptQuote };
+}
+
+/**
+ * Two to three quotations, side by side.
+ *
+ * `enabled` on there being at least two ids: one quote is not a comparison, and
+ * firing the RPC for it would put a loading state behind a dialog that has
+ * nothing to show yet.
+ *
+ * The ids are in the query key, so re-opening a comparison the client has
+ * already made is instant — and changing the selection is a different cached
+ * result rather than a refetch that blanks the columns already on screen.
+ */
+export function useQuoteComparison(eventId: string, quotationIds: string[]) {
+  return useQuery({
+    queryKey: ['event-quote-comparison', eventId, [...quotationIds].sort()],
+    enabled: !!eventId && quotationIds.length >= 2,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('compare_event_quotations', {
+        p_event_id: eventId,
+        p_quotation_ids: quotationIds,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+      return (data ?? []) as QuoteComparisonModel[];
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Vendors who could fill one budget line.
+ *
+ * The filters go to the server rather than being applied to a fetched list,
+ * because each of them changes WHICH vendors are candidates, not just which of
+ * a fetched page are shown — filtering client-side would hand back three of
+ * twelve and call it a page. They are part of the query key so switching a
+ * toggle is a distinct cached result rather than a refetch of the same one.
+ *
+ * `enabled` on the requirement: recommendations are only meaningful against a
+ * line, because the line is what supplies the category to match on and the
+ * headroom to price against. Unscoped, this would rank the whole marketplace.
+ */
+export function useVendorRecommendations(
+  eventId: string,
+  requirementId: string | null,
+  filters: { onlyAvailable: boolean; withinBudget: boolean; matchRegion: boolean },
+) {
+  return useQuery({
+    queryKey: ['event-recommendations', eventId, requirementId, filters],
+    enabled: !!eventId && !!requirementId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('recommend_vendors_for_event', {
+        p_event_id: eventId,
+        p_requirement_id: requirementId,
+        p_only_available: filters.onlyAvailable,
+        p_within_budget: filters.withinBudget,
+        p_match_region: filters.matchRegion,
+      });
+      if (error) throw error;
+      return (data ?? []) as VendorRecommendationModel[];
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The categories a budget line can be filed under.
+ *
+ * Its own read rather than a widening of `useFilterRefData`, because a line
+ * needs the category's `id` and a discovery facet needs its `key` — see
+ * `list_service_category_options` (0901h). Reference data an admin changes
+ * about as often as they add a category, so it is cached for the session, the
+ * same bargain `useEventTypeOptions` makes.
+ */
+export function useServiceCategoryOptions() {
+  return useQuery({
+    queryKey: ['service-category-options'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_service_category_options');
+      if (error) throw error;
+      return (data ?? []) as ServiceCategoryOption[];
+    },
+  });
+}
+
+/**
+ * The three writes on a budget line, behind one hook.
+ *
+ * Together rather than as three hooks because they invalidate the same things
+ * and always appear together on the same screen. Every one of them can move
+ * money-adjacent figures, so all three refresh the requirement list AND both
+ * budget reads: cancelling a line releases its allocation, which changes the
+ * event's `unallocated_amount`, which is drawn two cards away and on the grid
+ * behind this page.
+ */
+export function useRequirementMutations(eventId: string) {
+  const queryClient = useQueryClient();
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['event-requirements', eventId] });
+    queryClient.invalidateQueries({ queryKey: ['event-budget', eventId] });
+    queryClient.invalidateQueries({ queryKey: ['my-event-budgets'] });
+  };
+
+  const save = useMutation({
+    mutationFn: async (input: {
+      requirementId?: string | null;
+      categoryId: string;
+      title: string | null;
+      brief: string | null;
+      allocatedAmount: number | null;
+      priority: string;
+    }) => {
+      const { data, error } = await supabase.rpc('save_event_requirement', {
+        p_event_id: eventId,
+        p_category_id: input.categoryId,
+        p_title: input.title,
+        p_brief: input.brief,
+        p_allocated_amount: input.allocatedAmount,
+        p_priority: input.priority,
+        p_requirement_id: input.requirementId ?? null,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+      return data as string;
+    },
+    onSuccess: invalidate,
+  });
+
+  const cancel = useMutation({
+    mutationFn: async (input: { requirementId: string; cancelled: boolean }) => {
+      const { error } = await supabase.rpc('cancel_event_requirement', {
+        p_requirement_id: input.requirementId,
+        p_cancelled: input.cancelled,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  const remove = useMutation({
+    mutationFn: async (requirementId: string) => {
+      const { error } = await supabase.rpc('delete_event_requirement', {
+        p_requirement_id: requirementId,
+      });
+      if (error) throw new Error(rpcErrorMessage(error));
+    },
+    onSuccess: invalidate,
+  });
+
+  return { save, cancel, remove };
 }
 
 /**
@@ -929,7 +1500,7 @@ export function useProfile() {
       const { data, error } = await supabase
         .from('profiles')
         .select(
-          'id,full_name,email,phone,avatar_url,locale,preferred_currency,mfa_enabled,created_at',
+          'id,public_id,full_name,email,phone,avatar_url,locale,preferred_currency,mfa_enabled,created_at',
         )
         .eq('id', user.id)
         .maybeSingle();
@@ -1021,7 +1592,24 @@ export function useUnreadCount() {
  */
 export const VENDOR_LOOKUP_LIMIT = 100;
 
-const VENDOR_OPTION_SELECT = 'id,business_name,base_city,profile_image_url,primary_image_url';
+/**
+ * The picker's columns, plus what each vendor actually does.
+ *
+ * `primary_category_id` and the embedded services are the two halves of
+ * `vendor_serves_category` (migration 0901l), read here so the invite dialog can
+ * warn when a client is about to ask a makeup artist for photography. Both are
+ * already publicly readable for a public vendor (`vendors_public_read`,
+ * `vsvc_read`), so this discloses nothing the catalogue does not.
+ *
+ * The embed is filtered server-side to live, active rows: an archived service
+ * is not a capability, and filtering in the browser would ship every vendor's
+ * whole service history to power one caption.
+ *
+ * One literal, not a concatenation — supabase-js infers the row shape from the
+ * select as a literal type, and a built string widens it to `string`.
+ */
+const VENDOR_OPTION_SELECT =
+  'id,business_name,base_city,profile_image_url,primary_image_url,primary_category_id,vendor_services(category_id)';
 
 /**
  * A typed search term as a PostgREST `ilike` value.
@@ -1065,6 +1653,14 @@ export function useVendorLookup(query: string) {
       // "Kampala Sound Co". Substring rather than prefix, because half-recalled
       // names are usually recalled from the middle.
       if (q) request = request.ilike('business_name', toIlikePattern(q));
+
+      // Applies to the embedded services, not the vendors: PostgREST scopes a
+      // filter on an embedded path to that embed, so a vendor with only
+      // archived services still comes back — with an empty `vendor_services`,
+      // which is the correct answer rather than a missing row.
+      request = request
+        .eq('vendor_services.is_active', true)
+        .is('vendor_services.deleted_at', null);
 
       const { data, error } = await request.abortSignal(signal);
       throwIfAborted(signal);

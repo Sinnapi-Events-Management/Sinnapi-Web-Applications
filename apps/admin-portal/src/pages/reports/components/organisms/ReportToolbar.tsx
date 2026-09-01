@@ -1,9 +1,8 @@
 import { Paper, Stack, Typography } from '@sinnapi/ui';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { getPeriodOption, type ReportPeriod } from '../../schema';
-import type { ExportFormat } from '../../data/reportExport';
-import PeriodSelector from '@/components/analytics/PeriodSelector';
-import ExportMenu from '../molecules/ExportMenu';
+import { ExportMenu, type ExportFormat } from '@sinnapi/ui/export';
+import { PeriodSelector } from '@sinnapi/ui/analytics';
 
 type Props = {
   /** One-line summary of the active report category. */

@@ -24,20 +24,28 @@ import type {
   SettlementEventModel,
   BookingStatusEventModel,
   VendorQuotationModel,
+  PackageQuoteTermsModel,
   QuotationDetailModel,
   QuotationStatusEventModel,
   QuotationBookingModel,
-  TemplateModel,
+  PackageModel,
   ServiceModel,
+  ServiceCategoryModel,
   MediaModel,
   AvailabilityModel,
   BlockedDateModel,
   PublicEventModel,
+  PublicEventDetailModel,
+  PublicEventRequirementModel,
+  VendorEventQuotationModel,
+  VendorEventBookingModel,
   EventTypeRef,
   EventInterestModel,
   EscrowModel,
   PayoutModel,
+  VendorBankAccountModel,
   PromotionModel,
+  PromotionDiscountModel,
   DiscountModel,
   ReviewModel,
   PlanModel,
@@ -46,6 +54,8 @@ import type {
   VendorClientModel,
   NotificationModel,
   NotificationPage,
+  OfferTargetModel,
+  OfferPerformanceModel,
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
@@ -82,7 +92,7 @@ export function useProfile() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('id,full_name,email,phone,avatar_url,preferred_currency,created_at')
+        .select('id,public_id,full_name,email,phone,avatar_url,preferred_currency,created_at')
         .eq('id', user.id)
         .maybeSingle();
       return (data as ProfileModel) ?? null;
@@ -368,7 +378,7 @@ export function useQuotation(id: string) {
       const { data, error } = await supabase
         .from('quotations')
         .select(
-          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date)',
+          '*,quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date),event_types(id,name)',
         )
         .eq('id', id)
         .maybeSingle();
@@ -376,6 +386,33 @@ export function useQuotation(id: string) {
       return (data as QuotationDetailModel) ?? null;
     },
     enabled: !!id,
+  });
+}
+
+/**
+ * What a package order is locked to, for the approval panel.
+ *
+ * Its own query rather than more columns on `useQuotation`, because two of the
+ * fields are computed against the package as it stands RIGHT NOW — a vendor who
+ * edits the package in another tab should see `package_changed` flip on a
+ * refetch, and folding that into the quotation's cache entry would tie it to a
+ * key that has no reason to invalidate.
+ *
+ * Returns null for a quote that is not a package order, which is what the RPC
+ * itself does: it returns no rows rather than raising, so a vendor opening an
+ * ordinary quote gets a quiet null instead of an error boundary.
+ */
+export function usePackageQuoteTerms(id: string | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['v-package-quote-terms', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('package_quote_terms', { p_quotation_id: id })
+        .maybeSingle();
+      if (error) throw error;
+      return (data as PackageQuoteTermsModel) ?? null;
+    },
+    enabled: !!id && enabled,
   });
 }
 
@@ -470,7 +507,7 @@ export function useQuotationStatusHistory(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quotation_status_history')
-        .select('id,from_status,to_status,reason,occurred_at')
+        .select('id,from_status,to_status,reason,occurred_at,actor_id')
         .eq('quotation_id', id)
         .order('occurred_at', { ascending: true });
       if (error) throw error;
@@ -480,38 +517,150 @@ export function useQuotationStatusHistory(id: string) {
   });
 }
 
-export function useTemplates(vendorId?: string) {
+/**
+ * Every column of a package, both levels of its lines, in one read.
+ *
+ * The nested embed is what makes a package editable and previewable without a
+ * waterfall: the editor opens with the tree already in hand, and the preview
+ * beside it prices from the same objects the form is bound to.
+ *
+ * The second `quote_template_items` embed is filtered to `tier_id is null` —
+ * the add-ons offered across every tier. Without the filter the same rows would
+ * arrive twice, once here and once under their tier, and every tier's total
+ * would be computed over a list that includes the other tiers' lines.
+ */
+const PACKAGE_COLS =
+  'id,vendor_id,name,summary,notes,currency,cover_image_url,vendor_service_id,category_id,' +
+  'pricing_model,inclusions,exclusions,lead_time_days,tax_rate,tax_inclusive,valid_days,advance_rate,' +
+  'advance_release_days_before,advance_terms_note,visibility,is_active,published_at,sort_order,' +
+  'admin_unpublished_at,admin_unpublished_reason,' +
+  'quote_template_tiers(id,name,description,is_recommended,discount_rate,sort_order,' +
+  'quote_template_items(id,tier_id,description,quantity,unit_price,unit_label,notes,is_optional,sort_order)),' +
+  'quote_template_items(id,tier_id,description,quantity,unit_price,unit_label,notes,is_optional,sort_order)';
+
+export function usePackages(vendorId?: string) {
   return useQuery({
-    queryKey: ['v-templates', vendorId],
+    queryKey: ['v-packages', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('quote_templates')
-        .select('id,name,currency,notes,is_active,quote_template_items(id)')
+        .select(PACKAGE_COLS)
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
+        .is('quote_template_items.tier_id', null)
+        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false });
-      return (data ?? []) as TemplateModel[];
+      if (error) throw error;
+      return (data ?? []) as unknown as PackageModel[];
     },
   });
 }
 
-export function useServices(vendorId?: string) {
+/**
+ * The packages a vendor can actually quote from, for the builder's picker.
+ *
+ * Archived ones are filtered out here rather than in the picker: a vendor who
+ * archived a package has said they are no longer selling it, and offering it as
+ * a starting point in the one place quotes are built would undo that.
+ */
+export function useQuotablePackages(vendorId?: string) {
+  const query = usePackages(vendorId);
+  return {
+    ...query,
+    data: (query.data ?? []).filter(
+      (pkg) => pkg.is_active !== false && (pkg.quote_template_tiers?.length ?? 0) > 0,
+    ),
+  };
+}
+
+/**
+ * A vendor's catalogue of services.
+ *
+ * `base_price`/`currency` are still selected because the columns still exist
+ * and a type that omitted them would drift from the row. Nothing in this
+ * portal reads them any more — a service card's "from" figure comes from the
+ * packages hanging off the service, through the same `packagePricing` a client
+ * sees, so the two cannot disagree.
+ *
+ * The error is surfaced rather than swallowed. The previous version dropped it
+ * and returned `[]`, which is how a failing read looked exactly like an empty
+ * catalogue and sent vendors to support instead of to a retry.
+ *
+ * ARCHIVED ROWS ARE OPT-IN
+ * `includeArchived` widens the read to soft-deleted services, and only the
+ * services screen asks for it — that screen has an Archived tab and a Restore
+ * action, so it needs rows nobody else should see. Everywhere a service is
+ * *chosen* rather than *managed* (the package editor's picker) keeps the
+ * default and gets live rows only, because offering a vendor a service they
+ * archived is offering them a choice they already made.
+ *
+ * The flag is part of the query key, so the two reads cache separately, and
+ * both still fall under an `invalidateQueries(['v-services', vendorId])` —
+ * react-query matches keys by prefix, so a write on the services screen
+ * refreshes the package editor's picker too.
+ */
+export function useServices(vendorId?: string, options?: { includeArchived?: boolean }) {
+  const includeArchived = options?.includeArchived ?? false;
+
   return useQuery({
-    queryKey: ['v-services', vendorId],
+    queryKey: ['v-services', vendorId, includeArchived ? 'with-archived' : 'live'],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase
+      const query = supabase
         .from('vendor_services')
-        .select('id,title,description,base_price,currency,is_active,category_id')
-        .eq('vendor_id', vendorId!)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .select(
+          'id,title,description,base_price,currency,is_active,category_id,pricing_models,deleted_at',
+        )
+        .eq('vendor_id', vendorId!);
+
+      const { data, error } = await (includeArchived ? query : query.is('deleted_at', null)).order(
+        'created_at',
+        { ascending: false },
+      );
+      if (error) throw error;
       return (data ?? []) as ServiceModel[];
     },
   });
 }
 
+/**
+ * The platform's service taxonomy, for the picker on the service form.
+ *
+ * World-readable through `ref_read_categories`, maintained by the console, and
+ * effectively static within a session — so it is cached indefinitely and not
+ * keyed by vendor. A category an admin adds shows up on the vendor's next
+ * visit without a release.
+ *
+ * Ordered by `sort_order` then name, matching the console's own list: a vendor
+ * and an operator discussing "the fourth one down" are looking at the same
+ * fourth one.
+ */
+export function useServiceCategories() {
+  return useQuery({
+    queryKey: ['service-categories'],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('id,name')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ServiceCategoryModel[];
+    },
+  });
+}
+
+/**
+ * The vendor's portfolio, in the order they curated it.
+ *
+ * `created_at` breaks ties on purpose: every row predating the reorder feature
+ * carries the column default of 0, and without a second key those rows would come
+ * back in whatever order the planner happened to produce — so a gallery could
+ * reshuffle itself between two refetches with nothing having changed.
+ */
 export function useMedia(vendorId?: string) {
   return useQuery({
     queryKey: ['v-media', vendorId],
@@ -522,7 +671,8 @@ export function useMedia(vendorId?: string) {
         .select('id,media_type,url,caption,is_primary,sort_order')
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
-        .order('sort_order', { ascending: true });
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
       return (data ?? []) as MediaModel[];
     },
   });
@@ -547,12 +697,25 @@ export function useBlockedDates(vendorId?: string) {
     queryKey: ['v-blocked', vendorId],
     enabled: !!vendorId,
     queryFn: async () => {
-      const { data } = await supabase
+      // The booking is embedded rather than fetched per row: the calendar names
+      // the job behind every non-manual block, and one round trip per blocked
+      // day would turn a month view into thirty requests.
+      const { data, error } = await supabase
         .from('vendor_blocked_dates')
-        .select('id,blocked_date,reason,source')
+        .select(
+          'id,blocked_date,reason,source,booking_id,' +
+            'bookings(id,reference_no,status,start_time,end_time,location,amount,currency,client_id)',
+        )
         .eq('vendor_id', vendorId!)
         .order('blocked_date', { ascending: true });
-      return (data ?? []) as BlockedDateModel[];
+      if (error) throw error;
+      // Cast before mapping: the select is too long for supabase-js to infer a
+      // row shape from, so it falls back to a union the spread below cannot
+      // read. `one()` then normalizes the embed — PostgREST returns a to-one
+      // relation as an object, but the generated types widen it to an array, and
+      // no component should have to handle both shapes.
+      const rows = (data ?? []) as unknown as BlockedDateModel[];
+      return rows.map((row) => ({ ...row, bookings: one(row.bookings) }));
     },
   });
 }
@@ -768,6 +931,126 @@ export function useMyInterests(vendorId?: string) {
   });
 }
 
+/**
+ * The columns the event page reads. Spelled out rather than `*` so the row the
+ * page renders is the row this app is allowed to see: `posted_by` and the audit
+ * trail stay out of the browser, because the feed's whole promise is that a
+ * vendor sees the brief and not the client behind it.
+ *
+ * A literal, not a built string: supabase-js infers the row shape from the
+ * select as a *literal type*, and a concatenated one widens to `string`, at
+ * which point the inferred row becomes `GenericStringError` and the cast stops
+ * compiling.
+ */
+const PUBLIC_EVENT_DETAIL_SELECT =
+  'id,title,description,event_date,location,budget_min,budget_max,currency,source,created_at,event_types(key,name)';
+
+/**
+ * One public event, for its own page.
+ *
+ * `maybeSingle` rather than `single`, and the null is a real answer: an event
+ * that has been unpublished, made private or soft-deleted simply stops
+ * satisfying `events_public_read`, and the row vanishes for the vendor with no
+ * error. The page says "no longer open" for that; a thrown 406 would say
+ * "something broke", which is a different and wrong claim.
+ *
+ * The PostgREST error IS raised, because a failed request and a withdrawn event
+ * must not look the same — that confusion is exactly what the quotation page's
+ * comment above `useQuotation` was written about.
+ */
+export function usePublicEvent(id: string) {
+  return useQuery({
+    queryKey: ['public-event', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(PUBLIC_EVENT_DETAIL_SELECT)
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as PublicEventDetailModel) ?? null;
+    },
+  });
+}
+
+/**
+ * The client's plan, in the vendor-safe projection.
+ *
+ * Through the RPC rather than a select on `event_requirements`, and that is not
+ * a style choice: the rule being enforced is column-level — a vendor may read
+ * four of the columns and must never read `allocated_amount` — and RLS filters
+ * rows, not columns. `list_event_requirements_public` is where that line is
+ * drawn, so this is the only way the vendor portal may read a plan.
+ */
+export function useEventRequirementsPublic(eventId: string) {
+  return useQuery({
+    queryKey: ['public-event', eventId, 'requirements'],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_event_requirements_public', {
+        p_event_id: eventId,
+      });
+      if (error) throw error;
+      return (data ?? []) as PublicEventRequirementModel[];
+    },
+  });
+}
+
+/**
+ * This vendor's quotations against one event, newest first.
+ *
+ * Scoped by vendor as well as event even though `quotations_read` already does
+ * it: a filter the server enforces and the client repeats costs an index scan
+ * and removes the class of bug where a policy is loosened later and a page
+ * quietly starts showing a competitor's quotes.
+ *
+ * There can legitimately be several — one vendor may quote two lines of one
+ * event (the caterer who also does the cake), which is why `open_event_quotation`
+ * keys on the requirement and not just the pair.
+ */
+export function useVendorEventQuotations(vendorId: string | undefined, eventId: string) {
+  return useQuery({
+    queryKey: ['v-event-quotations', vendorId, eventId],
+    enabled: !!vendorId && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotations')
+        .select(
+          'id,reference_no,status,total,currency,valid_until,sent_at,created_at,requirement_id',
+        )
+        .eq('vendor_id', vendorId!)
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as VendorEventQuotationModel[];
+    },
+  });
+}
+
+/** This vendor's bookings against one event — what the quotes actually became. */
+export function useVendorEventBookings(vendorId: string | undefined, eventId: string) {
+  return useQuery({
+    queryKey: ['v-event-bookings', vendorId, eventId],
+    enabled: !!vendorId && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        // One literal, not a concatenation: supabase-js infers the row shape
+        // from the select as a *literal type*, and a built string widens to
+        // `string`, at which point the row becomes `GenericStringError`.
+        .select(
+          'id,reference_no,status,event_date,start_time,end_time,location,amount,currency,quotation_id,requirement_id',
+        )
+        .eq('vendor_id', vendorId!)
+        .eq('event_id', eventId)
+        .order('event_date', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as VendorEventBookingModel[];
+    },
+  });
+}
+
 /** One page of escrow activity for the vendor's bookings (read-only). */
 export function useVendorEscrow(vendorId: string | undefined, params: PageParams) {
   return useQuery({
@@ -810,6 +1093,40 @@ export function useVendorPayouts(vendorId: string | undefined, params: PageParam
   });
 }
 
+export const BANK_ACCOUNT_KEY = 'v-bank-account';
+
+/**
+ * The payout account currently on file, for display only.
+ *
+ * Every column here is safe to read: the `bank_owner` RLS policy already scopes
+ * the row to the vendor who owns it, and the select deliberately stops short of
+ * `account_number_encrypted` — that one is ciphertext with its own audited
+ * decrypt RPC, and naming it here would ship a blob to the browser that nothing
+ * on the client can (or should) open.
+ *
+ * `set_vendor_bank_account` inserts a new row and demotes the old one rather
+ * than updating in place, so "the account on file" is the primary row, not the
+ * newest; the `ux_bank_primary` partial index guarantees there is at most one.
+ */
+export function useVendorBankAccount(vendorId?: string) {
+  return useQuery({
+    queryKey: [BANK_ACCOUNT_KEY, vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_bank_accounts')
+        .select('id,bank_name,account_name,account_number_last4,branch,is_verified,updated_at')
+        .eq('vendor_id', vendorId!)
+        .eq('is_primary', true)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as VendorBankAccountModel) ?? null;
+    },
+  });
+}
+
+/** A vendor's campaigns, newest window first. */
 export function usePromotions(vendorId?: string) {
   return useQuery({
     queryKey: ['v-promotions', vendorId],
@@ -817,7 +1134,9 @@ export function usePromotions(vendorId?: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('promotions')
-        .select('id,title,description,starts_at,ends_at,is_active')
+        .select(
+          'id,title,description,banner_url,terms,starts_at,ends_at,is_active,admin_suspended_at,admin_suspended_reason,featured_at',
+        )
         .eq('vendor_id', vendorId!)
         .is('deleted_at', null)
         .order('starts_at', { ascending: false });
@@ -826,23 +1145,127 @@ export function usePromotions(vendorId?: string) {
   });
 }
 
-/** One page of the vendor's discount codes, newest first unless re-sorted. */
-export function useDiscounts(vendorId: string | undefined, params: PageParams) {
+/**
+ * The discount codes attached to this vendor's promotions.
+ *
+ * A separate read rather than an embed on `usePromotions`, so a campaign card
+ * still draws when this fails or is slow — the promotion is the thing being
+ * managed and its redemption count is commentary on it. Filtered to rows that
+ * actually name a promotion, because an unattached code belongs to the
+ * Discounts screen and would only inflate the totals here.
+ */
+export function usePromotionDiscounts(vendorId?: string) {
   return useQuery({
-    ...pagedOptions(['v-discounts', vendorId], params, () =>
-      paginate<DiscountModel>(
-        supabase
-          .from('discounts')
-          .select('id,code,type,value,currency,max_uses,used_count,starts_at,ends_at,is_active', {
-            count: 'exact',
-          })
-          .eq('vendor_id', vendorId!)
-          .is('deleted_at', null),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
+    queryKey: ['v-promotion-discounts', vendorId],
     enabled: !!vendorId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('discounts')
+        .select('id,promotion_id,code,type,value,currency,max_uses,used_count,is_active')
+        .eq('vendor_id', vendorId!)
+        .not('promotion_id', 'is', null)
+        .is('deleted_at', null);
+      return (data ?? []) as PromotionDiscountModel[];
+    },
+  });
+}
+
+/**
+ * Every discount code this vendor owns, newest window first.
+ *
+ * Read whole rather than a page at a time. The screen above it filters by a
+ * status that is *derived* — a code inside its window that has hit its cap is
+ * not what `is_active` says it is — and counts redemptions across the whole
+ * set, and neither can be asked of one page: a "Live (3)" badge computed from
+ * rows 1–25 is wrong the moment there are 26. A vendor's own codes are a set
+ * measured in tens, so this is one small read rather than a page plus the
+ * aggregate queries the badges and tiles would otherwise each need.
+ */
+export function useDiscounts(vendorId?: string) {
+  return useQuery({
+    queryKey: ['v-discounts', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('discounts')
+        .select(
+          'id,code,title,description,terms,type,value,currency,max_uses,used_count,min_amount,max_discount_amount,max_per_client,is_automatic,promotion_id,starts_at,ends_at,is_active,admin_suspended_at,admin_suspended_reason',
+        )
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('starts_at', { ascending: false });
+      return (data ?? []) as DiscountModel[];
+    },
+  });
+}
+
+/**
+ * Every target on every offer this vendor owns, in one read.
+ *
+ * One query rather than one per offer, and grouped in the browser. A vendor
+ * runs offers in tens and targets in low hundreds; twenty round trips to draw
+ * one grid is the shape that makes a Promotions screen feel slow, and the join
+ * that would avoid them cannot be expressed here because `offer_targets` hangs
+ * off two different parents.
+ *
+ * Scoped by the offers the vendor owns rather than by a vendor column, because
+ * `offer_targets` deliberately has none: a target belongs to an offer, and the
+ * offer is what belongs to a vendor. The read policy enforces the same thing;
+ * this filter is what keeps the payload to the rows the screen will use.
+ */
+export function useOfferTargets(vendorId?: string) {
+  const promotions = usePromotions(vendorId);
+  const discounts = useDiscounts(vendorId);
+
+  const promotionIds = (promotions.data ?? []).map((row) => row.id);
+  const discountIds = (discounts.data ?? []).map((row) => row.id);
+  const ready = promotions.isSuccess && discounts.isSuccess;
+
+  return useQuery({
+    // The ids are in the key because the rows this read returns are only
+    // meaningful for the set that produced them: a campaign created in another
+    // tab must not leave the picker showing targets for a list it is not in.
+    queryKey: ['v-offer-targets', vendorId, promotionIds.join(','), discountIds.join(',')],
+    enabled: !!vendorId && ready && (promotionIds.length > 0 || discountIds.length > 0),
+    queryFn: async () => {
+      const filters: string[] = [];
+      if (promotionIds.length > 0) filters.push(`promotion_id.in.(${promotionIds.join(',')})`);
+      if (discountIds.length > 0) filters.push(`discount_id.in.(${discountIds.join(',')})`);
+
+      const { data, error } = await supabase
+        .from('offer_targets')
+        .select('id,promotion_id,discount_id,kind,package_id,tier_id,vendor_service_id')
+        .or(filters.join(','));
+      if (error) throw error;
+      return (data ?? []) as OfferTargetModel[];
+    },
+  });
+}
+
+/**
+ * What each of this vendor's codes actually returned.
+ *
+ * Its own read rather than columns on `useDiscounts`, because it counts rows in
+ * `discount_redemptions` and a grid of twenty cards must not each run that
+ * count. `used_count` on the discount row is the cheap cache the cards use for
+ * "X of Y left"; this is the breakdown behind it — reserved, redeemed, released
+ * — which is the only view that tells a vendor whether an offer is bringing in
+ * bookings or just quotes.
+ *
+ * A failure here costs the cards their performance line and nothing else, so it
+ * must never gate the screen.
+ */
+export function useOfferPerformance(vendorId?: string) {
+  return useQuery({
+    queryKey: ['v-offer-performance', vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('vendor_offer_performance', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as OfferPerformanceModel[];
+    },
   });
 }
 
@@ -873,43 +1296,6 @@ export function usePlans() {
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       return (data ?? []) as PlanModel[];
-    },
-  });
-}
-
-export function useVendorDashboard(vendorId?: string) {
-  return useQuery({
-    queryKey: ['v-dashboard', vendorId],
-    enabled: !!vendorId,
-    queryFn: async () => {
-      const [requests, quoteReqs, escrowHeld, reviews] = await Promise.all([
-        supabase
-          .from('bookings')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .eq('status', 'requested'),
-        supabase
-          .from('quotations')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .eq('status', 'requested'),
-        supabase
-          .from('escrow_transactions')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .in('status', ['held', 'release_requested', 'payout_approved']),
-        supabase
-          .from('reviews')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId!)
-          .eq('status', 'published'),
-      ]);
-      return {
-        bookingRequests: requests.count ?? 0,
-        quoteRequests: quoteReqs.count ?? 0,
-        escrowHeld: escrowHeld.count ?? 0,
-        reviews: reviews.count ?? 0,
-      };
     },
   });
 }

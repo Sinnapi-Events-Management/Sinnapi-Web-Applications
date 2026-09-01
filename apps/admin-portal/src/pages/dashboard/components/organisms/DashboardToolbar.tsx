@@ -1,8 +1,8 @@
 import { Box, IconButton, Paper, Stack, Tooltip, Typography } from '@sinnapi/ui';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import PeriodSelector from '@/components/analytics/PeriodSelector';
+import { PeriodSelector } from '@sinnapi/ui/analytics';
 import { formatRelative } from '@/lib/config';
-import type { AnalyticsPeriod } from '@/lib/analytics';
+import type { AnalyticsPeriod } from '@sinnapi/ui/analytics';
 
 type Props = {
   period: AnalyticsPeriod;

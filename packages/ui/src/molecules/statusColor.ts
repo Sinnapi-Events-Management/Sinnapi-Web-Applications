@@ -59,6 +59,12 @@ const MAP: Record<string, StatusChipColor> = {
   // payouts / refunds — settlement is manual, so 'recorded' is a real state
   // meaning one admin has evidenced it and a second has yet to sign it off.
   settlement_recorded: 'warning',
+  // payout bank account verification (`vendor_bank_accounts.is_verified`, which
+  // is a boolean — these two keys are what the settings card names its two
+  // states, so the chip is coloured by the same map as everything else rather
+  // than by a hand-picked colour at the call site).
+  verified: 'success',
+  pending_verification: 'warning',
   // reconciliation exceptions
   open: 'error',
   investigating: 'warning',
@@ -86,6 +92,14 @@ const MAP: Record<string, StatusChipColor> = {
   published: 'success',
   hidden: 'default',
   removed: 'error',
+  // listing visibility (`vendor_visibility`, and the same two words on packages).
+  // `public` is informational rather than a success: it states where a record can
+  // be seen, not that anything completed — and pairing it with `active` in one
+  // badge row would otherwise print two identical greens saying different things.
+  // `hidden` is already neutral above, and `private` joins it for the reason
+  // `deactivated` is neutral: a vendor still drafting has not failed at anything.
+  public: 'info',
+  private: 'default',
   // event lifecycle
   closed: 'warning',
   archived: 'default',

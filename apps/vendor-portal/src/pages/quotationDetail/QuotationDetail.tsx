@@ -1,21 +1,38 @@
-import { Box, Grid, QueryState } from '@sinnapi/ui';
+import { Box, DetailTabPanel, QueryState } from '@sinnapi/ui';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
 import QuotationHero from './components/organisms/QuotationHero';
-import QuotationWorkColumn from './components/organisms/QuotationWorkColumn';
-import QuotationStateColumn from './components/organisms/QuotationStateColumn';
-import { useQuotationDetail } from './hooks/useQuotationDetail';
+import QuotationFeedbackBanner from './components/organisms/QuotationFeedbackBanner';
+import QuotationActionBar from './components/organisms/QuotationActionBar';
+import QuotationTabs from './components/molecules/QuotationTabs';
+import OverviewSection from './components/organisms/OverviewSection';
+import QuoteSection from './components/organisms/QuoteSection';
+import PaymentSection from './components/organisms/PaymentSection';
+import MessagesSection from './components/organisms/MessagesSection';
+import ProgressSection from './components/organisms/ProgressSection';
+import { useQuotationDetailPage } from './hooks/useQuotationDetailPage';
 
 /**
  * A single quotation as the vendor sees it: who asked, what they asked for,
- * what was quoted back, what it pays and what can still be done about it.
+ * what was quoted back, what the client said about it, what it pays and what
+ * can still be done about it.
  *
- * The wide column is the work; the narrow one is the state. That is the same
- * split the client's page uses, which is deliberate; the two sides are looking
- * at one object and should recognise each other's screen.
+ * Three things stay above the tabs and never move: the hero, which says which
+ * quote this is; the client's last word on it, when they left one; and the
+ * action bar, which is the only part of the page that *does* anything.
+ * Everything below them is a record, split into five sections that each fit a
+ * screen.
+ *
+ * THE FEEDBACK BANNER IS ABOVE THE TABS FOR A REASON. The client's note lives
+ * in `quotation_status_history.reason`, rendered only by the status trail, in
+ * the last tab — so a vendor opening a quote marked `revised` saw the word and
+ * none of the sentence. It now sits between the hero and the actions, which is
+ * both where the question is asked and the order it should be answered in: the
+ * request first, then the controls that respond to it.
  *
  * This file is the composition and nothing else — no condition about when a
- * card appears, no arithmetic on the price. `useQuotationDetail` owns the reads
- * and every derived figure, and each column owns its own contents.
+ * card appears, no arithmetic on the price. `useQuotationDetailPage` owns the
+ * reads, every derived figure, the open section, the client's note and the
+ * conversation; each section owns its own contents.
  */
 export default function QuotationDetail() {
   const {
@@ -28,9 +45,14 @@ export default function QuotationDetail() {
     advance,
     isEditable,
     isLapsed,
+    tab,
+    setTab,
+    feedback,
+    conversation,
+    messageClient,
     isLoading,
     error,
-  } = useQuotationDetail();
+  } = useQuotationDetailPage();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -49,27 +71,55 @@ export default function QuotationDetail() {
         <>
           <QuotationHero quotation={quotation} client={client} event={event} pricing={pricing} />
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={7}>
-              <QuotationWorkColumn
-                quotation={quotation}
-                client={client}
-                event={event}
-                items={items}
-                pricing={pricing}
-                isEditable={isEditable}
-              />
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <QuotationStateColumn
-                quotationId={quotationId}
-                quotation={quotation}
-                pricing={pricing}
-                advance={advance}
-                isLapsed={isLapsed}
-              />
-            </Grid>
-          </Grid>
+          <QuotationFeedbackBanner
+            feedback={feedback}
+            onMessageClient={() => void messageClient()}
+            onOpenQuote={() => setTab('quote')}
+            isStarting={conversation.isStarting}
+          />
+
+          <QuotationActionBar
+            quotation={quotation}
+            isLapsed={isLapsed}
+            onMessageClient={() => void messageClient()}
+            isMessaging={conversation.isStarting}
+          />
+
+          <QuotationTabs value={tab} onChange={setTab} unreadCount={conversation.unreadCount} />
+
+          <DetailTabPanel value="overview" active={tab} idPrefix="quotation">
+            <OverviewSection quotation={quotation} client={client} event={event} />
+          </DetailTabPanel>
+          <DetailTabPanel value="quote" active={tab} idPrefix="quotation">
+            <QuoteSection
+              quotation={quotation}
+              items={items}
+              pricing={pricing}
+              isEditable={isEditable}
+            />
+          </DetailTabPanel>
+          <DetailTabPanel value="payment" active={tab} idPrefix="quotation">
+            <PaymentSection
+              pricing={pricing}
+              advance={advance}
+              daysBefore={quotation.advance_release_days_before}
+            />
+          </DetailTabPanel>
+          <DetailTabPanel value="messages" active={tab} idPrefix="quotation">
+            <MessagesSection
+              conversation={conversation.conversation}
+              clientName={client?.full_name ?? 'the client'}
+              clientId={quotation.client_id}
+              isLoading={conversation.isLoading}
+              isStarting={conversation.isStarting}
+              error={conversation.error}
+              onClearError={conversation.clearError}
+              onStart={() => void messageClient()}
+            />
+          </DetailTabPanel>
+          <DetailTabPanel value="progress" active={tab} idPrefix="quotation">
+            <ProgressSection quotationId={quotationId} quotation={quotation} />
+          </DetailTabPanel>
         </>
       )}
     </QueryState>

@@ -1,25 +1,31 @@
-import { Box, Grid, Stack, QueryState } from '@sinnapi/ui';
+import { Box, DetailTabPanel, QueryState } from '@sinnapi/ui';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
 import BookingHero from './components/organisms/BookingHero';
-import BookingFactsCard from './components/organisms/BookingFactsCard';
-import BookingEventCard from './components/organisms/BookingEventCard';
-import BookingQuotationCard from './components/organisms/BookingQuotationCard';
-import BookingTimelineCard from './components/organisms/BookingTimelineCard';
-import BookingTermsCard from './components/organisms/BookingTermsCard';
-import BookingPaymentCard from './components/organisms/BookingPaymentCard';
-import BookingAdvanceTermsCard from './components/organisms/BookingAdvanceTermsCard';
-import BookingClientCard from './components/organisms/BookingClientCard';
-import BookingActionsCard from './components/organisms/BookingActionsCard';
-import BookingSettlementCard from './components/organisms/BookingSettlementCard';
-import { useBookingDetail } from './hooks/useBookingDetail';
+import BookingActionBar from './components/organisms/BookingActionBar';
+import BookingTabs from './components/molecules/BookingTabs';
+import OverviewSection from './components/organisms/OverviewSection';
+import MoneySection from './components/organisms/MoneySection';
+import ProgressSection from './components/organisms/ProgressSection';
+import OriginSection from './components/organisms/OriginSection';
+import { useBookingDetailPage } from './hooks/useBookingDetailPage';
 
 /**
  * A single booking as the vendor sees it: what was asked for, who asked, how it
- * has progressed, and what they can do about it. Layout only —
- * `useBookingDetail` owns the reads and each section owns its own content.
+ * has progressed, and what they can do about it.
+ *
+ * Two things stay above the tabs and never move: the hero, which says which
+ * booking this is, and the action bar, which is the only part of the page that
+ * *does* anything. Everything below them is a record, split into four sections
+ * that each fit a screen — the ten cards this page used to stack in one column
+ * meant a vendor chasing a payout scrolled past the event, the quote and the
+ * whole status trail to reach it.
+ *
+ * Layout only — `useBookingDetailPage` owns the reads and the open section, and
+ * each section owns its own content.
  */
 export default function BookingDetail() {
-  const { booking, client, timeWindow, needsResponse, isLoading, error } = useBookingDetail();
+  const { booking, client, timeWindow, needsResponse, tab, setTab, isLoading, error } =
+    useBookingDetailPage();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -37,41 +43,22 @@ export default function BookingDetail() {
       ) : (
         <>
           <BookingHero booking={booking} client={client} timeWindow={timeWindow} />
+          <BookingActionBar booking={booking} needsResponse={needsResponse} />
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={7}>
-              <Stack spacing={3}>
-                <BookingFactsCard booking={booking} timeWindow={timeWindow} />
-                {/* Between the facts and the trail, in the order this booking
-                    actually happened: a request on an event, a quote against
-                    it, and the booking that quote became. Both cards draw
-                    nothing when the booking came from neither. */}
-                <BookingEventCard booking={booking} />
-                <BookingQuotationCard booking={booking} client={client} />
-                <BookingTimelineCard bookingId={booking.id} status={booking.status} />
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <Stack spacing={3}>
-                <BookingActionsCard booking={booking} needsResponse={needsResponse} />
-                {/* Above the terms once the event is over: after an event the
-                    only thing a vendor comes back to this page for is their
-                    money, and the card draws nothing at all until there is
-                    something to ask for or answer. */}
-                <BookingSettlementCard booking={booking} />
-                {/* Directly under the actions: the accept button agrees to
-                    these terms as well as to the date, so what it commits the
-                    vendor to should be the next thing they read. */}
-                <BookingTermsCard booking={booking} />
-                <BookingPaymentCard booking={booking} />
-                {/* Under the payment card, and after it: that one says where
-                    the money is now, this one says when the rest of it comes.
-                    A vendor reads them in that order. */}
-                <BookingAdvanceTermsCard booking={booking} />
-                <BookingClientCard client={client} />
-              </Stack>
-            </Grid>
-          </Grid>
+          <BookingTabs value={tab} onChange={setTab} />
+
+          <DetailTabPanel value="overview" active={tab} idPrefix="booking">
+            <OverviewSection booking={booking} client={client} timeWindow={timeWindow} />
+          </DetailTabPanel>
+          <DetailTabPanel value="money" active={tab} idPrefix="booking">
+            <MoneySection booking={booking} />
+          </DetailTabPanel>
+          <DetailTabPanel value="progress" active={tab} idPrefix="booking">
+            <ProgressSection booking={booking} />
+          </DetailTabPanel>
+          <DetailTabPanel value="origin" active={tab} idPrefix="booking">
+            <OriginSection booking={booking} client={client} />
+          </DetailTabPanel>
         </>
       )}
     </QueryState>

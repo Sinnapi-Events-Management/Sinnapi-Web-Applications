@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Alert, DataTable, PageTitle, PaymentChaseDialog, SearchField, Box } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useUnpaidBookings } from './hooks/useUnpaidBookings';
 import { unpaidBookingColumns } from './schema';
 import UnpaidSummaryBar from './components/organisms/UnpaidSummaryBar';

@@ -1,4 +1,4 @@
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 import type { UnpaidBookingState } from '@/hooks/queries';
 import type { UnpaidBookingCounts } from '@/lib/types';
 

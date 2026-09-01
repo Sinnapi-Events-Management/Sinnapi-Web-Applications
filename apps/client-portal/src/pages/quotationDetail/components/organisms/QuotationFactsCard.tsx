@@ -7,7 +7,10 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import NotesIcon from '@mui/icons-material/Notes';
 import LayersIcon from '@mui/icons-material/Layers';
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import { formatDate, formatDateTime } from '@/lib/config';
+import { one } from '@/lib/rel';
 import type { EventRefModel, QuotationDetailModel } from '@/lib/types';
 
 type Props = {
@@ -22,6 +25,8 @@ type Props = {
  * rest of the time.
  */
 export default function QuotationFactsCard({ quotation: q, event }: Props) {
+  const eventType = one<{ id: string; name: string }>(q.event_types);
+
   return (
     <SectionCard title="Quotation details" icon={<DescriptionIcon />}>
       <Stack>
@@ -41,6 +46,30 @@ export default function QuotationFactsCard({ quotation: q, event }: Props) {
             label="Valid until"
             icon={<EventAvailableIcon />}
             value={formatDate(q.valid_until)}
+          />
+        )}
+        {/* What the client told the vendor at request time, as opposed to the
+            planned-event row below it. On a package order these two are the
+            whole agreement besides the price, so they are read back here — a
+            client checking "did I give them the right address?" should not have
+            to re-open the order dialog to find out. */}
+        {q.event_date && (
+          <InfoRow
+            label="Event date"
+            icon={<EventOutlinedIcon />}
+            value={
+              eventType?.name
+                ? `${formatDate(q.event_date)} · ${eventType.name}`
+                : formatDate(q.event_date)
+            }
+          />
+        )}
+        {q.event_address && (
+          <InfoRow
+            label="Event address"
+            icon={<PlaceOutlinedIcon />}
+            value={q.event_address}
+            copyValue={q.event_address}
           />
         )}
         {event?.title && (

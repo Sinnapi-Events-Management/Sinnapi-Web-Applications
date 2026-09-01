@@ -67,6 +67,27 @@ export type ConversationView = {
   muted: boolean;
   /** Avatar image for the counterparty, when the portal can resolve one. */
   avatarUrl?: string | null;
+  /**
+   * The other participant's profile id, from `get_my_conversations`.
+   *
+   * Optional because the inbox never needed it — a list of threads is rendered
+   * by name. It exists for the callers that arrive from the other direction: a
+   * quotation page holding a `client_id` and asking "is there already a thread
+   * with this person", which is a match on the id and cannot be a match on the
+   * name.
+   */
+  counterpartyId?: string | null;
+  /**
+   * `conversations.vendor_id` on a `client_vendor` thread.
+   *
+   * The client's half of the same problem `counterpartyId` solves. A client
+   * arriving from a quotation holds a *vendor* id, not the profile id of
+   * whoever owns that business — `vendors.owner_id` is not a column any client
+   * screen reads, and `profiles_self_read` would not disclose the name behind
+   * it. This is the key `get_or_create_client_vendor_conversation` itself
+   * matches on, so a thread found by it here is the row that RPC would return.
+   */
+  vendorId?: string | null;
 };
 
 /** A participant seen as present on the conversation's realtime channel. */

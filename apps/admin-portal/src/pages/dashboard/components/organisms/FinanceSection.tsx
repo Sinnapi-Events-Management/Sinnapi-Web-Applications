@@ -1,11 +1,11 @@
 import { Box, Grid } from '@sinnapi/ui';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import SegmentIcon from '@mui/icons-material/Segment';
-import ChartCard from '@/components/analytics/ChartCard';
-import KpiRow from '@/components/analytics/KpiRow';
-import TrendAreaChart from '@/components/analytics/charts/TrendAreaChart';
-import StackedShareBar from '@/components/analytics/StackedShareBar';
-import { halfPeriodDelta, type Kpi, type SeriesDef } from '@/lib/analytics';
+import { ChartCard } from '@sinnapi/ui/analytics';
+import { KpiRow } from '@sinnapi/ui/analytics';
+import { TrendAreaChart } from '@sinnapi/ui/analytics';
+import { StackedShareBar } from '@sinnapi/ui/analytics';
+import { halfPeriodDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
 import type { FinanceModel } from '../../schema';
 
 type Props = {

@@ -193,7 +193,30 @@ export function ThreadComposer({
         <ComposerAttachmentTray items={attachments} onRemove={onRemoveAttachment} disabled={busy} />
       )}
 
-      <Stack direction="row" spacing={1} alignItems="flex-end">
+      {/* One pill holding attach, input and send. Three separate controls
+          strung across the full width — a lone paperclip at the far left, an
+          outlined rectangle, a grey arrow at the far right — read as a form,
+          and the arrow read as disabled even when it was not. Grouping them
+          into a single field makes the composer one object with one obvious
+          affordance, and puts send where the sentence ends. */}
+      <Stack
+        direction="row"
+        spacing={0.5}
+        alignItems="flex-end"
+        sx={{
+          p: 0.5,
+          borderRadius: 6,
+          bgcolor: (t) => alpha(t.palette.text.primary, 0.04),
+          border: 1,
+          borderColor: (t) => alpha(t.palette.text.primary, overLimit ? 0 : 0.08),
+          ...(overLimit && { borderColor: 'error.main' }),
+          transition: 'border-color 120ms ease, box-shadow 120ms ease',
+          '&:focus-within': {
+            borderColor: 'secondary.main',
+            boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.secondary.main, 0.18)}`,
+          },
+        }}
+      >
         {onAttachFiles && (
           <>
             <input
@@ -209,11 +232,13 @@ export function ThreadComposer({
             <Tooltip title="Attach a file">
               <span>
                 <IconButton
+                  size="small"
                   onClick={() => fileRef.current?.click()}
                   disabled={busy || attachments.length >= 10}
                   aria-label="Attach a file"
+                  sx={{ color: 'text.secondary' }}
                 >
-                  <AttachFileIcon />
+                  <AttachFileIcon fontSize="small" />
                 </IconButton>
               </span>
             </Tooltip>
@@ -239,14 +264,38 @@ export function ThreadComposer({
           maxRows={maxRows}
           autoFocus={autoFocus}
           fullWidth
-          error={overLimit}
+          variant="standard"
+          // The pill above owns the border and the focus ring, so the field
+          // inside it must not draw a second one.
+          InputProps={{ disableUnderline: true }}
           inputProps={{ 'aria-label': 'Message' }}
+          sx={{
+            alignSelf: 'center',
+            px: onAttachFiles ? 0.5 : 1.25,
+            '& .MuiInputBase-root': { fontSize: 14, lineHeight: 1.55, py: 0.5 },
+          }}
         />
 
         <Tooltip title={canSend ? 'Send (Enter)' : 'Type a message to send'}>
           <span>
-            <IconButton type="submit" color="secondary" disabled={!canSend} aria-label="Send">
-              <SendIcon />
+            <IconButton
+              type="submit"
+              disabled={!canSend}
+              aria-label="Send"
+              size="small"
+              sx={{
+                bgcolor: 'secondary.main',
+                color: 'secondary.contrastText',
+                '&:hover': { bgcolor: 'secondary.dark' },
+                // A flat grey circle rather than a ghost icon: "nothing to
+                // send yet" is a state of the button, not its absence.
+                '&.Mui-disabled': {
+                  bgcolor: (t) => alpha(t.palette.text.primary, 0.08),
+                  color: 'text.disabled',
+                },
+              }}
+            >
+              <SendIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </span>
         </Tooltip>

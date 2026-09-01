@@ -32,6 +32,11 @@ function toView(c: ConversationModel, myId: string | undefined): ConversationVie
     unreadCount: c.unread_count ?? 0,
     muted: c.is_muted,
     avatarUrl: c.counterparty_avatar_url,
+    // Carried through so a caller holding a profile id — the quotation page
+    // asking whether a thread with this counterparty already exists — can match
+    // on it rather than on the display name.
+    counterpartyId: c.counterparty_id,
+    vendorId: c.vendor_id,
   };
 }
 

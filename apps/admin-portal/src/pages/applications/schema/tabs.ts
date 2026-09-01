@@ -1,4 +1,4 @@
-import type { StatusTabOption } from '@/components/ui/StatusTabs';
+import type { StatusTabOption } from '@sinnapi/ui';
 import { ALL_STATUSES, type StatusFilterValue } from '@/hooks/useStatusFilter';
 import type { IntakeCounts } from '@/hooks/queries';
 import { INTAKE_STATUSES, type IntakeStatus } from '@/lib/status';

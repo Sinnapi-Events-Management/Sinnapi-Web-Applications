@@ -1,7 +1,8 @@
 'use client';
-import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import { useController, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { MenuItem } from '@mui/material';
 import { FormField, type FormFieldProps } from '../molecules/FormField';
+import { useFieldError } from './useFieldError';
 
 /** One entry in a select-style `ControlledField`. */
 export type SelectOption = { value: string; label: string };
@@ -18,15 +19,19 @@ export type ControlledFieldProps<T extends FieldValues> = Omit<
 };
 
 /**
- * A `FormField` bound to react-hook-form through `Controller`.
+ * A `FormField` bound to react-hook-form.
  *
- * `Controller` rather than `register`: FormField forwards its ref to MUI's root
- * element, not the inner input, so a registered field would never show its
- * pre-populated value. Passing `value` explicitly sidesteps that.
+ * `useController` rather than `register`: FormField forwards its ref to MUI's
+ * root element, not the inner input, so a registered field would never show
+ * its pre-populated value. Passing `value` explicitly sidesteps that. It is
+ * also `useController` rather than the `Controller` render prop so that
+ * `useFieldError` is called from a component body — a hook inside a render
+ * callback would attach to `Controller`'s own hook list, which works right up
+ * until the day something makes that callback conditional.
  *
- * The `onBlur` that `field` carries is what triggers validation — it is spread
- * onto the input, so a field only has to be rendered through this component to
- * pick up the blur behaviour. `fieldState.error` then renders as helper text.
+ * The `onBlur` that `field` carries is what triggers validation, and
+ * `useFieldError` decides when the result of it may be shown. See that hook
+ * for why the two are not the same question.
  */
 export function ControlledField<T extends FieldValues>({
   name,
@@ -34,26 +39,27 @@ export function ControlledField<T extends FieldValues>({
   options,
   ...rest
 }: ControlledFieldProps<T>) {
+  const { field, fieldState, formState } = useController({ name, control });
+  const { error, onEngage } = useFieldError(fieldState, formState);
+
   return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <FormField
-          {...field}
-          value={field.value ?? ''}
-          select={!!options}
-          fullWidth
-          error={fieldState.error?.message}
-          {...rest}
-        >
-          {options?.map((o) => (
-            <MenuItem key={o.value} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </FormField>
-      )}
-    />
+    <FormField
+      {...field}
+      value={field.value ?? ''}
+      onChange={(event) => {
+        onEngage();
+        field.onChange(event);
+      }}
+      select={!!options}
+      fullWidth
+      error={error}
+      {...rest}
+    >
+      {options?.map((o) => (
+        <MenuItem key={o.value} value={o.value}>
+          {o.label}
+        </MenuItem>
+      ))}
+    </FormField>
   );
 }

@@ -1,12 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { titleize } from '@/lib/config';
-import { toSeriesColor } from '@/lib/analytics';
+import { toSeriesColor } from '@sinnapi/ui/analytics';
 import type { BreakdownSlice } from '../schema';
 
 /** Default marketplace currency (matches `formatMoney`'s fallback). */
 export const CURRENCY = 'UGX';
 
-// Palette coercion is shared with the dashboard's charts — see `@/lib/analytics`.
+// Palette coercion is shared with the dashboard's charts — see `@sinnapi/ui/analytics`.
 export { toSeriesColor };
 
 // A head+count query resolves to a result carrying only `count` — same helper the

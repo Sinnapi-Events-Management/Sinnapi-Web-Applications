@@ -1,9 +1,6 @@
-import { useMemo } from 'react';
 import { Alert, Grid, QueryState, Stack } from '@sinnapi/ui';
 import { profileSideColumnSx } from '@sinnapi/ui/profile';
 import { useProfile } from '../../hooks/useProfile';
-import { useVendorProfileDetails } from '../../hooks/useVendorProfileDetails';
-import { toVendorProfileValues } from '../../schema';
 import BusinessLogoCard from './BusinessLogoCard';
 import BusinessDetailsForm from './BusinessDetailsForm';
 import ListingFactsCard from './ListingFactsCard';
@@ -22,14 +19,12 @@ type Props = {
  * because it writes to a different table through an RPC rather than to a `vendors`
  * column — one Save button committing both would mean two unrelated statements
  * with no transaction across them.
+ *
+ * The section reads the record and hands it down; each card below owns its own
+ * write, so a failed logo upload cannot disable the details form's Save button.
  */
 export default function BusinessSection({ vendorId, onDone }: Props) {
   const { data: vendor, isLoading, error } = useProfile(vendorId);
-  const { busy, error: saveError, save } = useVendorProfileDetails(vendorId, onDone);
-
-  // Referentially stable per record revision, which is what lets the form track
-  // the query without resetting the vendor's typing (see `useSavedForm`).
-  const values = useMemo(() => toVendorProfileValues(vendor), [vendor]);
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -52,7 +47,7 @@ export default function BusinessSection({ vendorId, onDone }: Props) {
 
           <Grid item xs={12} md={8}>
             <Stack spacing={3}>
-              <BusinessDetailsForm values={values} busy={busy} error={saveError} onSave={save} />
+              <BusinessDetailsForm vendorId={vendorId} vendor={vendor} onDone={onDone} />
               <ServiceCoverageCard vendorId={vendorId} onDone={onDone} />
             </Stack>
           </Grid>

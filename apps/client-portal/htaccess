@@ -8,7 +8,7 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]
 RewriteCond %{HTTPS} off
-RewriteCond %{HTTP_HOST} (www\.)?portal.sinnapi.com
+RewriteCond %{HTTP_HOST} (www\.)?divinearrowstores.africa
 RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </ifModule>
 # DO NOT REMOVE THIS LINE AND THE LINES BELLOW SSL_REDIRECT:jengaug.com
@@ -26,7 +26,7 @@ RewriteRule ^index\.html$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{HTTPS} off
-RewriteCond %{HTTP_HOST} (www\.)?portal.sinnapi.com
+RewriteCond %{HTTP_HOST} (www\.)?divinearrowstores.africa
 RewriteRule . /index.html [L]
 RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </ifModule>

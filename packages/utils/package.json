@@ -8,7 +8,9 @@
     ".": "./constants.ts",
     "./constants": "./constants.ts",
     "./userAgent": "./userAgent.ts",
-    "./download": "./download.ts"
+    "./download": "./download.ts",
+    "./quotationPdf": "./quotationPdf/index.ts",
+    "./publicId": "./publicId.ts"
   },
   "scripts": {
     "lint": "eslint . --ext ts,tsx",
@@ -18,5 +20,10 @@
   },
   "devDependencies": {
     "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "@sinnapi/ui": "*"
   }
 }

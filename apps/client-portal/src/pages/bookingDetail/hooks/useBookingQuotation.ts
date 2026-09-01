@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { quotationPricing, quoteVariance } from '@sinnapi/ui';
 import { useProfile } from '@/hooks/queries';
 import { one } from '@/lib/rel';
-import { downloadQuotationPdf } from '@/lib/quotationPdf';
+import { downloadQuotationPdf } from '@sinnapi/utils/quotationPdf';
 import type {
   BookingDetailModel,
   BookingQuotationModel,
@@ -61,6 +61,13 @@ export function useBookingQuotation(booking: BookingDetailModel) {
       client_name: profile?.full_name ?? null,
       event_title: one(booking.events)?.title ?? null,
       items,
+      // Now that the document has somewhere to put them: the brief the quote
+      // answers, and the advance terms that qualify the total it states.
+      request_details: quotation.request_details,
+      version_no: quotation.version_no,
+      advance_rate: quotation.advance_rate,
+      advance_release_days_before: quotation.advance_release_days_before,
+      advance_terms_note: quotation.advance_terms_note,
     });
   }, [quotation, pricing, vendor, profile, booking.events, items]);
 

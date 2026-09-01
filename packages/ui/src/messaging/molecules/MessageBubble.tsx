@@ -1,5 +1,5 @@
 'use client';
-import { Box, Stack, Typography, Button, alpha } from '@mui/material';
+import { Box, Button, Stack, Typography, alpha } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { MessageMeta } from '../atoms/MessageMeta';
 import { AttachmentChip } from './AttachmentChip';
@@ -14,7 +14,7 @@ export type MessageBubbleProps = {
    * reads as one turn rather than several.
    */
   grouped?: boolean;
-  /** Rendered to the left of an incoming bubble; omitted when `grouped`. */
+  /** Rendered in the gutter beside an incoming bubble. */
   avatar?: React.ReactNode;
   /** Shown above the first bubble of an incoming turn in multi-party threads. */
   senderName?: string | null;
@@ -34,6 +34,20 @@ export type MessageBubbleProps = {
  * The asymmetric corner — square on the side the bubble is anchored to — is
  * what makes a column of bubbles read as a conversation with two sides rather
  * than a list of pills. It is dropped mid-run so grouped messages fuse.
+ *
+ * WHY THE WIDTH IS CAPPED IN `ch` AND NOT ONLY IN `%`
+ * A percentage alone is a promise about the container, not about the reader. On
+ * a wide pane, 72% of the pane is a 1300px bubble — around 190 characters per
+ * line, more than twice the ~65–75 the eye can track without losing its place
+ * on the return sweep. `min()` keeps the percentage as the mobile floor and lets
+ * the character measure win the moment there is room for it to.
+ *
+ * WHY THE ROW IS A COLUMN
+ * The avatar has to bottom-align with the *bubble*. Laying the avatar and a
+ * single stack containing bubble-plus-footer side by side bottom-aligns it with
+ * the footer instead, which is what left the avatar hanging below its own
+ * message. So the turn is a column: an avatar-and-bubble row that can be
+ * bottom-aligned honestly, with the retry affordance underneath it.
  */
 export function MessageBubble({
   message,
@@ -53,85 +67,113 @@ export function MessageBubble({
       sx={{
         listStyle: 'none',
         display: 'flex',
-        gap: 1,
-        alignItems: 'flex-end',
-        flexDirection: mine ? 'row-reverse' : 'row',
+        flexDirection: 'column',
+        alignItems: mine ? 'flex-end' : 'flex-start',
         // A tight gap inside a turn, a wider one between turns: the vertical
         // rhythm is what tells the reader where one person stopped talking.
-        mt: grouped ? 0.25 : 1.25,
+        mt: grouped ? 0.375 : 1.5,
       }}
     >
-      {!mine && avatar}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1,
+          alignItems: 'flex-end',
+          flexDirection: mine ? 'row-reverse' : 'row',
+          maxWidth: { xs: '92%', sm: 'min(84%, 58ch)' },
+          minWidth: 0,
+        }}
+      >
+        {!mine && avatar}
 
-      <Box sx={{ maxWidth: { xs: '82%', sm: '72%' }, minWidth: 0 }}>
-        {!mine && !grouped && senderName && (
-          <Typography
-            variant="caption"
-            sx={{ display: 'block', px: 0.75, mb: 0.25, fontWeight: 600, color: 'text.secondary' }}
-          >
-            {senderName}
-          </Typography>
-        )}
-
-        <Box
-          sx={{
-            px: 1.5,
-            py: 1,
-            borderRadius: 2.5,
-            ...(mine
-              ? { borderBottomRightRadius: grouped ? 2.5 : 0.5 }
-              : { borderBottomLeftRadius: grouped ? 2.5 : 0.5 }),
-            bgcolor: mine ? 'secondary.main' : (t) => alpha(t.palette.text.primary, 0.07),
-            color: mine ? 'secondary.contrastText' : 'text.primary',
-            // A failed send stays legible but visibly not-delivered.
-            opacity: message.failed ? 0.6 : 1,
-          }}
-        >
-          {hasBody && (
+        <Box sx={{ minWidth: 0 }}>
+          {!mine && !grouped && senderName && (
             <Typography
-              variant="body2"
+              variant="caption"
               sx={{
-                // Newlines the sender typed are meaning, not whitespace to
-                // collapse; `break-word` stops an unbroken URL from widening
-                // the bubble past its container.
-                whiteSpace: 'pre-wrap',
-                overflowWrap: 'anywhere',
+                display: 'block',
+                px: 0.75,
+                mb: 0.25,
+                fontWeight: 600,
+                color: 'text.secondary',
               }}
             >
-              {message.body}
+              {senderName}
             </Typography>
           )}
 
-          {hasAttachments && (
-            <Stack spacing={0.75} sx={{ mt: hasBody ? 1 : 0, minWidth: { xs: 180, sm: 240 } }}>
-              {message.attachments.map((a) => (
-                <AttachmentChip key={a.id} attachment={a} mine={mine} onOpen={onOpenAttachment} />
-              ))}
-            </Stack>
-          )}
-        </Box>
+          <Box
+            sx={{
+              px: 1.75,
+              py: 1.15,
+              borderRadius: 2.5,
+              ...(mine
+                ? { borderBottomRightRadius: grouped ? 2.5 : 0.75 }
+                : { borderBottomLeftRadius: grouped ? 2.5 : 0.75 }),
+              bgcolor: mine ? 'secondary.main' : (t) => alpha(t.palette.text.primary, 0.06),
+              color: mine ? 'secondary.contrastText' : 'text.primary',
+              // A hairline keeps the incoming wash from dissolving into a pale
+              // card; at 6% opacity the fill alone has no edge to read.
+              border: 1,
+              borderColor: mine ? 'transparent' : (t) => alpha(t.palette.text.primary, 0.07),
+              // A failed send stays legible but visibly not-delivered.
+              opacity: message.failed ? 0.6 : 1,
+            }}
+          >
+            {hasAttachments && (
+              <Stack spacing={0.75} sx={{ mb: 0.75, minWidth: { xs: 180, sm: 240 } }}>
+                {message.attachments.map((a) => (
+                  <AttachmentChip key={a.id} attachment={a} mine={mine} onOpen={onOpenAttachment} />
+                ))}
+              </Stack>
+            )}
 
-        <MessageMeta
-          createdAt={message.createdAt}
-          editedAt={message.editedAt}
-          mine={mine}
-          pending={message.pending}
-          failed={message.failed}
-        />
+            {/* Text and stamp share the last line where there is room for both,
+                which is where every messaging app has taught people to look. */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', columnGap: 1.75, minWidth: 0 }}>
+              {hasBody && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    // Newlines the sender typed are meaning, not whitespace to
+                    // collapse; `anywhere` stops an unbroken URL from widening
+                    // the bubble past its container.
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'anywhere',
+                    // Looser than the body default: at chat measure the return
+                    // sweep is the hard part, and 1.55 is what keeps consecutive
+                    // lines from being mistaken for one another.
+                    lineHeight: 1.55,
+                    minWidth: 0,
+                  }}
+                >
+                  {message.body}
+                </Typography>
+              )}
 
-        {message.failed && onRetry && (
-          <Box sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-            <Button
-              size="small"
-              startIcon={<RefreshIcon sx={{ fontSize: 14 }} />}
-              onClick={() => onRetry(message)}
-              sx={{ minHeight: 0, py: 0.25, fontSize: 12 }}
-            >
-              Retry
-            </Button>
+              <MessageMeta
+                createdAt={message.createdAt}
+                editedAt={message.editedAt}
+                mine={mine}
+                pending={message.pending}
+                failed={message.failed}
+                tone={mine ? 'onAccent' : 'default'}
+              />
+            </Box>
           </Box>
-        )}
+        </Box>
       </Box>
+
+      {message.failed && onRetry && (
+        <Button
+          size="small"
+          startIcon={<RefreshIcon sx={{ fontSize: 14 }} />}
+          onClick={() => onRetry(message)}
+          sx={{ minHeight: 0, py: 0.25, fontSize: 12, mt: 0.25 }}
+        >
+          Retry
+        </Button>
+      )}
     </Box>
   );
 }

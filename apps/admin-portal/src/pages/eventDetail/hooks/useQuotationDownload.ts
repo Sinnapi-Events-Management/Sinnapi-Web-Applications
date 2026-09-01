@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { fetchQuotationDocument } from '@/hooks/queries';
-import { downloadQuotationPdf } from '@/lib/quotationPdf';
+import { downloadQuotationPdf } from '@sinnapi/utils/quotationPdf';
 
 /**
  * Downloads a quotation as a PDF. Quotations aren't stored files, so this

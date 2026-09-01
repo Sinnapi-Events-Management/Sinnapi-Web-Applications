@@ -1,8 +1,21 @@
 'use client';
 import type { ReactNode } from 'react';
-import { Alert, Box, Card, CardContent, Stack, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { Alert, Box, Card, CardContent, Stack } from '@mui/material';
 import { ImagePicker, type ImagePickerProps } from '../molecules/ImagePicker';
+import { IdentityBanner, IDENTITY_AVATAR_OVERHANG } from '../atoms/IdentityBanner';
+import { IdentityHeadline } from '../atoms/IdentityHeadline';
+
+/**
+ * Where a surface's badges go.
+ *
+ * `below` keeps them under the name — right for badges that describe the person,
+ * like an admin's roles, which read as part of the headline. `banner` lifts them
+ * into the tinted band, which is right when they describe the *record's* state
+ * rather than the identity, and when the facts card underneath already spells the
+ * same values out as labelled rows: a second centred pill row directly above that
+ * table is a duplicate the eye has to reconcile.
+ */
+export type IdentityBadgePlacement = 'banner' | 'below';
 
 export type IdentityCardProps = Pick<
   ImagePickerProps,
@@ -20,8 +33,10 @@ export type IdentityCardProps = Pick<
   subtitle?: string | null;
   /** Upload failure, rendered under the picker so it sits next to its cause. */
   error?: string | null;
-  /** Chips shown under the name: status, roles, plan. */
+  /** Chips shown with the identity: status, roles, plan. */
   badges?: ReactNode;
+  /** Where those chips sit. Defaults to `below`, the long-standing layout. */
+  badgePlacement?: IdentityBadgePlacement;
   /** Anything else the surface needs below the badges. */
   children?: ReactNode;
 };
@@ -48,24 +63,21 @@ export function IdentityCard({
   subject,
   helperText,
   badges,
+  badgePlacement = 'below',
   children,
   onSelect,
   onRemove,
 }: IdentityCardProps) {
+  const inBanner = badgePlacement === 'banner';
+
   return (
     <Card variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-      <Box
-        sx={{
-          height: 88,
-          background: (t) =>
-            `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.18)}, ${alpha(
-              t.palette.secondary.main,
-              0.22,
-            )})`,
-        }}
-      />
+      <IdentityBanner badges={inBanner ? badges : undefined} />
+
       <CardContent sx={{ pt: 0, pb: { xs: 2.5, sm: 3 }, px: { xs: 2.5, sm: 3 } }}>
-        <Box sx={{ mt: -7 }}>
+        {/* The picture straddles the banner's lower edge. The banner reserves
+            exactly this much room below its badges, so the two never collide. */}
+        <Box sx={{ mt: -IDENTITY_AVATAR_OVERHANG }}>
           <ImagePicker
             src={src}
             name={name}
@@ -85,23 +97,9 @@ export function IdentityCard({
           </Alert>
         )}
 
-        <Stack spacing={0.5} alignItems="center" sx={{ mt: 2.5 }}>
-          <Typography variant="h6" textAlign="center" sx={{ wordBreak: 'break-word' }}>
-            {name}
-          </Typography>
-          {subtitle && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              textAlign="center"
-              sx={{ wordBreak: 'break-all' }}
-            >
-              {subtitle}
-            </Typography>
-          )}
-        </Stack>
+        <IdentityHeadline name={name} subtitle={subtitle} />
 
-        {badges && (
+        {!inBanner && badges && (
           <Stack
             direction="row"
             spacing={0.75}

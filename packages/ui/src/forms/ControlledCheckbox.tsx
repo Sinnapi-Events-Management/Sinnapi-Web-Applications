@@ -1,7 +1,8 @@
 'use client';
 import type { ReactNode } from 'react';
-import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import { useController, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { Box, Checkbox, FormControlLabel, FormHelperText } from '../atoms';
+import { useFieldError } from './useFieldError';
 
 export type ControlledCheckboxProps<T extends FieldValues> = {
   name: FieldPath<T>;
@@ -27,32 +28,32 @@ export function ControlledCheckbox<T extends FieldValues>({
   label,
   disabled,
 }: ControlledCheckboxProps<T>) {
+  const { field, fieldState, formState } = useController({ name, control });
+  const { error, onEngage } = useFieldError(fieldState, formState);
+
   return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <Box>
-          <FormControlLabel
-            sx={{ alignItems: 'flex-start', m: 0 }}
-            control={
-              <Checkbox
-                checked={Boolean(field.value)}
-                onChange={(e) => field.onChange(e.target.checked)}
-                onBlur={field.onBlur}
-                disabled={disabled}
-                sx={{ pt: 0.25 }}
-              />
-            }
-            label={label}
+    <Box>
+      <FormControlLabel
+        sx={{ alignItems: 'flex-start', m: 0 }}
+        control={
+          <Checkbox
+            checked={Boolean(field.value)}
+            onChange={(e) => {
+              onEngage();
+              field.onChange(e.target.checked);
+            }}
+            onBlur={field.onBlur}
+            disabled={disabled}
+            sx={{ pt: 0.25 }}
           />
-          {fieldState.error?.message && (
-            <FormHelperText error sx={{ ml: 4 }}>
-              {fieldState.error.message}
-            </FormHelperText>
-          )}
-        </Box>
+        }
+        label={label}
+      />
+      {error && (
+        <FormHelperText error sx={{ ml: 4 }}>
+          {error}
+        </FormHelperText>
       )}
-    />
+    </Box>
   );
 }

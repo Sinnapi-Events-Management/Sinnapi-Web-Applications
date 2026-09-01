@@ -1,14 +1,17 @@
 import type { Control } from 'react-hook-form';
 import { Stack } from '@sinnapi/ui';
-import { ControlledField, ControlledDateField, ControlledTimeField } from '@sinnapi/ui/forms';
+import { ControlledField, ControlledTimeField } from '@sinnapi/ui/forms';
 import { paymentRailLabel } from '@sinnapi/ui';
 import type { MyEventModel } from '@/lib/types';
+import EventDateField from '@/components/vendor/components/molecules/EventDateField';
 import VendorPickerField from './VendorPickerField';
 import type { NewBookingValues } from '../../schema';
 
 type Props = {
   control: Control<NewBookingValues>;
   events: MyEventModel[];
+  /** The vendor chosen above, so the date field can check their calendar. */
+  vendorId: string | undefined;
   slotMinutes: number;
   endMinTime?: string;
   endDisabled: boolean;
@@ -27,6 +30,7 @@ type Props = {
 export default function NewBookingFields({
   control,
   events,
+  vendorId,
   slotMinutes,
   endMinTime,
   endDisabled,
@@ -53,13 +57,10 @@ export default function NewBookingFields({
         />
       )}
 
-      <ControlledDateField
-        name="event_date"
-        control={control}
-        label="Event date"
-        disablePast
-        disabled={disabled}
-      />
+      {/* The vendor is picked in this same form, so the calendar it checks
+          against only exists once they have been — until then the field is an
+          ordinary date picker with nothing to mark. */}
+      <EventDateField name="event_date" control={control} vendorId={vendorId} disabled={disabled} />
 
       {/* Optional, but worth asking: without it the vendor's first reply is
           always "what time?". The end cannot precede the start, because the

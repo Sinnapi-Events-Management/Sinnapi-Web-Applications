@@ -16,6 +16,13 @@ export type ConversationAvatarProps = {
    * state the dot does show.
    */
   online?: boolean;
+  /**
+   * Set false in the thread gutter. A corner badge on a 28px disc, repeated
+   * beside every incoming turn, is a marker restating what the header already
+   * said once — and at that size the icon inside it is illegible anyway, so all
+   * it contributes is clutter down the left edge of the conversation.
+   */
+  showBadge?: boolean;
 };
 
 /**
@@ -35,6 +42,7 @@ export function ConversationAvatar({
   size = 44,
   avatarUrl,
   online,
+  showBadge = true,
 }: ConversationAvatarProps) {
   const { color, Icon, label } = conversationTypeMeta(type, audience);
   const tint = color === 'default' ? 'text.secondary' : `${color}.main`;
@@ -58,27 +66,33 @@ export function ConversationAvatar({
       <PresenceDot online={online} size={Math.max(8, size / 5)} ring />
     );
 
+  const face = (
+    <Avatar
+      src={avatarUrl ?? undefined}
+      aria-label={`${label} conversation with ${title}`}
+      sx={{
+        width: size,
+        height: size,
+        fontSize: size / 3,
+        fontWeight: 700,
+        color: tint,
+        bgcolor: (t) =>
+          alpha(color === 'default' ? t.palette.text.secondary : t.palette[color].main, 0.14),
+      }}
+    >
+      {initialsOf(title)}
+    </Avatar>
+  );
+
+  if (!showBadge) return face;
+
   return (
     <Badge
       overlap="circular"
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       badgeContent={badge}
     >
-      <Avatar
-        src={avatarUrl ?? undefined}
-        aria-label={`${label} conversation with ${title}`}
-        sx={{
-          width: size,
-          height: size,
-          fontSize: size / 3,
-          fontWeight: 700,
-          color: tint,
-          bgcolor: (t) =>
-            alpha(color === 'default' ? t.palette.text.secondary : t.palette[color].main, 0.14),
-        }}
-      >
-        {initialsOf(title)}
-      </Avatar>
+      {face}
     </Badge>
   );
 }

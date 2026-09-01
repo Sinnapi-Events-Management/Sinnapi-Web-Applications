@@ -39,6 +39,14 @@ export type PricingPlanRef = {
 // (status, member-since, last sign-in) that page reports.
 export type ProfileModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SC48213MQH`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   full_name: string | null;
   first_name: string | null;
   middle_name: string | null;
@@ -622,8 +630,14 @@ export type QuotationModel = {
   vendors: VendorRef | VendorRef[] | null;
 };
 
-/** A party to a booking, as much of them as the console shows inline. */
-export type BookingPartyModel = {
+/**
+ * A party to a transaction, as much of them as the console shows inline.
+ *
+ * Shared by bookings and quotations rather than declared twice: both pages ask
+ * the same question of the same two people — who are they and how do I reach
+ * them — and `PartyRow` renders either.
+ */
+export type ConsolePartyModel = {
   id: string;
   name: string | null;
   /** Present on the vendor only — the public listing slug. */
@@ -631,6 +645,9 @@ export type BookingPartyModel = {
   email: string | null;
   phone: string | null;
 };
+
+/** The bookings pages' name for {@link ConsolePartyModel}. */
+export type BookingPartyModel = ConsolePartyModel;
 
 /** The escrow behind a booking, flattened by `get_booking_admin`. */
 export type BookingEscrowModel = {
@@ -880,7 +897,12 @@ export type QuotationItem = {
 
 /**
  * The full quotation document behind the "Download quotation" action, built by
- * the `get_event_quotation` RPC (the only admin-visible path to line items).
+ * the `get_event_quotation` RPC and embedded unchanged in `get_booking_admin`.
+ *
+ * Shaped for the PDF export and the booking page's comparison, which is why the
+ * quotation *detail* page does not use it: it resolves the parties to bare
+ * names and carries no advance terms, ids or version. That page reads
+ * `AdminQuotationDetailModel` instead.
  */
 export type QuotationDocument = {
   id: string;
@@ -899,6 +921,63 @@ export type QuotationDocument = {
   client_name: string | null;
   event_title: string | null;
   items: QuotationItem[];
+};
+
+/** The event a quotation was requested against, when it came from one. */
+export type QuotationEventModel = {
+  id: string;
+  title: string | null;
+  event_date: string | null;
+};
+
+/**
+ * One quotation as the console reads it, built by `get_quotation_admin`.
+ *
+ * A SECURITY DEFINER read rather than a PostgREST select, because `q_items_rw`
+ * grants `quotation_items` to the client and the vendor owner and to nobody
+ * else — an operations admin can see that a quote totals 4.2m and not one line
+ * of what makes it up. See the migration for why that is fixed with a function
+ * rather than by widening the policy.
+ *
+ * Read-only by construction: there is no admin write path to a quotation, and
+ * `quotations_update` names only the two parties.
+ */
+export type AdminQuotationDetailModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  currency: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  tax_total: number | null;
+  total: number | null;
+  valid_until: string | null;
+  request_details: string | null;
+  version_no: number | null;
+  sent_at: string | null;
+  responded_at: string | null;
+  created_at: string | null;
+  /** The terms proposed with the quote, carried to the booking on acceptance. */
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  vendor: ConsolePartyModel;
+  client: ConsolePartyModel;
+  event: QuotationEventModel | null;
+  items: QuotationItem[];
+};
+
+/**
+ * One row of a quotation's status trail. Trigger-written on insert and on every
+ * transition, so it records the moves the quotation row itself does not — the
+ * client's decline and the reason they gave with it.
+ */
+export type QuotationStatusEventModel = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  occurred_at: string;
 };
 
 // --- moderation -------------------------------------------------------------
@@ -1249,4 +1328,110 @@ export type EmailSuppressionModel = {
   reason: string;
   detail: string | null;
   created_at: string;
+};
+
+/**
+ * A vendor's quote package as the console reads one — every package, published
+ * or not, plus the moderation columns the read policy grants an operator.
+ *
+ * The field names are the column names because that is what PostgREST returns
+ * and because `@sinnapi/ui`'s `QuotePackageLike` — the shape every app prices
+ * and renders from — is defined against them.
+ */
+export type PackageLineModel = {
+  id: string;
+  tier_id: string | null;
+  description: string;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  unit_label: string | null;
+  notes: string | null;
+  is_optional: boolean | null;
+  sort_order: number | null;
+};
+
+export type PackageTierModel = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_recommended: boolean | null;
+  discount_rate: number | string | null;
+  sort_order: number | null;
+  quote_template_items: PackageLineModel[] | null;
+};
+
+export type PackageModel = {
+  id: string;
+  vendor_id: string;
+  name: string;
+  summary: string | null;
+  notes: string | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  vendor_service_id: string | null;
+  category_id: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  lead_time_days: number | null;
+  tax_rate: number | string | null;
+  tax_inclusive: boolean | null;
+  valid_days: number | null;
+  advance_rate: number | string | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  visibility: 'private' | 'public' | null;
+  is_active: boolean | null;
+  published_at: string | null;
+  sort_order: number | null;
+  admin_unpublished_at: string | null;
+  admin_unpublished_reason: string | null;
+  admin_unpublished_by: string | null;
+  quote_template_tiers: PackageTierModel[] | null;
+  /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
+  quote_template_items: PackageLineModel[] | null;
+};
+
+/**
+ * One offer as the moderation console reads it, from `admin_search_offers`.
+ *
+ * The discount with its campaign folded in, the vendor running it, what it
+ * covers and what it has returned. `status` is derived by the RPC, not stored —
+ * and it is the same vocabulary the vendor's own screen uses, so an operator
+ * and a vendor discussing a campaign are using the same word for its state.
+ */
+export type AdminOfferModel = {
+  discount_id: string;
+  promotion_id: string | null;
+  promotion_public_id: string | null;
+  promotion_title: string | null;
+  vendor_id: string | null;
+  vendor_name: string | null;
+  vendor_slug: string | null;
+  vendor_public_id: string | null;
+  title: string;
+  description: string | null;
+  code: string | null;
+  is_automatic: boolean | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  min_amount: number | null;
+  max_discount_amount: number | null;
+  max_uses: number | null;
+  max_per_client: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: string;
+  /** Placed at the top of the public offers directory by an operator. */
+  is_featured: boolean | null;
+  admin_suspended_at: string | null;
+  admin_suspended_reason: string | null;
+  package_count: number | null;
+  package_names: string[] | null;
+  /** Quotes sent under this offer that the client has not answered yet. */
+  reserved_count: number | null;
+  /** Quotes accepted — the uses that were actually spent. */
+  redeemed_count: number | null;
+  /** What the offer gave away, on redeemed quotes only. */
+  discounted_value: number | null;
 };

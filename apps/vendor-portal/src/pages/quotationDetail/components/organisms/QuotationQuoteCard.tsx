@@ -34,7 +34,13 @@ export default function QuotationQuoteCard({ quotation, items, pricing, isEditab
       }
     >
       {isEditable ? (
-        <QuotationBuilder quotationId={quotation.id} currency={quotation.currency ?? undefined} />
+        <QuotationBuilder
+          quotationId={quotation.id}
+          currency={quotation.currency ?? undefined}
+          vendorId={quotation.vendor_id}
+          requestedPackageId={quotation.template_id}
+          requestedTierId={quotation.template_tier_id}
+        />
       ) : pricing.isPriced ? (
         <QuotationLineItems items={items} pricing={pricing} />
       ) : (

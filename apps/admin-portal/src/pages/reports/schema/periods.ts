@@ -6,5 +6,5 @@ export {
   PERIOD_OPTIONS,
   getPeriodOption,
   type PeriodOption,
-} from '@/lib/analytics';
-export type { AnalyticsPeriod as ReportPeriod } from '@/lib/analytics';
+} from '@sinnapi/ui/analytics';
+export type { AnalyticsPeriod as ReportPeriod } from '@sinnapi/ui/analytics';

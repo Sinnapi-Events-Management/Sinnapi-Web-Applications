@@ -215,3 +215,122 @@ export type PlanFeatureModel = {
   feature_key: string;
   value: PlanFeatureValue;
 };
+
+/**
+ * A vendor's published package, as an unauthenticated visitor reads one.
+ *
+ * Anon reaches these rows through the `qtpl_read` policy, which returns only
+ * packages that are public, active, not taken down by a moderator, and whose
+ * vendor is themselves public. Nothing is redacted beyond that: published
+ * packages are itemised in public by design, which is what lets this page show
+ * a real price instead of "contact for pricing".
+ *
+ * The field names are the column names because that is what PostgREST returns
+ * and because `@sinnapi/ui`'s `QuotePackageLike` is defined against them.
+ */
+export type PackageLineModel = {
+  id: string;
+  tier_id: string | null;
+  description: string;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  unit_label: string | null;
+  notes: string | null;
+  is_optional: boolean | null;
+  sort_order: number | null;
+};
+
+export type PackageTierModel = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_recommended: boolean | null;
+  discount_rate: number | string | null;
+  sort_order: number | null;
+  quote_template_items: PackageLineModel[] | null;
+};
+
+export type PackageModel = {
+  id: string;
+  vendor_id: string;
+  name: string;
+  summary: string | null;
+  notes: string | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  vendor_service_id: string | null;
+  category_id: string | null;
+  /** How this package is charged — null on any published before 0823c. */
+  pricing_model: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  lead_time_days: number | null;
+  tax_rate: number | string | null;
+  tax_inclusive: boolean | null;
+  valid_days: number | null;
+  advance_rate: number | string | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  visibility: 'private' | 'public' | null;
+  is_active: boolean | null;
+  published_at: string | null;
+  sort_order: number | null;
+  quote_template_tiers: PackageTierModel[] | null;
+  /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
+  quote_template_items: PackageLineModel[] | null;
+};
+
+/**
+ * One live offer a vendor is running, from `vendor_offers`.
+ *
+ * `code` is always null here and the type says so with a comment rather than
+ * `never`: the RPC redacts it for a caller with no session, and every caller in
+ * this app is the anon client. Keeping the field means the same component
+ * renders this row and the client portal's — where a code IS present — without
+ * two types describing one shape.
+ */
+export type PublicVendorOfferModel = {
+  discount_id: string;
+  promotion_id: string | null;
+  promotion_title: string | null;
+  banner_url: string | null;
+  title: string;
+  description: string | null;
+  terms: string | null;
+  /** Always null on this site. Sign-in is what reveals it. */
+  code: string | null;
+  is_automatic: boolean | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  max_discount_amount: number | null;
+  min_amount: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  remaining_uses: number | null;
+  package_ids: string[] | null;
+  package_names: string[] | null;
+};
+
+/** One card of the public offers directory, from `search_public_offers`. */
+export type PublicOfferModel = PublicVendorOfferModel & {
+  vendor_id: string;
+  vendor_name: string;
+  vendor_slug: string;
+  vendor_image_url: string | null;
+  vendor_rating: number | null;
+  vendor_review_count: number | null;
+  category_id: string | null;
+  category_name: string | null;
+  promotion_public_id: string | null;
+  /** Placed at the top of the directory by an operator. */
+  is_featured: boolean | null;
+  package_count: number | null;
+  /** The cheapest tier this offer touches, before the offer is applied. */
+  from_price: number | null;
+  /** Repeated on every row — the RPC counts and pages in one scan. */
+  total_count: number | null;
+};
+
+/** A service category with both identifiers: the key for URLs, the id for RPCs. */
+export type CategoryOption = { id: string; key: string; name: string };

@@ -1,9 +1,6 @@
-import { useMemo } from 'react';
 import { Alert, Grid, QueryState, Stack } from '@sinnapi/ui';
 import { profileSideColumnSx } from '@sinnapi/ui/profile';
 import { useProfile as useAccountQuery } from '@/hooks/queries';
-import { useAccountDetails } from '../../hooks/useAccountDetails';
-import { toAccountFormValues } from '../../schema';
 import PersonalIdentityCard from './PersonalIdentityCard';
 import AccountDetailsForm from './AccountDetailsForm';
 import AccountFactsSection from './AccountFactsSection';
@@ -22,11 +19,6 @@ type Props = {
  */
 export default function PersonalSection({ onDone }: Props) {
   const { data: profile, isLoading, error } = useAccountQuery();
-  const { busy, error: saveError, save } = useAccountDetails(profile?.id ?? null, onDone);
-
-  // Referentially stable per record revision, which is what lets the form track
-  // the query without resetting the vendor's typing (see `useSavedForm`).
-  const values = useMemo(() => toAccountFormValues(profile), [profile]);
 
   const displayName = profile?.full_name?.trim() || profile?.email || 'Your account';
 
@@ -48,13 +40,7 @@ export default function PersonalSection({ onDone }: Props) {
           </Grid>
 
           <Grid item xs={12} md={8}>
-            <AccountDetailsForm
-              values={values}
-              email={profile.email}
-              busy={busy}
-              error={saveError}
-              onSave={save}
-            />
+            <AccountDetailsForm profile={profile} onDone={onDone} />
           </Grid>
         </Grid>
       ) : (

@@ -49,6 +49,70 @@ export type VendorDetailModel = VendorCardModel & {
 };
 
 /**
+ * A vendor's published package, as a client reads one.
+ *
+ * The field names are the column names because that is what PostgREST returns,
+ * and because `@sinnapi/ui`'s `QuotePackageLike` — the shape every app prices
+ * and renders from — is defined against those names. Renaming here would mean
+ * mapping on the way into every component that reads one.
+ *
+ * No moderation columns: the read policy would refuse them to a client, and
+ * whether a package was taken down is not a client's business — an unpublished
+ * package simply is not there.
+ */
+export type PackageLineModel = {
+  id: string;
+  tier_id: string | null;
+  description: string;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  unit_label: string | null;
+  notes: string | null;
+  is_optional: boolean | null;
+  sort_order: number | null;
+};
+
+export type PackageTierModel = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_recommended: boolean | null;
+  discount_rate: number | string | null;
+  sort_order: number | null;
+  quote_template_items: PackageLineModel[] | null;
+};
+
+export type PackageModel = {
+  id: string;
+  vendor_id: string;
+  name: string;
+  summary: string | null;
+  notes: string | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  vendor_service_id: string | null;
+  category_id: string | null;
+  /** How this package is charged — null on any published before 0823c. */
+  pricing_model: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  lead_time_days: number | null;
+  tax_rate: number | string | null;
+  tax_inclusive: boolean | null;
+  valid_days: number | null;
+  advance_rate: number | string | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+  visibility: 'private' | 'public' | null;
+  is_active: boolean | null;
+  published_at: string | null;
+  sort_order: number | null;
+  quote_template_tiers: PackageTierModel[] | null;
+  /** Only the shared add-ons: the read scopes this with `tier_id=is.null`. */
+  quote_template_items: PackageLineModel[] | null;
+};
+
+/**
  * One portfolio item from `vendor_media`. `media_type` is the DB enum, so the
  * two values are exhaustive. `url` is nullable in the table (a row can exist
  * with only a storage path), so anything without one is dropped before render.
@@ -134,6 +198,10 @@ export type VendorOptionModel = {
   base_city: string | null;
   profile_image_url: string | null;
   primary_image_url: string | null;
+  /** The category the vendor was approved under. */
+  primary_category_id: string | null;
+  /** Their live, active services — the other half of what they can quote for. */
+  vendor_services: { category_id: string | null }[] | null;
 };
 
 // ---------- Bookings ----------
@@ -310,6 +378,18 @@ export type QuotationDetailModel = {
   vendor_id: string | null;
   event_id: string | null;
   vendors: VendorRefModel | VendorRefModel[] | null;
+  /**
+   * Which lifecycle this quote is on. `'package'` means the client ordered a
+   * published tier at its published price and is waiting on the vendor to
+   * approve it — not to price it. See migration 0903a.
+   */
+  quote_origin: string | null;
+  /** The date the client gave when ordering. Null on a bespoke request. */
+  event_date: string | null;
+  /** Where it is. Required by both request RPCs; null on rows written before 0903f. */
+  event_address: string | null;
+  event_type_id: string | null;
+  event_types: { id: string; name: string } | { id: string; name: string }[] | null;
   quotation_items: QuotationItemModel[] | null;
   events: EventRefModel | EventRefModel[] | null;
 };
@@ -356,6 +436,16 @@ export type QuotationStatusEventModel = {
   to_status: string;
   reason: string | null;
   occurred_at: string;
+  /**
+   * Who made the transition — `auth.uid()` at the moment the trigger fired.
+   *
+   * The only column that says whose words `reason` is, and the reason the
+   * feedback callout can name an author instead of guessing one. Guessing is
+   * not available: `voided` is written by `void_quotation`, which either side
+   * may call, so the status alone would have us telling a client they had
+   * cancelled a quote their vendor withdrew.
+   */
+  actor_id: string | null;
 };
 
 // ---------- Events ----------
@@ -389,6 +479,283 @@ export type MyEventModel = {
   payment_type: string | null;
   payment_terms_note: string | null;
 };
+
+/**
+ * One event as its own page reads it.
+ *
+ * `description` is here rather than on `MyEventModel` on purpose: a brief runs
+ * to 2000 characters and the events grid never renders one, so putting it on
+ * the list model would ship a page of briefs to draw a page of titles.
+ */
+export type MyEventDetailModel = MyEventModel & {
+  description: string | null;
+};
+
+/**
+ * The budget rollup for one event, from `event_budget_summary` — or, for the
+ * grid, from `list_my_event_budgets`, which returns the same figures for every
+ * event at once so the collection is one request rather than one per card.
+ *
+ * Every amount is already restated in `currency` by the database, so nothing
+ * here needs converting. `unconverted_count` is how many commitments could NOT
+ * be restated because the pair has no exchange rate: those are excluded from
+ * the totals, and saying so is the difference between a figure that is
+ * incomplete and one that is wrong.
+ *
+ * `state` is computed server-side on purpose. The same ladder decides the
+ * colour of this meter and whether the RPC refuses the client's next booking,
+ * and those two must never disagree — see `budgetStateColor` in @sinnapi/ui.
+ */
+export type EventBudgetModel = {
+  currency: string;
+  /** Null when the client has never stated a budget. */
+  budget_amount: number | null;
+  allocated_amount: number;
+  committed_amount: number;
+  pending_amount: number;
+  spoken_for: number;
+  remaining_amount: number | null;
+  usage_percent: number | null;
+  unconverted_count: number;
+  warn_threshold: number | null;
+  state: 'unset' | 'healthy' | 'warning' | 'exceeded';
+};
+
+/** `list_my_event_budgets` — `EventBudgetModel` keyed by the event it is for. */
+export type MyEventBudgetModel = EventBudgetModel & {
+  event_id: string;
+  requirement_count: number;
+  open_requirement_count: number;
+  vendor_count: number;
+};
+
+/** `event_budget_summary`, which adds the two figures only the event page shows. */
+export type EventBudgetSummaryModel = EventBudgetModel & {
+  event_id: string;
+  budget_min: number | null;
+  budget_max: number | null;
+  /** Budget left over once every named line is subtracted. Negative if over-allocated. */
+  unallocated_amount: number | null;
+  committed_count: number;
+  pending_count: number;
+};
+
+/**
+ * One budget line on an event, from `event_requirement_summary`.
+ *
+ * TWO STATES, AND THEY ANSWER DIFFERENT QUESTIONS. `state` is about SOURCING —
+ * have I found anyone for this yet. `allocation_state` is about MONEY — can I
+ * still afford them. A line can perfectly well be `booked` and `exceeded`, or
+ * `open` and `unset`, and collapsing them into one badge is how a client comes
+ * to think a filled line is a problem.
+ *
+ * `allocation_state` is never enforced: the guard ignores per-line overspend on
+ * purpose, because the allocation is the client's own sketch of how their
+ * budget divides and only the event total is a commitment. It colours a meter
+ * and nothing else.
+ *
+ * `allocated_amount` null is not zero — the client named something they need
+ * without deciding what to spend on it, which is how planning usually starts.
+ */
+export type EventRequirementModel = {
+  id: string;
+  event_id: string;
+  category_id: string;
+  category_key: string;
+  category_name: string;
+  /** The client's own label. Null falls back to the category name. */
+  title: string | null;
+  brief: string | null;
+  priority: 'must_have' | 'nice_to_have';
+  allocated_amount: number | null;
+  currency: string;
+  committed_amount: number;
+  pending_amount: number;
+  spoken_for: number;
+  remaining_amount: number | null;
+  usage_percent: number | null;
+  vendor_count: number;
+  quote_count: number;
+  booking_count: number;
+  interest_count: number;
+  sort_order: number;
+  cancelled_at: string | null;
+  state: 'open' | 'sourcing' | 'booked' | 'cancelled';
+  allocation_state: 'unset' | 'healthy' | 'warning' | 'exceeded';
+};
+
+/**
+ * One vendor engagement on an event, from `list_event_vendors`.
+ *
+ * ONE ROW IS ONE ENGAGEMENT, not one vendor. A vendor may quote for two lines
+ * of the same event, and each is its own row with its own price — collapsing
+ * them would make the client choose between two figures they were never offered
+ * as alternatives. `engagement_key` is what React keys on; `vendor_id` is not
+ * unique in this list.
+ *
+ * `amount_in_event_currency` is the quote restated in the budget's currency,
+ * through the same `fx_convert` the rollups use — so the figure compared here
+ * is the figure the guard checks on accept. Null when the pair has no rate,
+ * which the card says rather than showing a number that does not exist.
+ */
+export type EventVendorModel = {
+  engagement_key: string;
+  vendor_id: string;
+  business_name: string;
+  slug: string | null;
+  primary_image_url: string | null;
+  base_city: string | null;
+  avg_rating: number | null;
+  review_count: number | null;
+  is_featured: boolean;
+  category_name: string | null;
+
+  requirement_id: string | null;
+  requirement_title: string | null;
+
+  interest_status: 'invited' | 'interested' | 'shortlisted' | 'declined' | 'withdrawn' | null;
+  interest_message: string | null;
+  interest_at: string | null;
+
+  quotation_id: string | null;
+  quotation_reference: string | null;
+  quotation_status: string | null;
+  quotation_total: number | null;
+  quotation_currency: string | null;
+  quotation_valid_until: string | null;
+  amount_in_event_currency: number | null;
+
+  booking_id: string | null;
+  booking_status: string | null;
+
+  event_currency: string;
+};
+
+/**
+ * One quotation as a comparison column, from `compare_event_quotations`.
+ *
+ * Carries more than the total on purpose. Two caterers at 8m are not the same
+ * offer if one wants 50% up front and the other 10%, or if one expires on
+ * Friday — and `bookings` inherits `advance_rate` and
+ * `advance_release_days_before` straight off the accepted quote, so those are
+ * terms the client agrees to at the moment they accept.
+ *
+ * `items` is the quote's line breakdown, arriving with the rest rather than as
+ * a second request: a comparison whose columns land at different times is one
+ * where the client compares whichever arrived first.
+ */
+export type QuoteComparisonModel = {
+  quotation_id: string;
+  reference_no: string;
+  status: string;
+  sent_at: string | null;
+
+  vendor_id: string;
+  business_name: string;
+  slug: string | null;
+  primary_image_url: string | null;
+  avg_rating: number | null;
+  review_count: number | null;
+  is_featured: boolean;
+
+  requirement_id: string | null;
+  requirement_title: string | null;
+  /** What the client set aside for that line, for the over/under row. */
+  allocated_amount: number | null;
+
+  currency: string;
+  subtotal: number;
+  discount_rate: number | null;
+  discount_total: number;
+  tax_rate: number | null;
+  tax_inclusive: boolean;
+  tax_total: number;
+  total: number;
+  total_in_event_currency: number | null;
+  event_currency: string;
+
+  valid_until: string | null;
+  is_expired: boolean;
+
+  advance_rate: number | null;
+  advance_release_days_before: number | null;
+  advance_terms_note: string | null;
+
+  item_count: number;
+  items: { description: string; quantity: number; unit_price: number; line_total: number }[];
+};
+
+/**
+ * A vendor who could fill a budget line, from `recommend_vendors_for_event`.
+ *
+ * The three booleans are returned on EVERY row, not only on rows that pass —
+ * the filters are the client's to turn on, and a vendor who is busy on the date
+ * is shown saying so rather than silently buried. That is the whole reason
+ * availability, budget fit and region are filters rather than terms blended
+ * into `score`: a client who cannot see why their preferred vendor ranks eighth
+ * stops trusting the panel.
+ *
+ * `from_amount` null means we do not know what they charge — not that they are
+ * expensive — which is why such a vendor passes the budget filter rather than
+ * failing it.
+ */
+export type VendorRecommendationModel = {
+  vendor_id: string;
+  business_name: string;
+  slug: string | null;
+  primary_image_url: string | null;
+  base_city: string | null;
+  biography: string | null;
+  avg_rating: number | null;
+  review_count: number | null;
+  is_featured: boolean;
+  category_name: string | null;
+
+  from_amount: number | null;
+  from_currency: string | null;
+  from_amount_in_event_currency: number | null;
+
+  is_available: boolean;
+  covers_region: boolean;
+  fits_budget: boolean;
+
+  score: number;
+};
+
+/**
+ * The answer to "would committing this take me over?", from
+ * `event_budget_check`.
+ *
+ * `would_exceed` is the one the RPC acts on, and it is deliberately narrower
+ * than "projected is over budget": it also requires `increases_exposure`, so
+ * the second leg of a deal already agreed is never refused twice. `over_by` is
+ * the true overage for display and can be non-zero while `would_exceed` is
+ * false — that is the case where the client is already over and this particular
+ * act adds nothing.
+ */
+export type BudgetCheckModel = {
+  currency: string;
+  budget_amount: number | null;
+  committed_amount: number;
+  pending_amount: number;
+  spoken_for: number;
+  baseline_spoken_for: number;
+  incoming_amount: number | null;
+  projected: number;
+  increases_exposure: boolean;
+  remaining_before: number | null;
+  over_by: number;
+  would_exceed: boolean;
+  would_warn: boolean;
+  allocation_amount: number | null;
+  allocation_over_by: number;
+  would_exceed_allocation: boolean;
+  convertible: boolean;
+  enforced: boolean;
+};
+
+/** A service category a budget line can be filed under. */
+export type ServiceCategoryOption = { id: string; key: string; name: string };
 
 /**
  * One selectable occasion, from `event_types`. Only active types are ever
@@ -671,6 +1038,14 @@ export type NotificationPage = {
 
 export type ProfileModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SC48213MQH`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -680,4 +1055,88 @@ export type ProfileModel = {
   mfa_enabled: boolean;
   /** Account creation timestamp — the "member since" fact on the profile page. */
   created_at: string | null;
+};
+
+/**
+ * One live offer a vendor is running, from `vendor_offers`.
+ *
+ * The row shape the RPC returns, not the `discounts` table: the campaign is
+ * already folded in and the code is already redacted for a caller who is not
+ * signed in. A client portal reader always is, so `code` is present here — the
+ * field stays nullable because the same RPC serves the marketing site.
+ */
+export type VendorOfferModel = {
+  discount_id: string;
+  promotion_id: string | null;
+  promotion_title: string | null;
+  banner_url: string | null;
+  title: string;
+  description: string | null;
+  terms: string | null;
+  code: string | null;
+  is_automatic: boolean | null;
+  type: string;
+  value: number;
+  currency: string | null;
+  max_discount_amount: number | null;
+  min_amount: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  /** Null when uncapped. Never zero — an exhausted offer is not returned. */
+  remaining_uses: number | null;
+  /** The published packages this offer covers. Empty = the whole catalogue. */
+  package_ids: string[] | null;
+  package_names: string[] | null;
+};
+
+/** One card of the offers directory, from `search_public_offers`. */
+export type PublicOfferModel = VendorOfferModel & {
+  vendor_id: string;
+  vendor_name: string;
+  vendor_slug: string;
+  vendor_image_url: string | null;
+  vendor_rating: number | null;
+  vendor_review_count: number | null;
+  category_id: string | null;
+  category_name: string | null;
+  promotion_public_id: string | null;
+  /** Placed at the top of the directory by an operator. */
+  is_featured: boolean | null;
+  package_count: number | null;
+  /** The cheapest tier this offer touches, before the offer is applied. */
+  from_price: number | null;
+  /** Repeated on every row — the RPC counts and pages in one scan. */
+  total_count: number | null;
+};
+
+/**
+ * The offer a quotation was priced with, from `quotation_offer`.
+ *
+ * `status` is the redemption's, not the offer's: `reserved` while the client
+ * has not answered, `redeemed` once they accept. That distinction is what lets
+ * a quote say "you will save" before acceptance and "you saved" after.
+ */
+export type QuotationOfferModel = {
+  discount_id: string;
+  title: string;
+  description: string | null;
+  terms: string | null;
+  code: string | null;
+  type: string;
+  value: number;
+  /** What it actually took off this quote. */
+  amount: number;
+  promotion_title: string | null;
+  status: string;
+  /**
+   * The days an event must fall on to qualify for this offer.
+   *
+   * The browser's only way to know the window: `discounts_read` admits a live
+   * discount only, and by the time a client is scheduling their booking the
+   * campaign has often ended — while the trigger on `bookings.event_date` still
+   * enforces it. Without these the booking calendar could offer a date the
+   * database is going to refuse.
+   */
+  starts_on: string | null;
+  ends_on: string | null;
 };

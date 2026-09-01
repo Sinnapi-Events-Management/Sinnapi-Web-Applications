@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
-import StatusTabs from '@/components/ui/StatusTabs';
+import { StatusTabs } from '@sinnapi/ui';
 import { useSubscriptions } from './hooks/useSubscriptions';
 import { subscriptionColumns, type SubscriptionTabValue } from './schema';
 import SubscriptionsToolbar from './components/organisms/SubscriptionsToolbar';

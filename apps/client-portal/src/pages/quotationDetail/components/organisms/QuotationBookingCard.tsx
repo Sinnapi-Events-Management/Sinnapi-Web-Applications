@@ -2,45 +2,41 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Button, SectionCard, Skeleton, Stack, StatusChip, Typography } from '@sinnapi/ui';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import type { QuotationPricing } from '@sinnapi/ui';
 import { formatDate } from '@/lib/config';
 import { formatTimeWindow } from '@/pages/bookingDetail/utils/timeWindow';
-import type { EventRefModel, QuotationDetailModel, VendorRefModel } from '@/lib/types';
-import { useQuotationBooking } from '../../hooks/useQuotationBooking';
-import CreateBookingDialog from './CreateBookingDialog';
+import type { QuotationBookingState } from '../../hooks/useQuotationBooking';
 
 type Props = {
-  quotation: QuotationDetailModel;
-  vendor: VendorRefModel | null;
-  event: EventRefModel | null;
-  pricing: QuotationPricing;
+  /**
+   * The page's single booking state — see `useQuotationDetailPage`. Handed down
+   * rather than read here, because the bar above the tabs opens the same dialog
+   * and the two must not keep separate answers to "is it booked".
+   */
+  booking: QuotationBookingState;
 };
 
 /**
- * The step that was missing: an accepted quote, turned into a booking.
+ * What became of an accepted quote, in the section that keeps the record.
  *
- * Accepting a quote settles a price. It does not settle a date — the quotation
- * carries none — so nothing appeared on the vendor's calendar and nothing
- * existed for escrow to fund. This card is where the client supplies the two
- * facts the quote never had.
+ * This card used to be the only way to schedule a quote, and the button was two
+ * taps deep — see `QuotationBookingBar`, which now leads on that. What is left
+ * here is the record the bar deliberately does not carry: the reference, the
+ * status chip, the full date and location, and the warning that a booking fell
+ * through. The card keeps a Create button for the client already reading this
+ * section, but an outlined one: the page has one primary call to action and it
+ * is the one above the tabs.
  *
  * The card is absent entirely for a quote that has not been accepted: a control
  * the client cannot use yet is better not drawn than drawn greyed-out with an
  * explanation of a state they are not in.
  *
- * Layout only — `useQuotationBooking` owns the reads and the gating, and the
- * dialog owns the form.
+ * Presentational — `useQuotationBooking` owns the reads and the gating, and the
+ * page owns the dialog.
  */
-export default function QuotationBookingCard({ quotation, vendor, event, pricing }: Props) {
-  const { booking, stage, isLoading, canCreate, isDialogOpen, openDialog, closeDialog } =
-    useQuotationBooking(quotation);
+export default function QuotationBookingCard({ booking }: Props) {
+  const { booking: made, stage, isLoading, canCreate, blockedBy, openDialog } = booking;
 
   if (stage === 'not-accepted') return null;
-
-  // `isPriced` alone is not enough: it means "the vendor built line items",
-  // which a quote can satisfy while still totalling zero. What a booking needs
-  // is an amount, because that is what both payment rails are priced against.
-  const isBookablePrice = pricing.isPriced && pricing.total > 0;
 
   return (
     <SectionCard
@@ -53,20 +49,20 @@ export default function QuotationBookingCard({ quotation, vendor, event, pricing
           then be replaced by a link to a booking that already existed. */}
       {isLoading ? (
         <Skeleton variant="rounded" height={96} />
-      ) : booking ? (
+      ) : made ? (
         <Stack spacing={1.5}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Typography variant="body2" fontWeight={600}>
-              {booking.reference_no ?? 'Booking'}
+              {made.reference_no ?? 'Booking'}
             </Typography>
-            <StatusChip status={booking.status} />
+            <StatusChip status={made.status} />
           </Stack>
 
           <Typography variant="body2" color="text.secondary">
             {[
-              formatDate(booking.event_date),
-              formatTimeWindow(booking.start_time, booking.end_time),
-              booking.location,
+              formatDate(made.event_date),
+              formatTimeWindow(made.start_time, made.end_time),
+              made.location,
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -86,12 +82,12 @@ export default function QuotationBookingCard({ quotation, vendor, event, pricing
             disableElevation
             startIcon={<OpenInNewIcon />}
             component={RouterLink}
-            to={`/bookings/${booking.id}`}
+            to={`/bookings/${made.id}`}
           >
             Open booking
           </Button>
         </Stack>
-      ) : !isBookablePrice ? (
+      ) : blockedBy === 'unpriced' ? (
         /* An accepted quote with no price on it. This was always broken — the
            booking would carry an amount of zero and escrow would later refuse
            to fund it — but it used to fail late and quietly. Now that the
@@ -109,11 +105,13 @@ export default function QuotationBookingCard({ quotation, vendor, event, pricing
             vendor your date and how you want to pay, so they can confirm all three.
           </Typography>
 
+          {/* Outlined, unlike the bar's. Both open the same dialog and both can
+              be on screen at once when this tab is the open one — two identical
+              filled buttons would read as two different actions. */}
           <Button
             fullWidth
-            variant="contained"
-            color="primary"
-            disableElevation
+            variant="outlined"
+            color="inherit"
             startIcon={<EventAvailableIcon />}
             onClick={openDialog}
           >
@@ -121,18 +119,6 @@ export default function QuotationBookingCard({ quotation, vendor, event, pricing
           </Button>
         </Stack>
       )}
-
-      {/* Guarded as well as the button: the quotations list can deep-link
-          straight into this dialog with `?book`, and that shortcut checks the
-          quote is accepted without checking it has a price. */}
-      <CreateBookingDialog
-        quotation={quotation}
-        vendor={vendor}
-        event={event}
-        pricing={pricing}
-        open={isDialogOpen && isBookablePrice}
-        onClose={closeDialog}
-      />
     </SectionCard>
   );
 }

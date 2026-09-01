@@ -29,7 +29,18 @@ export type ConversationTypeMeta = {
 
 const SUPPORT: Omit<ConversationTypeMeta, 'label'> = { color: 'info', Icon: SupportAgentIcon };
 const VENDOR: Omit<ConversationTypeMeta, 'label'> = { color: 'secondary', Icon: StorefrontIcon };
-const PERSON: Omit<ConversationTypeMeta, 'label'> = { color: 'default', Icon: PersonIcon };
+/**
+ * A person on the other side of a client↔vendor thread.
+ *
+ * Brand gold rather than the grey it used to be. The two sides of one
+ * conversation were rendering asymmetrically — a client saw a warm gold avatar
+ * for their vendor while the vendor saw a flat grey disc for their client — and
+ * grey is not a neutral choice on an identity mark: against a warm canvas it
+ * reads as deactivated, which is the wrong thing to say about the customer who
+ * is paying. The icon still separates the two (a person, not a storefront); the
+ * tint no longer ranks them.
+ */
+const PERSON: Omit<ConversationTypeMeta, 'label'> = { color: 'secondary', Icon: PersonIcon };
 
 const META: Record<ConversationType, Record<MessagingAudience, ConversationTypeMeta>> = {
   client_vendor: {

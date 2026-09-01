@@ -1,67 +1,48 @@
-import { Paper, Box, Stack, Button, SearchField } from '@sinnapi/ui';
-import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
+import {
+  Box,
+  Paper,
+  Stack,
+  SearchField,
+  FacetSelect,
+  FilterDisclosure,
+  FilterToggleButton,
+} from '@sinnapi/ui';
 import type { SearchTerm } from '@/hooks/useSearchTerm';
 import type { EventFacetCounts } from '@/lib/types';
-import FacetSelect from '../molecules/FacetSelect';
 import type { EventFilters } from '../../hooks/useEventFilters';
-import {
-  LOCATION_OPTIONS,
-  WHEN_OPTIONS,
-  BUDGET_OPTIONS,
-  SOURCE_OPTIONS,
-  SORT_OPTIONS,
-  type FilterOption,
-} from '../../schema/filters';
+import type { FilterPanel } from '../../hooks/useFilterPanel';
+import EventFacetGrid from '../molecules/EventFacetGrid';
+import { SORT_OPTIONS, type FilterOption } from '../../schema/filters';
+import { panelFilterCount } from '../../schema/presenter';
 
 type EventsToolbarProps = {
   search: SearchTerm;
   filters: EventFilters;
+  panel: FilterPanel;
   /** Occasions from `event_types` — fetched, so they arrive as a prop. */
   typeOptions: FilterOption[];
   facetCounts?: EventFacetCounts;
+  /** Size of the current result set, for the mobile sheet's confirm button. */
+  total: number;
+  onClearAll: () => void;
 };
 
-/**
- * The filter row: a grid that re-columns by breakpoint rather than a flex row
- * of fixed-width boxes.
- *
- * Six dropdowns only share one line on a wide viewport. Sizing them
- * individually — `width: 170, flexShrink: 0` — made that arithmetic the
- * browser's problem: the fixed tracks refused to shrink, so a narrow viewport
- * left ragged part-filled rows and handed the whole width deficit to the only
- * flexible sibling, the search box. A grid states the wrap up front, so nothing
- * has to be squeezed to make a line fit.
- *
- * `minmax(0, 1fr)` rather than a bare `1fr` is load-bearing: a `1fr` track
- * refuses to go below its content's min-content width, so one long option label
- * ("UGX 5M – 15M", "Next 3 months") would push the row wider than its container
- * and overflow the page on the x-axis.
- *
- * The column counts are cut against the width the toolbar actually gets, not
- * the viewport: from `md` up the shell's 256px drawer is permanent, so even an
- * `lg` screen leaves only ~848px here and six columns would be 131px per
- * control. Six waits for `xl`; everything between `sm` and there sits as two
- * roomy rows of three, which reads better than one cramped row of six.
- */
-const FILTER_GRID_SX = {
-  display: 'grid',
-  gap: 1.5,
-  gridTemplateColumns: {
-    xs: 'repeat(2, minmax(0, 1fr))',
-    sm: 'repeat(3, minmax(0, 1fr))',
-    xl: 'repeat(6, minmax(0, 1fr))',
-  },
-} as const;
+/** Panel id, shared by the toggle's `aria-controls` and the panel it opens. */
+const FILTER_PANEL_ID = 'public-events-filters';
 
 /**
- * Search + filters for the public-events feed. Presentational: it renders the
- * controls and delegates every change to the hooks the page hook already owns.
+ * Search, sort, and the disclosure that holds the rest of the filters.
  *
- * Laid out as two bands: search (with the clear affordance beside it) on top,
- * the facet grid beneath. Search keeps its own full-width line at every size
- * because it is the primary control and the only one whose usefulness scales
- * with the room it gets — a dropdown reads the same at 140px as at 300px, a
- * search box does not.
+ * The old toolbar kept six dropdowns permanently open above the feed. On a
+ * phone that is a full screen of controls before a single result — the filter
+ * bar outranking the content on the one device where the fold is tightest. What
+ * stays out here is what is used on nearly every visit (search) and what is
+ * cheap to leave open (sort, one control). The four narrowing facets fold into
+ * `FilterDisclosure`, which is an inline expander on a wide viewport and a
+ * bottom sheet on a narrow one.
+ *
+ * Nothing is hidden silently: the toggle badges how many filters are applied,
+ * and the page renders a removable chip per active facet directly beneath.
  *
  * A real `<form>` with no submit button: Enter has to work — someone who
  * finishes typing and presses it has already said they're done, so submit
@@ -71,15 +52,14 @@ const FILTER_GRID_SX = {
 export default function EventsToolbar({
   search,
   filters,
+  panel,
   typeOptions,
   facetCounts,
+  total,
+  onClearAll,
 }: EventsToolbarProps) {
-  const showClear = filters.isActive || Boolean(search.input);
-
-  const clearAll = () => {
-    filters.reset();
-    search.clear();
-  };
+  // Source is a tab now, so it is not one of the filters this panel holds.
+  const panelCount = panelFilterCount(filters.values);
 
   return (
     <Paper
@@ -90,98 +70,56 @@ export default function EventsToolbar({
         event.preventDefault();
         search.flush();
       }}
-      sx={{ p: 2, mb: 2 }}
+      sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, borderRadius: 3 }}
     >
-      <Stack spacing={1.5}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          {/* Grows to absorb the leftover width; minWidth 0 lets it shrink
-              politely rather than push the clear button off the line. */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <SearchField
-              value={search.input}
-              onChange={search.setInput}
-              onClear={search.clear}
-              placeholder="Search events by title or town…"
-              ariaLabel="Search events"
-              inputProps={{ 'aria-label': 'Search events', enterKeyHint: 'search' }}
-            />
-          </Box>
-
-          {/* Rides with the search box rather than trailing the filters: it is
-              the undo for everything above, and at the end of a wrapping grid it
-              would land in a different place at every breakpoint. */}
-          {showClear && (
-            <Button
-              size="small"
-              color="inherit"
-              startIcon={<FilterAltOffIcon />}
-              onClick={clearAll}
-              sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-            >
-              Clear
-            </Button>
-          )}
-        </Stack>
-
-        <Box sx={FILTER_GRID_SX}>
-          <FacetSelect
-            label="Occasion"
-            value={filters.values.type}
-            onChange={(next) => filters.setFacet('type', next)}
-            options={typeOptions}
-            counts={facetCounts?.type}
-            anyLabel="Any occasion"
-            // Nothing to choose from until the vocabulary lands; an empty
-            // dropdown that still opens reads as "no occasions exist".
-            disabled={typeOptions.length === 0}
-          />
-
-          <FacetSelect
-            label="Location"
-            value={filters.values.location}
-            onChange={(next) => filters.setFacet('location', next)}
-            options={LOCATION_OPTIONS}
-            counts={facetCounts?.location}
-            anyLabel="Anywhere"
-          />
-
-          <FacetSelect
-            label="Date"
-            value={filters.values.when}
-            onChange={(next) => filters.setFacet('when', next)}
-            options={WHEN_OPTIONS}
-            counts={facetCounts?.when}
-            anyLabel="Any date"
-          />
-
-          <FacetSelect
-            label="Budget"
-            value={filters.values.budget}
-            onChange={(next) => filters.setFacet('budget', next)}
-            options={BUDGET_OPTIONS}
-            anyLabel="Any budget"
-          />
-
-          <FacetSelect
-            label="Type"
-            value={filters.values.source}
-            onChange={(next) => filters.setFacet('source', next)}
-            options={SOURCE_OPTIONS}
-            counts={facetCounts?.source}
-            anyLabel="All events"
-          />
-
-          <FacetSelect
-            label="Sort by"
-            value={filters.sort}
-            onChange={filters.setSort}
-            options={SORT_OPTIONS}
-            // Sort always holds a value: 'soonest' is the default order, not
-            // the absence of one, so there is no "Any" entry to offer.
-            hideAnyOption
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
+        {/* Grows to absorb the leftover width; minWidth 0 lets it shrink
+            politely rather than push the controls beside it off the line. */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <SearchField
+            value={search.input}
+            onChange={search.setInput}
+            onClear={search.clear}
+            placeholder="Search events by title or town…"
+            ariaLabel="Search events"
+            inputProps={{ 'aria-label': 'Search events', enterKeyHint: 'search' }}
           />
         </Box>
+
+        {/* Toggle and sort share one line below the search box on a phone, so
+            the search field keeps a full-width line of its own — it is the only
+            control here whose usefulness scales with the room it gets. */}
+        <Stack direction="row" spacing={1} sx={{ flexShrink: 0, alignItems: 'center' }}>
+          <FilterToggleButton
+            open={panel.open}
+            onToggle={panel.toggle}
+            activeCount={panelCount}
+            controls={FILTER_PANEL_ID}
+          />
+          <Box sx={{ flex: { xs: 1, md: '0 0 auto' }, minWidth: 0, width: { md: 200 } }}>
+            <FacetSelect
+              label="Sort by"
+              value={filters.sort}
+              onChange={filters.setSort}
+              options={SORT_OPTIONS}
+              // Sort always holds a value: 'soonest' is the default order, not
+              // the absence of one, so there is no "Any" entry to offer.
+              hideAnyOption
+            />
+          </Box>
+        </Stack>
       </Stack>
+
+      <FilterDisclosure
+        id={FILTER_PANEL_ID}
+        open={panel.open}
+        onClose={panel.close}
+        activeCount={panelCount}
+        onClear={onClearAll}
+        resultCount={total}
+      >
+        <EventFacetGrid filters={filters} typeOptions={typeOptions} facetCounts={facetCounts} />
+      </FilterDisclosure>
     </Paper>
   );
 }

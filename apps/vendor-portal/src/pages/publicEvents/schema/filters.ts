@@ -99,6 +99,18 @@ export const FACET_KEYS = ['type', 'location', 'when', 'budget', 'source'] as co
 
 export type FacetKey = (typeof FACET_KEYS)[number];
 
+/**
+ * The facets that live in the collapsible filter panel — every key except
+ * `source`, which is promoted to a tab bar above the feed because it decides
+ * what a vendor can *do* with a result rather than how many there are.
+ *
+ * Shared by the panel's active-count badge and the removable chip row so the
+ * two can't disagree about what "2 filters applied" means.
+ */
+export const PANEL_FACET_KEYS = FACET_KEYS.filter(
+  (key): key is Exclude<FacetKey, 'source'> => key !== 'source',
+);
+
 export type FacetValues = Record<FacetKey, string>;
 
 export const EMPTY_FACETS: FacetValues = {

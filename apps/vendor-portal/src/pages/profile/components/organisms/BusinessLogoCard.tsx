@@ -1,6 +1,6 @@
-import { StatusChip } from '@sinnapi/ui';
 import { IdentityCard } from '@sinnapi/ui/profile';
 import { useVendorLogo } from '../../hooks/useVendorLogo';
+import ListingBadges from '../atoms/ListingBadges';
 
 type Props = {
   vendorId: string;
@@ -19,6 +19,12 @@ type Props = {
  * the personal photo on the other tab: a circle reads as a person, a rounded
  * square reads as a brand. Worth being deliberate about, because the two upload
  * controls are otherwise identical and write to different records.
+ *
+ * The status chips ride in the card's banner rather than under the name. They
+ * describe the listing's state, not the identity, and `ListingFactsCard` directly
+ * below already spells the same two values out as labelled rows — leaving them
+ * centred beneath the name put a duplicate of that table's first two rows a
+ * centimetre above it.
  */
 export default function BusinessLogoCard({
   vendorId,
@@ -48,12 +54,8 @@ export default function BusinessLogoCard({
       helperText={`Drag an image here, or browse — up to ${maxSizeMb} MB. This appears on your public listing and in search results, so use your logo or your best work.`}
       onSelect={upload}
       onRemove={remove}
-      badges={
-        <>
-          <StatusChip status={status} />
-          <StatusChip status={visibility} />
-        </>
-      }
+      badgePlacement="banner"
+      badges={<ListingBadges status={status} visibility={visibility} />}
     />
   );
 }

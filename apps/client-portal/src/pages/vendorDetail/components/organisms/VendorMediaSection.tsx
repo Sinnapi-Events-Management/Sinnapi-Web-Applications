@@ -1,11 +1,11 @@
-import { Alert, Box, Skeleton, Stack, Typography } from '@sinnapi/ui';
-import MediaGrid from '../molecules/MediaGrid';
-import MediaLightbox from './MediaLightbox';
-import { useMediaLightbox } from '../../hooks/useMediaLightbox';
-import type { PlayableMedia } from '../../utils/mediaSource';
+import { Alert, Paper, Skeleton, Stack, Typography } from '@sinnapi/ui';
+import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
+import { MediaGrid, MediaViewer, useMediaViewer, type PlayableMedia } from '@sinnapi/ui/media';
+import VendorSectionHeading from '../atoms/VendorSectionHeading';
+import type { VendorMediaModel } from '@/lib/types';
 
 type Props = {
-  items: PlayableMedia[];
+  items: PlayableMedia<VendorMediaModel>[];
   vendorName: string;
   isLoading: boolean;
   error: unknown;
@@ -18,65 +18,86 @@ const SKELETON_HEIGHTS = [220, 170, 260, 190, 240, 200];
 /**
  * The portfolio section: the grid, its three states, and the viewer it opens.
  *
- * Media is presentational extra rather than page content, so an empty portfolio
- * renders nothing at all — a vendor with no uploads gets a clean profile, not an
- * "Add media" hole. A failed fetch is worth a quiet note, since the visitor can
- * otherwise not tell the difference between "no work shown" and "didn't load".
+ * It used to render nothing at all on an empty portfolio, so a vendor with no
+ * uploads got a clean profile rather than an "add media" hole. Under tabs that
+ * inverts: the hole becomes a tab that opens onto blank space, which reads as a
+ * page that failed rather than a vendor who hasn't uploaded. The tab set is
+ * fixed — see `schema/tabs.ts` — so this section now always says something, and
+ * the thing it says on an empty portfolio is a route to the vendor instead.
+ *
+ * The grid, the viewer and the strip all come from `@sinnapi/ui/media`, so what a
+ * client sees here is the same surface the vendor curates their portfolio
+ * through — and a fix to either reaches both.
  */
 export default function VendorMediaSection({ items, vendorName, isLoading, error }: Props) {
-  const lightbox = useMediaLightbox(items);
+  const viewer = useMediaViewer(items);
 
-  if (isLoading) {
-    return (
-      <Box sx={{ mt: 4 }}>
-        <SectionHeading />
+  return (
+    <section>
+      <VendorSectionHeading
+        eyebrow="Portfolio"
+        title="Photos & videos"
+        subtitle={`Work ${vendorName} has published. Tap any tile to open it full screen.`}
+      />
+
+      {isLoading ? (
         <Stack direction="row" spacing={1.5}>
           {SKELETON_HEIGHTS.slice(0, 3).map((height, index) => (
             <Skeleton key={index} variant="rounded" height={height} sx={{ flex: 1 }} />
           ))}
         </Stack>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="warning" sx={{ mt: 4 }}>
-        This vendor’s photos and videos couldn’t be loaded.
-      </Alert>
-    );
-  }
-
-  if (items.length === 0) return null;
-
-  return (
-    <Box sx={{ mt: 4 }}>
-      <SectionHeading />
-      <MediaGrid items={items} vendorName={vendorName} onOpen={lightbox.openAt} />
-      <MediaLightbox
-        item={lightbox.active}
-        vendorName={vendorName}
-        position={lightbox.position}
-        count={lightbox.count}
-        canStep={lightbox.canStep}
-        onClose={lightbox.close}
-        onNext={lightbox.next}
-        onPrevious={lightbox.previous}
-        onKeyDown={lightbox.onKeyDown}
-      />
-    </Box>
+      ) : error ? (
+        <Alert severity="warning">This vendor’s photos and videos couldn’t be loaded.</Alert>
+      ) : items.length === 0 ? (
+        <EmptyPortfolio vendorName={vendorName} />
+      ) : (
+        <>
+          <MediaGrid items={items} fallbackAlt={vendorName} onOpen={viewer.openAt} />
+          <MediaViewer
+            items={items}
+            item={viewer.active}
+            index={viewer.index}
+            position={viewer.position}
+            count={viewer.count}
+            fallbackAlt={vendorName}
+            canStep={viewer.canStep}
+            onClose={viewer.close}
+            onNext={viewer.next}
+            onPrevious={viewer.previous}
+            onSelect={viewer.goTo}
+            onKeyDown={viewer.onKeyDown}
+          />
+        </>
+      )}
+    </section>
   );
 }
 
-function SectionHeading() {
+/**
+ * Says the portfolio is empty without implying the vendor is unproven — plenty
+ * of good vendors are booked entirely on referral and have never uploaded a
+ * photo, and a visitor reading this should be pointed at the person, not left
+ * to draw a conclusion.
+ */
+function EmptyPortfolio({ vendorName }: { vendorName: string }) {
   return (
-    <>
-      <Typography variant="overline" color="secondary">
-        Portfolio
+    <Paper
+      variant="outlined"
+      sx={{
+        p: { xs: 3, sm: 5 },
+        borderRadius: 3,
+        borderStyle: 'dashed',
+        textAlign: 'center',
+        // Reads as a placeholder in both modes: a hair off the page in light,
+        // a hair above it in dark, rather than a hard-coded grey either way.
+        bgcolor: 'action.hover',
+      }}
+    >
+      <PhotoLibraryOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+      <Typography variant="subtitle1">No photos or videos yet</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {vendorName} hasn’t published a portfolio here. Message them and ask to see recent work.
       </Typography>
-      <Typography variant="h4" sx={{ mt: 0.5, mb: 2 }}>
-        Photos &amp; videos
-      </Typography>
-    </>
+    </Paper>
   );
 }

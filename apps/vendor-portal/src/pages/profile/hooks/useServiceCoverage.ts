@@ -15,6 +15,9 @@ import { useServiceRegions, useVendorCoverage, useSetVendorCoverage } from '@/ho
  * underneath — without it the form would keep showing a selection the database
  * no longer holds.
  */
+/** Shown when the write failed without a readable message of its own. */
+const FALLBACK_SAVE_ERROR = 'Could not save your coverage.';
+
 export function useServiceCoverage(vendorId: string, onSaved?: (message: string) => void) {
   const regions = useServiceRegions();
   const coverage = useVendorCoverage(vendorId);
@@ -57,6 +60,11 @@ export function useServiceCoverage(vendorId: string, onSaved?: (message: string)
     isLoading: regions.isLoading || coverage.isLoading,
     error: regions.error ?? coverage.error,
     busy: save.isPending,
-    saveError: save.error,
+    // Normalised here rather than in the card: a `useMutation` error is `unknown`,
+    // and narrowing it is the hook's job — the view should be handed a string or
+    // nothing, not asked to interrogate what the data layer threw.
+    saveError: save.error ? (save.error as Error).message || FALLBACK_SAVE_ERROR : null,
+    /** No regions means invisible to every location filter, not an empty default. */
+    isUncovered: !coverage.isLoading && selected.length === 0,
   };
 }

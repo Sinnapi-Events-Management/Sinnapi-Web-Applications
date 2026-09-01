@@ -10,12 +10,15 @@ export * from './atoms';
 export * from './molecules';
 
 export * from './organisms/MessageThread';
+export * from './organisms/MessageDayGroup';
 export * from './organisms/ThreadComposer';
 export * from './organisms/ThreadPanel';
+export * from './organisms/EmbeddedThreadSurface';
 export * from './organisms/InboxLayout';
 export * from './organisms/InboxToolbar';
 export * from './organisms/ConversationListPanel';
 
+export * from './hooks/useThreadScroll';
 export * from './hooks/useConversationChannel';
 export * from './hooks/useMessagingRealtime';
 export * from './hooks/useAttachmentStaging';
