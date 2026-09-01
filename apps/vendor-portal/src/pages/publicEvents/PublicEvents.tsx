@@ -49,7 +49,6 @@ function EventsFeed({ vendorId }: { vendorId: string }) {
 
       <EventsResults
         events={feed.events}
-        vendorId={vendorId}
         interestedIds={feed.interestedIds}
         total={feed.total}
         error={feed.error}

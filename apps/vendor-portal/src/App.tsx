@@ -27,6 +27,7 @@ import Quotations from '@/pages/quotations';
 import QuotationDetail from '@/pages/quotationDetail';
 import Packages from '@/pages/packages';
 import PublicEvents from '@/pages/publicEvents';
+import PublicEventDetail from '@/pages/publicEventDetail';
 import Escrow from '@/pages/escrow';
 import Payouts from '@/pages/payouts';
 import Promotions from '@/pages/promotions';
@@ -103,6 +104,7 @@ export default function App() {
               Vendors have the old path bookmarked and linked from email. */}
           <Route path="/templates" element={<Navigate to="/packages" replace />} />
           <Route path="/public-events" element={<PublicEvents />} />
+          <Route path="/public-events/:id" element={<PublicEventDetail />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/payouts" element={<Payouts />} />
           <Route path="/promotions" element={<Promotions />} />

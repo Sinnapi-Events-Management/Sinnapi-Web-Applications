@@ -1,15 +1,15 @@
-import { Card, CardContent, Chip, Stack, Typography } from '@sinnapi/ui';
+import { Card, CardContent, Chip, Divider, Stack, Typography } from '@sinnapi/ui';
+import { AppLink } from '@sinnapi/ui/router';
 import { formatDate } from '@/lib/config';
+import { budgetLabel, eventUrgency, isActionable } from '@/lib/events';
 import type { PublicEventModel } from '@/lib/types';
-import EventCoverMedia, { COVER_ACCENT_COUNT } from '../atoms/EventCoverMedia';
 import EventUrgencyPill from '../atoms/EventUrgencyPill';
 import EventCardMeta from './EventCardMeta';
-import EventCardFooter from './EventCardFooter';
-import { budgetLabel, coverAccentIndex, eventUrgency, isActionable } from '../../schema/presenter';
+import EventCardBudget from './EventCardBudget';
+import EventCardActions from './EventCardActions';
 
 type PublicEventCardProps = {
   event: PublicEventModel;
-  vendorId: string;
   /** Whether this vendor has already expressed interest. */
   interested: boolean;
 };
@@ -17,82 +17,125 @@ type PublicEventCardProps = {
 /**
  * One public event, as a vendor sees it.
  *
- * Structural only — every derivation it renders (the budget string, how soon
- * the date is, which fallback wash the cover gets, whether the event can be
- * acted on) comes from `schema/presenter`, and each band of the card is its own
- * piece. What is left here is the order those bands sit in, which is the actual
- * design decision:
+ * Structurally the client portal's `MyEventCard`, deliberately: it is the same
+ * object seen from the other side of the deal, and the two portals showing it
+ * in two shapes made a vendor re-learn a card they already knew. That is also
+ * why the cover image is gone — it was 156px of gradient placeholder on almost
+ * every card (`cover_image_url` is optional and rarely filled), pushing the two
+ * facts a vendor actually scans for, the date and the budget, below the fold of
+ * a phone-sized card.
  *
- *   cover + urgency → what and how soon
- *   chips + title   → what kind of job this is
- *   meta            → when and where
- *   description     → the poster's own words, clamped
- *   footer          → what it's worth, and the one action
+ * The bands, in order:
  *
- * The card is a flex column with the content flexing, so the footer pins to the
- * bottom regardless of how much the middle carries. Combined with the clamped
- * description that gives every card in a row the same baseline — the thing that
- * makes a grid scannable rather than merely tidy.
+ *   chips     → what kind of job this is, and how soon
+ *   title     → the brief, and the link to its page
+ *   meta      → when and where
+ *   summary   → the poster's own words, clamped to two lines
+ *   budget    → what it's worth
+ *   actions   → the one thing a vendor can do about it
+ *
+ * Everything it renders is derived in `@/lib/events`, so this file is layout
+ * only. The card is a flex column and the budget/action block carries
+ * `mt: auto`, so those two bands pin to the bottom regardless of how much the
+ * middle holds — combined with the clamped description that gives every card in
+ * a row the same baseline, which is what makes a grid scannable rather than
+ * merely tidy.
  */
-export default function PublicEventCard({ event, vendorId, interested }: PublicEventCardProps) {
+export default function PublicEventCard({ event, interested }: PublicEventCardProps) {
   const urgency = eventUrgency(event.event_date);
   const actionable = isActionable(event);
 
   return (
     <Card
       variant="outlined"
+      // `position: relative` is what the stretched title link below anchors to.
       sx={{
         height: '100%',
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
-        transition: 'border-color .2s ease, box-shadow .2s ease, transform .2s ease',
-        // Lifts on hover, and only on devices that actually hover — a touch
-        // device holds :hover after a tap, leaving one card stuck raised.
-        '@media (hover: hover)': {
-          '&:hover': {
-            borderColor: 'secondary.main',
-            boxShadow: 6,
-            transform: 'translateY(-2px)',
-          },
-        },
-        '@media (prefers-reduced-motion: reduce)': {
-          transition: 'none',
-          '&:hover': { transform: 'none' },
+        transition: (t) => t.transitions.create(['border-color', 'box-shadow']),
+        '&:hover': { borderColor: 'secondary.main', boxShadow: 2 },
+        // The card is a link target, so it has to show focus. The ring is drawn
+        // on the card rather than the anchor because the anchor is only the
+        // title text — focusing it should light up the thing that will open.
+        '&:focus-within': {
+          borderColor: 'secondary.main',
+          outline: '2px solid',
+          outlineColor: 'secondary.main',
+          outlineOffset: 2,
         },
       }}
     >
-      <EventCoverMedia
-        src={event.cover_image_url}
-        alt={event.title}
-        accent={coverAccentIndex(event, COVER_ACCENT_COUNT)}
-        overlay={urgency ? <EventUrgencyPill urgency={urgency} /> : null}
-      />
+      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mb: 1 }}
+        >
+          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ minWidth: 0 }}>
+            {/* The RPC returns the occasion's own display name, so there is no
+                token left to titleize — the chip reads what the admin named it. */}
+            {event.event_type_name && (
+              <Chip
+                size="small"
+                color="secondary"
+                variant="outlined"
+                label={event.event_type_name}
+              />
+            )}
+            {/* The source chip only speaks up for inspiration. On the open
+                events the tab bar and the action row already say what this is,
+                and a chip repeating it is the kind of redundancy that makes a
+                card feel busy without telling anyone anything. */}
+            {!actionable && <Chip size="small" variant="outlined" label="Inspiration" />}
+          </Stack>
 
-      <CardContent sx={{ flex: 1 }}>
-        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1 }}>
-          {/* The RPC returns the occasion's own display name, so there is no
-              token left to titleize — the chip reads what the admin named it. */}
-          {event.event_type_name && (
-            <Chip size="small" color="secondary" variant="outlined" label={event.event_type_name} />
-          )}
-          {/* The source chip only speaks up for inspiration. On the open events
-              the tab bar and the footer's button already say what this is, and
-              a chip repeating it is the kind of redundancy that makes a card
-              feel busy without telling anyone anything. */}
-          {!actionable && <Chip size="small" variant="outlined" label="Inspiration" />}
+          {/* Right-hand slot, where the client portal's card carries its status
+              chip. A vendor has no status to read on someone else's event; how
+              soon it is, is the equivalent fact. */}
+          {urgency && <EventUrgencyPill urgency={urgency} />}
         </Stack>
 
+        {/*
+          A "stretched link": the anchor is the title, and its ::after covers the
+          whole card so the entire surface opens the event.
+
+          The alternative — wrapping the card in `CardActionArea` — cannot be
+          used here, because the action row below contains a button, and a button
+          inside a link is invalid HTML that assistive technology reports
+          inconsistently and that swallows the inner control's activation. This
+          way there is exactly ONE link in the accessibility tree, it is named by
+          the event's own title rather than by the whole card's text, and the
+          controls that must stay independently clickable lift themselves above
+          the overlay.
+        */}
         <Typography
           variant="h6"
           sx={{
+            lineHeight: 1.3,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}
         >
-          {event.title}
+          <AppLink
+            to={`/public-events/${event.id}`}
+            color="text.primary"
+            sx={{
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                inset: 0,
+                borderRadius: 'inherit',
+              },
+            }}
+          >
+            {event.title}
+          </AppLink>
         </Typography>
 
         <EventCardMeta
@@ -118,15 +161,15 @@ export default function PublicEventCard({ event, vendorId, interested }: PublicE
             {event.description}
           </Typography>
         )}
-      </CardContent>
 
-      <EventCardFooter
-        eventId={event.id}
-        vendorId={vendorId}
-        budget={budgetLabel(event)}
-        actionable={actionable}
-        interested={interested}
-      />
+        {/* `mt: auto` is what pins the value and the action to the foot of every
+            card in the row, whatever the middle carries. */}
+        <Divider sx={{ mt: 'auto', pt: 1.5 }} />
+        <EventCardBudget budget={budgetLabel(event)} />
+
+        <Divider sx={{ my: 1.5 }} />
+        <EventCardActions eventId={event.id} actionable={actionable} interested={interested} />
+      </CardContent>
     </Card>
   );
 }

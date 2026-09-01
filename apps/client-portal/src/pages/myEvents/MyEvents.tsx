@@ -7,14 +7,14 @@ import MyEventsGrid from './components/organisms/MyEventsGrid';
 import EventCreateDrawer from './components/organisms/EventCreateDrawer';
 
 export default function MyEvents() {
-  const { rows, isLoading, error } = useMyEvents();
+  const { rows, isLoading, error, budgets, budgetsLoading } = useMyEvents();
   const create = useEventCreate();
 
   return (
     <>
       <PageTitle
         title="My Events"
-        subtitle="Events you've posted for vendors to bid on."
+        subtitle="Events you've posted for vendors to bid on. Open one to plan its budget and pick vendors."
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={create.open}>
             Post an event
@@ -29,7 +29,7 @@ export default function MyEvents() {
             description="Post an event so vendors can express interest."
           />
         ) : (
-          <MyEventsGrid events={rows} />
+          <MyEventsGrid events={rows} budgets={budgets} budgetsLoading={budgetsLoading} />
         )}
       </QueryState>
 

@@ -7,7 +7,6 @@ import ResultsSummary from '../molecules/ResultsSummary';
 
 type EventsResultsProps = {
   events: PublicEventModel[];
-  vendorId: string;
   interestedIds: Set<string>;
   total: number;
   error: unknown;
@@ -28,7 +27,8 @@ const SKELETON_COUNT = 8;
  * Column counts cut against the width the grid actually gets, not the viewport:
  * from `md` up the shell's 256px drawer is permanent, so an `md` screen leaves
  * roughly 650px here — two cards, not three. Four only at `xl`, where a card
- * still clears ~300px and its cover stays a photo rather than a strip.
+ * still clears ~300px, which is the width its title needs before it starts
+ * wrapping to the clamp on every row.
  */
 const GRID_ITEM = { xs: 12, sm: 6, md: 6, lg: 4, xl: 3 } as const;
 
@@ -50,7 +50,6 @@ const GRID_ITEM = { xs: 12, sm: 6, md: 6, lg: 4, xl: 3 } as const;
  */
 export default function EventsResults({
   events,
-  vendorId,
   interestedIds,
   total,
   error,
@@ -113,11 +112,7 @@ export default function EventsResults({
         <Grid container spacing={3}>
           {events.map((event) => (
             <Grid item {...GRID_ITEM} key={event.id}>
-              <PublicEventCard
-                event={event}
-                vendorId={vendorId}
-                interested={interestedIds.has(event.id)}
-              />
+              <PublicEventCard event={event} interested={interestedIds.has(event.id)} />
             </Grid>
           ))}
         </Grid>

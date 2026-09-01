@@ -1,20 +1,4 @@
-import type { ReactNode } from 'react';
-import { Stack, Typography } from '@sinnapi/ui';
-import EventIcon from '@mui/icons-material/Event';
-import PlaceIcon from '@mui/icons-material/Place';
-
-type MetaRowProps = { icon: ReactNode; children: ReactNode };
-
-function MetaRow({ icon, children }: MetaRowProps) {
-  return (
-    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
-      {icon}
-      <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
-        {children}
-      </Typography>
-    </Stack>
-  );
-}
+import { Typography } from '@sinnapi/ui';
 
 type EventCardMetaProps = {
   /** Already formatted for display — this component does no date maths. */
@@ -23,29 +7,27 @@ type EventCardMetaProps = {
 };
 
 /**
- * The card's when-and-where line.
+ * The card's when-and-where line: `16 Sept 2026 · Kampala`.
  *
- * Both rows are `noWrap`: `events.location` is free text a client typed, so
+ * One line of secondary text rather than a strip of icon rows, matching the
+ * client portal's event card exactly — the two portals show the same object and
+ * a vendor who is also a client should not have to re-learn it.
+ *
+ * `noWrap` matters here: `events.location` is free text a client typed, so
  * "Serena Hotel, Kintu Road, Kampala Central" is a normal value and wrapping it
- * pushes the description and the footer down on that one card. Truncating keeps
- * the row a row, and the full string is one card-click away.
+ * pushes the description and the budget down on that one card. Truncating keeps
+ * the row a row, and the full string is one card-click away on the event page.
  *
- * Neither row renders when its value is missing, so a brief that omits a venue
- * doesn't leave an empty icon behind.
+ * A missing half is dropped rather than dashed, so a brief with no venue does
+ * not read as `16 Sept 2026 · —`. With neither, the line does not draw at all.
  */
 export default function EventCardMeta({ date, location }: EventCardMetaProps) {
-  if (!date && !location) return null;
+  const parts = [date, location].filter(Boolean);
+  if (parts.length === 0) return null;
 
   return (
-    <Stack
-      direction="row"
-      spacing={2}
-      useFlexGap
-      flexWrap="wrap"
-      sx={{ color: 'text.secondary', mt: 1 }}
-    >
-      {date && <MetaRow icon={<EventIcon fontSize="inherit" />}>{date}</MetaRow>}
-      {location && <MetaRow icon={<PlaceIcon fontSize="inherit" />}>{location}</MetaRow>}
-    </Stack>
+    <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.5 }}>
+      {parts.join(' · ')}
+    </Typography>
   );
 }

@@ -34,6 +34,10 @@ import type {
   AvailabilityModel,
   BlockedDateModel,
   PublicEventModel,
+  PublicEventDetailModel,
+  PublicEventRequirementModel,
+  VendorEventQuotationModel,
+  VendorEventBookingModel,
   EventTypeRef,
   EventInterestModel,
   EscrowModel,
@@ -893,6 +897,126 @@ export function useMyInterests(vendorId?: string) {
         .select('event_id,status')
         .eq('vendor_id', vendorId!);
       return (data ?? []) as EventInterestModel[];
+    },
+  });
+}
+
+/**
+ * The columns the event page reads. Spelled out rather than `*` so the row the
+ * page renders is the row this app is allowed to see: `posted_by` and the audit
+ * trail stay out of the browser, because the feed's whole promise is that a
+ * vendor sees the brief and not the client behind it.
+ *
+ * A literal, not a built string: supabase-js infers the row shape from the
+ * select as a *literal type*, and a concatenated one widens to `string`, at
+ * which point the inferred row becomes `GenericStringError` and the cast stops
+ * compiling.
+ */
+const PUBLIC_EVENT_DETAIL_SELECT =
+  'id,title,description,event_date,location,budget_min,budget_max,currency,source,created_at,event_types(key,name)';
+
+/**
+ * One public event, for its own page.
+ *
+ * `maybeSingle` rather than `single`, and the null is a real answer: an event
+ * that has been unpublished, made private or soft-deleted simply stops
+ * satisfying `events_public_read`, and the row vanishes for the vendor with no
+ * error. The page says "no longer open" for that; a thrown 406 would say
+ * "something broke", which is a different and wrong claim.
+ *
+ * The PostgREST error IS raised, because a failed request and a withdrawn event
+ * must not look the same — that confusion is exactly what the quotation page's
+ * comment above `useQuotation` was written about.
+ */
+export function usePublicEvent(id: string) {
+  return useQuery({
+    queryKey: ['public-event', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(PUBLIC_EVENT_DETAIL_SELECT)
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as PublicEventDetailModel) ?? null;
+    },
+  });
+}
+
+/**
+ * The client's plan, in the vendor-safe projection.
+ *
+ * Through the RPC rather than a select on `event_requirements`, and that is not
+ * a style choice: the rule being enforced is column-level — a vendor may read
+ * four of the columns and must never read `allocated_amount` — and RLS filters
+ * rows, not columns. `list_event_requirements_public` is where that line is
+ * drawn, so this is the only way the vendor portal may read a plan.
+ */
+export function useEventRequirementsPublic(eventId: string) {
+  return useQuery({
+    queryKey: ['public-event', eventId, 'requirements'],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_event_requirements_public', {
+        p_event_id: eventId,
+      });
+      if (error) throw error;
+      return (data ?? []) as PublicEventRequirementModel[];
+    },
+  });
+}
+
+/**
+ * This vendor's quotations against one event, newest first.
+ *
+ * Scoped by vendor as well as event even though `quotations_read` already does
+ * it: a filter the server enforces and the client repeats costs an index scan
+ * and removes the class of bug where a policy is loosened later and a page
+ * quietly starts showing a competitor's quotes.
+ *
+ * There can legitimately be several — one vendor may quote two lines of one
+ * event (the caterer who also does the cake), which is why `open_event_quotation`
+ * keys on the requirement and not just the pair.
+ */
+export function useVendorEventQuotations(vendorId: string | undefined, eventId: string) {
+  return useQuery({
+    queryKey: ['v-event-quotations', vendorId, eventId],
+    enabled: !!vendorId && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotations')
+        .select(
+          'id,reference_no,status,total,currency,valid_until,sent_at,created_at,requirement_id',
+        )
+        .eq('vendor_id', vendorId!)
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as VendorEventQuotationModel[];
+    },
+  });
+}
+
+/** This vendor's bookings against one event — what the quotes actually became. */
+export function useVendorEventBookings(vendorId: string | undefined, eventId: string) {
+  return useQuery({
+    queryKey: ['v-event-bookings', vendorId, eventId],
+    enabled: !!vendorId && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        // One literal, not a concatenation: supabase-js infers the row shape
+        // from the select as a *literal type*, and a built string widens to
+        // `string`, at which point the row becomes `GenericStringError`.
+        .select(
+          'id,reference_no,status,event_date,start_time,end_time,location,amount,currency,quotation_id,requirement_id',
+        )
+        .eq('vendor_id', vendorId!)
+        .eq('event_id', eventId)
+        .order('event_date', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as VendorEventBookingModel[];
     },
   });
 }

@@ -606,6 +606,91 @@ export type EventInterestModel = {
 };
 
 /**
+ * One public event as its own page reads it — the same row the feed's card
+ * shows, plus the fields only worth a round trip when someone has actually
+ * opened the brief.
+ *
+ * Read straight from `events` rather than through `search_events_public`:
+ * `events_public_read` already scopes the table to published, public events
+ * (or the caller's own), so a single-row read needs no RPC. `event_types` is
+ * embedded because the occasion's display name lives there now — the RPC's
+ * flat `event_type_name` has no equivalent on a plain select.
+ *
+ * `posted_by` is deliberately NOT selected. The feed withholds the client
+ * behind a brief and the event page keeps that promise; the vendor meets them
+ * through the quotation, once there is one. `status` and `is_public` are absent
+ * for a different reason: `events_public_read` only ever hands this reader a
+ * published, public event, so both are constants here and a page branching on
+ * them would be branching on a value it cannot see change.
+ */
+export type PublicEventDetailModel = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string | null;
+  location: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  currency: string | null;
+  source: 'admin' | 'client' | string;
+  created_at: string;
+  /** PostgREST may widen a to-one embed to an array — read through `one()`. */
+  event_types: EventTypeRef | EventTypeRef[] | null;
+};
+
+/**
+ * One line of a client's plan, as a vendor may read it — a row of
+ * `list_event_requirements_public`.
+ *
+ * FOUR COLUMNS ARE MISSING ON PURPOSE, and this is the one type in the file
+ * where that is the point: `allocated_amount`, and everything derived from it,
+ * never leaves the client's own portal. What a client has set aside for a line
+ * is their negotiating position, and a vendor who can read it prices to it.
+ * `is_open` is the safe half of that question — whether the line still needs
+ * someone — and it is derived from committed bookings only, so a line with two
+ * quotes already out still reads as open.
+ */
+export type PublicEventRequirementModel = {
+  id: string;
+  category_id: string;
+  category_key: string;
+  category_name: string;
+  title: string | null;
+  brief: string | null;
+  priority: string;
+  sort_order: number | null;
+  is_open: boolean;
+};
+
+/** One of this vendor's quotations against one event, as its summary card reads it. */
+export type VendorEventQuotationModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  total: number | null;
+  currency: string | null;
+  valid_until: string | null;
+  sent_at: string | null;
+  created_at: string;
+  requirement_id: string | null;
+};
+
+/** One of this vendor's bookings against one event. */
+export type VendorEventBookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  amount: number | null;
+  currency: string | null;
+  quotation_id: string | null;
+  requirement_id: string | null;
+};
+
+/**
  * Escrow as the vendor sees it.
  *
  * `agreed_amount` is what they actually receive — commission and the

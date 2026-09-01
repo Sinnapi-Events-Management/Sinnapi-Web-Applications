@@ -66,6 +66,13 @@ export * from './MarketingConsent';
 export * from './money';
 export * from './datetime';
 export * from './MoneyBreakdown';
+// Event budgets — what a client set aside, against what they have committed.
+// Logic first, then the meter every portal draws it with. Deliberately apart
+// from `statusColor`: that map binds `open` to error for reconciliation, and an
+// event requirement that is `open` is the healthy starting state of a new plan.
+export * from './eventBudget';
+export * from './BudgetMeter';
+export * from './BudgetStateChip';
 // Payment terms — the rail as a term of the deal. Logic first, then the four
 // surfaces that render it: the client's priced comparison, one card of it, the
 // itemised cost of the chosen rail, and the state of the negotiation.
