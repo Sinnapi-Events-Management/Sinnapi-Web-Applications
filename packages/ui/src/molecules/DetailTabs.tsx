@@ -160,6 +160,23 @@ export type DetailTabPanelProps<T extends string> = {
   active: T;
   /** Must match the `idPrefix` given to `<DetailTabs />`. */
   idPrefix: string;
+  /**
+   * Renders every panel and hides the inactive ones with CSS instead of
+   * unmounting them.
+   *
+   * Off by default, and it should stay off inside the portals — see the note on
+   * the component below. It exists for the one case where the DOM has a second
+   * reader: a server-rendered public page that search engines index. There,
+   * unmounting means the bio, the packages and the reviews never appear in the
+   * HTML a crawler is served, and a vendor profile that ranks for none of its
+   * own prices is a worse outcome than a slightly heavier page.
+   *
+   * Hidden via the `hidden` attribute rather than `display: none` in `sx`, so
+   * the panel leaves the accessibility tree, tab order and find-in-page too —
+   * an off-screen panel that a screen reader still walks through is exactly the
+   * over-scrolling the tabs were meant to end.
+   */
+  keepMounted?: boolean;
   children: ReactNode;
 };
 
@@ -170,18 +187,26 @@ export type DetailTabPanelProps<T extends string> = {
  * reads, and React Query keeps the answers, so coming back is a cache hit —
  * whereas keeping four panels mounted means every card on the page subscribes,
  * re-renders and polls for a section nobody is looking at.
+ *
+ * `keepMounted` reverses that for a page whose HTML is read by something other
+ * than the person looking at it. It is the right call on the public site, where
+ * the panels are server-rendered static content with no subscriptions to leave
+ * running, and the wrong one in a portal, where they are live queries.
  */
 export function DetailTabPanel<T extends string>({
   value,
   active,
   idPrefix,
+  keepMounted = false,
   children,
 }: DetailTabPanelProps<T>) {
-  if (value !== active) return null;
+  const isActive = value === active;
+  if (!isActive && !keepMounted) return null;
 
   return (
     <Box
       role="tabpanel"
+      hidden={!isActive}
       id={detailPanelId(idPrefix, value)}
       aria-labelledby={detailTabId(idPrefix, value)}
     >

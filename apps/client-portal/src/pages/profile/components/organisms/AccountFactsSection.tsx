@@ -54,8 +54,8 @@ export default function AccountFactsSection({ profile }: Props) {
       key: 'id',
       label: 'Account ID',
       icon: <BadgeIcon />,
-      value: profile.id,
-      copyValue: profile.id,
+      value: profile.public_id,
+      copyValue: profile.public_id,
       mono: true,
     },
   ];

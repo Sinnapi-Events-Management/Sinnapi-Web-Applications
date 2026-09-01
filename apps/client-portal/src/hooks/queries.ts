@@ -993,7 +993,7 @@ export function useProfile() {
       const { data, error } = await supabase
         .from('profiles')
         .select(
-          'id,full_name,email,phone,avatar_url,locale,preferred_currency,mfa_enabled,created_at',
+          'id,public_id,full_name,email,phone,avatar_url,locale,preferred_currency,mfa_enabled,created_at',
         )
         .eq('id', user.id)
         .maybeSingle();

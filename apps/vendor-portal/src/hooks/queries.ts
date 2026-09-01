@@ -38,6 +38,7 @@ import type {
   EventInterestModel,
   EscrowModel,
   PayoutModel,
+  VendorBankAccountModel,
   PromotionModel,
   PromotionDiscountModel,
   DiscountModel,
@@ -84,7 +85,7 @@ export function useProfile() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('id,full_name,email,phone,avatar_url,preferred_currency,created_at')
+        .select('id,public_id,full_name,email,phone,avatar_url,preferred_currency,created_at')
         .eq('id', user.id)
         .maybeSingle();
       return (data as ProfileModel) ?? null;
@@ -935,6 +936,39 @@ export function useVendorPayouts(vendorId: string | undefined, params: PageParam
       ),
     ),
     enabled: !!vendorId,
+  });
+}
+
+export const BANK_ACCOUNT_KEY = 'v-bank-account';
+
+/**
+ * The payout account currently on file, for display only.
+ *
+ * Every column here is safe to read: the `bank_owner` RLS policy already scopes
+ * the row to the vendor who owns it, and the select deliberately stops short of
+ * `account_number_encrypted` — that one is ciphertext with its own audited
+ * decrypt RPC, and naming it here would ship a blob to the browser that nothing
+ * on the client can (or should) open.
+ *
+ * `set_vendor_bank_account` inserts a new row and demotes the old one rather
+ * than updating in place, so "the account on file" is the primary row, not the
+ * newest; the `ux_bank_primary` partial index guarantees there is at most one.
+ */
+export function useVendorBankAccount(vendorId?: string) {
+  return useQuery({
+    queryKey: [BANK_ACCOUNT_KEY, vendorId],
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendor_bank_accounts')
+        .select('id,bank_name,account_name,account_number_last4,branch,is_verified,updated_at')
+        .eq('vendor_id', vendorId!)
+        .eq('is_primary', true)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as VendorBankAccountModel) ?? null;
+    },
   });
 }
 

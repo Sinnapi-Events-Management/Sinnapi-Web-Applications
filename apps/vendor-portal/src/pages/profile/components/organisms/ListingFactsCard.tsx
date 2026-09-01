@@ -51,8 +51,8 @@ export default function ListingFactsCard({ vendor }: Props) {
       key: 'id',
       label: 'Vendor ID',
       icon: <BadgeIcon />,
-      value: vendor.id,
-      copyValue: vendor.id,
+      value: vendor.public_id,
+      copyValue: vendor.public_id,
       mono: true,
     },
   ];

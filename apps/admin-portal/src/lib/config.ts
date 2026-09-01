@@ -22,6 +22,7 @@ import LockPersonIcon from '@mui/icons-material/LockPerson';
 import StarIcon from '@mui/icons-material/Star';
 import InsightsIcon from '@mui/icons-material/Insights';
 import HistoryIcon from '@mui/icons-material/History';
+import ManageSearchIcon from '@mui/icons-material/ManageSearchOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PolicyIcon from '@mui/icons-material/Policy';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -153,6 +154,10 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'System',
     items: [
       { label: 'Reports', to: '/reports', icon: InsightsIcon },
+      // Ungated, unlike its neighbours: it reveals a record's name and a link,
+      // never its contents, and it is the first thing a support agent reaches
+      // for when a caller starts by reading out a reference.
+      { label: 'ID Lookup', to: '/lookup', icon: ManageSearchIcon },
       { label: 'Audit Log', to: '/audit', icon: HistoryIcon, perm: 'audit.read' },
       { label: 'Settings', to: '/settings', icon: SettingsIcon, perm: 'settings.manage' },
       { label: 'Retention', to: '/retention', icon: PolicyIcon, perm: 'compliance.manage' },

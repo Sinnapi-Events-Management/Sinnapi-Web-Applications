@@ -25,7 +25,32 @@ import {
  * upload. Object URLs are a document-lifetime allocation, so the outgoing one is
  * released on every swap and on unmount — a vendor trying five photos should not
  * leak five blobs.
+ *
+ * THE STAND-IN IS HANDED OVER, NOT LEFT IN PLACE
+ * Once the stored URL exists the local one has no further job, and keeping it
+ * makes the field's displayed image depend on a handle that is scoped to this
+ * document and revoked on unmount — while every other surface reads the stored
+ * URL. That divergence is a bug waiting to be reported as "it saved but it
+ * disappeared". So the object URL is released the moment the stored one takes
+ * over, and the stored one is decoded FIRST so the swap does not blink: the
+ * upload is not reported as finished until the thing it produced can be drawn.
  */
+/**
+ * Resolves once `url` has been fetched and decoded, or rejects if it cannot be.
+ *
+ * A detached `Image` rather than a `fetch`: the point is to warm the same cache
+ * entry the `<img>` in the field will read, which a `fetch` of a cross-origin
+ * URL would not reliably do.
+ */
+function decodeImage(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error('unloadable'));
+    image.src = url;
+  });
+}
+
 export function useCoverUpload(
   folder: string,
   vendorId: string,
@@ -68,7 +93,15 @@ export function useCoverUpload(
         const blob = await toCoverImage(file);
         const path = vendorCoverPath(folder, vendorId);
         await publicMediaStorage.upload(path, blob);
-        onUploaded(publicMediaStorage.publicUrl(path));
+
+        const url = publicMediaStorage.publicUrl(path);
+        // Warmed before the handover, and failure here is not the upload's
+        // failure — the object is stored either way, and the field falls back
+        // to its own empty state if the URL genuinely will not render.
+        await decodeImage(url).catch(() => undefined);
+
+        onUploaded(url);
+        setPreviewUrl(null);
       } catch (uploadError) {
         setPreviewUrl(null);
         setError(

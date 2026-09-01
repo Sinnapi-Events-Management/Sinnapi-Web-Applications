@@ -1,114 +1,46 @@
-import { useRef } from 'react';
-import { Alert, Box, Button, IconButton, Stack, Typography } from '@sinnapi/ui';
-import { alpha } from '@mui/material/styles';
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { useController, type Control } from 'react-hook-form';
+import { CoverImageField } from '@sinnapi/ui/media';
 import { COVER_ACCEPT } from '@/lib/packageCover';
 import { usePackageCover } from '../../hooks/usePackageCover';
+import type { PackageFormValues } from '../../schema';
 
 type Props = {
   vendorId: string;
-  /** The saved URL, or '' — the form field's value. */
-  value: string;
-  onChange: (url: string) => void;
+  control: Control<PackageFormValues>;
 };
 
 /**
- * The photograph at the top of the package card.
+ * The photograph across the top of the package card.
  *
- * Shows the local preview while the upload is in flight and the stored URL
- * once it lands, so the picture appears the instant it is picked rather than
- * after a round trip. The band is 16:7 — the same ratio the card renders — so
- * what the vendor approves here is the crop that gets published.
+ * An adapter and nothing else: the band, the picker and the two colour modes
+ * live in the shared `CoverImageField`, the upload lives in `usePackageCover`,
+ * and what is left here is the wiring between them and one form field.
+ *
+ * Bound with `useController` from a component body rather than a `Controller`
+ * render prop in the parent form. The value is produced by an upload, not
+ * typed, so the field owns the picking and react-hook-form only ever sees the
+ * resulting URL — and binding it here keeps the editor form from re-rendering
+ * the whole cover subtree on every unrelated keystroke.
  */
-export default function PackageCoverField({ vendorId, value, onChange }: Props) {
-  const input = useRef<HTMLInputElement>(null);
-  const { busy, error, preview, upload, clear } = usePackageCover(vendorId, onChange);
-  const shown = preview ?? (value || null);
+export default function PackageCoverField({ vendorId, control }: Props) {
+  const { field } = useController({ name: 'cover_image_url', control });
+  const cover = usePackageCover(vendorId, field.onChange);
 
   return (
-    <Box>
-      <Typography variant="subtitle2" fontWeight={700}>
-        Cover image
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Optional. A wide photo of this package delivered — it is the first thing a client sees.
-      </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ mt: 1.5 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Box
-        sx={{
-          mt: 1.5,
-          position: 'relative',
-          borderRadius: 2,
-          overflow: 'hidden',
-          aspectRatio: '16 / 7',
-          border: (t) => `1px dashed ${t.palette.divider}`,
-          bgcolor: (t) => alpha(t.palette.text.primary, t.palette.mode === 'dark' ? 0.08 : 0.03),
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: busy ? 0.6 : 1,
-        }}
-      >
-        {shown ? (
-          <>
-            <Box
-              component="img"
-              src={shown}
-              alt=""
-              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <IconButton
-              aria-label="Remove cover image"
-              onClick={clear}
-              size="small"
-              sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                // Fixed dark scrim rather than a palette colour: this sits on
-                // an arbitrary photograph, where theme background offers no
-                // contrast guarantee in either mode.
-                bgcolor: 'rgba(0,0,0,0.55)',
-                color: 'common.white',
-                '&:hover': { bgcolor: 'rgba(0,0,0,0.72)' },
-              }}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </>
-        ) : (
-          <Stack alignItems="center" spacing={1} sx={{ p: 2 }}>
-            <ImageOutlinedIcon sx={{ color: 'text.disabled' }} />
-            <Typography variant="caption" color="text.secondary">
-              No cover yet
-            </Typography>
-          </Stack>
-        )}
-      </Box>
-
-      <Button size="small" onClick={() => input.current?.click()} disabled={busy} sx={{ mt: 1 }}>
-        {busy ? 'Uploading…' : shown ? 'Replace image' : 'Upload image'}
-      </Button>
-
-      <input
-        ref={input}
-        type="file"
-        accept={COVER_ACCEPT}
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          // Cleared so picking the same file twice still fires a change.
-          event.target.value = '';
-          if (file) void upload(file);
-        }}
-      />
-    </Box>
+    <CoverImageField
+      label="Cover image"
+      hint="Optional. A wide photo of this package delivered — it is the first thing a client sees."
+      value={field.value ?? ''}
+      preview={cover.preview}
+      busy={cover.busy}
+      error={cover.error}
+      accept={COVER_ACCEPT}
+      emptyLabel="No cover yet — click to add one"
+      uploadLabel="Upload image"
+      replaceLabel="Replace image"
+      removeLabel="Remove cover image"
+      onPick={cover.upload}
+      onClear={cover.clear}
+    />
   );
 }

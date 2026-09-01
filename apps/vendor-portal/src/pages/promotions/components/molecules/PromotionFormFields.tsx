@@ -1,6 +1,6 @@
 import { Stack } from '@sinnapi/ui';
 import { ControlledField, ControlledDateRangeField } from '@sinnapi/ui/forms';
-import { useController, type Control } from 'react-hook-form';
+import type { Control } from 'react-hook-form';
 import type { PromotionFormValues } from '../../schema';
 import PromotionBannerField from './PromotionBannerField';
 
@@ -17,13 +17,11 @@ type Props = {
  * change without anyone re-reading how the write works — and so the same fields
  * back both creating a campaign and editing one.
  *
- * The banner is bound through `useController` rather than a `ControlledField`
- * because its value is produced by an upload, not typed: the field owns the
- * picking and hands back a URL, and react-hook-form only ever sees the result.
+ * The banner binds itself to the form rather than being handed a value: its
+ * content is produced by an upload, not typed, so the field owns the picking
+ * and react-hook-form only ever sees the resulting URL.
  */
 export default function PromotionFormFields({ control, vendorId }: Props) {
-  const banner = useController({ name: 'banner_url', control });
-
   return (
     <Stack spacing={2.5} sx={{ mt: 1 }}>
       <ControlledField
@@ -42,11 +40,7 @@ export default function PromotionFormFields({ control, vendorId }: Props) {
         placeholder="What the offer is, and what a client has to do to get it."
       />
 
-      <PromotionBannerField
-        vendorId={vendorId}
-        value={banner.field.value}
-        onChange={banner.field.onChange}
-      />
+      <PromotionBannerField vendorId={vendorId} control={control} />
 
       {/* The run of the campaign, picked as one span — see DiscountForm. */}
       <ControlledDateRangeField

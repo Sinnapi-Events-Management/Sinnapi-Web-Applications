@@ -1,6 +1,6 @@
-import { Alert, SectionCard, Skeleton, Typography } from '@sinnapi/ui';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import { Alert, Paper, Skeleton, Typography } from '@sinnapi/ui';
 import VendorRequestDialogs from '@/components/vendor/components/organisms/VendorRequestDialogs';
+import VendorSectionHeading from '../atoms/VendorSectionHeading';
 import AvailabilityMonthSummary from '../molecules/AvailabilityMonthSummary';
 import NextAvailableCallout from '../molecules/NextAvailableCallout';
 import UnavailableDayNotice from '../molecules/UnavailableDayNotice';
@@ -14,13 +14,18 @@ import { useVendorAvailability } from '../../hooks/useVendorAvailability';
  * Its own read rather than part of the profile payload, and its own loading and
  * error state to match: availability is the slowest-changing thing on the page
  * and the least essential to it, so a failure here should cost the visitor a
- * calendar, not the portfolio and the booking buttons above it.
+ * calendar, not the portfolio and the booking buttons in the other sections.
  *
  * The card raises its own booking dialog rather than driving the one in the
- * sidebar panel. The two live in different grid columns, and lifting the dialog
+ * engage panel. The two are in different subtrees — different grid columns on
+ * desktop, different sides of the tab bar on a phone — and lifting the dialog
  * to the page to share it would put transient interaction state above every
- * section that does not care about it — for a dialog that unmounts on close and
+ * section that does not care about it, for a dialog that unmounts on close and
  * so has nothing to share anyway.
+ *
+ * Opens with the same heading as every other panel rather than its own titled
+ * card. Inside a tab, a card's chrome is a second frame around content that is
+ * already framed, and the calendar needs the width more than it needs a border.
  */
 export default function VendorAvailabilitySection({ vendorId }: { vendorId: string }) {
   const availability = useVendorAvailability(vendorId);
@@ -33,11 +38,13 @@ export default function VendorAvailabilitySection({ vendorId }: { vendorId: stri
   };
 
   return (
-    <SectionCard
-      title="Availability"
-      subtitle="Days already spoken for. Everything else is open to request."
-      icon={<EventAvailableIcon />}
-    >
+    <section>
+      <VendorSectionHeading
+        eyebrow="Availability"
+        title="When they’re free"
+        subtitle="Days already spoken for. Everything else is open to request."
+      />
+
       {availability.error ? (
         <Alert severity="info">
           Availability could not be loaded. You can still send a request — the vendor will confirm
@@ -46,7 +53,7 @@ export default function VendorAvailabilitySection({ vendorId }: { vendorId: stri
       ) : availability.isLoading ? (
         <Skeleton variant="rounded" height={420} />
       ) : (
-        <>
+        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
           <AvailabilityMonthSummary summary={availability.summary} />
 
           {/* Only worth saying once something is actually taken. On an empty
@@ -84,7 +91,7 @@ export default function VendorAvailabilitySection({ vendorId }: { vendorId: stri
               onTakeNextOpen={takeNextOpen}
             />
           )}
-        </>
+        </Paper>
       )}
 
       <VendorRequestDialogs
@@ -93,6 +100,6 @@ export default function VendorAvailabilitySection({ vendorId }: { vendorId: stri
         onClose={request.closeRequest}
         eventDate={request.requestDate ?? undefined}
       />
-    </SectionCard>
+    </section>
   );
 }

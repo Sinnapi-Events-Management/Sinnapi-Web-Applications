@@ -40,6 +40,14 @@ export type BookingRel = {
 
 export type ProfileModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SC48213MQH`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -47,6 +55,25 @@ export type ProfileModel = {
   preferred_currency: string | null;
   /** Account creation timestamp — the "member since" fact on the profile page. */
   created_at: string | null;
+};
+
+/**
+ * The payout account on file, as much of it as a client is ever allowed to see.
+ *
+ * `account_number_encrypted` is deliberately absent: the column is pgp ciphertext
+ * that only `get_vendor_bank_account_secure` may decrypt, and only for a caller
+ * holding `payout.process`. What the vendor gets back is the last four digits the
+ * RPC stored alongside it — enough to recognise their own account, useless to
+ * anyone who shouldn't have it.
+ */
+export type VendorBankAccountModel = {
+  id: string;
+  bank_name: string;
+  account_name: string;
+  account_number_last4: string | null;
+  branch: string | null;
+  is_verified: boolean;
+  updated_at: string | null;
 };
 
 export type MyApplicationModel = {
@@ -798,6 +825,14 @@ export type NotificationPage = {
 
 export type VendorProfileEditModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SV285K7BV9`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   business_name: string;
   biography: string | null;
   base_city: string | null;

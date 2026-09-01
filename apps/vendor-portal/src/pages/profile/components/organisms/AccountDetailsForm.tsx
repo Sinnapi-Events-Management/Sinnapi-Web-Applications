@@ -1,16 +1,15 @@
-import { Alert, Box, Button, Divider, FormField, SectionCard, Stack } from '@sinnapi/ui';
-import { ControlledField, useSavedForm } from '@sinnapi/ui/forms';
+import { Box, Divider, SectionCard } from '@sinnapi/ui';
+import { SavedFormActions } from '@sinnapi/ui/forms';
 import PersonIcon from '@mui/icons-material/PersonOutline';
-import { accountFormSchema, type AccountFormValues } from '../../schema';
+import type { ProfileModel } from '@/lib/types';
+import { useAccountProfileForm } from '../../hooks/useAccountProfileForm';
+import FormErrorAlert from '../atoms/FormErrorAlert';
+import AccountIdentityFields from '../molecules/AccountIdentityFields';
 
 type Props = {
-  /** Last saved values; must be referentially stable per record revision. */
-  values: AccountFormValues;
-  /** The account identity — shown, never written. */
-  email: string | null;
-  busy: boolean;
-  error: string | null;
-  onSave: (values: AccountFormValues) => Promise<boolean>;
+  /** The saved account row; the form tracks it so a refetch reaches the fields. */
+  profile: ProfileModel;
+  onDone: (message: string) => void;
 };
 
 /**
@@ -21,8 +20,8 @@ type Props = {
  * text says which one this is so nobody types their brand here and wonders why the
  * listing didn't change.
  */
-export default function AccountDetailsForm({ values, email, busy, error, onSave }: Props) {
-  const { control, isDirty, revert, submit } = useSavedForm(accountFormSchema, values, onSave);
+export default function AccountDetailsForm({ profile, onDone }: Props) {
+  const { control, isDirty, revert, submit, busy, error } = useAccountProfileForm(profile, onDone);
 
   return (
     <SectionCard
@@ -31,67 +30,13 @@ export default function AccountDetailsForm({ values, email, busy, error, onSave 
       icon={<PersonIcon />}
     >
       <Box component="form" onSubmit={submit} noValidate>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2.5 }}>
-            {error}
-          </Alert>
-        )}
+        <FormErrorAlert error={error} />
 
-        <Stack spacing={2.5}>
-          <ControlledField
-            name="full_name"
-            control={control}
-            label="Your name"
-            required
-            disabled={busy}
-            helperText="Your own name, not your trading name — change that under Business."
-          />
-
-          {/* Rendered outside react-hook-form on purpose: an unregistered field
-              can't be submitted by accident, which is a stronger guarantee than a
-              disabled input that is still part of the form's values. */}
-          <FormField
-            label="Email"
-            type="email"
-            value={email ?? ''}
-            fullWidth
-            disabled
-            helperText="Your email is your account identity and can't be changed here."
-          />
-
-          <ControlledField
-            name="phone"
-            control={control}
-            label="Phone"
-            placeholder="+256 700 000000"
-            disabled={busy}
-            helperText="Used when a client or our support team needs to reach you about a booking."
-          />
-        </Stack>
+        <AccountIdentityFields control={control} email={profile.email} disabled={busy} />
 
         <Divider sx={{ my: 3 }} />
 
-        <Stack
-          direction={{ xs: 'column-reverse', sm: 'row' }}
-          spacing={1.5}
-          justifyContent="flex-end"
-        >
-          <Button
-            onClick={revert}
-            disabled={busy || !isDirty}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-          >
-            Discard changes
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={busy || !isDirty}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-          >
-            {busy ? 'Saving…' : 'Save changes'}
-          </Button>
-        </Stack>
+        <SavedFormActions busy={busy} isDirty={isDirty} onRevert={revert} />
       </Box>
     </SectionCard>
   );

@@ -48,6 +48,7 @@ import NewsletterDetail from '@/pages/newsletterDetail';
 import Subscribers from '@/pages/subscribers';
 import Reports from '@/pages/reports';
 import Audit from '@/pages/audit';
+import Lookup from '@/pages/lookup';
 import Settings from '@/pages/settings';
 import Retention from '@/pages/retention';
 import ServiceCategories from '@/pages/serviceCategories';
@@ -171,6 +172,10 @@ export default function App() {
 
           <Route path="/reports" element={<Reports />} />
           <Route path="/audit" element={g('audit.read', <Audit />)} />
+          {/* No `perm` guard: the page resolves an ID to a label and a link and
+              nothing more, and every page it links to applies its own check. Any
+              member of staff who answers a call needs it. */}
+          <Route path="/lookup" element={<Lookup />} />
           <Route path="/settings" element={g('settings.manage', <Settings />)} />
           <Route path="/retention" element={g('compliance.manage', <Retention />)} />
           <Route path="/service-categories" element={g('settings.manage', <ServiceCategories />)} />

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useFieldArray, useWatch, type Control } from 'react-hook-form';
+import { useFieldArray, type Control } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { packageActionError } from '@sinnapi/ui';
@@ -9,12 +9,30 @@ import {
   emptyPackageLine,
   emptyPackageTier,
   emptyPackageValues,
-  formValuesToPreview,
   packageFormSchema,
   packageToFormValues,
   toSavePackageArgs,
   type PackageFormValues,
 } from '../schema';
+
+/** The tier array, as the section that renders it needs to see it. */
+export type PackageTiersController = {
+  fields: { id: string }[];
+  add: () => void;
+  remove: (index: number) => void;
+  /** False on the last remaining tier — a package must keep one. */
+  canRemove: boolean;
+  recommend: (index: number) => void;
+  /** The array-level message, e.g. "a package needs at least one tier". */
+  error?: string;
+};
+
+/** The add-on array, as the section that renders it needs to see it. */
+export type PackageAddOnsController = {
+  fields: { id: string }[];
+  add: () => void;
+  remove: (index: number) => void;
+};
 
 /**
  * The package editor: one form over a three-level tree, saved in one call.
@@ -26,11 +44,11 @@ import {
  * preview beside the form is the other half of that: it prices from the live
  * values, so what they are about to publish is on screen while they type.
  *
- * WHY THE PREVIEW GOES THROUGH THE SHARED RENDERER
- * `formValuesToPreview` builds the same shape the read query returns, so the
- * preview and the published card are one code path. A preview with arithmetic
- * of its own is a preview that can flatter the thing it is previewing, which is
- * the one bug in an editor a vendor would never think to check for.
+ * WHAT THIS HOOK DELIBERATELY DOES NOT OWN
+ * The preview. It is derived from a watch over every field, and a subscription
+ * that broad re-renders whatever holds it on each keystroke — which, held here,
+ * meant the whole editor. It lives in `usePackagePreview`, called by the panel
+ * that shows it. See there.
  */
 export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onSaved: () => void) {
   const qc = useQueryClient();
@@ -50,14 +68,6 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
 
   const tiers = useFieldArray({ control, name: 'tiers' });
   const addOns = useFieldArray({ control, name: 'add_ons' });
-
-  // Watched rather than read on submit, because the preview is the point: the
-  // total has to move as the vendor types or it is not telling them anything.
-  const values = useWatch({ control }) as PackageFormValues;
-  const preview = useMemo(
-    () => formValuesToPreview({ ...emptyPackageValues, ...values }),
-    [values],
-  );
 
   const submit = handleSubmit(async (formValues) => {
     setError(null);
@@ -96,7 +106,6 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
     error,
     busy: isSubmitting,
     isEditing: pkg != null,
-    preview,
     tiers: {
       fields: tiers.fields,
       add: addTier,
@@ -105,12 +114,12 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
       canRemove: tiers.fields.length > 1,
       recommend,
       error: errors.tiers?.root?.message ?? errors.tiers?.message,
-    },
+    } satisfies PackageTiersController,
     addOns: {
       fields: addOns.fields,
       add: () => addOns.append({ ...emptyPackageLine }),
       remove: addOns.remove,
-    },
+    } satisfies PackageAddOnsController,
     setValue,
     submit,
   };

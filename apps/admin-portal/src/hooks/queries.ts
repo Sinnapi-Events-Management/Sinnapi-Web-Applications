@@ -101,6 +101,7 @@ import type {
   EmailSuppressionModel,
   PackageModel,
 } from '@/lib/types';
+import type { PublicIdLookupModel } from '@/lib/publicIdLookup';
 
 // Reads are RLS-gated by the admin's permissions (UI also hides via RBAC).
 // A head+count query resolves to a result carrying only `count`.
@@ -126,7 +127,7 @@ function pagedOptions<Row>(key: string, params: PageParams, fetcher: () => Promi
 // parts, phone, account facts) need, so both share one `['profile']` cache entry
 // — saving the page therefore refreshes the AppBar avatar in the same tick.
 const MY_PROFILE_SELECT =
-  'id,full_name,first_name,middle_name,last_name,email,phone,avatar_url,status,created_at,last_login_at';
+  'id,public_id,full_name,first_name,middle_name,last_name,email,phone,avatar_url,status,created_at,last_login_at';
 
 export function useProfile() {
   return useQuery({
@@ -2598,6 +2599,43 @@ export function useVendorPackagesAdmin(vendorId?: string) {
         .order('sort_order', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as PackageModel[];
+    },
+  });
+}
+
+// --- public identifier lookup ------------------------------------------------
+
+/**
+ * Resolve a public identifier — `SV285K7BV9`, or a legacy `Q-7657H8YH` — to the
+ * record it names.
+ *
+ * `enabled` is what makes this a search rather than a subscription: the hook is
+ * mounted for the life of the page but only fires once the caller has a term
+ * worth asking about, so an empty field costs nothing and every keystroke does
+ * not become a round trip.
+ *
+ * `staleTime: Infinity` because the answer cannot change. An identifier resolves
+ * to exactly one record forever — the registry never reissues one — so a repeat
+ * search for the same string is served from cache. The only thing that could
+ * shift is the record's *label*, which is not what an agent is here for.
+ *
+ * `retry: false`: the two ways this fails are a `forbidden` from the RPC's
+ * `is_admin()` gate and a network error, and neither is improved by asking
+ * again. A support agent typing an id wants an answer or a reason, quickly.
+ */
+export function usePublicIdLookup(query: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['public-id-lookup', query] as const,
+    enabled: enabled && query.length > 0,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async (): Promise<PublicIdLookupModel | null> => {
+      const { data, error } = await supabase.rpc('admin_lookup_public_id', { p_query: query });
+      if (error) throw error;
+      // The RPC returns a set; an empty term returns no rows at all, which is a
+      // distinct case from the single `found: false` row a real miss produces.
+      const row = (data as PublicIdLookupModel[] | null)?.[0];
+      return row ?? null;
     },
   });
 }

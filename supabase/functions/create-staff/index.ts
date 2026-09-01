@@ -97,6 +97,17 @@ Deno.serve(
         last_name: lastName,
         phone,
         must_change_password: true,
+        // Declares what this account is being created as, which is the only
+        // thing `profile_public_id_prefix` (migration 20260829000003) can read
+        // to decide between an `SA…` and an `SC…` identifier. It cannot read
+        // `user_roles`: the real staff roles are assigned a few lines below, and
+        // the profile — with its identifier — already exists by then.
+        //
+        // This grants nothing. `handle_new_user` still admits only
+        // `client`/`event_planner` for self-registration and still ignores this
+        // field when granting a role; the roles that carry permission are the
+        // ones inserted below, after `has_permission('users.manage')` passed.
+        role: 'staff',
       },
     });
     if (createErr || !created?.user) {

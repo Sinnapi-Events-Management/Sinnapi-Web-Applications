@@ -19,3 +19,4 @@ export * from './atoms';
 export * from './molecules';
 export * from './organisms';
 export * from './hooks/useMediaViewer';
+export * from './hooks/useCoverImageSource';

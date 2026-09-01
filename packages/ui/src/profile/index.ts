@@ -15,6 +15,7 @@
 // `useProfileImageUpload` for why the upload/commit/cleanup ordering lives here.
 export * from './types';
 export * from './schema';
+export * from './atoms';
 export * from './molecules';
 export * from './organisms';
 

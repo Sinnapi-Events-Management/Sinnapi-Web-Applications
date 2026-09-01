@@ -21,7 +21,7 @@ export function useProfile(vendorId: string) {
       const { data, error } = await supabase
         .from('vendors')
         .select(
-          'id,business_name,biography,base_city,website,starting_price,starting_price_currency,primary_image_url,slug,status,visibility,created_at',
+          'id,public_id,business_name,biography,base_city,website,starting_price,starting_price_currency,primary_image_url,slug,status,visibility,created_at',
         )
         .eq('id', vendorId)
         .maybeSingle();

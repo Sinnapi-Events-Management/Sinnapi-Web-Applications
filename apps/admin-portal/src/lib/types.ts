@@ -39,6 +39,14 @@ export type PricingPlanRef = {
 // (status, member-since, last sign-in) that page reports.
 export type ProfileModel = {
   id: string;
+  /**
+   * The identifier shown to the user, e.g. `SC48213MQH`.
+   *
+   * Not `id`. That column is `auth.users.id` / an internal join key and was
+   * never meant to be read aloud, retyped or quoted in a support ticket;
+   * `public_id` is (migration 20260829000001).
+   */
+  public_id: string;
   full_name: string | null;
   first_name: string | null;
   middle_name: string | null;

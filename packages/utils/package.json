@@ -9,7 +9,8 @@
     "./constants": "./constants.ts",
     "./userAgent": "./userAgent.ts",
     "./download": "./download.ts",
-    "./quotationPdf": "./quotationPdf/index.ts"
+    "./quotationPdf": "./quotationPdf/index.ts",
+    "./publicId": "./publicId.ts"
   },
   "scripts": {
     "lint": "eslint . --ext ts,tsx",
