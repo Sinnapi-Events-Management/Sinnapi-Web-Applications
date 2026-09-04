@@ -10,9 +10,9 @@ import {
   Typography,
 } from '@sinnapi/ui';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { CheckoutRailPicker } from '@sinnapi/ui/payments';
 import { formatMoney } from '@/lib/config';
 import { useEscrowActivation } from '../../hooks/useEscrowActivation';
-import PaymentRailPicker from '../molecules/PaymentRailPicker';
 import AdvanceTermsPanel from '../molecules/AdvanceTermsPanel';
 import AdvanceRateControl from '@/components/paymentTerms/components/molecules/AdvanceRateControl';
 import AdvanceConsentCheckbox from '@/components/paymentTerms/components/molecules/AdvanceConsentCheckbox';
@@ -106,7 +106,7 @@ export default function EscrowActivationDialog({
             <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
               How would you like to pay?
             </Typography>
-            <PaymentRailPicker
+            <CheckoutRailPicker
               rails={rails}
               selected={railIndex}
               onSelect={setRailIndex}

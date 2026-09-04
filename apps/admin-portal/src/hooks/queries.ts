@@ -23,6 +23,8 @@ import {
   VENDOR_ACCOUNT_STATUSES,
   EVENT_STATUSES,
   SUBSCRIPTION_STATUSES,
+  PAYMENT_STATUSES,
+  type PaymentStatus,
   type IntakeStatus,
   type VendorAdminStatus,
   type EventStatus,
@@ -51,9 +53,11 @@ import type {
   ReconciliationExceptionModel,
   RefundModel,
   DisputeModel,
-  PaymentModel,
+  PaymentAdminModel,
+  PaymentAdminDetailModel,
   LedgerEntryModel,
   SubscriptionAdminModel,
+  SubscriptionAdminDetailModel,
   PlanModel,
   PlanDetailModel,
   PlanKpis,
@@ -81,6 +85,7 @@ import type {
   NotificationTemplateModel,
   SettingModel,
   AuditLogModel,
+  PaymentTraceRow,
   RetentionPolicyModel,
   ErasureRequestModel,
   ConversationModel,
@@ -895,20 +900,37 @@ export function useEscrowAdmin(params: PageParams) {
   );
 }
 
-export function usePayoutsAdmin(params: PageParams) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The payout queue, optionally narrowed by one search term.
+ *
+ * A term that is a whole uuid is the payout's id — what a reconciliation
+ * exception quotes, and the reason the queue is searchable at all. Anything
+ * else is matched against the settlement reference Finance recorded.
+ */
+export function usePayoutsAdmin(params: PageParams, search?: string) {
+  // Folded into `filters` for the cache key only; `paginate` receives the
+  // original params so the term never reaches `applyFilters` as an `eq`.
+  const scoped: PageParams = {
+    ...params,
+    filters: { ...(params.filters ?? {}), q: search || undefined },
+  };
   return useQuery(
-    pagedOptions('admin-payouts', params, () =>
-      paginate<PayoutModel>(
-        supabase
-          .from('payouts')
-          .select(
-            'id,kind,escrow_id,amount,currency,status,settlement_method,settlement_reference,destination_label,proof_path,blocked_reason,notes,requested_by,recorded_by,recorded_at,approved_by,settled_at,created_at,vendors(business_name)',
-            { count: 'exact' },
-          ),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
+    pagedOptions('admin-payouts', scoped, () => {
+      let query = supabase
+        .from('payouts')
+        .select(
+          'id,kind,escrow_id,amount,currency,status,settlement_method,settlement_reference,destination_label,proof_path,blocked_reason,notes,requested_by,recorded_by,recorded_at,approved_by,settled_at,created_at,vendors(business_name)',
+          { count: 'exact' },
+        );
+      if (search) {
+        query = UUID_RE.test(search)
+          ? query.eq('id', search)
+          : query.ilike('settlement_reference', `%${search}%`);
+      }
+      return paginate<PayoutModel>(query, params, { field: 'created_at', ascending: false });
+    }),
   );
 }
 
@@ -934,10 +956,7 @@ export function useReconciliationExceptions(params: PageParams, openOnly = true)
     pagedOptions('admin-reconciliation', scoped, () => {
       const query = supabase
         .from('reconciliation_exceptions')
-        .select(
-          'id,kind,status,severity,detail,expected,actual,occurrences,escrow_id,payment_id,payout_id,first_seen_at,last_seen_at',
-          { count: 'exact' },
-        );
+        .select(RECON_SELECT, { count: 'exact' });
       return paginate<ReconciliationExceptionModel>(
         openOnly ? query.in('status', ['open', 'investigating']) : query,
         // The original params: `openOnly` is a cache-key concern, not a
@@ -947,6 +966,33 @@ export function useReconciliationExceptions(params: PageParams, openOnly = true)
       );
     }),
   );
+}
+
+// The escrow embed is what lets an escrow finding link to its booking page.
+// It comes back null for a reader without `escrow.read`, and the link with it.
+const RECON_SELECT =
+  'id,kind,status,severity,detail,expected,actual,occurrences,escrow_id,payment_id,payout_id,first_seen_at,last_seen_at,escrow_transactions(booking_id)';
+
+/**
+ * One reconciliation exception by id, for a deep link into the queue
+ * (`/reconciliation?item=<id>` from a payment page). The row may sit on any
+ * page of the list, or on none of them once resolved, so it is read on its own
+ * rather than looked for in the current page.
+ */
+export function useReconciliationException(id: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-reconciliation', 'item', id] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reconciliation_exceptions')
+        .select(RECON_SELECT)
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as ReconciliationExceptionModel | null) ?? null;
+    },
+    enabled: !!id,
+  });
 }
 
 export function useRefundsAdmin(params: PageParams) {
@@ -981,20 +1027,129 @@ export function useDisputesAdmin(params: PageParams) {
   );
 }
 
-export function usePaymentsAdmin(params: PageParams) {
-  return useQuery(
-    pagedOptions('admin-payments', params, () =>
-      paginate<PaymentModel>(
-        supabase
-          .from('payments')
-          .select('id,purpose,amount,currency,status,provider,provider_method,created_at', {
-            count: 'exact',
-          }),
-        params,
-        { field: 'created_at', ascending: false },
-      ),
-    ),
-  );
+/**
+ * The Payments list' non-status filters, shared by the list query and the tab
+ * badges. `from`/`to` are ISO timestamps bounding `created_at`, already widened
+ * to full-day bounds by the filter hook.
+ */
+export type PaymentAdminFilters = {
+  search?: string;
+  provider?: string;
+  purpose?: string;
+  from?: string;
+  to?: string;
+};
+
+/** Everything the paginated Payments query needs: page + sort + all filters. */
+export type PaymentAdminParams = PaymentAdminFilters & {
+  page: number;
+  pageSize: number;
+  sort?: SortModel;
+  /** `payment_status` value, or `undefined` for the "All" tab. */
+  status?: string;
+};
+
+// One page of the admin Payments list. `search_payments_admin` does search
+// (booking reference, payer name/email, provider reference, or the payment's
+// own id) + filter + sort + paginate + count server-side, and joins the payer
+// and booking that PostgREST could not expose to a `payments.read` holder.
+export function usePaymentsAdmin(params: PaymentAdminParams) {
+  return useQuery({
+    queryKey: ['admin-payments', params] as const,
+    queryFn: async (): Promise<Paged<PaymentAdminModel>> => {
+      const { data, error } = await supabase.rpc('search_payments_admin', {
+        p_search: params.search ?? null,
+        p_status: params.status ?? null,
+        p_provider: params.provider ?? null,
+        p_purpose: params.purpose ?? null,
+        p_from: params.from ?? null,
+        p_to: params.to ?? null,
+        p_sort_field: params.sort?.field ?? 'created_at',
+        p_sort_dir: params.sort?.direction ?? 'desc',
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as (PaymentAdminModel & { total_count: number | string })[];
+      return { rows, total: Number(rows[0]?.total_count ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Row count per payment status, plus `all` — drives the list' tabs. */
+export type PaymentAdminCounts = Record<PaymentStatus | 'all', number>;
+
+/**
+ * Per-status counts for the tab badges. The RPC honours every filter EXCEPT
+ * status, so each badge reflects what that tab would show once selected.
+ */
+export function usePaymentAdminStatusCounts(filters: PaymentAdminFilters) {
+  return useQuery({
+    queryKey: ['admin-payments', 'counts', filters] as const,
+    queryFn: async (): Promise<PaymentAdminCounts> => {
+      const { data, error } = await supabase.rpc('count_payments_admin_by_status', {
+        p_search: filters.search ?? null,
+        p_provider: filters.provider ?? null,
+        p_purpose: filters.purpose ?? null,
+        p_from: filters.from ?? null,
+        p_to: filters.to ?? null,
+      });
+      if (error) throw error;
+      const byStatus = (data ?? []) as { status: PaymentStatus; count: number | string }[];
+      const base = PAYMENT_STATUSES.reduce(
+        (acc, status) => ({ ...acc, [status]: 0 }),
+        {} as PaymentAdminCounts,
+      );
+      return byStatus.reduce(
+        (acc, { status, count }) => {
+          const n = Number(count);
+          acc[status] = n;
+          acc.all += n;
+          return acc;
+        },
+        { ...base, all: 0 },
+      );
+    },
+  });
+}
+
+/**
+ * One payment, whole, for the console's investigation page: the row, the
+ * payer, what it funded, every provider delivery, every raw body kept, and
+ * any reconciliation exception filed against it. `null` for an unknown id —
+ * the page renders an empty state for that rather than an error.
+ */
+export function usePaymentAdmin(id: string) {
+  return useQuery({
+    queryKey: ['admin-payment', id] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_payment_admin', { p_payment_id: id });
+      if (error) throw error;
+      return (data as PaymentAdminDetailModel | null) ?? null;
+    },
+    enabled: !!id,
+  });
+}
+
+/**
+ * One subscription as the console reads it: the row, its plan, the vendor
+ * and owner, every payment made against it and its event stream. `null` for
+ * an unknown id — the page renders an empty state for that rather than an
+ * error.
+ */
+export function useSubscriptionAdmin(id: string) {
+  return useQuery({
+    queryKey: ['admin-subscription', id] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_subscription_admin', {
+        p_subscription_id: id,
+      });
+      if (error) throw error;
+      return (data as SubscriptionAdminDetailModel | null) ?? null;
+    },
+    enabled: !!id,
+  });
 }
 
 export function useLedger(params: PageParams) {
@@ -1023,6 +1178,12 @@ export type SubscriptionAdminFilters = {
   planId?: string;
   /** `true` to show only subscriptions whose period ends within the window. */
   expiringSoon?: boolean;
+  /**
+   * `true` to show only subscriptions that expired without the vendor ever
+   * being prompted to renew — the listing was not hidden and Finance was
+   * asked to look (`hide_blocked_at`).
+   */
+  needsReview?: boolean;
 };
 
 /** Everything the paginated Subscriptions query needs: page + sort + filters. */
@@ -1052,6 +1213,7 @@ export function useSubscriptionsAdmin(params: SubscriptionAdminParams) {
         p_status: params.status ?? null,
         p_plan_id: params.planId ?? null,
         p_expiring_days: params.expiringSoon ? EXPIRING_SOON_DAYS : null,
+        p_needs_review: params.needsReview ? true : null,
         p_sort_field: params.sort?.field ?? 'current_period_end',
         p_sort_dir: params.sort?.direction ?? 'asc',
         p_limit: params.pageSize,
@@ -1082,6 +1244,7 @@ export function useSubscriptionAdminStatusCounts(filters: SubscriptionAdminFilte
         p_search: filters.search ?? null,
         p_plan_id: filters.planId ?? null,
         p_expiring_days: filters.expiringSoon ? EXPIRING_SOON_DAYS : null,
+        p_needs_review: filters.needsReview ? true : null,
       });
       if (error) throw error;
       const byStatus = (data ?? []) as { status: SubscriptionStatus; count: number | string }[];
@@ -1808,26 +1971,73 @@ export function useSettings(params: PageParams) {
 // so the UI can render human names, roles, and what actually changed instead of
 // bare UUIDs. `profiles!actor_id` disambiguates the single FK to profiles; the
 // nested `user_roles!..._profile_id_fkey` picks the assignment FK (not granted_by).
-const AUDIT_SELECT =
-  'id,action,entity_type,entity_id,actor_id,occurred_at,before,after,' +
-  'actor:profiles!actor_id(id,full_name,email,' +
-  'user_roles!user_roles_profile_id_fkey(roles(id,key,name,is_admin)))';
-
+/**
+ * The audit log, read through `search_audit_logs` (20260904000005) rather than
+ * as a PostgREST query.
+ *
+ * It moved server-side for two reasons. The filter set now includes
+ * `actor_kind` and `correlation_id`, which replaced the old people-vs-system
+ * binary — and that binary was never a property of the data: it was
+ * `actor_id is null`, which is true of every webhook, every cron and every
+ * reconciliation sweep alike. Filtering on the real column means the enum has
+ * to be validated, and an unrecognised value must be REFUSED rather than
+ * dropped, because silently showing every row while the toolbar says one kind
+ * is selected is the worst of the available behaviours.
+ *
+ * The second reason is the actor's name and roles. They come from `profiles`
+ * and `user_roles`, which an `audit.read` holder cannot necessarily read
+ * directly — the same reason `get_payment_admin` is an RPC. The function
+ * resolves them under its own privileges.
+ */
 export function useAuditLogs(params: PageParams) {
   return useQuery(
-    pagedOptions('audit', params, () => {
+    pagedOptions('audit', params, async (): Promise<Paged<AuditLogModel>> => {
       const f = params.filters ?? {};
-      let query = supabase.from('audit_logs').select(AUDIT_SELECT, { count: 'exact' });
-      // `op` matches the auto-generated `${op}_${table}` action prefix.
-      if (f.op) query = query.like('action', `${f.op}_%`);
-      if (f.entity_type) query = query.eq('entity_type', f.entity_type);
-      if (f.actor === 'system') query = query.is('actor_id', null);
-      else if (f.actor === 'people') query = query.not('actor_id', 'is', null);
-      if (f.from) query = query.gte('occurred_at', f.from);
-      if (f.to) query = query.lte('occurred_at', f.to);
-      return paginate<AuditLogModel>(query, params, { field: 'occurred_at', ascending: false });
+      const { data, error } = await supabase.rpc('search_audit_logs', {
+        // `op` matches the auto-generated `${op}_${table}` action prefix.
+        p_op: f.op ?? null,
+        p_entity_type: f.entity_type ?? null,
+        p_actor_kind: f.actor_kind ?? null,
+        p_correlation: f.correlation_id ?? null,
+        p_actor_id: f.actor_id ?? null,
+        p_from: f.from ?? null,
+        p_to: f.to ?? null,
+        p_limit: params.pageSize,
+        p_offset: params.page * params.pageSize,
+      });
+      if (error) throw error;
+      const doc = (data ?? { total: 0, rows: [] }) as {
+        total: number;
+        rows: AuditLogModel[];
+      };
+      return { rows: doc.rows ?? [], total: Number(doc.total ?? 0) };
     }),
   );
+}
+
+/**
+ * One payment's whole life on a single ordered axis — every audit row,
+ * provider message, delivery, ledger posting, escrow event and notification
+ * that shares its correlation id.
+ *
+ * Not paginated on purpose. A trace is read end to end or it is not a trace:
+ * the value is the ordering, and a first page of twenty-five rows that stops
+ * midway through a settlement answers nothing. A single checkout produces on
+ * the order of twenty rows even when it goes wrong, and the RPC is indexed on
+ * `correlation_id` in all seven tables.
+ */
+export function usePaymentTrace(correlationId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['payment-trace', correlationId] as const,
+    enabled: Boolean(correlationId),
+    queryFn: async (): Promise<PaymentTraceRow[]> => {
+      const { data, error } = await supabase.rpc('get_payment_trace', {
+        p_correlation_id: correlationId,
+      });
+      if (error) throw error;
+      return (data ?? []) as PaymentTraceRow[];
+    },
+  });
 }
 
 export function useRetention(params: PageParams) {

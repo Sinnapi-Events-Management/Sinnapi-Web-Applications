@@ -15,7 +15,7 @@
 // vendors and admins were never notified at all, and it used the raw trigger
 // key as the in-app title.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient } from '../_shared/supabase.ts';
+import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
 import { sendEmail, type EmailMessage } from '../_shared/email.ts';
 import { notificationEmail, templatedEmail, deepLink } from './emails.ts';
 
@@ -38,6 +38,13 @@ type Payload = Record<string, unknown>;
 
 Deno.serve(
   handler(async (req) => {
+    // Cron-only. The gateway does not verify a JWT here, so the handler is the
+    // gate: the outbox is drained with the service-role client and every row
+    // it picks up becomes an email to a real person. pg_cron presents the
+    // service-role key as its bearer, which is what "on-demand" also means —
+    // another function calling this one, never a browser.
+    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+
     const supa = adminClient();
     const { data: batch } = await supa
       .from('outbox')
@@ -289,6 +296,17 @@ async function enrich(supa: Supa, payload: Payload): Promise<Payload> {
   // quote lapsing at 01:00 local would print as the previous day in UTC — the
   // one direction of error that makes a live quote read as already dead.
   if (out.valid_until) out.valid_until = formatZonedDate(String(out.valid_until));
+
+  // Subscription periods. Days, zoned to Kampala for the same reason as
+  // `valid_until`: a period ending at 01:00 local must not print as the day
+  // before. `grace_until` is hours away and keeps the time.
+  for (const key of ['period_start', 'period_end', 'trial_ends_at']) {
+    if (out[key]) out[key] = formatZonedDate(String(out[key]));
+  }
+  if (out.grace_until) out.grace_until = formatDateTime(String(out.grace_until));
+  if (out.days_left != null) out.days_left = String(Math.round(Number(out.days_left)));
+  if (out.billing_cycle) out.billing_cycle = humanise(String(out.billing_cycle));
+  if (out.change_kind) out.change_kind = humanise(String(out.change_kind));
 
   // Settlement deadlines are hours away, not days, so the date alone would be
   // useless — "respond by 18 August" when the clock runs out at 14:00 reads as

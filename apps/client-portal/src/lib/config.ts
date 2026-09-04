@@ -19,6 +19,13 @@ export const APP = {
   // portal's "Admin" badge.
   tagline: 'Clients',
   publicUrl: import.meta.env.VITE_PUBLIC_URL ?? 'http://localhost:3000',
+  /**
+   * The vendor portal's origin, when known. Only the payment return page
+   * uses it: a subscription checkout that lands here instead of in the
+   * vendor portal (a callback URL left at its default) needs somewhere to
+   * send the vendor. Unset means the page says what happened and stops.
+   */
+  vendorPortalUrl: (import.meta.env.VITE_VENDOR_PORTAL_URL as string | undefined) ?? null,
 };
 
 // Nav shape is owned by the shared `PortalShell`, so admin, client and vendor

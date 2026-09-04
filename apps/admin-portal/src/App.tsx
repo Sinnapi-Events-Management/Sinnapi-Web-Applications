@@ -30,9 +30,11 @@ import Payouts from '@/pages/payouts';
 import Refunds from '@/pages/refunds';
 import Disputes from '@/pages/disputes';
 import Payments from '@/pages/payments';
+import PaymentDetail from '@/pages/paymentDetail';
 import Ledger from '@/pages/ledger';
 import Reconciliation from '@/pages/reconciliation';
 import Subscriptions from '@/pages/subscriptions';
+import SubscriptionDetail from '@/pages/subscriptionDetail';
 import PricingPlans from '@/pages/pricingPlans';
 import PlanDetail from '@/pages/planDetail';
 import Users from '@/pages/users';
@@ -137,9 +139,22 @@ export default function App() {
           <Route path="/refunds" element={g('refund.approve', <Refunds />)} />
           <Route path="/disputes" element={g('dispute.manage', <Disputes />)} />
           <Route path="/payments" element={g('payments.read', <Payments />)} />
+          <Route path="/payments/:id" element={g('payments.read', <PaymentDetail />)} />
           <Route path="/ledger" element={g('finance.read', <Ledger />)} />
-          <Route path="/reconciliation" element={g('finance.reconcile', <Reconciliation />)} />
+          {/* Readable by finance.read, worked by finance.reconcile — the same
+              predicate as the recon_read RLS policy. The resolve control
+              inside stays gated on finance.reconcile. */}
+          <Route
+            path="/reconciliation"
+            element={g('finance.read|finance.reconcile', <Reconciliation />)}
+          />
           <Route path="/subscriptions" element={g('subscriptions.manage', <Subscriptions />)} />
+          {/* Same permission as the list: `get_subscription_admin` re-checks it
+              inside, and the page has no write of its own. */}
+          <Route
+            path="/subscriptions/:id"
+            element={g('subscriptions.manage', <SubscriptionDetail />)}
+          />
           <Route path="/pricing-plans" element={g('plans.manage', <PricingPlans />)} />
           <Route path="/pricing-plans/:id" element={g('plans.manage', <PlanDetail />)} />
 

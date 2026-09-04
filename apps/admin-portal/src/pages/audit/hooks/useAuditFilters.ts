@@ -6,13 +6,33 @@ import type { PageFilters } from '@sinnapi/ui';
 export type AuditFilterValues = {
   op: string;
   entity_type: string;
-  actor: string;
+  /**
+   * One of the five `audit_actor_kind` values, replacing the old
+   * people-vs-system `actor` filter. See ACTOR_KIND_FILTER_OPTIONS for why
+   * that binary was not a filter on anything.
+   */
+  actor_kind: string;
+  /**
+   * A payment trace. Typed or pasted rather than picked: an admin arrives
+   * holding an id copied from a payment page or a support ticket, never one
+   * chosen from a list of every trace in the database.
+   */
+  correlation_id: string;
   /** `yyyy-mm-dd`, the inclusive lower bound of the date range. */
   from: string;
   to: string;
 };
 
-const EMPTY: AuditFilterValues = { op: '', entity_type: '', actor: '', from: '', to: '' };
+const EMPTY: AuditFilterValues = {
+  op: '',
+  entity_type: '',
+  actor_kind: '',
+  correlation_id: '',
+  from: '',
+  to: '',
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type AuditFiltersApi = {
   values: AuditFilterValues;
@@ -26,6 +46,13 @@ export type AuditFiltersApi = {
   filters: PageFilters;
   /** How many filters are currently applied (drives the "Clear" affordance). */
   activeCount: number;
+  /**
+   * True when a correlation id has been typed but is not yet a valid uuid —
+   * the field is mid-entry. The input renders as an error and the filter is
+   * withheld rather than sent, because a partial uuid matches nothing and an
+   * empty result would read as "this trace has no audit rows".
+   */
+  correlationInvalid: boolean;
 };
 
 /**
@@ -56,15 +83,20 @@ export function useAuditFilters(onChange?: () => void): AuditFiltersApi {
     onChange?.();
   }
 
+  const correlation = values.correlation_id.trim();
+  const correlationInvalid = correlation !== '' && !UUID.test(correlation);
+
   const filters: PageFilters = useMemo(
     () => ({
       op: values.op || undefined,
       entity_type: values.entity_type || undefined,
-      actor: values.actor || undefined,
+      actor_kind: values.actor_kind || undefined,
+      // Withheld until it is a whole uuid; see `correlationInvalid`.
+      correlation_id: UUID.test(correlation) ? correlation : undefined,
       from: values.from ? new Date(`${values.from}T00:00:00`).toISOString() : undefined,
       to: values.to ? new Date(`${values.to}T23:59:59.999`).toISOString() : undefined,
     }),
-    [values],
+    [values, correlation],
   );
 
   // A range counts once, not twice: it is one control on the toolbar, so
@@ -79,5 +111,5 @@ export function useAuditFilters(onChange?: () => void): AuditFiltersApi {
     [values.from, values.to],
   );
 
-  return { values, set, setRange, range, reset, filters, activeCount };
+  return { values, set, setRange, range, reset, filters, activeCount, correlationInvalid };
 }

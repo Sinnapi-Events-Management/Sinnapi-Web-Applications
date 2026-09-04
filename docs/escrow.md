@@ -88,8 +88,18 @@ booking.status = confirmed          (vendor accepted — escrow cannot start ear
         ▼
    PSP hosted checkout  (Pesapal redirect / PayPal approve)
         │  PCI: card data never touches Sinnapi. SAQ A.
+        │  activate_escrow refuses a second checkout while one is in flight
+        │  (payment_already_in_flight); a repeated Idempotency-Key is handed
+        │  the checkout it already opened, never a second PSP order.
         ▼
-   webhook → record_payment_result → fund_escrow
+   browser returns to client portal  /payments/return?OrderTrackingId=…&OrderMerchantReference=…
+        │  PESAPAL_CALLBACK_URL. No status on the query string (Pesapal omits it on
+        │  purpose); the page reads its own payments row through RLS, polls for ~30 s
+        │  with backoff and subscribes to the row, then shows one of: confirmed /
+        │  still processing (we email) / failed (reason + retry to the booking).
+        ▼
+   IPN (psp-pesapal-webhook, registered by `yarn pesapal:ipn` → PESAPAL_IPN_ID)
+        │  → GetTransactionStatus → record_payment_result → fund_escrow
         │  escrow: held            payment: succeeded
         │  ledger: dr psp_clearing 226,600 / cr escrow_held 226,600
         │  notify: client, vendor, finance admins

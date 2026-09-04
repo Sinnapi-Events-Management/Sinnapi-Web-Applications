@@ -1,7 +1,5 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRealtimeRefresh } from '@sinnapi/ui/data';
-import { supabase } from '@/lib/supabase';
 import { useBookingEscrow, useEscrowPayouts } from '@/hooks/queries';
 import type { BookingDetailModel } from '@/lib/types';
 
@@ -23,9 +21,10 @@ export function useEscrowSection(booking: BookingDetailModel | null | undefined)
 
   /**
    * Escrow moves without the browser asking: a webhook confirms funding, a
-   * cron releases the advance, an admin approves a release. Subscribing keeps
-   * an open money screen honest instead of showing yesterday's state until
-   * someone reloads.
+   * cron releases the advance, an admin approves a release. The subscription
+   * that keeps this current lives one level up, in `useBookingLive`, so it
+   * runs whichever tab is open; this is the same set of invalidations, kept
+   * here for the writes in this section that want to refetch immediately.
    */
   const refresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['booking-escrow', bookingId] });
@@ -34,21 +33,6 @@ export function useEscrowSection(booking: BookingDetailModel | null | undefined)
     qc.invalidateQueries({ queryKey: ['booking', bookingId] });
     qc.invalidateQueries({ queryKey: ['payments'] });
   }, [qc, bookingId, escrow?.id]);
-
-  useRealtimeRefresh({
-    client: supabase,
-    channel: `booking-escrow:${bookingId ?? 'none'}`,
-    enabled: !!bookingId,
-    onChange: refresh,
-    watch: useMemo(
-      () => [
-        { table: 'escrow_transactions', filter: `booking_id=eq.${bookingId}` },
-        { table: 'payments', filter: `booking_id=eq.${bookingId}` },
-        ...(escrow?.id ? [{ table: 'escrow_events', filter: `escrow_id=eq.${escrow.id}` }] : []),
-      ],
-      [bookingId, escrow?.id],
-    ),
-  });
 
   const status = escrow?.status ?? null;
 

@@ -11,8 +11,23 @@
 // It reminds, and when a deadline passes it flags — it never cancels. A booking
 // cancelled unattended is a date released out from under a client whose payment
 // may be one late webhook away, so the cancellation stays with a person.
+//
+// ATTRIBUTION (0904). Every one of these sweeps writes an audited table —
+// `escrow_transactions`, `payouts`, `bookings` — and until 0904a every row it
+// wrote said `actor_id` null, which the console rendered as "system". An
+// advance released on a timer and an advance released by a Finance admin
+// produced audit rows distinguishable only by the direction of the status
+// change. `actor_kind: 'cron'` with `actor_label: 'escrow-lifecycle'` says
+// which, and the RPC adopts each escrow's own correlation id so the release
+// lands on the same trace as the payment that funded it.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient } from '../_shared/supabase.ts';
+import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { paymentContext, writeAudit, type PaymentContext } from '../_shared/audit.ts';
+import { redactMessage } from '../_shared/redact.ts';
+
+// No `req`: a cron's own request headers describe Supabase's infrastructure
+// talking to itself, not a caller. See the same note in payment-reconciliation.
+const CTX: PaymentContext = paymentContext('cron', 'escrow-lifecycle', 'escrow-lifecycle');
 
 const BATCH = 200;
 
@@ -28,6 +43,12 @@ type Outcome = {
 
 Deno.serve(
   handler(async (req) => {
+    // Cron-only. The gateway does not verify a JWT here, so this is the only
+    // thing standing between an unauthenticated caller and a sweep that
+    // releases advances, requests settlements and fires client reminders.
+    // pg_cron presents the service-role key as its bearer.
+    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+
     const supa = adminClient();
     const now = new Date().toISOString();
     const out: Outcome = {
@@ -61,9 +82,27 @@ Deno.serve(
     if (advError) out.errors.push(`advance_query: ${advError.message}`);
 
     for (const e of dueAdvances ?? []) {
-      const { error } = await supa.rpc('release_advance', { p_escrow_id: e.id });
-      if (error) out.errors.push(`release_advance ${e.id}: ${error.message}`);
-      else out.advancesReleased++;
+      // `p_context` names the sweep; the correlation id is resolved inside the
+      // RPC from the escrow's funding payment, which is the only correct
+      // answer — the money being released is the money that arrived on it.
+      const { error } = await supa.rpc('release_advance', {
+        p_escrow_id: e.id,
+        p_context: CTX,
+      });
+      if (error) {
+        out.errors.push(`release_advance ${e.id}: ${redactMessage(error.message)}`);
+        // A due advance that could not be released is money a vendor is owed
+        // and has not been paid. Previously it existed only as a string in the
+        // sweep's HTTP response, which nothing reads.
+        await writeAudit(supa, CTX, {
+          action: 'advance_release_failed',
+          entityType: 'escrow_transactions',
+          entityId: e.id,
+          detail: { reason: redactMessage(error.message) },
+        });
+      } else {
+        out.advancesReleased++;
+      }
     }
 
     // -----------------------------------------------------------------
@@ -118,6 +157,11 @@ Deno.serve(
         p_to_admin: false,
         p_amount: e.balance_amount,
         p_metadata: { reminder_day: due, auto_release_days: autoReleaseDays },
+        // This is the one place a notification is sent from OUTSIDE a money
+        // RPC, so it is its own transaction with no context in it. Without
+        // this, every reminder the sweep sends writes an `escrow_events` row
+        // attributed to 'system' — indistinguishable from an IPN's.
+        p_context: CTX,
       });
       if (error) {
         out.errors.push(`reminder ${e.id}: ${error.message}`);
@@ -148,7 +192,10 @@ Deno.serve(
     if (overdueError) out.errors.push(`auto_release_query: ${overdueError.message}`);
 
     for (const e of overdue ?? []) {
-      const { error } = await supa.rpc('auto_request_release', { p_escrow_id: e.id });
+      const { error } = await supa.rpc('auto_request_release', {
+        p_escrow_id: e.id,
+        p_context: CTX,
+      });
       if (error) out.errors.push(`auto_request_release ${e.id}: ${error.message}`);
       else out.autoRequested++;
     }

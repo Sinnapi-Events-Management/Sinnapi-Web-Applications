@@ -10,6 +10,59 @@ import { titleize } from '@/lib/config';
 
 export type OperationKey = 'insert' | 'update' | 'delete' | 'other';
 
+/**
+ * How each actor kind reads to a human, and what it should look like.
+ *
+ * The accents carry meaning rather than decoration. `psp_webhook` and
+ * `reconciliation` are `info` and `warning`: a provider telling us something is
+ * routine, a reconciliation row means a webhook was lost or a figure did not
+ * match and is worth a second look. `system` is deliberately the drabbest —
+ * since 20260904000001 it means genuinely unattributed, which after this work
+ * should be rare, and a row still wearing it is a gap somebody should close.
+ */
+export type ActorKindKey = 'user' | 'psp_webhook' | 'cron' | 'reconciliation' | 'system';
+
+export const ACTOR_KINDS: Record<
+  ActorKindKey,
+  { label: string; description: string; accent: OperationAccent }
+> = {
+  user: { label: 'Person', description: 'Acted through a portal', accent: 'success' },
+  psp_webhook: {
+    label: 'Provider webhook',
+    description: 'The payment provider told us',
+    accent: 'info',
+  },
+  reconciliation: {
+    label: 'Reconciliation',
+    description: 'A cross-check found a disagreement',
+    accent: 'warning',
+  },
+  cron: { label: 'Scheduled job', description: 'A timer came due', accent: 'info' },
+  system: {
+    label: 'System',
+    description: 'Unattributed — no actor was recorded',
+    accent: 'error',
+  },
+};
+
+/**
+ * Presentation for one actor kind, with its free-text label folded in.
+ *
+ * `actor_label` names WHICH webhook or WHICH sweep ('pesapal_ipn',
+ * 'payment-reconciliation'), which is the difference between "a provider told
+ * us" and "Pesapal's IPN told us". It is free text in the database on purpose —
+ * a new Edge Function should not need a migration to be attributable — so it is
+ * titleized rather than looked up.
+ */
+export function describeActorKind(
+  kind: ActorKindKey | string | null,
+  actorLabel: string | null,
+): { label: string; description: string; accent: OperationAccent } {
+  const base = ACTOR_KINDS[(kind ?? 'system') as ActorKindKey] ?? ACTOR_KINDS.system;
+  if (!actorLabel) return base;
+  return { ...base, description: titleize(actorLabel) };
+}
+
 /** Accent hues understood by IconBadge / MUI colour props. */
 export type OperationAccent = 'success' | 'warning' | 'error' | 'info';
 

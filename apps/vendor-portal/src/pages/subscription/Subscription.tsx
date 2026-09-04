@@ -1,99 +1,72 @@
-import {
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Chip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Box,
-  Alert,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import CheckIcon from '@mui/icons-material/Check';
+import { Alert, Box, Grid, PageTitle, QueryState, Stack } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
-import { formatMoney, titleize } from '@/lib/config';
 import { useSubscription } from './hooks/useSubscription';
+import CurrentPlanCard from './components/organisms/CurrentPlanCard';
+import PlanCard from './components/organisms/PlanCard';
+import PaymentHistoryCard from './components/organisms/PaymentHistoryCard';
+import SubscriptionCheckoutDialog from './components/organisms/SubscriptionCheckoutDialog';
 
-function PlanGrid({ vendorId }: { vendorId: string }) {
-  const { subscription, plans, busy, error, choose } = useSubscription(vendorId);
+/**
+ * The vendor's subscription: where they stand, the plans on offer, and the
+ * payments they have made.
+ *
+ * Every plan card's action opens a confirmation showing the priced preview
+ * — plan, cycle, amount, the period it buys and what happens to the current
+ * one — then a rail picker, then the hosted checkout. Nothing changes on the
+ * subscription until the provider confirms the money. Layout only;
+ * `useSubscription` owns the data and which checkout is open.
+ */
+function SubscriptionBody({ vendorId }: { vendorId: string }) {
+  const s = useSubscription(vendorId);
+
+  const plans = s.plans.data ?? [];
+  const currentPlanId = s.subscription?.plan_id ?? null;
+  const renewTarget =
+    currentPlanId ?? plans.find((p) => p.key === 'professional')?.id ?? plans[0]?.id;
 
   return (
-    <>
-      {subscription && (
-        <Alert severity="info" sx={{ mb: 3 }} icon={false}>
-          Current subscription: <StatusChip status={subscription.status} />
+    <Stack spacing={3}>
+      {s.subscriptionError && (
+        <Alert severity="error">
+          {s.subscriptionError instanceof Error
+            ? s.subscriptionError.message
+            : 'Your subscription could not be loaded.'}
         </Alert>
       )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      <QueryState isLoading={plans.isLoading} error={plans.error}>
+
+      <CurrentPlanCard
+        subscription={s.subscription}
+        isLoading={s.isSubscriptionLoading}
+        onRenew={() => renewTarget && s.openCheckout(renewTarget)}
+      />
+
+      <QueryState isLoading={s.plans.isLoading} error={s.plans.error}>
         <Grid container spacing={3} alignItems="stretch">
-          {(plans.data ?? []).map((p) => {
-            const features = p.plan_features ?? [];
-            const highlight = p.key === 'professional';
-            const selected = subscription?.plan_id === p.id;
-            return (
-              <Grid item xs={12} md={4} key={p.id}>
-                <Card
-                  variant="outlined"
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderColor: highlight ? 'secondary.main' : 'divider',
-                    borderWidth: highlight ? 2 : 1,
-                  }}
-                >
-                  <CardContent sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="h4">{p.name}</Typography>
-                      {highlight && <Chip size="small" color="secondary" label="Popular" />}
-                    </Box>
-                    <Typography variant="h5" sx={{ my: 1 }}>
-                      {formatMoney(p.price, p.currency)}
-                      <Typography component="span" variant="body2" color="text.secondary">
-                        /{p.billing_cycle}
-                      </Typography>
-                    </Typography>
-                    <List dense>
-                      {features
-                        .filter((f) => f.value !== false && f.value !== 'false')
-                        .map((f) => (
-                          <ListItem key={f.feature_key} disableGutters>
-                            <ListItemIcon sx={{ minWidth: 30 }}>
-                              <CheckIcon color="secondary" fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary={titleize(f.feature_key)} />
-                          </ListItem>
-                        ))}
-                    </List>
-                  </CardContent>
-                  <Box sx={{ p: 2 }}>
-                    <Button
-                      fullWidth
-                      variant={highlight ? 'contained' : 'outlined'}
-                      disabled={busy === p.id || selected}
-                      onClick={() => choose(p.id)}
-                    >
-                      {selected ? 'Current plan' : busy === p.id ? 'Selecting…' : 'Choose plan'}
-                    </Button>
-                  </Box>
-                </Card>
-              </Grid>
-            );
-          })}
+          {plans.map((p) => (
+            <Grid item xs={12} md={4} key={p.id}>
+              <PlanCard
+                plan={p}
+                isCurrent={p.id === currentPlanId && s.subscription?.status === 'active'}
+                highlight={p.key === 'professional'}
+                actionLabel={s.actionLabel(p.id)}
+                onAction={() => s.openCheckout(p.id)}
+              />
+            </Grid>
+          ))}
         </Grid>
       </QueryState>
-    </>
+
+      <Box sx={{ maxWidth: 760 }}>
+        <PaymentHistoryCard payments={s.payments} isLoading={s.isPaymentsLoading} />
+      </Box>
+
+      <SubscriptionCheckoutDialog
+        open={!!s.checkoutPlan}
+        onClose={s.closeCheckout}
+        vendorId={vendorId}
+        plan={s.checkoutPlan}
+      />
+    </Stack>
   );
 }
 
@@ -102,9 +75,9 @@ export default function Subscription() {
     <>
       <PageTitle
         title="Subscription"
-        subtitle="Manage your plan. Inactive subscriptions hide your public listing."
+        subtitle="Pay for the plan you want. Your listing stays public while a paid period is running."
       />
-      <VendorGate>{(vendorId) => <PlanGrid vendorId={vendorId} />}</VendorGate>
+      <VendorGate>{(vendorId) => <SubscriptionBody vendorId={vendorId} />}</VendorGate>
     </>
   );
 }

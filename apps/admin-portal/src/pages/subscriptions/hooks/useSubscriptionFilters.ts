@@ -4,30 +4,34 @@ import type { SubscriptionAdminFilters } from '@/hooks/queries';
 
 const PLAN_PARAM = 'plan';
 const EXPIRING_PARAM = 'expiring';
+const REVIEW_PARAM = 'review';
 
 /** Raw field values for the toolbar controls. */
 export type SubscriptionFilterValues = {
   /** `pricing_plans.id`, or `''` for any plan. */
   planId: string;
   expiringSoon: boolean;
+  /** Only subscriptions whose hide was withheld for Finance to review. */
+  needsReview: boolean;
 };
 
 export type SubscriptionFilters = {
   values: SubscriptionFilterValues;
   setPlanId: (next: string) => void;
   setExpiringSoon: (next: boolean) => void;
+  setNeedsReview: (next: boolean) => void;
   /** Typed fragment to merge into the query's `SubscriptionAdminFilters`. */
-  query: Pick<SubscriptionAdminFilters, 'planId' | 'expiringSoon'>;
-  /** True when plan or expiring-soon is narrowing the list. */
+  query: Pick<SubscriptionAdminFilters, 'planId' | 'expiringSoon' | 'needsReview'>;
+  /** True when any attribute filter is narrowing the list. */
   isActive: boolean;
   reset: () => void;
 };
 
 /**
- * Owns the Subscriptions list' attribute filters — plan and expiring-soon —
- * mirrored into the URL so a filtered view is refresh-safe and shareable. A
- * hand-edited plan param is passed through as-is; an unknown id simply matches
- * nothing rather than erroring.
+ * Owns the Subscriptions list' attribute filters — plan, expiring-soon and
+ * needs-review — mirrored into the URL so a filtered view is refresh-safe and
+ * shareable. A hand-edited plan param is passed through as-is; an unknown id
+ * simply matches nothing rather than erroring.
  *
  * `onChange` fires after every change — pass a page reset so filtering starts on
  * page 1 instead of a page that may no longer exist.
@@ -38,6 +42,7 @@ export function useSubscriptionFilters(opts?: { onChange?: () => void }): Subscr
 
   const planId = searchParams.get(PLAN_PARAM) ?? '';
   const expiringSoon = searchParams.get(EXPIRING_PARAM) === 'true';
+  const needsReview = searchParams.get(REVIEW_PARAM) === 'true';
 
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -61,6 +66,10 @@ export function useSubscriptionFilters(opts?: { onChange?: () => void }): Subscr
     (next: boolean) => setParam(EXPIRING_PARAM, next ? 'true' : ''),
     [setParam],
   );
+  const setNeedsReview = useCallback(
+    (next: boolean) => setParam(REVIEW_PARAM, next ? 'true' : ''),
+    [setParam],
+  );
 
   const reset = useCallback(() => {
     setSearchParams(
@@ -68,6 +77,7 @@ export function useSubscriptionFilters(opts?: { onChange?: () => void }): Subscr
         const next = new URLSearchParams(prev);
         next.delete(PLAN_PARAM);
         next.delete(EXPIRING_PARAM);
+        next.delete(REVIEW_PARAM);
         return next;
       },
       { replace: true },
@@ -79,16 +89,18 @@ export function useSubscriptionFilters(opts?: { onChange?: () => void }): Subscr
     () => ({
       planId: planId || undefined,
       expiringSoon: expiringSoon || undefined,
+      needsReview: needsReview || undefined,
     }),
-    [planId, expiringSoon],
+    [planId, expiringSoon, needsReview],
   );
 
   return {
-    values: { planId, expiringSoon },
+    values: { planId, expiringSoon, needsReview },
     setPlanId,
     setExpiringSoon,
+    setNeedsReview,
     query,
-    isActive: Boolean(planId || expiringSoon),
+    isActive: Boolean(planId || expiringSoon || needsReview),
     reset,
   };
 }

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { DataTable, Alert, PageTitle } from '@sinnapi/ui';
+import { Box, DataTable, Alert, PageTitle, SearchField } from '@sinnapi/ui';
 import { usePayouts } from './hooks/usePayouts';
 import { payoutColumns } from './schema';
 import RecordSettlementDialog from './components/organisms/RecordSettlementDialog';
@@ -24,6 +24,7 @@ export default function Payouts() {
     openSettlement,
     settling,
     closeSettlement,
+    search,
     table,
   } = usePayouts();
 
@@ -45,13 +46,23 @@ export default function Payouts() {
         </Alert>
       )}
 
+      <Box sx={{ mb: 2, maxWidth: 480 }}>
+        <SearchField
+          value={search.input}
+          onChange={search.setInput}
+          onClear={search.clear}
+          placeholder="Payout ID or settlement reference…"
+          ariaLabel="Search payouts"
+        />
+      </Box>
+
       <DataTable
         columns={columns}
         rows={rows}
         getRowId={(p) => p.id}
         rowCount={total}
         loading={isLoading || isFetching}
-        emptyMessage="No payouts yet."
+        emptyMessage={search.query ? 'No payout matches that search.' : 'No payouts yet.'}
         {...table.controls}
       />
 

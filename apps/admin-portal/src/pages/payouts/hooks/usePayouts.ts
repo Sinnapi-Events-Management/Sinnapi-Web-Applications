@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePayoutsAdmin } from '@/hooks/queries';
 import { useTableState } from '@sinnapi/ui';
+import { useSearchTerm } from '@/hooks/useSearchTerm';
 import { useAdmin } from '@/admin/AdminProvider';
 import { supabase } from '@/lib/supabase';
 import type { PayoutModel } from '@/lib/types';
@@ -23,7 +24,12 @@ export function usePayouts() {
   const qc = useQueryClient();
   const { has } = useAdmin();
   const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
-  const { data, isLoading, isFetching, error } = usePayoutsAdmin(table.params);
+  const { onPageChange } = table.controls;
+  const resetPage = useCallback(() => onPageChange(0), [onPageChange]);
+  // `?q=` — a payout id (what a reconciliation exception links with) or a
+  // settlement reference. Mirrored into the URL so the link is shareable.
+  const search = useSearchTerm({ onChange: resetPage });
+  const { data, isLoading, isFetching, error } = usePayoutsAdmin(table.params, search.query);
 
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -57,6 +63,7 @@ export function usePayouts() {
     busy,
     err,
     clearError: () => setErr(null),
+    search,
     table,
 
     /** Optional pre-approval before the money is sent. */

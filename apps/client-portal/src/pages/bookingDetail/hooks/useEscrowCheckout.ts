@@ -1,42 +1,15 @@
 import { useState } from 'react';
+import {
+  CHECKOUT_RAILS,
+  newCheckoutAttemptKey,
+  type CheckoutRail,
+  type CheckoutRailOption,
+} from '@sinnapi/ui/payments';
 import { useEscrowQuote, useStartEscrowPayment, escrowErrorMessage } from '@/hooks/queries';
 
-export type PaymentRail = {
-  provider: 'pesapal' | 'paypal';
-  method: 'mtn_momo' | 'airtel_money' | 'card';
-};
-
-/**
- * The rails a client can pay on, in the order they are actually used in
- * Uganda. Mobile money leads because it is the default; the card options
- * follow for international clients.
- */
-export const PAYMENT_RAILS: Array<PaymentRail & { label: string; caption: string }> = [
-  {
-    provider: 'pesapal',
-    method: 'mtn_momo',
-    label: 'MTN Mobile Money',
-    caption: 'Approve on your phone',
-  },
-  {
-    provider: 'pesapal',
-    method: 'airtel_money',
-    label: 'Airtel Money',
-    caption: 'Approve on your phone',
-  },
-  {
-    provider: 'pesapal',
-    method: 'card',
-    label: 'Card',
-    caption: 'Visa or Mastercard',
-  },
-  {
-    provider: 'paypal',
-    method: 'card',
-    label: 'PayPal',
-    caption: 'Card or PayPal balance',
-  },
-];
+/** Kept under the names this page has always used; the kit owns the values. */
+export type PaymentRail = CheckoutRail;
+export const PAYMENT_RAILS: readonly CheckoutRailOption[] = CHECKOUT_RAILS;
 
 /**
  * The checkout half of the escrow flow: which rail, what it costs on that
@@ -56,6 +29,37 @@ export function useEscrowCheckout(
   const [railIndex, setRailIndex] = useState(0);
   const rail = PAYMENT_RAILS[railIndex];
 
+  /**
+   * One idempotency key per checkout attempt.
+   *
+   * The key names *what the client is agreeing to pay*: this booking, on
+   * this rail, with this advance. Anything else about the request repeating
+   * — a double-tap, a retry after a dropped connection, a tab restored from
+   * history — is the same attempt and must carry the same key, which is what
+   * lets the server hand back the checkout it already opened instead of a
+   * second charge. Change the rail or the advance and the figure changes, so
+   * the key changes with it.
+   *
+   * It is not regenerated after a failed attempt on purpose: the server
+   * releases a key the moment its payment fails, so the same key opens a
+   * fresh payment. The one thing a new key must never do is appear for an
+   * unchanged attempt, which is why this is state keyed on the scope rather
+   * than a memo React is free to drop.
+   */
+  const attemptScope = `${bookingId ?? ''}|${rail.provider}|${rail.method}|${advanceRate ?? 'terms'}`;
+  const [attempt, setAttempt] = useState(() => ({
+    scope: attemptScope,
+    key: newCheckoutAttemptKey(),
+  }));
+  let current = attempt;
+  if (attempt.scope !== attemptScope) {
+    // Derived-state reset during render; React re-runs this render with the
+    // stored value before committing, so no stale key is ever observable.
+    current = { scope: attemptScope, key: newCheckoutAttemptKey() };
+    setAttempt(current);
+  }
+  const idempotencyKey = current.key;
+
   const quote = useEscrowQuote(bookingId, rail.provider, rail.method, enabled, advanceRate);
   const start = useStartEscrowPayment();
 
@@ -65,6 +69,7 @@ export function useEscrowCheckout(
       bookingId,
       provider: rail.provider,
       method: rail.method,
+      idempotencyKey,
     });
     // Hand off to the provider's own page. Card and wallet credentials are
     // entered there, never here — that is what keeps Sinnapi in PCI SAQ A

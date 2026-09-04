@@ -14,6 +14,7 @@
     "./data": "./src/data/index.ts",
     "./messaging": "./src/messaging/index.ts",
     "./notifications": "./src/notifications/index.ts",
+    "./payments": "./src/payments/index.ts",
     "./settings": "./src/settings/index.ts",
     "./media": "./src/media/index.ts",
     "./offers": "./src/offers/index.ts",

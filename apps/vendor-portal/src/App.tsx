@@ -17,6 +17,7 @@ import Privacy from '@/pages/privacy';
 import Dashboard from '@/pages/dashboard';
 import Onboarding from '@/pages/onboarding';
 import Subscription from '@/pages/subscription';
+import PaymentReturn from '@/pages/paymentReturn';
 import Profile from '@/pages/profile';
 import Services from '@/pages/services';
 import Portfolio from '@/pages/portfolio';
@@ -91,6 +92,11 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/subscription" element={<Subscription />} />
+          {/* Where Pesapal sends the browser after a subscription checkout
+              (create-payment passes VENDOR_PORTAL_URL + this path as the
+              order's callback). Reads our own payment row; trusts nothing on
+              the query string about the outcome. */}
+          <Route path="/payments/return" element={<PaymentReturn />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/services" element={<Services />} />
           <Route path="/portfolio" element={<Portfolio />} />

@@ -30,7 +30,7 @@ export default function SubscriptionsToolbar({
   filters,
   planOptions,
 }: SubscriptionsToolbarProps) {
-  const { values, setPlanId, setExpiringSoon, isActive, reset } = filters;
+  const { values, setPlanId, setExpiringSoon, setNeedsReview, isActive, reset } = filters;
 
   const showClear = isActive || Boolean(search.input);
   const clearAll = () => {
@@ -79,6 +79,17 @@ export default function SubscriptionsToolbar({
           />
         }
         label={`Expiring in ${EXPIRING_SOON_DAYS} days`}
+        sx={{ whiteSpace: 'nowrap', mr: 0 }}
+      />
+
+      {/* Subscriptions that expired without the vendor ever being prompted to
+          renew. The lifecycle sweep withholds the hide for these and asks
+          Finance to look, so they need a way to be found. */}
+      <FormControlLabel
+        control={
+          <Switch checked={values.needsReview} onChange={(e) => setNeedsReview(e.target.checked)} />
+        }
+        label="Needs review"
         sx={{ whiteSpace: 'nowrap', mr: 0 }}
       />
 

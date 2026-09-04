@@ -130,6 +130,17 @@ export function deepLink(audience: string, payload: Record<string, unknown>): st
   const escrowId = id('escrow_id');
   if (audience === 'admin' && escrowId) return `${root}/escrow/${escrowId}`;
 
+  // Subscription events. A vendor has one subscription page; the console
+  // has one page per subscription. Checked before the booking branch because
+  // a subscription payload never carries a booking id, and after the escrow
+  // one so an escrow payload's vendor_id cannot be mistaken for this.
+  const subscriptionId = id('subscription_id');
+  if (subscriptionId) {
+    return audience === 'admin'
+      ? `${root}/subscriptions/${subscriptionId}`
+      : `${root}/subscription`;
+  }
+
   const bookingId = id('booking_id');
   if (bookingId) return `${root}/bookings/${bookingId}`;
 

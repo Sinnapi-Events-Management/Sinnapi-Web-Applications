@@ -24,6 +24,7 @@ import MyEvents from '@/pages/myEvents';
 import EventDetail from '@/pages/eventDetail';
 import Messages from '@/pages/messages';
 import Payments from '@/pages/payments';
+import PaymentReturn from '@/pages/paymentReturn';
 import Escrow from '@/pages/escrow';
 import Reviews from '@/pages/reviews';
 import Notifications from '@/pages/notifications';
@@ -73,6 +74,11 @@ export default function App() {
               the list rather than on a detached page with no way back. */}
           <Route path="/messages/:conversationId" element={<Messages />} />
           <Route path="/payments" element={<Payments />} />
+          {/* Where Pesapal sends the browser back after a hosted checkout
+              (PESAPAL_CALLBACK_URL). Inside the shell on purpose: a session
+              that lapsed during checkout goes through sign-in and returns
+              here with the query string intact. */}
+          <Route path="/payments/return" element={<PaymentReturn />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/notifications" element={<Notifications />} />

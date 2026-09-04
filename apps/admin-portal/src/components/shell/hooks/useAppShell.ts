@@ -7,6 +7,7 @@ import LockIcon from '@mui/icons-material/LockOutlined';
 import { APP, NAV_SECTIONS } from '@/lib/config';
 import { useAuth } from '@/auth/AuthProvider';
 import { useAdmin } from '@/admin/AdminProvider';
+import { hasAnyPerm } from '@/admin/permissions';
 import { useProfile } from '@/hooks/queries';
 import { useTopBarMessages } from './useTopBarMessages';
 import { useTopBarNotifications } from './useTopBarNotifications';
@@ -78,7 +79,7 @@ export function useAppShell() {
     brand: BRAND,
     sections: NAV_SECTIONS,
     account,
-    can: has,
+    can: (perm: string) => hasAnyPerm(has, perm),
     badges,
     messages,
     notifications,

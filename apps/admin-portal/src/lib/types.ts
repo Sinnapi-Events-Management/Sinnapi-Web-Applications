@@ -393,6 +393,12 @@ export type ReconciliationExceptionModel = {
   payout_id: string | null;
   first_seen_at: string;
   last_seen_at: string;
+  /**
+   * The escrow's booking, embedded so the queue can link an escrow finding to
+   * the booking page that shows it. Resolves to null when the reader lacks
+   * `escrow.read` — the link then simply does not render.
+   */
+  escrow_transactions?: { booking_id: string } | { booking_id: string }[] | null;
 };
 
 export type RefundModel = {
@@ -455,12 +461,86 @@ export type DisputeModel = {
  */
 export type SubscriptionAdminModel = {
   id: string;
+  vendor_id: string;
+  plan_id: string | null;
   status: string;
   current_period_end: string | null;
   grace_until: string | null;
   trial_ends_at: string | null;
+  /** Pay-to-renew reminders opted in. Never auto-charge; see migration 0903l. */
+  auto_renew: boolean;
+  /**
+   * Set when the subscription expired without the vendor ever being prompted
+   * to renew: the listing was NOT hidden and Finance was asked to look.
+   */
+  hide_blocked_at: string | null;
   business_name: string | null;
   plan_name: string | null;
+};
+
+/** One subscription payment on the console's subscription page, newest first. */
+export type SubscriptionAdminPaymentModel = {
+  id: string;
+  status: string;
+  amount: number | null;
+  currency: string | null;
+  provider: string;
+  provider_method: string;
+  provider_ref: string | null;
+  /** The plan the payment was for — on the payment, not the subscription. */
+  target_plan_name: string | null;
+  failure_reason: string | null;
+  paid_at: string | null;
+  created_at: string;
+};
+
+/** One entry of a subscription's append-only event stream, oldest first. */
+export type SubscriptionAdminEventModel = {
+  id: string;
+  event_type: string;
+  payment_id: string | null;
+  actor_name: string | null;
+  metadata: Record<string, unknown> | null;
+  occurred_at: string;
+};
+
+/**
+ * One subscription as the console reads it — `get_subscription_admin`: the
+ * row, its plan, the vendor and owner, every payment made against it and its
+ * event stream, with each event linked to the payment that caused it.
+ */
+export type SubscriptionAdminDetailModel = {
+  id: string;
+  status: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  trial_ends_at: string | null;
+  grace_until: string | null;
+  auto_renew: boolean;
+  cancelled_at: string | null;
+  last_renewal_reminder_day: number | null;
+  renewal_prompted_at: string | null;
+  hide_blocked_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  plan: {
+    id: string;
+    key: string;
+    name: string;
+    billing_cycle: string;
+    price: number | null;
+    currency: string | null;
+    is_active: boolean;
+  } | null;
+  vendor: {
+    id: string;
+    business_name: string | null;
+    status: string;
+    visibility: string;
+    owner: { id: string | null; name: string | null; email: string | null };
+  };
+  payments: SubscriptionAdminPaymentModel[];
+  events: SubscriptionAdminEventModel[];
 };
 
 export type PlanModel = {
@@ -1057,19 +1137,68 @@ export type AuditActor = {
   user_roles: UserRoleRow[] | null;
 };
 
+/**
+ * What sort of thing performed an audited action. Mirrors the
+ * `audit_actor_kind` enum (20260904000001).
+ *
+ * This replaces the old people-vs-system binary, which was not a property of
+ * the data at all — it was `actor_id is null`, and `actor_id` is null for every
+ * webhook, every cron and every reconciliation sweep alike. A payment that
+ * flipped to succeeded gave no way to tell a Pesapal IPN from a reconciliation
+ * sweep from an admin doing it by hand, and those are three different
+ * incidents.
+ */
+export type ActorKind = 'user' | 'psp_webhook' | 'cron' | 'reconciliation' | 'system';
+
 export type AuditLogModel = {
   id: string;
   action: string;
   entity_type: string;
   entity_id: string | null;
   actor_id: string | null;
+  /** What kind of thing acted. Never null since 20260904000001. */
+  actor_kind: ActorKind;
+  /** Which one: 'pesapal_ipn', 'payment-reconciliation', 'escrow-lifecycle'. */
+  actor_label: string | null;
+  /** The trace this action belongs to, when it is part of a payment flow. */
+  correlation_id: string | null;
+  /** The Edge Function or RPC that made the write. */
+  source: string | null;
   occurred_at: string | null;
   /** Row snapshot before the change (null for inserts). */
   before: Record<string, unknown> | null;
   /** Row snapshot after the change (null for deletes). */
   after: Record<string, unknown> | null;
-  /** Embedded actor profile; null when the action was automated (system). */
+  /**
+   * Where the action came from. Present on auth rows since 20260802000005 and,
+   * since 20260904000001, on anything a webhook or a browser-driven RPC wrote.
+   */
+  ip_address: string | null;
+  user_agent: string | null;
+  device: string | null;
+  os: string | null;
+  browser: string | null;
+  country_code: string | null;
+  /** Resolved actor; null for a webhook, a cron, or an unattributable attempt. */
   actor: AuditActor | AuditActor[] | null;
+};
+
+/**
+ * One row on a payment's correlated timeline — the union of seven tables on a
+ * single ordered axis, from `get_payment_trace` (20260904000005).
+ */
+export type PaymentTraceRow = {
+  occurred_at: string;
+  /**
+   * Which table this row came from. Ordered as the events causally happen:
+   * payment · audit · psp_traffic · delivery · ledger · escrow · notification.
+   */
+  stream: 'payment' | 'audit' | 'psp_traffic' | 'delivery' | 'ledger' | 'escrow' | 'notification';
+  label: string;
+  actor_kind: ActorKind | null;
+  actor_label: string | null;
+  actor_name: string | null;
+  detail: Record<string, unknown> | null;
 };
 
 export type RetentionPolicyModel = {
@@ -1434,4 +1563,144 @@ export type AdminOfferModel = {
   redeemed_count: number | null;
   /** What the offer gave away, on redeemed quotes only. */
   discounted_value: number | null;
+};
+
+// --- payments (admin investigation) ----------------------------------------
+
+/**
+ * One row of the admin Payments list, as `search_payments_admin` returns it:
+ * the payment plus the two facts that make it findable — who paid and which
+ * booking it was for. `booking_reference` is null for subscription payments.
+ */
+export type PaymentAdminModel = {
+  id: string;
+  purpose: string;
+  provider: string;
+  provider_method: string;
+  provider_ref: string | null;
+  amount: number | null;
+  currency: string | null;
+  status: string;
+  failure_reason: string | null;
+  created_at: string | null;
+  paid_at: string | null;
+  payer_id: string;
+  payer_name: string | null;
+  payer_email: string | null;
+  booking_id: string | null;
+  booking_reference: string | null;
+  escrow_id: string | null;
+  subscription_id: string | null;
+};
+
+/**
+ * Who paid. `vendor_id` is set only for subscription payments — a vendor
+ * owner has no console page of their own, so the vendor listing is where
+ * that payer is investigated — and stays null for client payers.
+ */
+export type PaymentPayerModel = ConsolePartyModel & { vendor_id: string | null };
+
+export type PaymentBookingModel = {
+  id: string;
+  reference_no: string | null;
+  status: string;
+  event_date: string | null;
+  payment_type: string | null;
+  vendor: { id: string; name: string | null };
+};
+
+/**
+ * The escrow this payment was opened for. `funding_payment_id` is the escrow's
+ * *current* funding payment; when it is not this payment, this checkout was
+ * superseded and any money that landed on it funded nothing.
+ */
+export type PaymentEscrowModel = BookingEscrowModel & {
+  booking_id: string;
+  attempt_no: number | null;
+  failure_reason: string | null;
+  funding_payment_id: string | null;
+};
+
+export type PaymentSubscriptionModel = {
+  id: string;
+  status: string;
+  vendor_id: string;
+  vendor_name: string | null;
+  plan_name: string | null;
+};
+
+/** One provider delivery and what the webhook handler did with it. */
+export type PaymentEventModel = {
+  id: string;
+  provider: string;
+  event_id: string;
+  event_type: string | null;
+  outcome: string | null;
+  received_at: string;
+  processed_at: string | null;
+};
+
+/** One raw request, response or IPN body kept from PSP traffic. */
+export type PaymentLogModel = {
+  id: string;
+  provider: string;
+  direction: string;
+  event_type: string | null;
+  http_status: number | null;
+  signature_valid: boolean | null;
+  received_at: string;
+  payload: unknown;
+};
+
+/** A reconciliation exception with its resolution trail, as the payment page shows it. */
+export type PaymentExceptionModel = ReconciliationExceptionModel & {
+  metadata: Record<string, unknown> | null;
+  refund_id: string | null;
+  resolved_at: string | null;
+  /** Resolved to a name by the RPC, not a bare id. */
+  resolved_by: string | null;
+  resolution_notes: string | null;
+};
+
+/**
+ * One payment, whole, as `get_payment_admin` returns it. `exceptions` is
+ * `null` — not `[]` — when the caller lacks `finance.read`/`finance.reconcile`,
+ * so the page can say "not yours to see" rather than "none filed".
+ */
+export type PaymentAdminDetailModel = {
+  id: string;
+  purpose: string;
+  status: string;
+  provider: string;
+  provider_method: string;
+  provider_ref: string | null;
+  idempotency_key: string;
+  client_idempotency_key: string | null;
+  checkout_url: string | null;
+  amount: number | null;
+  currency: string | null;
+  base_amount: number | null;
+  base_currency: string | null;
+  fx_rate: number | null;
+  failure_reason: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  payer: PaymentPayerModel;
+  booking: PaymentBookingModel | null;
+  escrow: PaymentEscrowModel | null;
+  subscription: PaymentSubscriptionModel | null;
+  events: PaymentEventModel[];
+  logs: PaymentLogModel[];
+  exceptions: PaymentExceptionModel[] | null;
+  /**
+   * The trace this payment belongs to. Every audit row, provider message,
+   * delivery, ledger posting, escrow event and notification that shares it is
+   * one ordered story — see `usePaymentTrace`.
+   *
+   * Null only for a payment created before 20260904000002, and even then the
+   * backfill set it to the payment's own id, so in practice this is always
+   * present.
+   */
+  correlation_id: string | null;
 };

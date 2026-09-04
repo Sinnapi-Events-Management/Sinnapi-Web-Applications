@@ -90,6 +90,35 @@ function DrawerBody({ log, onClose }: { log: AuditLogModel; onClose: () => void 
           mono
         />
 
+        {/* Where the action came from, and what code path made it.
+            `source` and the request origin were added by 20260904000001 and
+            20260802000005 respectively; before that `ip_address` had existed on
+            this table since 0009 and nothing had ever written it, so the drawer
+            looked like it answered "where from?" and silently never did. */}
+        <InfoRow label="Made by" value={log.source ?? undefined} mono />
+        <InfoRow
+          label="From"
+          value={[log.ip_address, log.country_code].filter(Boolean).join(' · ') || undefined}
+          copyValue={log.ip_address ?? undefined}
+          mono
+        />
+        <InfoRow
+          label="Device"
+          value={[log.device, log.os, log.browser].filter(Boolean).join(' · ') || undefined}
+        />
+
+        {/* The trace. `?correlation_id=` filters this same page to every row on
+            it; the payment page renders the full seven-table story. There is no
+            `/traces/:id` route, so the audit list is the general entry point. */}
+        {log.correlation_id && (
+          <InfoRow
+            label="Trace id"
+            value={log.correlation_id}
+            copyValue={log.correlation_id}
+            mono
+          />
+        )}
+
         <Typography
           variant="overline"
           color="text.secondary"
