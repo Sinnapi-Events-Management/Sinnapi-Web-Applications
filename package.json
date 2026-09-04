@@ -39,6 +39,7 @@
     "clean:deps": "rm -rf node_modules apps/*/node_modules",
     "email:preview": "node scripts/preview-emails.mjs",
     "email:logo": "node scripts/build-email-logo.mjs",
+    "pesapal:ipn": "node scripts/register-pesapal-ipn.mjs",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "db:diff": "supabase db diff",

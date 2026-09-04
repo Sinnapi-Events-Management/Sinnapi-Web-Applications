@@ -5,7 +5,13 @@ import {
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query';
-import { paginate, BOOKING_PAYMENT_WINDOW_COLUMNS, type PageParams, type Paged } from '@sinnapi/ui';
+import {
+  paginate,
+  rpcErrorMessage,
+  BOOKING_PAYMENT_WINDOW_COLUMNS,
+  type PageParams,
+  type Paged,
+} from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
@@ -56,6 +62,11 @@ import type {
   NotificationPage,
   OfferTargetModel,
   OfferPerformanceModel,
+  SubscriptionQuoteModel,
+  MySubscriptionModel,
+  SubscriptionPaymentModel,
+  SubscriptionEventModel,
+  PaymentReturnModel,
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
@@ -1566,5 +1577,246 @@ export function useSetVendorCoverage(vendorId: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['v-coverage', vendorId] }),
+  });
+}
+
+// ---------- Subscription payments ----------
+
+/** The vendor's subscription with its plan — the row the subscription page is about. */
+export function useMySubscription(vendorId: string | undefined) {
+  return useQuery({
+    queryKey: ['my-subscription-detail', vendorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(
+          'id,status,plan_id,current_period_start,current_period_end,trial_ends_at,grace_until,auto_renew,plan:pricing_plans(name,billing_cycle,price,currency)',
+        )
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const row = data as unknown as Omit<MySubscriptionModel, 'plan'> & {
+        plan: MySubscriptionModel['plan'] | MySubscriptionModel['plan'][];
+      };
+      return { ...row, plan: one(row.plan) } as MySubscriptionModel;
+    },
+    enabled: !!vendorId,
+  });
+}
+
+/** One subscription by id, for the return page — same shape, same RLS. */
+export function useSubscriptionById(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['subscription', subscriptionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(
+          'id,status,plan_id,current_period_start,current_period_end,trial_ends_at,grace_until,auto_renew,plan:pricing_plans(name,billing_cycle,price,currency)',
+        )
+        .eq('id', subscriptionId!)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const row = data as unknown as Omit<MySubscriptionModel, 'plan'> & {
+        plan: MySubscriptionModel['plan'] | MySubscriptionModel['plan'][];
+      };
+      return { ...row, plan: one(row.plan) } as MySubscriptionModel;
+    },
+    enabled: !!subscriptionId,
+  });
+}
+
+/**
+ * What a plan would cost this vendor right now — `subscription_price_plan`,
+ * the same function `activate_subscription_payment` prices the charge with,
+ * so the preview and the charge cannot disagree. Unlike the escrow quote it
+ * does not vary by rail: the platform absorbs the processing fee.
+ */
+export function useSubscriptionQuote(
+  vendorId: string | undefined,
+  planId: string | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ['subscription-quote', vendorId, planId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('subscription_price_plan', { p_vendor_id: vendorId!, p_plan_id: planId! })
+        .maybeSingle();
+      if (error) throw error;
+      return (data as SubscriptionQuoteModel) ?? null;
+    },
+    enabled: enabled && !!vendorId && !!planId,
+    placeholderData: (previous) => previous,
+  });
+}
+
+/**
+ * Open a hosted checkout for a plan.
+ *
+ * Every figure is derived server-side from the plan; the browser sends only
+ * which plan, which vendor and which rail. Card and wallet details are
+ * entered on the provider's own pages and never reach Sinnapi.
+ */
+export function useStartSubscriptionPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      idempotencyKey,
+      ...input
+    }: {
+      vendorId: string;
+      planId: string;
+      provider: 'pesapal' | 'paypal';
+      method: 'mtn_momo' | 'airtel_money' | 'card';
+      /**
+       * Stable for one checkout attempt, regenerated only when the plan or
+       * the rail changes (see `useSubscriptionCheckout`). A repeat of the
+       * same request reaches the server with the same key and is handed the
+       * checkout it already opened rather than a second one.
+       */
+      idempotencyKey: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: input,
+        headers: { 'Idempotency-Key': idempotencyKey },
+      });
+      if (error) {
+        // The function returns a typed reason in the body; surface that rather
+        // than the generic "Edge Function returned a non-2xx status code".
+        let detail = error.message;
+        const context = (error as { context?: Response }).context;
+        if (context && typeof context.json === 'function') {
+          try {
+            const payload = (await context.json()) as { error?: string };
+            if (payload?.error) detail = payload.error;
+          } catch {
+            /* body already consumed or not JSON — fall through */
+          }
+        }
+        throw new Error(detail);
+      }
+      return data as {
+        purpose: 'subscription';
+        paymentId: string;
+        subscriptionId: string;
+        checkoutUrl: string;
+        amount: number;
+        currency: string;
+        /** True when this was the checkout an earlier identical request opened. */
+        replayed: boolean;
+      };
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['my-subscription-detail', vars.vendorId] });
+      qc.invalidateQueries({ queryKey: ['subscription-payments'] });
+    },
+  });
+}
+
+/** Human-readable reasons for the failures the subscription RPCs can raise. */
+const SUBSCRIPTION_ERRORS: Record<string, string> = {
+  plan_not_found: 'That plan no longer exists. Pick another from the list.',
+  plan_inactive: 'That plan is no longer offered. Pick another from the list.',
+  // Seeded catalogues carry a zero price until Finance sets real ones. A
+  // zero-amount checkout is refused server-side rather than activated for
+  // nothing, because the whole flow exists to put a payment behind a plan.
+  plan_is_free: 'This plan has no price set yet, so it cannot be paid for. Please contact support.',
+  vendor_not_active:
+    'Your vendor account is not active, so a subscription cannot be started. Please contact support.',
+  // A checkout for this subscription is still open — most often the
+  // mobile-money prompt from the first tap is still waiting on the phone.
+  // Once it lapses the next Pay opens a fresh one, so "wait" is real advice.
+  payment_already_in_flight:
+    'A payment for your subscription is already in progress. Check your phone for a payment ' +
+    'prompt, or wait a few minutes and try again.',
+  paypal_requires_card: 'PayPal only supports card payments.',
+  ambiguous_purpose: 'Something went wrong preparing this payment. Please reload and try again.',
+  booking_id_or_plan_id_required:
+    'Something went wrong preparing this payment. Please reload and try again.',
+  vendor_id_required: 'Something went wrong preparing this payment. Please reload and try again.',
+  invalid_plan_id: 'That plan is no longer valid. Pick another from the list.',
+  invalid_vendor_id: 'Something went wrong preparing this payment. Please reload and try again.',
+  subscription_activation_failed: 'We could not start this payment. Please try again in a moment.',
+  forbidden: 'You do not have permission to manage this subscription.',
+  not_found: 'We could not find your vendor account.',
+};
+
+/**
+ * The subscription RPCs refuse the same way the escrow ones do, so they are
+ * read the same way — see `rpcError.ts` in `@sinnapi/ui`. It matters most on
+ * a payment button: `[object Object]` there is the version of this bug that
+ * stops someone from paying.
+ */
+export function subscriptionErrorMessage(error: unknown): string {
+  return rpcErrorMessage(error, SUBSCRIPTION_ERRORS);
+}
+
+/** Every payment made against the subscription, newest first. */
+export function useSubscriptionPayments(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['subscription-payments', subscriptionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(
+          'id,status,amount,currency,provider,provider_method,provider_ref,failure_reason,paid_at,created_at,target_plan:pricing_plans!payments_target_plan_id_fkey(name)',
+        )
+        .eq('subscription_id', subscriptionId!)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (
+        (data ?? []) as unknown as (Omit<SubscriptionPaymentModel, 'target_plan'> & {
+          target_plan: { name: string } | { name: string }[] | null;
+        })[]
+      ).map((row) => ({ ...row, target_plan: one(row.target_plan) })) as SubscriptionPaymentModel[];
+    },
+    enabled: !!subscriptionId,
+  });
+}
+
+/** The subscription's append-only history, newest first. */
+export function useSubscriptionEvents(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['subscription-events', subscriptionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscription_events')
+        .select('id,event_type,payment_id,metadata,occurred_at')
+        .eq('subscription_id', subscriptionId!)
+        .order('occurred_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as SubscriptionEventModel[];
+    },
+    enabled: !!subscriptionId,
+  });
+}
+
+/** One payment row, as the payer, for the return page. */
+export function usePaymentById(
+  paymentId: string | undefined,
+  options: { refetchInterval?: (query: { state: { data?: unknown } }) => number | false } = {},
+) {
+  return useQuery({
+    queryKey: ['payment', paymentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(
+          'id,purpose,subscription_id,amount,currency,status,provider,provider_method,provider_ref,failure_reason,paid_at,created_at',
+        )
+        .eq('id', paymentId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as PaymentReturnModel) ?? null;
+    },
+    enabled: !!paymentId,
+    refetchInterval: options.refetchInterval,
   });
 }

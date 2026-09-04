@@ -927,6 +927,21 @@ export type PaymentModel = {
   created_at: string;
 };
 
+/**
+ * One payment as the return page reads it after the PSP hands the browser
+ * back. Everything here is read through RLS as the payer; the query string
+ * the PSP appended is used only to find the row, never to describe it.
+ */
+export type PaymentReturnModel = PaymentModel & {
+  booking_id: string | null;
+  escrow_id: string | null;
+  /** Set for purpose = subscription; those rows belong to a vendor owner. */
+  subscription_id: string | null;
+  /** The PSP's own id for this checkout — Pesapal's OrderTrackingId. */
+  provider_ref: string | null;
+  failure_reason: string | null;
+};
+
 // ---------- Messaging ----------
 /**
  * One row of `get_my_conversations()` (migration 0815f).

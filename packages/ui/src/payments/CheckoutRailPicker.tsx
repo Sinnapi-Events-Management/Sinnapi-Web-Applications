@@ -1,33 +1,38 @@
-import { Box, Stack, Typography } from '@sinnapi/ui';
+'use client';
+import { Box, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import type { PaymentRail } from '../../hooks/useEscrowCheckout';
+import type { CheckoutRailOption } from './rails';
 
-type Rail = PaymentRail & { label: string; caption: string };
-
-type Props = {
-  rails: Rail[];
+export type CheckoutRailPickerProps = {
+  rails: readonly CheckoutRailOption[];
   selected: number;
   onSelect: (index: number) => void;
   disabled?: boolean;
 };
 
-function railIcon(rail: Rail) {
+function railIcon(rail: CheckoutRailOption) {
   if (rail.provider === 'paypal') return <AccountBalanceWalletIcon />;
   if (rail.method === 'card') return <CreditCardIcon />;
   return <PhoneAndroidIcon />;
 }
 
 /**
- * How the client wants to pay.
+ * How the payer wants to pay.
  *
- * Rendered as radio cards rather than a select: the choice changes the total
- * (the processing fee differs per rail and is passed on), so it deserves to be
- * visible and comparable rather than hidden behind a dropdown.
+ * Rendered as radio cards rather than a select so the choices are visible and
+ * comparable. On an escrow checkout the choice also changes the total (the
+ * processing fee differs per rail and is passed on); on a subscription it does
+ * not, and the same picker says so by leaving the total alone.
  */
-export default function PaymentRailPicker({ rails, selected, onSelect, disabled }: Props) {
+export function CheckoutRailPicker({
+  rails,
+  selected,
+  onSelect,
+  disabled,
+}: CheckoutRailPickerProps) {
   return (
     <Stack
       role="radiogroup"

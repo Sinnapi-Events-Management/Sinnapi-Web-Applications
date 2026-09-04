@@ -35,6 +35,11 @@ verify_jwt = false
 [functions.psp-paypal-webhook]
 verify_jwt = false
 
+# Scheduled workers and the moderation hook. Open at the gateway because the
+# pg_cron trigger is a service-role bearer rather than a user session — each
+# handler rejects anything that is not the service-role key as its first
+# statement, before it reads a row. `verify_jwt = false` on its own gates
+# nothing; the in-handler check is the actual control.
 [functions.fx-rate-sync]
 verify_jwt = false
 
@@ -48,6 +53,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.payment-reconciliation]
+verify_jwt = false
+
+[functions.escrow-lifecycle]
 verify_jwt = false
 
 [functions.vendor-application]

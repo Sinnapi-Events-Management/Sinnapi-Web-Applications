@@ -1055,3 +1055,98 @@ export type ServiceRegionModel = {
   name: string;
   scope: string;
 };
+
+// ---------- Subscription payments ----------
+
+/**
+ * One row of `subscription_price_plan(p_vendor_id, p_plan_id)` — what a plan
+ * would cost this vendor right now, and the period the payment buys. The same
+ * function prices the charge, so this preview can never disagree with it.
+ * `psp_fee_amount` is always 0 (the platform absorbs it on subscriptions) and
+ * is returned rather than omitted so the UI can say so.
+ */
+export type SubscriptionQuoteModel = {
+  plan_id: string;
+  plan_key: string;
+  plan_name: string;
+  billing_cycle: 'monthly' | 'annual';
+  amount: number;
+  currency: string;
+  psp_fee_amount: number;
+  change_kind: 'new' | 'trial_conversion' | 'renewal' | 'upgrade' | 'downgrade' | 'reactivation';
+  subscription_id: string | null;
+  current_plan_id: string | null;
+  current_plan_name: string | null;
+  current_status: string | null;
+  current_period_end: string | null;
+  period_start: string;
+  period_end: string;
+  /** Days of the current paid period forfeited by a plan change; 0 otherwise. */
+  unused_days: number;
+  fx_rate_id: string | null;
+  base_amount: number | null;
+  base_currency: string;
+};
+
+/** The vendor's own subscription row, with its plan, as the subscription page reads it. */
+export type MySubscriptionModel = {
+  id: string;
+  status: string;
+  plan_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  trial_ends_at: string | null;
+  grace_until: string | null;
+  auto_renew: boolean;
+  plan: {
+    name: string;
+    billing_cycle: string;
+    price: number | null;
+    currency: string | null;
+  } | null;
+};
+
+/** A payment made against the vendor's subscription, newest first. */
+export type SubscriptionPaymentModel = {
+  id: string;
+  status: string;
+  amount: number | null;
+  currency: string | null;
+  provider: string | null;
+  provider_method: string | null;
+  provider_ref: string | null;
+  failure_reason: string | null;
+  paid_at: string | null;
+  created_at: string;
+  target_plan: { name: string } | null;
+};
+
+/** One entry of the subscription's append-only event stream. */
+export type SubscriptionEventModel = {
+  id: string;
+  event_type: string;
+  payment_id: string | null;
+  metadata: Record<string, unknown> | null;
+  occurred_at: string;
+};
+
+/**
+ * One payment as the return page reads it after the PSP hands the browser
+ * back. Read through RLS as the payer; the query string the PSP appended is
+ * used only to find the row, never to describe it.
+ */
+export type PaymentReturnModel = {
+  id: string;
+  purpose: string;
+  subscription_id: string | null;
+  amount: number | null;
+  currency: string | null;
+  status: string;
+  provider: string | null;
+  provider_method: string | null;
+  /** The PSP's own id for this checkout — Pesapal's OrderTrackingId. */
+  provider_ref: string | null;
+  failure_reason: string | null;
+  paid_at: string | null;
+  created_at: string;
+};

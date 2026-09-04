@@ -1,18 +1,9 @@
+import { Link as RouterLink } from 'react-router-dom';
 import { type DataTableColumn, Button, Chip, Stack, StatusChip, Typography } from '@sinnapi/ui';
 import { formatDateTime, formatMoney } from '@/lib/config';
 import type { ReconciliationExceptionModel } from '@/lib/types';
-
-/** What each exception kind actually means, in a Finance admin's terms. */
-const KIND_LABEL: Record<string, string> = {
-  stuck_payment: 'Stuck payment',
-  unbalanced_escrow: 'Ledger out of balance',
-  psp_amount_mismatch: 'Amount mismatch',
-  psp_fee_variance: 'Fee variance',
-  orphan_payment: 'Orphan payment',
-  missing_payout: 'Missing payout',
-  overdue_settlement: 'Settlement overdue',
-  webhook_replay: 'Webhook replay',
-};
+import { KIND_LABEL } from './labels';
+import { exceptionLinks } from './links';
 
 type Actions = {
   has: (permission: string) => boolean;
@@ -43,6 +34,32 @@ export function reconciliationColumns({
           </Typography>
         </Stack>
       ),
+    },
+    {
+      field: 'records',
+      headerName: 'Records',
+      // The finding is about a payment, an escrow or a payout; each is one
+      // click away rather than an id to paste into a search box.
+      render: (r) => {
+        const links = exceptionLinks(r);
+        return links.length === 0 ? (
+          '—'
+        ) : (
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+            {links.map((l) => (
+              <Chip
+                key={l.key}
+                size="small"
+                variant="outlined"
+                clickable
+                component={RouterLink}
+                to={l.to}
+                label={l.label}
+              />
+            ))}
+          </Stack>
+        );
+      },
     },
     {
       field: 'expected',

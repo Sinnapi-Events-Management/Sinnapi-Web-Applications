@@ -21,6 +21,7 @@ export default function Subscriptions() {
     filters,
     planOptions,
     table,
+    openSubscription,
   } = useSubscriptions();
 
   const pageError = error
@@ -42,7 +43,7 @@ export default function Subscriptions() {
     <>
       <PageTitle
         title="Subscriptions"
-        subtitle="Monitor vendor subscriptions, trials, and grace periods."
+        subtitle="Monitor vendor subscriptions, trials and grace periods. Open one to see who paid what, and when."
       />
 
       <StatusTabs
@@ -66,6 +67,7 @@ export default function Subscriptions() {
         rowCount={total}
         loading={isLoading || isFetching}
         emptyMessage={emptyMessage}
+        onRowClick={openSubscription}
         {...table.controls}
       />
     </>

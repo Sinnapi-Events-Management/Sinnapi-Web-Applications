@@ -25,7 +25,9 @@ export type SubscriptionRecord = {
   plan_id: string | null;
   trial_ends_at: string | null;
   grace_until: string | null;
+  current_period_start: string | null;
   current_period_end: string | null;
+  auto_renew: boolean;
 } | null;
 
 type Ctx = {
@@ -64,7 +66,9 @@ export function VendorProvider({ children }: { children: React.ReactNode }) {
     queryFn: async () => {
       const { data } = await supabase
         .from('subscriptions')
-        .select('id,status,plan_id,trial_ends_at,grace_until,current_period_end')
+        .select(
+          'id,status,plan_id,trial_ends_at,grace_until,current_period_start,current_period_end,auto_renew',
+        )
         .eq('vendor_id', vendorQ.data!.id)
         .order('created_at', { ascending: false })
         .limit(1)

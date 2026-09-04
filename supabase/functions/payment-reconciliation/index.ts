@@ -6,24 +6,67 @@
 // authoritative answer for a payment whose webhook was lost — and that goes
 // through the same record_payment_result the webhooks use, so it obeys the
 // same terminal-state rules.
+//
+// WHY THIS SWEEP NEEDED ITS OWN ACTOR KIND.
+// It calls the same `record_payment_result` the webhooks do, and until 0904a
+// produced the same audit row: `actor_id` null, rendered as "system". But a
+// payment resolved here means something a payment resolved by an IPN does not
+// — the webhook never arrived, or arrived and failed — and that is the
+// difference between "routine" and "our provider integration is dropping
+// deliveries". `actor_kind: 'reconciliation'` is deliberately separate from
+// 'cron' for that reason: the question is not "was this scheduled" but "did
+// something disagree".
+//
+// It passes no correlation id, because it did not open the checkout — that
+// happened at least an hour earlier, in a different process. The RPC adopts
+// the one already on the payment row (`_ensure_correlation`), so the sweep's
+// postings land on the original story rather than starting a second one about
+// the same money.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient } from '../_shared/supabase.ts';
+import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
 import { getTransactionStatus, mapPesapalStatus } from '../_shared/pesapal.ts';
 import { getOrder } from '../_shared/paypal.ts';
+import {
+  paymentContext,
+  withCorrelation,
+  writeAudit,
+  writePaymentLog,
+  type PaymentContext,
+} from '../_shared/audit.ts';
+import { redactMessage } from '../_shared/redact.ts';
 
 type Supa = ReturnType<typeof adminClient>;
+
+// No `req` is passed: the address and user agent on a cron's own HTTP call
+// belong to Supabase's infrastructure talking to itself, not to a caller, and
+// recording them would put a meaningless value in a column an investigator
+// reads as "where did this come from". 0802e's header makes the same point
+// about why `tg_write_audit` cannot read `request.headers` and be believed.
+const CTX: PaymentContext = paymentContext(
+  'reconciliation',
+  'payment-reconciliation',
+  'payment-reconciliation',
+);
 
 const STUCK_AFTER_MS = 60 * 60 * 1000;
 const LIMIT = 200;
 
 Deno.serve(
   handler(async (req) => {
+    // Cron-only. The gateway does not verify a JWT here (config.toml), so the
+    // handler is the only gate: without it, anyone who found the URL could
+    // re-query every stuck payment against the PSPs and apply the result, or
+    // flood Finance's queue with exceptions. pg_cron presents the
+    // service-role key as its bearer, which is the one thing a browser cannot.
+    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+
     const supa = adminClient();
     const summary = { requeried: 0, resolved: 0, exceptions: 0, errors: [] as string[] };
 
     summary.resolved += await sweepStuckPayments(supa, summary);
     summary.exceptions += await sweepUnbalancedEscrows(supa);
     summary.exceptions += await sweepOrphanEscrows(supa);
+    summary.exceptions += await sweepUnreferencedFundingPayments(supa);
     summary.exceptions += await sweepLedgerAccounts(supa);
 
     // One digest to Finance rather than one alert per finding.
@@ -74,7 +117,7 @@ async function sweepStuckPayments(
   const cutoff = new Date(Date.now() - STUCK_AFTER_MS).toISOString();
   const { data: stuck } = await supa
     .from('payments')
-    .select('id, provider, provider_ref, status, amount, created_at')
+    .select('id, provider, provider_ref, status, amount, created_at, correlation_id')
     .in('status', ['pending', 'processing'])
     .lt('created_at', cutoff)
     .limit(LIMIT);
@@ -82,8 +125,14 @@ async function sweepStuckPayments(
   let resolved = 0;
 
   for (const p of stuck ?? []) {
+    // Each payment is worked under its OWN trace. One sweep touches many
+    // unrelated checkouts, so a single sweep-wide context would put every one
+    // of them on the same correlation id and the trace would stop meaning
+    // "this transaction".
+    const ctx = withCorrelation(CTX, p.correlation_id as string | null);
+
     if (!p.provider_ref) {
-      await raise(supa, {
+      await raise(supa, ctx, {
         kind: 'orphan_payment',
         dedupe: `payment:${p.id}:no_provider_ref`,
         detail:
@@ -98,11 +147,20 @@ async function sweepStuckPayments(
       summary.requeried++;
       let mapped: 'succeeded' | 'failed' | 'refunded' | null = null;
       let confirmed = 0;
+      let providerStatus = '';
 
       if (p.provider === 'pesapal') {
         const st = await getTransactionStatus(p.provider_ref);
         mapped = mapPesapalStatus(st.statusCode);
         confirmed = st.amount;
+        providerStatus = String(st.statusCode);
+        await writePaymentLog(supa, ctx, {
+          paymentId: p.id,
+          provider: 'pesapal',
+          direction: 'response',
+          eventType: 'reconciliation_requery',
+          payload: st as unknown as Record<string, unknown>,
+        });
       } else {
         const order = await getOrder(p.provider_ref);
         mapped =
@@ -112,7 +170,35 @@ async function sweepStuckPayments(
               ? 'failed'
               : null;
         confirmed = order.amount;
+        providerStatus = order.status;
+        await writePaymentLog(supa, ctx, {
+          paymentId: p.id,
+          provider: 'paypal',
+          direction: 'response',
+          eventType: 'reconciliation_requery',
+          payload: order as unknown as Record<string, unknown>,
+        });
       }
+
+      // The re-query itself, and what the provider said. This is the row that
+      // answers "how long was this payment stuck, and what did the PSP
+      // actually think during that time" — a question the sweep has always
+      // been able to answer and has never recorded.
+      await writeAudit(supa, ctx, {
+        action: 'reconciliation_requery',
+        entityType: 'payments',
+        entityId: p.id,
+        detail: {
+          provider: p.provider,
+          providerRef: p.provider_ref,
+          providerStatus,
+          mappedTo: mapped,
+          confirmedAmount: confirmed,
+          expectedAmount: Number(p.amount),
+          internalStatus: p.status,
+          stuckSince: p.created_at,
+        },
+      });
 
       if (!mapped) continue; // genuinely still in flight
 
@@ -121,7 +207,7 @@ async function sweepStuckPayments(
         confirmed > 0 &&
         Math.abs(confirmed - Number(p.amount)) > 0.01
       ) {
-        await raise(supa, {
+        await raise(supa, ctx, {
           kind: 'psp_amount_mismatch',
           dedupe: `payment:${p.id}:amount`,
           detail: 'PSP reports a different amount than the payment record',
@@ -138,13 +224,26 @@ async function sweepStuckPayments(
         p_status: mapped,
         p_provider_ref: p.provider_ref,
         p_reason: mapped === 'succeeded' ? null : 'resolved_by_reconciliation',
+        p_context: ctx,
       });
       if (error) throw new Error(error.message);
       resolved++;
+
+      await writeAudit(supa, ctx, {
+        action: 'reconciliation_applied',
+        entityType: 'payments',
+        entityId: p.id,
+        detail: {
+          appliedStatus: mapped,
+          previousStatus: p.status,
+          providerRef: p.provider_ref,
+          reason: 'webhook_never_arrived_or_failed',
+        },
+      });
     } catch (e) {
-      const detail = e instanceof Error ? e.message : 'requery_failed';
+      const detail = redactMessage(e instanceof Error ? e.message : 'requery_failed');
       summary.errors.push(`${p.id}: ${detail}`);
-      await raise(supa, {
+      await raise(supa, ctx, {
         kind: 'stuck_payment',
         dedupe: `payment:${p.id}:requery`,
         detail: `Could not reach the provider to resolve a stuck payment: ${detail}`,
@@ -185,7 +284,7 @@ async function sweepUnbalancedEscrows(supa: Supa): Promise<number> {
       .reduce((s, l) => s + Number(l.amount), 0);
 
     if (Math.abs(debit - credit) > 0.01) {
-      await raise(supa, {
+      await raise(supa, CTX, {
         kind: 'unbalanced_escrow',
         dedupe: `escrow:${e.id}:unbalanced`,
         detail: `Ledger does not balance: debits ${debit} vs credits ${credit}`,
@@ -218,13 +317,71 @@ async function sweepOrphanEscrows(supa: Supa): Promise<number> {
     const status = Array.isArray(payment) ? payment[0]?.status : payment?.status;
     if (status === 'succeeded') continue;
 
-    await raise(supa, {
+    await raise(supa, CTX, {
       kind: 'orphan_payment',
       dedupe: `escrow:${e.id}:no_successful_payment`,
       detail: `Escrow is holding funds but its funding payment is '${status ?? 'missing'}'`,
       escrowId: e.id,
       paymentId: (e.funding_payment_id as string) ?? undefined,
       expected: Number(e.gross_amount),
+      severity: 'critical',
+    });
+    raised++;
+  }
+
+  return raised;
+}
+
+/**
+ * The mirror image of `sweepOrphanEscrows`: a payment that succeeded for
+ * escrow funding but that no escrow claims as its funding payment.
+ *
+ * That is money received against nothing. It is how a double checkout
+ * showed up before `activate_escrow` refused one — the escrow was re-pointed
+ * at the second payment, the first was paid anyway, and `fund_escrow` waved
+ * the second IPN through as already funded. The orphan-escrow sweep cannot
+ * see it because it only reads the CURRENT funding payment, which did
+ * succeed. Read from the payments side instead, through an anti-join in
+ * `unreferenced_funding_payments`, and file each one as critical.
+ */
+async function sweepUnreferencedFundingPayments(supa: Supa): Promise<number> {
+  const { data: orphans, error } = await supa.rpc('unreferenced_funding_payments', {
+    p_limit: LIMIT,
+  });
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'unreferenced_funding_payments_failed',
+        detail: error.message,
+      }),
+    );
+    return 0;
+  }
+
+  let raised = 0;
+
+  for (const p of (orphans ?? []) as Array<{
+    payment_id: string;
+    booking_id: string | null;
+    escrow_id: string | null;
+    amount: number;
+    currency: string;
+    provider: string;
+    provider_ref: string | null;
+    paid_at: string | null;
+  }>) {
+    await raise(supa, CTX, {
+      kind: 'orphan_payment',
+      dedupe: `payment:${p.payment_id}:unreferenced_success`,
+      detail:
+        `Payment succeeded for escrow funding (${p.provider} ${p.provider_ref ?? 'no ref'}, ` +
+        `${p.amount} ${p.currency}) but no escrow records it as its funding payment — ` +
+        'money received against nothing',
+      paymentId: p.payment_id,
+      escrowId: p.escrow_id ?? undefined,
+      expected: Number(p.amount),
+      actual: 0,
       severity: 'critical',
     });
     raised++;
@@ -267,7 +424,7 @@ async function sweepLedgerAccounts(supa: Supa): Promise<number> {
   // ledger posting and the payout settling, so allow a small tolerance and
   // rely on the per-escrow sweep for anything structural.
   if (Math.abs(held - expected) > 1) {
-    await raise(supa, {
+    await raise(supa, CTX, {
       kind: 'unbalanced_escrow',
       dedupe: 'control:escrow_held',
       detail: 'escrow_held control account does not match the sum of open escrows',
@@ -281,8 +438,18 @@ async function sweepLedgerAccounts(supa: Supa): Promise<number> {
   return 0;
 }
 
+/**
+ * File a finding, and record which sweep filed it.
+ *
+ * `ctx` carries a correlation id only where the sweep already had one to hand
+ * (the stuck-payment sweep reads it off the payment row). Everywhere else the
+ * module-level `CTX` is passed and the RPC resolves the trace itself from
+ * `p_payment_id`, or from the escrow's funding payment — see
+ * `_ensure_correlation` in 20260904000001.
+ */
 async function raise(
   supa: Supa,
+  ctx: PaymentContext,
   opts: {
     kind: string;
     dedupe: string;
@@ -306,10 +473,38 @@ async function raise(
     p_payment_id: opts.paymentId ?? null,
     p_payout_id: opts.payoutId ?? null,
     p_severity: opts.severity ?? 'warning',
+    p_context: ctx,
   });
   if (error) {
     console.error(
-      JSON.stringify({ level: 'error', message: 'raise_exception_failed', detail: error.message }),
+      JSON.stringify({
+        level: 'error',
+        message: 'raise_exception_failed',
+        detail: redactMessage(error.message),
+      }),
     );
+    return;
   }
+
+  // Which sweep filed a finding changes what a person does about it. An
+  // `orphan_payment` from `create-payment` means a checkout was opened and its
+  // reference could not be stored; the same kind from here means a payment
+  // succeeded against nothing. Same row shape, different emergency — and the
+  // exception row alone does not say which.
+  await writeAudit(supa, ctx, {
+    action: 'exception_raised',
+    entityType: 'reconciliation_exceptions',
+    entityId: opts.paymentId ?? opts.escrowId ?? opts.payoutId ?? null,
+    detail: {
+      kind: opts.kind,
+      dedupeKey: opts.dedupe,
+      severity: opts.severity ?? 'warning',
+      detail: opts.detail,
+      expected: opts.expected ?? null,
+      actual: opts.actual ?? null,
+      escrowId: opts.escrowId ?? null,
+      paymentId: opts.paymentId ?? null,
+      payoutId: opts.payoutId ?? null,
+    },
+  });
 }

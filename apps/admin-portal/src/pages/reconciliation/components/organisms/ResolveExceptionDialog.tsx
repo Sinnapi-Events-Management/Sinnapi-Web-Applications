@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -7,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   InfoRow,
+  Link,
   MenuItem,
   Stack,
   TextField,
@@ -15,6 +17,7 @@ import {
 import { formatDateTime, formatMoney } from '@/lib/config';
 import type { ReconciliationExceptionModel } from '@/lib/types';
 import type { ResolutionStatus } from '../../hooks/useReconciliation';
+import { exceptionLinks } from '../../schema/links';
 
 const OUTCOMES: Array<{ value: ResolutionStatus; label: string; hint: string }> = [
   {
@@ -48,6 +51,12 @@ type Props = {
  * Notes are mandatory for every outcome. An exception closed with no
  * explanation is worse than one left open — it looks handled while telling the
  * next auditor nothing about what actually happened to the money.
+ *
+ * The records the finding names are links, not ids: the decision being
+ * recorded here is usually made by reading the payment or the booking, and
+ * the dialog should open onto them rather than make the admin go and find
+ * them. The escrow's own id is still shown (and copyable) when no booking is
+ * readable, so the trail is never shorter than it was.
  */
 export default function ResolveExceptionDialog({
   exception,
@@ -60,6 +69,8 @@ export default function ResolveExceptionDialog({
   const [notes, setNotes] = useState('');
   const isBusy = !!exception && busy === exception.id;
   const tooShort = notes.trim().length < 10;
+  const links = exception ? exceptionLinks(exception) : [];
+  const escrowLinked = links.some((l) => l.key === 'escrow');
 
   return (
     <Dialog open={!!exception} onClose={isBusy ? undefined : onClose} maxWidth="sm" fullWidth>
@@ -76,28 +87,25 @@ export default function ResolveExceptionDialog({
               <InfoRow label="Actual" value={formatMoney(exception.actual, 'UGX')} />
               <InfoRow label="First seen" value={formatDateTime(exception.first_seen_at)} />
               <InfoRow label="Occurrences" value={`${exception.occurrences}`} />
-              {exception.escrow_id && (
+              {links.map((l) => (
+                <InfoRow
+                  key={l.key}
+                  label={l.label}
+                  mono
+                  copyValue={l.id}
+                  value={
+                    <Link component={RouterLink} to={l.to} underline="hover">
+                      {l.id}
+                    </Link>
+                  }
+                />
+              ))}
+              {exception.escrow_id && !escrowLinked && (
                 <InfoRow
                   label="Escrow"
                   value={exception.escrow_id}
                   mono
                   copyValue={exception.escrow_id}
-                />
-              )}
-              {exception.payment_id && (
-                <InfoRow
-                  label="Payment"
-                  value={exception.payment_id}
-                  mono
-                  copyValue={exception.payment_id}
-                />
-              )}
-              {exception.payout_id && (
-                <InfoRow
-                  label="Payout"
-                  value={exception.payout_id}
-                  mono
-                  copyValue={exception.payout_id}
                 />
               )}
             </div>

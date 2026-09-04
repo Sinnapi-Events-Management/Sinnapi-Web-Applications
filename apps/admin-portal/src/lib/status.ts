@@ -95,3 +95,31 @@ export const SUBSCRIPTION_STATUSES = [
 ] as const;
 
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+/**
+ * The `payment_status` enum, in lifecycle order. Authoritative source for the
+ * Payments list' status tabs and their counts. `pending` has a row but no
+ * checkout yet, `processing` has a provider reference and an open checkout,
+ * `succeeded` is money received, `failed` is declined, expired or superseded,
+ * and the two refund states are money sent back after success.
+ */
+export const PAYMENT_STATUSES = [
+  'pending',
+  'processing',
+  'succeeded',
+  'failed',
+  'refunded',
+  'partially_refunded',
+] as const;
+
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+/** The `payment_provider` enum — which PSP carried the charge. */
+export const PAYMENT_PROVIDERS = ['pesapal', 'paypal'] as const;
+
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+
+/** The `payment_purpose` enum — what the money was for. */
+export const PAYMENT_PURPOSES = ['escrow_funding', 'booking_direct', 'subscription'] as const;
+
+export type PaymentPurpose = (typeof PAYMENT_PURPOSES)[number];

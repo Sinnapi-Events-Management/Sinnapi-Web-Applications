@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   useSubscriptionsAdmin,
   useSubscriptionAdminStatusCounts,
@@ -6,6 +7,7 @@ import {
   type SubscriptionAdminFilters,
   type SubscriptionAdminParams,
 } from '@/hooks/queries';
+import type { SubscriptionAdminModel } from '@/lib/types';
 import { useTableState } from '@sinnapi/ui';
 import { useStatusFilter, ALL_STATUSES } from '@/hooks/useStatusFilter';
 import { useSearchTerm } from '@/hooks/useSearchTerm';
@@ -13,12 +15,13 @@ import { SUBSCRIPTION_STATUSES } from '@/lib/status';
 import { useSubscriptionFilters } from './useSubscriptionFilters';
 import { getStatusTabs, getEmptyMessage, type SubscriptionTabValue } from '../schema';
 
-// Subscriptions list: server-side search (vendor name) + plan/expiring filters +
-// status tab + sort + pagination, plus per-status count badges. A read-only
-// monitoring view, so there are no row-action flows — this hook only composes
+// Subscriptions list: server-side search (vendor name) + plan/expiring/review
+// filters + status tab + sort + pagination, plus per-status count badges. The
+// only row action is opening the subscription's own page — this hook composes
 // the smaller hooks and shapes the query params, each concern owning its own
 // URL-mirrored state elsewhere so this stays a thin coordinator.
 export function useSubscriptions() {
+  const navigate = useNavigate();
   const table = useTableState({ sort: { field: 'current_period_end', direction: 'asc' } });
   const { onPageChange } = table.controls;
 
@@ -56,7 +59,13 @@ export function useSubscriptions() {
   const filtered = Boolean(search.query) || filters.isActive || status.value !== ALL_STATUSES;
   const emptyMessage = getEmptyMessage(status.value as SubscriptionTabValue, filtered);
 
+  const openSubscription = useCallback(
+    (s: SubscriptionAdminModel) => navigate(`/subscriptions/${s.id}`),
+    [navigate],
+  );
+
   return {
+    openSubscription,
     rows: data?.rows ?? [],
     total: data?.total ?? 0,
     isLoading,

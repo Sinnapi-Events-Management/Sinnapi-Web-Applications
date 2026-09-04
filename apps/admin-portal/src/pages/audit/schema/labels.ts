@@ -17,7 +17,23 @@ export const ENTITY_FILTER_OPTIONS: FilterOption[] = Object.entries(ENTITY_LABEL
   ([value, label]) => ({ value, label }),
 );
 
-export const ACTOR_FILTER_OPTIONS: FilterOption[] = [
-  { value: 'people', label: 'People' },
-  { value: 'system', label: 'System / automated' },
+/**
+ * The real breakdown, replacing the old two-value people-vs-system list.
+ *
+ * That list was not a filter on anything: "system" meant `actor_id is null`,
+ * which is true of a Pesapal IPN, the hourly reconciliation sweep, every cron
+ * in the database and an unattributable sign-in attempt — one bucket for four
+ * completely different explanations of the same row. `actor_kind` is a real
+ * column (20260904000001), so these are the values it can hold.
+ *
+ * Order is by how often an investigator wants them, not alphabetical: a person
+ * first, then the two that mean "money moved without a person", then the
+ * schedules.
+ */
+export const ACTOR_KIND_FILTER_OPTIONS: FilterOption[] = [
+  { value: 'user', label: 'A person' },
+  { value: 'psp_webhook', label: 'Payment provider (webhook)' },
+  { value: 'reconciliation', label: 'Reconciliation sweep' },
+  { value: 'cron', label: 'Scheduled job' },
+  { value: 'system', label: 'System (unattributed)' },
 ];

@@ -56,6 +56,7 @@ import type {
   EscrowEventModel,
   EscrowPayoutModel,
   PaymentModel,
+  PaymentReturnModel,
   ConversationModel,
   EngagedVendorModel,
   MessageModel,
@@ -592,18 +593,19 @@ const BOOKING_DETAIL_SELECT = [
   'events(id,title,event_date,location,payment_type,payment_terms_note)',
 ].join(',');
 
-export function useBooking(id: string) {
+export function useBooking(id: string | undefined) {
   return useQuery({
     queryKey: ['booking', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bookings')
         .select(BOOKING_DETAIL_SELECT)
-        .eq('id', id)
+        .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
       return (data as unknown as BookingDetailModel) ?? null;
     },
+    enabled: !!id,
   });
 }
 
@@ -1265,6 +1267,37 @@ export function usePayments(params: PageParams) {
   );
 }
 
+/**
+ * One payment by id, for the page the PSP sends the browser back to.
+ *
+ * Read through RLS as the signed-in payer, so a payment id lifted from
+ * someone else's return link resolves to `null` rather than to their row.
+ * The caller owns the polling policy: the return page re-asks on a short,
+ * bounded schedule while the IPN is still in flight, and nothing else needs
+ * to poll a payment at all.
+ */
+export function usePaymentById(
+  paymentId: string | undefined,
+  options: { refetchInterval?: (query: { state: { data?: unknown } }) => number | false } = {},
+) {
+  return useQuery({
+    queryKey: ['payment', paymentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(
+          'id,purpose,booking_id,escrow_id,subscription_id,amount,currency,status,provider,provider_method,provider_ref,failure_reason,paid_at,created_at',
+        )
+        .eq('id', paymentId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as PaymentReturnModel) ?? null;
+    },
+    enabled: !!paymentId,
+    refetchInterval: options.refetchInterval,
+  });
+}
+
 // ---------- Messaging ----------
 
 /** Query keys the realtime subscription invalidates. Kept here so the hook that
@@ -1887,13 +1920,26 @@ export function useEscrowPayouts(escrowId: string | undefined) {
 export function useStartEscrowPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
+    mutationFn: async ({
+      idempotencyKey,
+      ...input
+    }: {
       bookingId: string;
       provider: 'pesapal' | 'paypal';
       method: 'mtn_momo' | 'airtel_money' | 'card';
+      /**
+       * Stable for one checkout attempt, regenerated only when the rail or
+       * the advance changes (see `useEscrowCheckout`). A repeat of the same
+       * request — a double-tap, a retried fetch — reaches the server with
+       * the same key and is handed the checkout it already opened rather
+       * than a second one. Sent as a header, not in the body: it describes
+       * the request, not the payment, and the function reads it from there.
+       */
+      idempotencyKey: string;
     }) => {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: input,
+        headers: { 'Idempotency-Key': idempotencyKey },
       });
       if (error) {
         // The function returns a typed reason in the body; surface that rather
@@ -1901,7 +1947,13 @@ export function useStartEscrowPayment() {
         const detail = await readFunctionError(error);
         throw new Error(detail);
       }
-      return data as { paymentId: string; escrowId: string; checkoutUrl: string };
+      return data as {
+        paymentId: string;
+        escrowId: string;
+        checkoutUrl: string;
+        /** True when this was the checkout an earlier identical request opened. */
+        replayed: boolean;
+      };
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['booking-escrow', vars.bookingId] });
@@ -1916,6 +1968,12 @@ const ESCROW_ERRORS: Record<string, string> = {
   advance_terms_not_accepted: 'Please approve the payment schedule before paying.',
   booking_amount_not_set: 'This booking has no agreed amount yet.',
   escrow_already_active: 'This booking has already been funded.',
+  // A checkout for this booking is still open — most often the mobile-money
+  // prompt from the first tap is still waiting on the phone. Once it lapses
+  // the next Pay opens a fresh one, so "wait" is real advice, not a brush-off.
+  payment_already_in_flight:
+    'A payment for this booking is already in progress. Check your phone for a payment prompt, ' +
+    'or wait a few minutes and try again.',
   paypal_requires_card: 'PayPal only supports card payments.',
   advance_rate_out_of_range: 'That advance is outside what your vendor agreed to.',
   advance_rate_above_platform_max: 'That advance is above what Sinnapi allows.',

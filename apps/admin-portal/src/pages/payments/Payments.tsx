@@ -1,57 +1,61 @@
-import { DataTable, Alert, type DataTableColumn, PageTitle, StatusChip } from '@sinnapi/ui';
-import { formatDate, formatMoney, titleize } from '@/lib/config';
-import type { PaymentModel } from '@/lib/types';
+import { Alert, DataTable, PageTitle, StatusTabs } from '@sinnapi/ui';
 import { usePayments } from './hooks/usePayments';
+import { paymentColumns } from './schema';
+import PaymentsToolbar from './components/organisms/PaymentsToolbar';
 
-const columns: DataTableColumn<PaymentModel>[] = [
-  {
-    field: 'created_at',
-    headerName: 'Date',
-    sortable: true,
-    render: (p) => formatDate(p.created_at),
-  },
-  { field: 'purpose', headerName: 'Purpose', sortable: true, render: (p) => titleize(p.purpose) },
-  {
-    field: 'provider',
-    headerName: 'Provider',
-    render: (p) => `${titleize(p.provider)} · ${titleize(p.provider_method)}`,
-  },
-  {
-    field: 'amount',
-    headerName: 'Amount',
-    align: 'right',
-    sortable: true,
-    render: (p) => formatMoney(p.amount, p.currency),
-  },
-  {
-    field: 'status',
-    headerName: 'Status',
-    sortable: true,
-    render: (p) => <StatusChip status={p.status} />,
-  },
-];
-
+/**
+ * The payments register. Layout only — `usePayments` owns the reads and the
+ * filter state, the columns own their rendering, and a row opens the payment's
+ * investigation page.
+ */
 export default function Payments() {
-  const { rows, total, isLoading, isFetching, error, table } = usePayments();
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    emptyMessage,
+    tabs,
+    countsLoading,
+    tab,
+    onTabChange,
+    search,
+    filters,
+    openPayment,
+    table,
+  } = usePayments();
 
   return (
     <>
       <PageTitle
         title="Payments"
-        subtitle="Payment oversight (PSP charges, escrow funding, subscriptions)."
+        subtitle="Every PSP charge — escrow funding, direct bookings and subscriptions. Open a row to trace it end to end."
       />
+
+      <StatusTabs
+        options={tabs}
+        value={tab}
+        onChange={onTabChange}
+        loadingCounts={countsLoading}
+        ariaLabel="Filter payments by status"
+      />
+      <PaymentsToolbar search={search} filters={filters} />
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error instanceof Error ? error.message : 'Failed to load payments.'}
         </Alert>
       )}
       <DataTable
-        columns={columns}
+        columns={paymentColumns}
         rows={rows}
         getRowId={(p) => p.id}
         rowCount={total}
         loading={isLoading || isFetching}
-        emptyMessage="No payments yet."
+        emptyMessage={emptyMessage}
+        onRowClick={openPayment}
+        minWidth={960}
         {...table.controls}
       />
     </>

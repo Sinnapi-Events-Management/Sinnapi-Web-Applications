@@ -7,6 +7,22 @@
 // Configure: PESAPAL_BASE_URL, PESAPAL_CONSUMER_KEY, PESAPAL_CONSUMER_SECRET,
 //            PESAPAL_IPN_ID, PESAPAL_CALLBACK_URL.
 // Sandbox base: https://cybqa.pesapal.com/pesapalv3
+// Every value is documented, with sandbox and live settings, in
+// supabase/functions/.env.example; the runbook is supabase/pre-requist.md.
+//
+// Two URLs, two different jobs:
+//   PESAPAL_CALLBACK_URL  where the BROWSER is sent after the hosted page.
+//                         The client portal's /payments/return. Pesapal
+//                         appends ?OrderTrackingId=…&OrderMerchantReference=…
+//                         &OrderNotificationType=CALLBACKURL and, by design,
+//                         no status; the page reads our own payments row.
+//   PESAPAL_IPN_ID        the id of a notification URL registered with Pesapal
+//                         (RegisterIPN) that points at psp-pesapal-webhook.
+//                         That server-to-server call is what settles money.
+//                         Nothing here registers it: run
+//                         `yarn pesapal:ipn` and re-run it whenever the
+//                         function URL changes, or IPNs go nowhere and every
+//                         checkout succeeds in silence.
 const BASE = Deno.env.get('PESAPAL_BASE_URL') ?? 'https://pay.pesapal.com/v3';
 
 /**
@@ -53,6 +69,14 @@ export type PesapalOrder = {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  /**
+   * Where the BROWSER goes after the hosted page, for this order only.
+   * Defaults to PESAPAL_CALLBACK_URL (the client portal's return route). A
+   * subscription checkout is opened from the vendor portal and must land the
+   * vendor back there, so create-payment passes the vendor portal's return
+   * route for those. Nothing about the outcome travels on it either way.
+   */
+  callbackUrl?: string;
 };
 
 export async function submitOrder(
@@ -72,7 +96,7 @@ export async function submitOrder(
       // Pesapal rejects more than 2dp.
       amount: Number(params.amount.toFixed(2)),
       description: params.description.slice(0, 100),
-      callback_url: Deno.env.get('PESAPAL_CALLBACK_URL'),
+      callback_url: params.callbackUrl ?? Deno.env.get('PESAPAL_CALLBACK_URL'),
       notification_id: Deno.env.get('PESAPAL_IPN_ID'),
       billing_address: {
         email_address: params.email,

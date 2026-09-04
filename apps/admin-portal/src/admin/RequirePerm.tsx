@@ -1,8 +1,10 @@
 import { Box, Typography } from '@sinnapi/ui';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAdmin } from './AdminProvider';
+import { hasAnyPerm } from './permissions';
 
-// Per-route permission guard. `perm` undefined = any admin may view.
+// Per-route permission guard. `perm` undefined = any admin may view; a
+// `|`-separated list admits a holder of any one of them (see `permissions.ts`).
 export default function RequirePerm({
   perm,
   children,
@@ -11,7 +13,7 @@ export default function RequirePerm({
   children: React.ReactNode;
 }) {
   const { has } = useAdmin();
-  if (perm && !has(perm)) {
+  if (perm && !hasAnyPerm(has, perm)) {
     return (
       <Box sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>
         <LockIcon sx={{ fontSize: 44, color: 'grey.400' }} />

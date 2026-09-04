@@ -1,13 +1,27 @@
 import { titleize } from '@/lib/config';
 import { one } from '@/lib/rel';
 import * as audit from '@/lib/audit';
-import type { AuditLogModel, RoleKeyRef } from '@/lib/types';
+import type { ActorKind, AuditLogModel, RoleKeyRef } from '@/lib/types';
 
 export type { ActionInfo } from '@/lib/audit';
 
 /** Details for the "Performed by" column and the detail drawer. */
 export type ActorInfo = {
+  /**
+   * True when no person is behind the row — a webhook, a sweep, a cron.
+   *
+   * Kept as a boolean because the cell still branches on "is there a face to
+   * show", but it is now derived from `actor_kind` rather than from
+   * `actor_id is null`. That distinction is the whole point: the old test was
+   * true for an IPN, a cron and an unattributable sign-in attempt alike, and
+   * the cell rendered all three as the same grey "System".
+   */
   isSystem: boolean;
+  kind: ActorKind;
+  /** How the kind reads, and which one it was ('pesapal_ipn'). */
+  kindLabel: string;
+  kindDescription: string;
+  kindAccent: audit.OperationAccent;
   name: string;
   /** Secondary line (email) when a name is present; otherwise null. */
   email: string | null;
@@ -68,10 +82,37 @@ export function initials(name: string): string {
   return chars || '?';
 }
 
-/** Resolve the embedded actor into name, email, and flattened roles. */
+/**
+ * Resolve the actor into a name, an email, flattened roles, and — since
+ * 20260904000001 — what KIND of thing it was.
+ *
+ * A row can be `actor_kind: 'user'` with no resolvable profile: an
+ * authentication attempt for an address that does not exist is a person acting
+ * and deliberately carries no `actor_id`, because inventing one would render
+ * a failed sign-in as a real account. Those show the kind without a face.
+ */
 export function actorInfo(log: AuditLogModel): ActorInfo {
+  const kind = log.actor_kind ?? 'system';
+  const described = audit.describeActorKind(kind, log.actor_label);
+  const base = {
+    kind,
+    kindLabel: described.label,
+    kindDescription: described.description,
+    kindAccent: described.accent,
+  };
+
   const actor = one(log.actor);
-  if (!actor) return { isSystem: true, name: 'System', email: null, roles: [] };
+  if (!actor) {
+    return {
+      ...base,
+      isSystem: true,
+      // The kind IS the name when there is no person: "Pesapal webhook" rather
+      // than a uniform "System" that means nothing.
+      name: described.label,
+      email: null,
+      roles: [],
+    };
+  }
 
   const roles: RoleKeyRef[] = [];
   for (const ur of actor.user_roles ?? []) {
@@ -80,7 +121,13 @@ export function actorInfo(log: AuditLogModel): ActorInfo {
   }
 
   const name = actor.full_name ?? actor.email ?? 'Unknown user';
-  return { isSystem: false, name, email: actor.full_name ? actor.email : null, roles };
+  return {
+    ...base,
+    isSystem: false,
+    name,
+    email: actor.full_name ? actor.email : null,
+    roles,
+  };
 }
 
 // Bookkeeping columns that add noise rather than meaning in a change list.
