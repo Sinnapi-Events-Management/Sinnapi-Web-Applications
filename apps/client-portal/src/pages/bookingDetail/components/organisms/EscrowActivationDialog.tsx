@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@sinnapi/ui';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { CheckoutRailPicker } from '@sinnapi/ui/payments';
+import { CheckoutRailPicker, FxConfirmationDialog } from '@sinnapi/ui/payments';
 import { formatMoney } from '@/lib/config';
 import { useEscrowActivation } from '../../hooks/useEscrowActivation';
 import AdvanceTermsPanel from '../molecules/AdvanceTermsPanel';
@@ -68,13 +68,20 @@ export default function EscrowActivationDialog({
     setAgreed,
     blocked,
     currency,
+    fx,
   } = useEscrowActivation({ booking, open, needsAdvanceApproval, onAcceptTerms });
 
   const limit = quote?.advance_rate_limit ?? null;
   const isEditable = canEditAdvance && limit != null && !isPaying;
 
   return (
-    <Dialog open={open} onClose={isPaying ? undefined : onClose} maxWidth="sm" fullWidth>
+    // `onClose`/Cancel stay reachable while `isPaying`. The checkout call
+    // carries its own client-side timeout, but a payer should never be
+    // trapped in a modal with no way out for however long that takes —
+    // dismissing here is safe; the request is left to resolve in the
+    // background and the server's in-flight guard + idempotency key both
+    // already assume a checkout attempt can be walked away from.
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Pay through Sinnapi escrow</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.5} sx={{ pt: 0.5 }}>
@@ -148,18 +155,37 @@ export default function EscrowActivationDialog({
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={isPaying}>
-          Cancel
-        </Button>
+        <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
           onClick={pay}
           disabled={blocked || isQuoting || isPaying || isAcceptingTerms || !quote}
           startIcon={<OpenInNewIcon />}
         >
-          {isPaying ? 'Opening…' : `Pay ${quote ? formatMoney(quote.gross_amount, currency) : ''}`}
+          {isPaying
+            ? 'Opening…'
+            : rail.provider === 'paypal'
+              ? 'Continue'
+              : `Pay ${quote ? formatMoney(quote.gross_amount, currency) : ''}`}
         </Button>
       </DialogActions>
+
+      {/* PayPal only. The client has agreed to a shilling total; this is
+          where they see, and accept, what that becomes in the currency
+          PayPal can actually charge. Nothing is created at the provider
+          until they do. */}
+      <FxConfirmationDialog
+        open={fx.open}
+        quote={fx.quote}
+        providerLabel={rail.label}
+        isLoading={fx.isLoading}
+        isConfirming={fx.isConfirming}
+        error={fx.error}
+        onConfirm={fx.confirm}
+        onCancel={fx.cancel}
+        onRequote={fx.requote}
+        formatMoney={formatMoney}
+      />
     </Dialog>
   );
 }

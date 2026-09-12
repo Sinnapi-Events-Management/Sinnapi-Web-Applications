@@ -12,6 +12,8 @@ import {
   type PageParams,
   type Paged,
 } from '@sinnapi/ui';
+import type { FxQuoteView } from '@sinnapi/ui/payments';
+import { invokeFunction, EDGE_FUNCTION_TIMEOUT_MS } from '@/lib/functions';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
@@ -1675,6 +1677,12 @@ export function useStartSubscriptionPayment() {
       provider: 'pesapal' | 'paypal';
       method: 'mtn_momo' | 'airtel_money' | 'card';
       /**
+       * The conversion the vendor accepted, on the PayPal rail only. The
+       * server re-derives the charge from it rather than re-pricing, so the
+       * figure on the confirmation screen is the figure taken.
+       */
+      fxQuoteId?: string | null;
+      /**
        * Stable for one checkout attempt, regenerated only when the plan or
        * the rail changes (see `useSubscriptionCheckout`). A repeat of the
        * same request reaches the server with the same key and is handed the
@@ -1685,11 +1693,14 @@ export function useStartSubscriptionPayment() {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: input,
         headers: { 'Idempotency-Key': idempotencyKey },
+        timeout: EDGE_FUNCTION_TIMEOUT_MS,
       });
       if (error) {
-        // The function returns a typed reason in the body; surface that rather
-        // than the generic "Edge Function returned a non-2xx status code".
-        let detail = error.message;
+        // The function returns a typed reason in the body; surface that
+        // rather than the generic "Edge Function returned a non-2xx status
+        // code". A client-side timeout carries no response to unwrap — see
+        // `EDGE_FUNCTION_TIMEOUT_MS`'s comment for why this exists at all.
+        let detail = error.name === 'FunctionsFetchError' ? 'request_timed_out' : error.message;
         const context = (error as { context?: Response }).context;
         if (context && typeof context.json === 'function') {
           try {
@@ -1720,7 +1731,30 @@ export function useStartSubscriptionPayment() {
 }
 
 /** Human-readable reasons for the failures the subscription RPCs can raise. */
+/**
+ * Price this plan in the currency PayPal can actually charge.
+ *
+ * A mutation, not a query: it is a deliberate act by the vendor, it records
+ * what they were shown, and it locks a rate for a fixed window. Re-running it
+ * is a re-quote, never a cache refresh.
+ */
+export function useFxQuote() {
+  return useMutation({
+    mutationFn: async (input: { planId: string; vendorId: string }) => {
+      const { data, error } = await invokeFunction<FxQuoteView>('fx-quote', input);
+      if (error) throw new Error(error);
+      if (!data) throw new Error('fx_rate_unavailable');
+      return data;
+    },
+  });
+}
+
 const SUBSCRIPTION_ERRORS: Record<string, string> = {
+  // The browser gave up waiting on the function, not the vendor's bank or
+  // PayPal — nothing has necessarily failed at the provider. Retrying is
+  // exactly the right next step, so it's phrased as one.
+  request_timed_out:
+    'This is taking longer than expected. Please check your connection and try again.',
   plan_not_found: 'That plan no longer exists. Pick another from the list.',
   plan_inactive: 'That plan is no longer offered. Pick another from the list.',
   // Seeded catalogues carry a zero price until Finance sets real ones. A
@@ -1736,6 +1770,35 @@ const SUBSCRIPTION_ERRORS: Record<string, string> = {
     'A payment for your subscription is already in progress. Check your phone for a payment ' +
     'prompt, or wait a few minutes and try again.',
   paypal_requires_card: 'PayPal only supports card payments.',
+  // The conversion the vendor agreed to timed out while they were deciding.
+  // Nothing went wrong and nothing was charged — the rate simply has to be
+  // refreshed before we can promise it.
+  fx_quote_expired:
+    'The exchange rate you were shown has expired. Please get an updated amount and try again.',
+  fx_quote_already_used:
+    'That amount has already been used for a payment. Please start the payment again.',
+  fx_quote_required: 'Please confirm the payment amount before continuing.',
+  fx_quote_amount_mismatch:
+    'This plan was re-priced while you were paying. Please review the new total and try again.',
+  fx_quote_currency_mismatch:
+    'This plan was re-priced while you were paying. Please review the new total and try again.',
+  fx_rate_unavailable:
+    'We cannot convert this amount right now. Please pay by mobile money, or try PayPal again shortly.',
+  fx_unsupported_base_currency:
+    'This plan cannot be paid by PayPal. Please choose mobile money or card.',
+  // The server gave up on one of its own calls and said which — a specific,
+  // retryable failure, unlike the browser-side `request_timed_out` above. The
+  // payment was already failed server-side before this reached us, so the
+  // in-flight guard is released and trying again is genuinely safe.
+  'timed_out:':
+    'That took longer than expected and was cancelled. Nothing was charged — please try again.',
+  // A deployment fault, not anything the vendor can act on.
+  paypal_return_url_invalid:
+    'PayPal checkout is not configured correctly on our side. Please pay by mobile money, or contact support.',
+  paypal_cancel_url_invalid:
+    'PayPal checkout is not configured correctly on our side. Please pay by mobile money, or contact support.',
+  paypal_callback_url_invalid:
+    'PayPal checkout is not configured correctly on our side. Please pay by mobile money, or contact support.',
   ambiguous_purpose: 'Something went wrong preparing this payment. Please reload and try again.',
   booking_id_or_plan_id_required:
     'Something went wrong preparing this payment. Please reload and try again.',

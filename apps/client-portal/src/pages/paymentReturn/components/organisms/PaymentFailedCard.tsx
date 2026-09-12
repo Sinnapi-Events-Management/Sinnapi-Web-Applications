@@ -1,8 +1,16 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, SectionCard, Stack, Typography } from '@sinnapi/ui';
+import { Alert, Button, Typography } from '@sinnapi/ui';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { describePaymentFailure } from '@sinnapi/ui/payments';
+import {
+  OutcomeActions,
+  OutcomeCard,
+  OutcomeHeader,
+  OutcomeLayout,
+  PaymentFactsPanel,
+  describePaymentFailure,
+} from '@sinnapi/ui/payments';
 import type { PaymentReturnModel } from '@/lib/types';
+import { usePaymentFacts } from '../../hooks/usePaymentFacts';
 
 type Props = {
   payment: PaymentReturnModel;
@@ -19,36 +27,57 @@ type Props = {
  * that would open a checkout for a figure the client has not seen again.
  */
 export default function PaymentFailedCard({ payment, bookingRef, bookingHref }: Props) {
+  const facts = usePaymentFacts({ payment, bookingRef });
   const reversed = payment.status === 'refunded' || payment.status === 'partially_refunded';
 
   return (
-    <SectionCard
-      title={reversed ? 'Payment reversed' : 'Payment not completed'}
-      subtitle={bookingRef ? `Booking ${bookingRef}` : undefined}
-      icon={<ErrorOutlineIcon />}
-      accent="error"
+    <OutcomeLayout
+      header={
+        <OutcomeHeader
+          accent="error"
+          markVariant="glyph"
+          markIcon={<ErrorOutlineIcon />}
+          title={reversed ? 'Payment reversed' : 'Payment not completed'}
+          reference={bookingRef ? `Booking ${bookingRef}` : undefined}
+          description={
+            reversed
+              ? 'This payment was returned to you. Nothing is held for this booking.'
+              : 'Your booking is unchanged and still waiting for payment.'
+          }
+        />
+      }
+      aside={
+        <PaymentFactsPanel
+          facts={facts}
+          footer={
+            <Typography variant="caption" color="text.secondary">
+              Quote the reference above if you contact support.
+            </Typography>
+          }
+        />
+      }
     >
-      <Stack spacing={2.5}>
+      <OutcomeCard accent="error">
         <Alert severity="error">
           {describePaymentFailure(payment.status, payment.failure_reason)}
         </Alert>
+
         {!reversed && (
-          <Typography variant="body2">
+          <Typography variant="body2" color="text.secondary">
             Your booking is still confirmed and still waiting for payment. You can try again from
             the booking page, on the same payment method or a different one.
           </Typography>
         )}
-        <Box>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-            <Button component={RouterLink} to={bookingHref} variant="contained">
-              {reversed ? 'View booking' : 'Try again'}
-            </Button>
-            <Button component={RouterLink} to="/payments" variant="text">
-              All payments
-            </Button>
-          </Stack>
-        </Box>
-      </Stack>
-    </SectionCard>
+
+        <OutcomeActions>
+          <Button component={RouterLink} to={bookingHref} variant="contained" size="large">
+            {reversed ? 'View booking' : 'Try again'}
+          </Button>
+          <Button component={RouterLink} to="/payments" variant="outlined" size="large">
+            All payments
+          </Button>
+        </OutcomeActions>
+      </OutcomeCard>
+    </OutcomeLayout>
   );
 }

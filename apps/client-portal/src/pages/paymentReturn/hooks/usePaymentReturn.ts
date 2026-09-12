@@ -26,6 +26,7 @@ import type { PaymentReturnModel } from '@/lib/types';
  */
 export type ReturnState =
   | 'invalid'
+  | 'cancelled'
   | 'loading'
   | 'not_found'
   | 'checking'
@@ -131,6 +132,11 @@ export function usePaymentReturn() {
   let state: ReturnState;
   if (!ret) {
     state = 'invalid';
+  } else if (ret.cancelled && !row) {
+    // The payer backed out of the provider's hosted checkout. If there is
+    // no row at all (cancel URL without a pid, or the payment row is not
+    // visible through RLS), say so honestly.
+    state = 'cancelled';
   } else if (payment.isLoading) {
     state = 'loading';
   } else if (!row) {
@@ -141,11 +147,18 @@ export function usePaymentReturn() {
   } else if (
     ret.trackingId &&
     row.provider_ref &&
+    row.provider !== 'paypal' &&
     row.provider_ref.toLowerCase() !== ret.trackingId.toLowerCase()
   ) {
     // The reference the browser brought back is not the one the server
     // stored when it opened this checkout. Say nothing about the payment.
+    // (For PayPal, the webhook overwrites provider_ref with the captureId,
+    // so it will no longer match the token on the URL.)
     state = 'not_found';
+  } else if (ret.cancelled && !PAYMENT_TERMINAL_STATUSES.has(row.status)) {
+    // The cancel URL carried a pid and the row exists but is not terminal.
+    // The payer backed out before the provider captured anything.
+    state = 'cancelled';
   } else if (row.status === 'succeeded') {
     state = 'confirmed';
   } else if (PAYMENT_TERMINAL_STATUSES.has(row.status)) {
@@ -154,9 +167,27 @@ export function usePaymentReturn() {
     state = expired ? 'processing' : 'checking';
   }
 
+  // The page header's one-line summary. Derived here beside the state it
+  // describes, so a new state cannot be added without answering what the
+  // header says about it — the ternary chain this replaces lived in the page
+  // and silently fell through to "Checking on your payment."
+  const subtitle =
+    state === 'cancelled'
+      ? 'You cancelled this payment.'
+      : state === 'confirmed'
+        ? purpose === 'subscription'
+          ? 'Your plan is active.'
+          : 'Your money is secured.'
+        : state === 'failed'
+          ? 'This payment did not go through.'
+          : state === 'not_found' || state === 'invalid'
+            ? 'We could not identify this payment.'
+            : 'Checking on your payment.';
+
   return {
     state,
     purpose,
+    subtitle,
     error: payment.error,
     payment: row,
     escrow: escrow.data ?? null,

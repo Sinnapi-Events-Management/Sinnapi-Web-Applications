@@ -26,6 +26,12 @@ verify_jwt = false
 [functions.create-payment]
 verify_jwt = true
 
+# Prices a PayPal checkout in USD before the payer commits. Authenticated:
+# it prices a specific booking or plan through the caller's own RLS, and the
+# quote it writes is bound to the payer it was issued to.
+[functions.fx-quote]
+verify_jwt = true
+
 [functions.psp-payout]
 verify_jwt = true
 

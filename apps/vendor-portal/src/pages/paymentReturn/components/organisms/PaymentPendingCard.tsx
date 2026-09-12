@@ -1,11 +1,21 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, LinearProgress, SectionCard, Stack, Typography } from '@sinnapi/ui';
+import { Alert, Button, LinearProgress, Stack, Typography } from '@sinnapi/ui';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import {
+  OutcomeActions,
+  OutcomeCard,
+  OutcomeHeader,
+  OutcomeLayout,
+  PaymentFactsPanel,
+} from '@sinnapi/ui/payments';
+import type { PaymentReturnModel } from '@/lib/types';
+import { usePaymentFacts } from '../../hooks/usePaymentFacts';
 
 type Props = {
   /** `checking` while the poll is live, `processing` once it has given up. */
   phase: 'checking' | 'processing';
+  payment: PaymentReturnModel;
   rail: string;
   email: string | null;
   onCheckAgain: () => void;
@@ -21,62 +31,83 @@ type Props = {
  */
 export default function PaymentPendingCard({
   phase,
+  payment,
   rail,
   email,
   onCheckAgain,
   isChecking,
 }: Props) {
-  if (phase === 'checking') {
-    return (
-      <SectionCard title="Confirming your payment" icon={<HourglassTopIcon />} accent="secondary">
-        <Stack spacing={2.5}>
-          <LinearProgress aria-label="Waiting for the payment provider" />
-          <Typography variant="body2">
-            We&rsquo;re waiting for {rail} to confirm the payment. This usually takes a few seconds;
-            there is nothing you need to do.
-          </Typography>
-          <Box>
-            <Button component={RouterLink} to="/subscription" variant="text">
-              View subscription
-            </Button>
-          </Box>
-        </Stack>
-      </SectionCard>
-    );
-  }
+  const facts = usePaymentFacts(payment);
+  const waiting = phase === 'checking';
 
   return (
-    <SectionCard title="Still processing" icon={<ScheduleIcon />} accent="warning">
-      <Stack spacing={2.5}>
-        <Typography variant="body2">
-          {rail} has not confirmed this payment yet. That is normal when a mobile-money prompt is
-          answered late or the provider is busy, and it can take a few minutes.
-        </Typography>
-        <Typography variant="body2">
-          {email ? (
-            <>
-              We&rsquo;ll email <b>{email}</b> the moment it clears
-            </>
-          ) : (
-            <>We&rsquo;ll email you the moment it clears</>
-          )}
-          , and your plan activates on its own.
-        </Typography>
-        <Alert severity="info">
-          Please don&rsquo;t pay again. A second checkout is refused while this one is open, and if
-          this payment does not go through the subscription page will offer a fresh one.
-        </Alert>
-        <Box>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-            <Button onClick={onCheckAgain} variant="outlined" disabled={isChecking}>
+    <OutcomeLayout
+      header={
+        <OutcomeHeader
+          accent={waiting ? 'secondary' : 'warning'}
+          markVariant="glyph"
+          markIcon={waiting ? <HourglassTopIcon /> : <ScheduleIcon />}
+          pulse={waiting}
+          title={waiting ? 'Confirming your payment' : 'Still processing'}
+          description={
+            waiting
+              ? `We're waiting for ${rail} to confirm the payment. This usually takes a few seconds; there is nothing you need to do.`
+              : `${rail} has not confirmed this payment yet. That is normal when a mobile-money prompt is answered late or the provider is busy, and it can take a few minutes.`
+          }
+        />
+      }
+      aside={
+        <PaymentFactsPanel
+          facts={facts}
+          footer={
+            <Typography variant="caption" color="text.secondary">
+              Quote the reference above if you contact support.
+            </Typography>
+          }
+        />
+      }
+    >
+      <OutcomeCard accent={waiting ? 'secondary' : 'warning'}>
+        {waiting ? (
+          <Stack spacing={2}>
+            <LinearProgress
+              aria-label="Waiting for the payment provider"
+              sx={{ borderRadius: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              Your plan activates on its own the moment it clears.
+            </Typography>
+          </Stack>
+        ) : (
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              {email ? (
+                <>
+                  We&rsquo;ll email <b>{email}</b> the moment it clears
+                </>
+              ) : (
+                <>We&rsquo;ll email you the moment it clears</>
+              )}
+              , and your plan activates on its own.
+            </Typography>
+            <Alert severity="info">
+              Please don&rsquo;t pay again. A second checkout is refused while this one is open, and
+              if this payment does not go through the subscription page will offer a fresh one.
+            </Alert>
+          </Stack>
+        )}
+
+        <OutcomeActions>
+          <Button component={RouterLink} to="/subscription" variant="contained" size="large">
+            View subscription
+          </Button>
+          {!waiting && (
+            <Button onClick={onCheckAgain} variant="outlined" size="large" disabled={isChecking}>
               {isChecking ? 'Checking…' : 'Check again'}
             </Button>
-            <Button component={RouterLink} to="/subscription" variant="contained">
-              View subscription
-            </Button>
-          </Stack>
-        </Box>
-      </Stack>
-    </SectionCard>
+          )}
+        </OutcomeActions>
+      </OutcomeCard>
+    </OutcomeLayout>
   );
 }

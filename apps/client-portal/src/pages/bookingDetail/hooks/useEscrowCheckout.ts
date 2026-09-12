@@ -5,7 +5,12 @@ import {
   type CheckoutRail,
   type CheckoutRailOption,
 } from '@sinnapi/ui/payments';
-import { useEscrowQuote, useStartEscrowPayment, escrowErrorMessage } from '@/hooks/queries';
+import {
+  useEscrowQuote,
+  useFxQuote,
+  useStartEscrowPayment,
+  escrowErrorMessage,
+} from '@/hooks/queries';
 
 /** Kept under the names this page has always used; the kit owns the values. */
 export type PaymentRail = CheckoutRail;
@@ -62,19 +67,72 @@ export function useEscrowCheckout(
 
   const quote = useEscrowQuote(bookingId, rail.provider, rail.method, enabled, advanceRate);
   const start = useStartEscrowPayment();
+  const fx = useFxQuote();
+
+  /**
+   * PayPal cannot accept shillings — its Orders API takes 24 currencies and
+   * UGX is not one of them — so a PayPal checkout is charged in USD. That
+   * makes it the one rail where the figure on the client's statement differs
+   * from the figure they approved, which is not something they should
+   * discover on the statement. They see the conversion, and agree to it,
+   * before anything is created at the provider.
+   */
+  const needsConversion = rail.provider === 'paypal';
+  const [fxOpen, setFxOpen] = useState(false);
+
+  /**
+   * Hand off to the provider's own page. Card and wallet credentials are
+   * entered there, never here — that is what keeps Sinnapi in PCI SAQ A
+   * scope. A full navigation (not a popup) so mobile browsers behave.
+   *
+   * The rejection is swallowed on purpose: every refusal is already on screen
+   * through `payError`, and letting it escape an onClick handler would turn a
+   * handled refusal into an unhandled rejection.
+   */
+  async function handOff(fxQuoteId: string | null) {
+    if (!bookingId) return;
+    try {
+      const result = await start.mutateAsync({
+        bookingId,
+        provider: rail.provider,
+        method: rail.method,
+        idempotencyKey,
+        fxQuoteId,
+      });
+      if (result?.checkoutUrl) window.location.assign(result.checkoutUrl);
+    } catch {
+      // Surfaced as `payError`.
+    }
+  }
+
+  /** Ask the server what this costs in the currency the provider can take. */
+  function requoteFx() {
+    if (!bookingId) return;
+    start.reset();
+    fx.reset();
+    fx.mutate({ bookingId, advanceRate });
+  }
 
   async function pay() {
     if (!bookingId) return;
-    const result = await start.mutateAsync({
-      bookingId,
-      provider: rail.provider,
-      method: rail.method,
-      idempotencyKey,
-    });
-    // Hand off to the provider's own page. Card and wallet credentials are
-    // entered there, never here — that is what keeps Sinnapi in PCI SAQ A
-    // scope. A full navigation (not a popup) so mobile browsers behave.
-    if (result?.checkoutUrl) window.location.assign(result.checkoutUrl);
+    if (!needsConversion) {
+      await handOff(null);
+      return;
+    }
+    setFxOpen(true);
+    requoteFx();
+  }
+
+  async function confirmFx() {
+    const converted = fx.data;
+    if (!converted) return;
+    await handOff(converted.fxQuoteId);
+  }
+
+  function cancelFx() {
+    setFxOpen(false);
+    start.reset();
+    fx.reset();
   }
 
   return {
@@ -94,5 +152,27 @@ export function useEscrowCheckout(
     pay,
     isPaying: start.isPending,
     payError: start.error ? escrowErrorMessage(start.error) : null,
+    /**
+     * The currency-conversion step. Empty-handed on every rail but PayPal,
+     * where `pay()` opens it instead of navigating and `confirm` is what
+     * actually creates the checkout.
+     */
+    fx: {
+      open: fxOpen,
+      quote: fx.data ?? null,
+      isLoading: fx.isPending,
+      isConfirming: start.isPending,
+      // The quote failing and the charge failing land in the same place
+      // because they are the same sentence to the client: we could not take
+      // this payment, here is why.
+      error: fx.error
+        ? escrowErrorMessage(fx.error)
+        : start.error
+          ? escrowErrorMessage(start.error)
+          : null,
+      confirm: confirmFx,
+      cancel: cancelFx,
+      requote: requoteFx,
+    },
   };
 }

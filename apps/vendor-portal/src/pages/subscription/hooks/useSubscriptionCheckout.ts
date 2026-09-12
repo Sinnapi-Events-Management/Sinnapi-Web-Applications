@@ -3,6 +3,7 @@ import { CHECKOUT_RAILS, newCheckoutAttemptKey } from '@sinnapi/ui/payments';
 import {
   useSubscriptionQuote,
   useStartSubscriptionPayment,
+  useFxQuote,
   subscriptionErrorMessage,
 } from '@/hooks/queries';
 
@@ -52,20 +53,71 @@ export function useSubscriptionCheckout(
 
   const quote = useSubscriptionQuote(vendorId, planId, enabled);
   const start = useStartSubscriptionPayment();
+  const fx = useFxQuote();
+
+  /**
+   * PayPal cannot accept shillings — its Orders API takes 24 currencies and
+   * UGX is not one of them — so a PayPal checkout is charged in USD. The
+   * vendor sees, and accepts, what the plan price becomes in that currency
+   * before anything is created at the provider.
+   */
+  const needsConversion = rail.provider === 'paypal';
+  const [fxOpen, setFxOpen] = useState(false);
+
+  /**
+   * Hand off to the provider's own page. Card and wallet credentials are
+   * entered there, never here — that is what keeps Sinnapi in PCI SAQ A
+   * scope. A full navigation (not a popup) so mobile browsers behave.
+   *
+   * The rejection is swallowed on purpose: every refusal is already on screen
+   * through `payError`, and letting it escape an onClick handler would turn a
+   * handled refusal into an unhandled rejection.
+   */
+  async function handOff(fxQuoteId: string | null) {
+    if (!vendorId || !planId) return;
+    try {
+      const result = await start.mutateAsync({
+        vendorId,
+        planId,
+        provider: rail.provider,
+        method: rail.method,
+        idempotencyKey,
+        fxQuoteId,
+      });
+      if (result?.checkoutUrl) window.location.assign(result.checkoutUrl);
+    } catch {
+      // Surfaced as `payError`.
+    }
+  }
+
+  /** Ask the server what this costs in the currency the provider can take. */
+  function requoteFx() {
+    if (!vendorId || !planId) return;
+    start.reset();
+    fx.reset();
+    fx.mutate({ vendorId, planId });
+  }
 
   async function pay() {
     if (!vendorId || !planId) return;
-    const result = await start.mutateAsync({
-      vendorId,
-      planId,
-      provider: rail.provider,
-      method: rail.method,
-      idempotencyKey,
-    });
-    // Hand off to the provider's own page. Card and wallet credentials are
-    // entered there, never here — that is what keeps Sinnapi in PCI SAQ A
-    // scope. A full navigation (not a popup) so mobile browsers behave.
-    if (result?.checkoutUrl) window.location.assign(result.checkoutUrl);
+    if (!needsConversion) {
+      await handOff(null);
+      return;
+    }
+    setFxOpen(true);
+    requoteFx();
+  }
+
+  async function confirmFx() {
+    const converted = fx.data;
+    if (!converted) return;
+    await handOff(converted.fxQuoteId);
+  }
+
+  function cancelFx() {
+    setFxOpen(false);
+    start.reset();
+    fx.reset();
   }
 
   return {
@@ -79,5 +131,24 @@ export function useSubscriptionCheckout(
     pay,
     isPaying: start.isPending,
     payError: start.error ? subscriptionErrorMessage(start.error) : null,
+    /**
+     * The currency-conversion step. Empty-handed on every rail but PayPal,
+     * where `pay()` opens it instead of navigating and `confirm` is what
+     * actually creates the checkout.
+     */
+    fx: {
+      open: fxOpen,
+      quote: fx.data ?? null,
+      isLoading: fx.isPending,
+      isConfirming: start.isPending,
+      error: fx.error
+        ? subscriptionErrorMessage(fx.error)
+        : start.error
+          ? subscriptionErrorMessage(start.error)
+          : null,
+      confirm: confirmFx,
+      cancel: cancelFx,
+      requote: requoteFx,
+    },
   };
 }

@@ -17,8 +17,9 @@ import {
   type PaymentTermsPreview,
 } from '@sinnapi/ui';
 import type { PackageOfferRow } from '@sinnapi/ui/offers';
+import type { FxQuoteView } from '@sinnapi/ui/payments';
 import { supabase } from '@/lib/supabase';
-import { readFunctionError } from '@/lib/functions';
+import { readFunctionError, EDGE_FUNCTION_TIMEOUT_MS } from '@/lib/functions';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
 import type {
   PackageModel,
@@ -1928,6 +1929,13 @@ export function useStartEscrowPayment() {
       provider: 'pesapal' | 'paypal';
       method: 'mtn_momo' | 'airtel_money' | 'card';
       /**
+       * The conversion the client accepted, on the PayPal rail only. The
+       * server re-derives the charge from it rather than re-pricing, so the
+       * figure on the confirmation screen is the figure taken. Null on every
+       * rail that can charge in shillings directly.
+       */
+      fxQuoteId?: string | null;
+      /**
        * Stable for one checkout attempt, regenerated only when the rail or
        * the advance changes (see `useEscrowCheckout`). A repeat of the same
        * request — a double-tap, a retried fetch — reaches the server with
@@ -1940,6 +1948,7 @@ export function useStartEscrowPayment() {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: input,
         headers: { 'Idempotency-Key': idempotencyKey },
+        timeout: EDGE_FUNCTION_TIMEOUT_MS,
       });
       if (error) {
         // The function returns a typed reason in the body; surface that rather
@@ -1962,8 +1971,34 @@ export function useStartEscrowPayment() {
   });
 }
 
+/**
+ * Price this booking in the currency PayPal can actually charge.
+ *
+ * A mutation, not a query: it is a deliberate act by the client (tapping Pay
+ * on the PayPal rail), it writes a row recording what they were shown, and it
+ * locks a rate for a fixed window. Re-running it is a re-quote, never a
+ * cache refresh, so it must never fire on a window focus or a remount.
+ */
+export function useFxQuote() {
+  return useMutation({
+    mutationFn: async (input: { bookingId: string; advanceRate: number | null }) => {
+      const { data, error } = await supabase.functions.invoke('fx-quote', {
+        body: input,
+        timeout: EDGE_FUNCTION_TIMEOUT_MS,
+      });
+      if (error) throw new Error(await readFunctionError(error));
+      return data as FxQuoteView;
+    },
+  });
+}
+
 /** Human-readable reasons for the failures the escrow RPCs can raise. */
 const ESCROW_ERRORS: Record<string, string> = {
+  // The browser gave up waiting on the function, not the payer's bank or
+  // PayPal — nothing has necessarily failed at the provider. Retrying is
+  // exactly the right next step, so it's phrased as one.
+  request_timed_out:
+    'This is taking longer than expected. Please check your connection and try again.',
   booking_not_confirmed: 'This booking has not been confirmed by the vendor yet.',
   advance_terms_not_accepted: 'Please approve the payment schedule before paying.',
   booking_amount_not_set: 'This booking has no agreed amount yet.',
@@ -1975,6 +2010,36 @@ const ESCROW_ERRORS: Record<string, string> = {
     'A payment for this booking is already in progress. Check your phone for a payment prompt, ' +
     'or wait a few minutes and try again.',
   paypal_requires_card: 'PayPal only supports card payments.',
+  // The conversion the client agreed to timed out while they were deciding.
+  // Deliberately not phrased as an error: nothing went wrong and nothing was
+  // charged — the rate simply has to be refreshed before we can promise it.
+  fx_quote_expired:
+    'The exchange rate you were shown has expired. Please get an updated amount and try again.',
+  fx_quote_already_used:
+    'That amount has already been used for a payment. Please start the payment again.',
+  fx_quote_required: 'Please confirm the payment amount before continuing.',
+  fx_quote_amount_mismatch:
+    'This booking was re-priced while you were paying. Please review the new total and try again.',
+  fx_quote_currency_mismatch:
+    'This booking was re-priced while you were paying. Please review the new total and try again.',
+  fx_rate_unavailable:
+    'We cannot convert this amount right now. Please pay by mobile money, or try PayPal again shortly.',
+  fx_unsupported_base_currency:
+    'This booking cannot be paid by PayPal. Please choose mobile money or card.',
+  // The server gave up on one of its own calls and said which — a specific,
+  // retryable failure, unlike the browser-side `request_timed_out` above. The
+  // payment was already failed server-side before this reached us, so the
+  // guard is released and trying again is genuinely safe.
+  'timed_out:':
+    'That took longer than expected and was cancelled. Nothing was charged — please try again.',
+  // A deployment fault, not anything the client can act on. Said plainly
+  // rather than dressed up as a transient problem they should retry into.
+  paypal_return_url_invalid:
+    'PayPal checkout is not configured correctly on our side. Please pay by mobile money, or contact support.',
+  paypal_cancel_url_invalid:
+    'PayPal checkout is not configured correctly on our side. Please pay by mobile money, or contact support.',
+  paypal_callback_url_invalid:
+    'PayPal checkout is not configured correctly on our side. Please pay by mobile money, or contact support.',
   advance_rate_out_of_range: 'That advance is outside what your vendor agreed to.',
   advance_rate_above_platform_max: 'That advance is above what Sinnapi allows.',
   booking_not_completed: 'You can confirm the service once the booking is marked complete.',

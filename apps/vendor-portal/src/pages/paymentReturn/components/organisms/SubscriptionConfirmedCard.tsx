@@ -1,9 +1,16 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, InfoRow, SectionCard, Skeleton, Stack } from '@sinnapi/ui';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { NextStepsList } from '@sinnapi/ui/payments';
-import { formatDate, formatMoney } from '@/lib/config';
+import { Button, Skeleton, Stack, Typography } from '@sinnapi/ui';
+import {
+  NextStepsList,
+  OutcomeActions,
+  OutcomeCard,
+  OutcomeHeader,
+  OutcomeLayout,
+  PaymentFactsPanel,
+  ReceiptTotal,
+} from '@sinnapi/ui/payments';
 import type { MySubscriptionModel, PaymentReturnModel } from '@/lib/types';
+import { useSubscriptionConfirmed } from '../../hooks/useSubscriptionConfirmed';
 
 type Props = {
   payment: PaymentReturnModel;
@@ -16,74 +23,87 @@ type Props = {
  * The money is in and the plan is active. What was paid, the period it
  * bought, and what the vendor should expect without doing anything.
  *
- * The period comes from the subscription row, not from the checkout preview:
- * `activate_subscription` wrote it when the IPN landed, and this is the same
- * figure the confirmation email carries.
+ * Laid out on the same frame as the client's escrow confirmation, with the
+ * period in the rail where the client gets a receipt: two different payments
+ * with the same four endings, told in one visual language rather than two
+ * that drift apart the first time either is restyled.
  */
 export default function SubscriptionConfirmedCard({
   payment,
-  subscription: s,
+  subscription,
   isSubscriptionLoading,
   email,
 }: Props) {
-  const steps = [
-    <>Your public listing is live now. Clients can find and book you straight away.</>,
-    s?.current_period_end ? (
-      <>
-        This period runs to <b>{formatDate(s.current_period_end)}</b>. We will remind you before it
-        ends so you can renew in time.
-      </>
-    ) : (
-      <>We will remind you before this period ends so you can renew in time.</>
-    ),
-    <>Nothing is charged automatically. Every renewal is a payment you open yourself.</>,
-    email ? (
-      <>
-        A receipt is on its way to <b>{email}</b>.
-      </>
-    ) : (
-      <>A receipt is on its way to your email.</>
-    ),
-  ];
+  const { steps, facts, planName, totalAmount } = useSubscriptionConfirmed({
+    payment,
+    subscription,
+    email,
+  });
 
   return (
-    <SectionCard
-      title="Subscription paid"
-      subtitle={s?.plan?.name ? `${s.plan.name} plan` : undefined}
-      icon={<CheckCircleIcon />}
-      accent="success"
-    >
-      <Stack spacing={3}>
-        <Alert severity="success">
-          {formatMoney(payment.amount, payment.currency)} received. Your plan is active.
-        </Alert>
-
-        {isSubscriptionLoading || !s ? (
-          <Stack spacing={1}>
-            <Skeleton height={22} />
-            <Skeleton height={22} />
-          </Stack>
+    <OutcomeLayout
+      header={
+        <OutcomeHeader
+          accent="success"
+          title="Subscription paid"
+          reference={planName ? `${planName} plan` : undefined}
+          description="Your listing is live and your period has started."
+        />
+      }
+      aside={
+        isSubscriptionLoading && facts.length === 0 ? (
+          <PeriodSkeleton />
         ) : (
-          <div>
-            <InfoRow label="Plan" value={s.plan?.name ?? '—'} />
-            <InfoRow label="Period starts" value={formatDate(s.current_period_start)} />
-            <InfoRow label="Period ends" value={formatDate(s.current_period_end)} />
-          </div>
-        )}
+          <PaymentFactsPanel
+            title="Your plan"
+            facts={facts}
+            footer={
+              <Stack spacing={1.5} sx={{ pt: 1 }}>
+                <ReceiptTotal label="Paid" amount={totalAmount} size="inline" />
+                <Typography variant="caption" color="text.secondary">
+                  Nothing renews automatically. Every renewal is a payment you open yourself.
+                </Typography>
+              </Stack>
+            }
+          />
+        )
+      }
+    >
+      <OutcomeCard accent="success">
+        <NextStepsList steps={steps} accent="success" />
+        <OutcomeActions>
+          <Button component={RouterLink} to="/subscription" variant="contained" size="large">
+            View subscription
+          </Button>
+          <Button component={RouterLink} to="/dashboard" variant="outlined" size="large">
+            Go to dashboard
+          </Button>
+        </OutcomeActions>
+      </OutcomeCard>
+    </OutcomeLayout>
+  );
+}
 
-        <NextStepsList steps={steps} />
-
-        <Box>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-            <Button component={RouterLink} to="/subscription" variant="contained">
-              View subscription
-            </Button>
-            <Button component={RouterLink} to="/dashboard" variant="text">
-              Go to dashboard
-            </Button>
-          </Stack>
-        </Box>
-      </Stack>
-    </SectionCard>
+/**
+ * The rail while the subscription row is still in flight.
+ *
+ * Shaped like the panel it stands in for — a label and three key/value rows —
+ * so the period dates do not shift down the page as they arrive.
+ */
+function PeriodSkeleton() {
+  return (
+    <Stack
+      spacing={1.5}
+      sx={{
+        borderRadius: 4,
+        p: { xs: 2.5, sm: 3 },
+        border: (theme) => `1px solid ${theme.palette.divider}`,
+      }}
+    >
+      <Skeleton width={70} height={14} />
+      <Skeleton height={22} />
+      <Skeleton height={22} />
+      <Skeleton height={22} />
+    </Stack>
   );
 }
