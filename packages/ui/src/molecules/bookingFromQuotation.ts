@@ -77,8 +77,6 @@ const BOOKING_FROM_QUOTATION_ERRORS: Record<string, string> = {
   vendor_unavailable:
     'This vendor is not currently taking bookings. Message them, or contact support if you have ' +
     'already paid.',
-  date_unavailable:
-    'The vendor has marked that date as unavailable. Pick another one, or message them to ask.',
   event_date_in_past: 'Pick a date in the future.',
   invalid_time_window: 'The end time must be after the start time.',
   start_time_required: 'Add a start time as well, or leave both blank.',

@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { Box, Stack, Typography } from '@sinnapi/ui';
 import { alpha } from '@mui/material/styles';
-import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
-import AdvanceScheduleSummary from './AdvanceScheduleSummary';
+import AdvanceScheduleTimeline from './AdvanceScheduleTimeline';
 
 type Props = {
   advanceRate: number | null;
@@ -21,10 +20,11 @@ type Props = {
 /**
  * The payment schedule: what the client is choosing, and what that means.
  *
- * The control and the consequence sit in one panel deliberately. The client
- * is being asked to let money leave before the service happens, so the figure
- * they are moving and the sentence describing what it does are never more
- * than a line apart.
+ * The control and the consequence sit together deliberately. The client is
+ * being asked to let money leave before the service happens, so the figure
+ * they are moving and the timeline showing what it does are never more than a
+ * glance apart. The heading around it belongs to the checkout section; this
+ * is only the body.
  */
 export default function AdvanceTermsPanel({
   advanceRate,
@@ -38,54 +38,38 @@ export default function AdvanceTermsPanel({
   isRepricing,
 }: Props) {
   return (
-    <Box
-      sx={{
-        p: 2,
-        borderRadius: 2,
-        bgcolor: (t) => alpha(t.palette.info.main, 0.06),
-        border: (t) => `1px solid ${alpha(t.palette.info.main, 0.2)}`,
-      }}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <ScheduleSendIcon sx={{ fontSize: 20, color: 'secondary.main', mt: 0.25 }} />
-        <Stack spacing={1.25} sx={{ minWidth: 0, flex: 1 }}>
-          <Box>
-            <Typography variant="subtitle2" fontWeight={700}>
-              Payment schedule
-            </Typography>
-            {control && (
-              <Typography variant="caption" color="text.secondary">
-                Choose how much of your vendor&rsquo;s fee is released before the event.
-              </Typography>
-            )}
-          </Box>
+    <Stack spacing={2}>
+      {control}
 
-          {control}
+      <Box
+        aria-busy={isRepricing || undefined}
+        sx={{ opacity: isRepricing ? 0.5 : 1, transition: 'opacity .15s' }}
+      >
+        <AdvanceScheduleTimeline
+          advanceRate={advanceRate}
+          advanceAmount={advanceAmount}
+          balanceAmount={balanceAmount}
+          daysBefore={daysBefore}
+          releaseDueAt={releaseDueAt}
+          currency={currency}
+        />
+      </Box>
 
-          <Box
-            sx={{
-              opacity: isRepricing ? 0.5 : 1,
-              transition: 'opacity .15s',
-            }}
-            aria-busy={isRepricing || undefined}
-          >
-            <AdvanceScheduleSummary
-              advanceRate={advanceRate}
-              advanceAmount={advanceAmount}
-              balanceAmount={balanceAmount}
-              daysBefore={daysBefore}
-              releaseDueAt={releaseDueAt}
-              currency={currency}
-            />
-          </Box>
-
-          {note && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-              “{note}”
-            </Typography>
-          )}
-        </Stack>
-      </Stack>
-    </Box>
+      {note && (
+        <Box
+          component="blockquote"
+          sx={{
+            m: 0,
+            pl: 1.5,
+            borderLeft: '3px solid',
+            borderColor: (t) => alpha(t.palette.secondary.main, 0.5),
+          }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+            Your vendor: &ldquo;{note}&rdquo;
+          </Typography>
+        </Box>
+      )}
+    </Stack>
   );
 }

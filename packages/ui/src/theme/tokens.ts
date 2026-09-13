@@ -145,6 +145,14 @@ export const radius = { sm: 8, md: 12, pill: 999 } as const;
  */
 export const brand = {
   whatsapp: { main: '#25D366', dark: '#1EBE57' },
+  // Payment-method marks at checkout. Card networks and wallets require their
+  // marks in their own colours, so these sit on a white tile in both schemes
+  // rather than being re-tinted for dark mode.
+  mtn: { yellow: '#FFCB05', ink: '#000000' },
+  airtel: { red: '#E40000' },
+  visa: { blue: '#1434CB' },
+  mastercard: { red: '#EB001B', yellow: '#F79E1B', orange: '#FF5F00' },
+  paypal: { navy: '#002991', blue: '#008CFF', sky: '#60CDFF' },
 } as const;
 
 export const fonts = {

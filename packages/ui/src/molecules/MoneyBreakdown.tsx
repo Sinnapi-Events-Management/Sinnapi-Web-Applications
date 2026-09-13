@@ -29,6 +29,24 @@ export type MoneyBreakdownProps = {
   /** Optional note under the total — e.g. what protects the money. */
   footnote?: ReactNode;
   dense?: boolean;
+  /**
+   * Lets long labels wrap onto a second line instead of truncating.
+   *
+   * The default single line suits a full-width dialog, where every label
+   * fits. In a ~320px receipt rail it does not: "Agreed with your vendor"
+   * and "Held until you confirm" both ellipsed to "Agreed with you…" and
+   * "Held until you c…", which is the one place a payer is checking what each
+   * charge actually is.
+   */
+  wrapLabels?: boolean;
+  /**
+   * Overrides how amounts are rendered. Defaults to `formatAmount`, which
+   * prints the ISO code (`UGX 500,000`). The portals format through their own
+   * `formatMoney`, which localises the symbol (`USh 500,000`) — pass it here
+   * when this breakdown sits beside a figure formatted that way, or the same
+   * money reads two different ways on one screen.
+   */
+  format?: (amount: number | string | null | undefined, currency: string) => string;
 };
 
 /**
@@ -46,13 +64,21 @@ export function MoneyBreakdown({
   currency = 'UGX',
   footnote,
   dense,
+  wrapLabels,
+  format = formatAmount,
 }: MoneyBreakdownProps) {
   const gap = dense ? 0.75 : 1.25;
 
   return (
     <Stack spacing={gap}>
       {lines.map((line) => (
-        <BreakdownRow key={line.label} line={line} currency={currency} />
+        <BreakdownRow
+          key={line.label}
+          line={line}
+          currency={currency}
+          format={format}
+          wrapLabels={wrapLabels}
+        />
       ))}
 
       {total && (
@@ -80,7 +106,7 @@ export function MoneyBreakdown({
             </Stack>
             <Box sx={{ flex: 1 }} />
             <Typography variant="h6" fontWeight={700} sx={{ whiteSpace: 'nowrap' }}>
-              {formatAmount(total.amount, currency)}
+              {format(total.amount, currency)}
             </Typography>
           </Stack>
         </>
@@ -89,7 +115,13 @@ export function MoneyBreakdown({
       {afterTotal && afterTotal.length > 0 && (
         <Stack spacing={dense ? 0.5 : 0.75} sx={{ pt: 0.25 }}>
           {afterTotal.map((line) => (
-            <BreakdownRow key={line.label} line={line} currency={currency} />
+            <BreakdownRow
+              key={line.label}
+              line={line}
+              currency={currency}
+              format={format}
+              wrapLabels={wrapLabels}
+            />
           ))}
         </Stack>
       )}
@@ -104,26 +136,62 @@ export function MoneyBreakdown({
 }
 
 /** One label-to-amount row. Shared by the build-up lines and the split below. */
-function BreakdownRow({ line, currency }: { line: MoneyLine; currency: string }) {
+function BreakdownRow({
+  line,
+  currency,
+  format,
+  wrapLabels,
+}: {
+  line: MoneyLine;
+  currency: string;
+  format: NonNullable<MoneyBreakdownProps['format']>;
+  wrapLabels?: boolean;
+}) {
+  const hint = line.hint && (
+    <Tooltip title={line.hint}>
+      <InfoOutlinedIcon
+        sx={{
+          fontSize: 15,
+          color: 'text.disabled',
+          cursor: 'help',
+          // Inline in a wrapping label: sits on the text's last line instead
+          // of floating beside a two-line block.
+          ...(wrapLabels && { verticalAlign: '-2px', ml: 0.5 }),
+        }}
+        aria-label={line.hint}
+      />
+    </Tooltip>
+  );
+
   return (
-    <Stack direction="row" alignItems="center" spacing={1} sx={{ opacity: line.muted ? 0.7 : 1 }}>
-      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
-        <Typography variant="body2" color="text.secondary" noWrap>
+    <Stack
+      direction="row"
+      alignItems={wrapLabels ? 'flex-start' : 'center'}
+      spacing={1}
+      sx={{ opacity: line.muted ? 0.7 : 1 }}
+    >
+      {wrapLabels ? (
+        <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0 }}>
           {line.label}
+          {hint}
         </Typography>
-        {line.hint && (
-          <Tooltip title={line.hint}>
-            <InfoOutlinedIcon
-              sx={{ fontSize: 15, color: 'text.disabled', cursor: 'help' }}
-              aria-label={line.hint}
-            />
-          </Tooltip>
-        )}
-      </Stack>
+      ) : (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          sx={{ minWidth: 0, flexShrink: 0 }}
+        >
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {line.label}
+          </Typography>
+          {hint}
+        </Stack>
+      )}
       <Box sx={{ flex: 1 }} />
       <Typography variant="body2" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
         {line.additive && '+ '}
-        {formatAmount(line.amount, currency)}
+        {format(line.amount, currency)}
       </Typography>
     </Stack>
   );

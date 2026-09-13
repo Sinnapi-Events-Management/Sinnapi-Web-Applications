@@ -1,21 +1,18 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Stack,
-  Typography,
-} from '@sinnapi/ui';
+import { Alert } from '@sinnapi/ui';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { CheckoutRailPicker } from '@sinnapi/ui/payments';
+import {
+  CheckoutActions,
+  CheckoutDialogFrame,
+  CheckoutRailPicker,
+  CheckoutSection,
+  FxConfirmationDialog,
+} from '@sinnapi/ui/payments';
 import { formatMoney } from '@/lib/config';
 import type { PlanModel } from '@/lib/types';
 import { useSubscriptionCheckout } from '../../hooks/useSubscriptionCheckout';
-import SubscriptionQuotePreview from '../molecules/SubscriptionQuotePreview';
 import { changeTitle } from '../../schema';
+import SubscriptionPeriodDetails from '../molecules/SubscriptionPeriodDetails';
+import SubscriptionCheckoutSummary from './SubscriptionCheckoutSummary';
 
 type Props = {
   open: boolean;
@@ -24,65 +21,81 @@ type Props = {
   plan: PlanModel | null;
 };
 
+const METHOD_HEADING = 'How would you like to pay?';
+
 /**
  * The subscription checkout: see exactly what the plan costs and the period
  * it buys, pick a rail, then hand off to the provider.
  *
- * Layout only — `useSubscriptionCheckout` owns the pricing, the rail and the
- * idempotency key. Two explicit steps in one dialog, because the vendor is
- * agreeing to two separate things: what happens to their current period, and
- * how they are paying. Neither should be something they discover afterwards.
+ * Layout only — `useSubscriptionCheckout` owns the pricing, the rail, the
+ * idempotency key and the button's words; the shared `CheckoutDialogFrame`
+ * owns the responsive shell, so this checkout and the client's escrow
+ * checkout are the same dialog with different contents.
  */
 export default function SubscriptionCheckoutDialog({ open, onClose, vendorId, plan }: Props) {
-  const { quote, rails, railIndex, setRailIndex, isQuoting, quoteError, pay, isPaying, payError } =
-    useSubscriptionCheckout(vendorId, plan?.id, open);
-
-  const title = quote ? changeTitle(quote) : plan ? `Pay for ${plan.name}` : 'Pay for plan';
+  const c = useSubscriptionCheckout(vendorId, plan?.id, open);
+  const title = c.quote ? changeTitle(c.quote) : plan ? `Pay for ${plan.name}` : 'Pay for plan';
 
   return (
-    <Dialog open={open} onClose={isPaying ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2.5} sx={{ pt: 0.5 }}>
-          <Box>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.25 }}>
-              What you pay
-            </Typography>
-            {quoteError ? (
-              <Alert severity="error">{quoteError}</Alert>
-            ) : (
-              <SubscriptionQuotePreview quote={quote} isLoading={isQuoting} />
-            )}
-          </Box>
+    <CheckoutDialogFrame
+      open={open}
+      onClose={onClose}
+      title={title}
+      summary={
+        <SubscriptionCheckoutSummary
+          quote={c.quote}
+          rail={c.rail}
+          formattedTotal={c.formattedTotal}
+          isLoading={c.isQuoting}
+        />
+      }
+      actions={
+        <CheckoutActions
+          onCancel={onClose}
+          primaryLabel={c.payLabel}
+          onPrimary={c.pay}
+          primaryDisabled={!c.canPay}
+          isBusy={c.isPaying}
+          primaryIcon={<OpenInNewIcon />}
+        />
+      }
+      footerTotal={{ label: 'You pay', amount: c.formattedTotal }}
+      overlays={
+        // PayPal only: the plan is priced in shillings; this is where the
+        // vendor accepts what that becomes in the currency PayPal can charge.
+        <FxConfirmationDialog
+          open={c.fx.open}
+          quote={c.fx.quote}
+          providerLabel={c.rail.label}
+          isLoading={c.fx.isLoading}
+          isConfirming={c.fx.isConfirming}
+          error={c.fx.error}
+          onConfirm={c.fx.confirm}
+          onCancel={c.fx.cancel}
+          onRequote={c.fx.requote}
+          formatMoney={formatMoney}
+        />
+      }
+    >
+      <CheckoutSection step={1} title="Your plan period">
+        {c.quoteError ? (
+          <Alert severity="error">{c.quoteError}</Alert>
+        ) : (
+          <SubscriptionPeriodDetails quote={c.quote} isLoading={c.isQuoting} />
+        )}
+      </CheckoutSection>
 
-          <Box>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-              How would you like to pay?
-            </Typography>
-            <CheckoutRailPicker
-              rails={rails}
-              selected={railIndex}
-              onSelect={setRailIndex}
-              disabled={isPaying}
-            />
-          </Box>
+      <CheckoutSection step={2} title={METHOD_HEADING}>
+        <CheckoutRailPicker
+          rails={c.rails}
+          selected={c.railIndex}
+          onSelect={c.setRailIndex}
+          disabled={c.isPaying}
+          label={METHOD_HEADING}
+        />
+      </CheckoutSection>
 
-          {payError && <Alert severity="error">{payError}</Alert>}
-        </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={isPaying}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={pay}
-          disabled={!quote || !!quoteError || isQuoting || isPaying}
-          startIcon={<OpenInNewIcon />}
-        >
-          {isPaying ? 'Opening…' : `Pay ${quote ? formatMoney(quote.amount, quote.currency) : ''}`}
-        </Button>
-      </DialogActions>
-    </Dialog>
+      {c.payError && <Alert severity="error">{c.payError}</Alert>}
+    </CheckoutDialogFrame>
   );
 }

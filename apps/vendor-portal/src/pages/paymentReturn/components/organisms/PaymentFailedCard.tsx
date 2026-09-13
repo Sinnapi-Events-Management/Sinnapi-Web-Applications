@@ -1,8 +1,16 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, SectionCard, Stack, Typography } from '@sinnapi/ui';
+import { Alert, Button, Typography } from '@sinnapi/ui';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { describePaymentFailure } from '@sinnapi/ui/payments';
+import {
+  OutcomeActions,
+  OutcomeCard,
+  OutcomeHeader,
+  OutcomeLayout,
+  PaymentFactsPanel,
+  describePaymentFailure,
+} from '@sinnapi/ui/payments';
 import type { PaymentReturnModel } from '@/lib/types';
+import { usePaymentFacts } from '../../hooks/usePaymentFacts';
 
 type Props = { payment: PaymentReturnModel };
 
@@ -15,30 +23,52 @@ type Props = { payment: PaymentReturnModel };
  * seen again.
  */
 export default function PaymentFailedCard({ payment }: Props) {
+  const facts = usePaymentFacts(payment);
   const reversed = payment.status === 'refunded' || payment.status === 'partially_refunded';
 
   return (
-    <SectionCard
-      title={reversed ? 'Payment reversed' : 'Payment not completed'}
-      icon={<ErrorOutlineIcon />}
-      accent="error"
+    <OutcomeLayout
+      header={
+        <OutcomeHeader
+          accent="error"
+          markVariant="glyph"
+          markIcon={<ErrorOutlineIcon />}
+          title={reversed ? 'Payment reversed' : 'Payment not completed'}
+          description="Your current plan is unchanged."
+        />
+      }
+      aside={
+        <PaymentFactsPanel
+          facts={facts}
+          footer={
+            <Typography variant="caption" color="text.secondary">
+              Quote the reference above if you contact support.
+            </Typography>
+          }
+        />
+      }
     >
-      <Stack spacing={2.5}>
+      <OutcomeCard accent="error">
         <Alert severity="error">
           {describePaymentFailure(payment.status, payment.failure_reason)}
         </Alert>
+
         {!reversed && (
-          <Typography variant="body2">
-            Your current plan is unchanged. You can try again from the subscription page, on the
-            same payment method or a different one.
+          <Typography variant="body2" color="text.secondary">
+            You can try again from the subscription page, on the same payment method or a different
+            one.
           </Typography>
         )}
-        <Box>
-          <Button component={RouterLink} to="/subscription" variant="contained">
+
+        <OutcomeActions>
+          <Button component={RouterLink} to="/subscription" variant="contained" size="large">
             {reversed ? 'View subscription' : 'Try again'}
           </Button>
-        </Box>
-      </Stack>
-    </SectionCard>
+          <Button component={RouterLink} to="/dashboard" variant="outlined" size="large">
+            Go to dashboard
+          </Button>
+        </OutcomeActions>
+      </OutcomeCard>
+    </OutcomeLayout>
   );
 }

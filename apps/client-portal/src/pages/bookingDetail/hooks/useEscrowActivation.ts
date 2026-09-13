@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { checkoutActionLabel, checkoutProcessorLabel } from '@sinnapi/ui/payments';
+import { formatMoney } from '@/lib/config';
 import { useEscrowCheckout } from './useEscrowCheckout';
 import { useAdvanceRate } from '@/components/paymentTerms/hooks/useAdvanceRate';
 import type { BookingDetailModel } from '@/lib/types';
@@ -10,11 +12,14 @@ type Options = {
   needsAdvanceApproval: boolean;
   /** Records consent at the chosen rate; false if the server refused it. */
   onAcceptTerms: (advanceRate: number | null) => Promise<boolean>;
+  /** The consent write is in flight. */
+  isAcceptingTerms: boolean;
 };
 
 /**
  * Everything the escrow checkout decides, in one place: how much goes early,
- * on which rail, what that costs, and whether the client may proceed.
+ * on which rail, what that costs, whether the client may proceed, and what the
+ * button says about it.
  *
  * The advance and the price are circular by nature — the chosen rate prices
  * the quote, and the quote supplies the bounds the rate is checked against.
@@ -28,10 +33,11 @@ export function useEscrowActivation({
   open,
   needsAdvanceApproval,
   onAcceptTerms,
+  isAcceptingTerms,
 }: Options) {
   const [pricedRate, setPricedRate] = useState<number | null>(null);
   const checkout = useEscrowCheckout(booking.id, open, pricedRate);
-  const { quote } = checkout;
+  const { quote, rail, isQuoting, isPaying } = checkout;
 
   const advance = useAdvanceRate({
     startingRate: quote?.advance_rate ?? null,
@@ -60,9 +66,18 @@ export function useEscrowActivation({
   // rate, an escrow may already be priced against it, and a retry after a
   // failed charge must not quietly re-cut the split.
   const canEditAdvance = needsAdvanceApproval;
+  const advanceLimit = quote?.advance_rate_limit ?? null;
+  const isAdvanceEditable = canEditAdvance && advanceLimit != null && !isPaying;
 
   const isRateBlocking = canEditAdvance && (!!advance.error || !advance.isSettled);
   const blocked = (needsAdvanceApproval && !agreed) || isRateBlocking;
+
+  const currency = quote?.currency ?? booking.currency ?? 'UGX';
+  const formattedTotal = quote ? formatMoney(quote.gross_amount, currency) : null;
+  const canPay = !blocked && !isQuoting && !isAcceptingTerms && !!quote;
+  const payLabel = isPaying
+    ? `Opening ${checkoutProcessorLabel(rail)}…`
+    : checkoutActionLabel(rail, formattedTotal);
 
   async function pay() {
     // Record consent first: the charge itself refuses without it, so doing it
@@ -78,10 +93,13 @@ export function useEscrowActivation({
     ...checkout,
     pay,
     advance,
-    canEditAdvance,
+    advanceLimit,
+    isAdvanceEditable,
     agreed,
     setAgreed,
-    blocked,
-    currency: quote?.currency ?? booking.currency,
+    currency,
+    formattedTotal,
+    canPay,
+    payLabel,
   };
 }

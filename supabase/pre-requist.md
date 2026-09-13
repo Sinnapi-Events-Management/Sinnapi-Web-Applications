@@ -63,6 +63,22 @@ A row with `event_type = 'ipn'` for the new order's tracking id means the regist
 
 `PAYPAL_BASE_URL`, `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_RETURN_URL`, `PAYPAL_CANCEL_URL` — values and where to get them are in `.env.example`. The webhook id is the PayPal-side equivalent of the IPN id and has the same re-registration rule when the function URL changes. No portal route serves the PayPal return or cancel URL yet; point both at the client portal's `/bookings` until one exists.
 
+Subscribe the webhook to exactly these events, and no others: `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.DECLINED`, `CHECKOUT.ORDER.VOIDED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`. `CHECKOUT.ORDER.APPROVED` is the one that is easy to leave off and the one that matters most: approval moves no money, and `psp-paypal-webhook` is what actually issues the capture. Without it buyers approve payments that are never charged.
+
+### 4a. PayPal is charged in USD, not shillings
+
+PayPal's Orders API accepts 24 currencies and UGX is not one of them, so a PayPal checkout is converted before it is opened. Nothing to configure — no new environment variable — but two things are worth knowing when reading a payment row or a support ticket.
+
+**On a PayPal payment, `payments.amount` is USD.** The shilling figure is in `base_amount`/`base_currency` and the rate used is in `fx_rate_id`. Every other rail leaves them equal. `escrow_transactions` is untouched: `gross_amount` stays in shillings and `fund_escrow` posts the ledger from there, so commission, the held pool and the vendor payout never see a dollar.
+
+**The payer agrees to the conversion before it happens.** `fx-quote` prices the booking in USD, locks that figure for 15 minutes, and writes an `fx_quotes` row recording what was displayed — rate, margin, rate age, expiry. The confirmation step shows it and `create-payment` re-derives the charge from that row rather than re-pricing, so a rate that moves while the payer is on PayPal's page cannot change what leaves their account. A lapsed quote is refused (`fx_quote_expired`, HTTP 409) and the payer re-confirms against a fresh one; they are never charged silently at a rate they did not see.
+
+The margin is `platform_settings.fx_margin_rate`, seeded at `0.02`. It covers drift between quoting in dollars and settling an obligation denominated in shillings, and it is shown to the payer as its own line — never folded into the rate. Set it to `0` to switch it off without removing the disclosure.
+
+Rates come from `exchange_rates`, written by `fx-rate-sync` on cron. If the newest UGX→USD row is over an hour old, `fx-quote` fetches a fresh one and stores it. If that fetch fails, the newest stored rate is used, the quote is flagged `rate_stale`, and its true age is shown to the payer — an FX-API outage costs a slightly worse rate rather than a lost booking. Only a project with no UGX→USD rate at all refuses (`fx_rate_unavailable`), which is a deployment fault: run `fx-rate-sync` once.
+
+Deploy `fx-quote` alongside `create-payment`; the PayPal rail refuses without it.
+
 ## 5. Bot protection
 
 Set `TURNSTILE_SECRET` on the functions — `supabase secrets set TURNSTILE_SECRET=<widget secret>`. It is the Cloudflare Turnstile secret paired with the site key the four apps ship (`VITE_TURNSTILE_SITE_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY`), and `_shared/turnstile.ts` fails closed without it — `portal-sign-in`, `client-sign-up`, `vendor-application` and `send-password-reset` will refuse every anonymous request until it is set. The widget's domain list must include each portal's production hostname plus `localhost` and `127.0.0.1`, or the browser never produces a token in the first place.
