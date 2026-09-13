@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { CHECKOUT_RAILS, newCheckoutAttemptKey } from '@sinnapi/ui/payments';
+import {
+  CHECKOUT_RAILS,
+  checkoutActionLabel,
+  checkoutProcessorLabel,
+  newCheckoutAttemptKey,
+} from '@sinnapi/ui/payments';
+import { formatMoney } from '@/lib/config';
 import {
   useSubscriptionQuote,
   useStartSubscriptionPayment,
@@ -120,14 +126,25 @@ export function useSubscriptionCheckout(
     fx.reset();
   }
 
+  const priced = quote.data ?? null;
+  const quoteError = quote.error ? subscriptionErrorMessage(quote.error) : null;
+  const formattedTotal = priced
+    ? formatMoney(priced.amount + priced.psp_fee_amount, priced.currency)
+    : null;
+
   return {
     rails: CHECKOUT_RAILS,
     railIndex,
     setRailIndex,
     rail,
-    quote: quote.data ?? null,
+    quote: priced,
     isQuoting: quote.isLoading,
-    quoteError: quote.error ? subscriptionErrorMessage(quote.error) : null,
+    quoteError,
+    formattedTotal,
+    canPay: !!priced && !quoteError && !quote.isLoading,
+    payLabel: start.isPending
+      ? `Opening ${checkoutProcessorLabel(rail)}…`
+      : checkoutActionLabel(rail, formattedTotal),
     pay,
     isPaying: start.isPending,
     payError: start.error ? subscriptionErrorMessage(start.error) : null,

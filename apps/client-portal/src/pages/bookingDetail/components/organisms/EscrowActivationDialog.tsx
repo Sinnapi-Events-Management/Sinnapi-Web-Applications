@@ -1,24 +1,20 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Stack,
-  Typography,
-} from '@sinnapi/ui';
+import { Alert, Skeleton } from '@sinnapi/ui';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { CheckoutRailPicker, FxConfirmationDialog } from '@sinnapi/ui/payments';
+import {
+  CheckoutActions,
+  CheckoutDialogFrame,
+  CheckoutRailPicker,
+  CheckoutSection,
+  FxConfirmationDialog,
+} from '@sinnapi/ui/payments';
 import { formatMoney } from '@/lib/config';
-import { useEscrowActivation } from '../../hooks/useEscrowActivation';
-import AdvanceTermsPanel from '../molecules/AdvanceTermsPanel';
 import AdvanceRateControl from '@/components/paymentTerms/components/molecules/AdvanceRateControl';
 import AdvanceConsentCheckbox from '@/components/paymentTerms/components/molecules/AdvanceConsentCheckbox';
-import EscrowCostBreakdown from '../molecules/EscrowCostBreakdown';
-import SinglePaymentNotice from '../molecules/SinglePaymentNotice';
 import type { BookingDetailModel } from '@/lib/types';
+import { useEscrowActivation } from '../../hooks/useEscrowActivation';
+import AdvanceTermsPanel from '../molecules/AdvanceTermsPanel';
+import SinglePaymentNotice from '../molecules/SinglePaymentNotice';
+import EscrowCheckoutSummary from './EscrowCheckoutSummary';
 
 type Props = {
   open: boolean;
@@ -31,16 +27,18 @@ type Props = {
   acceptError: string | null;
 };
 
+const METHOD_HEADING = 'How would you like to pay?';
+
 /**
  * The escrow checkout: choose the advance, pick a rail, see the real total,
  * then hand off to the provider.
  *
- * Layout only — `useEscrowActivation` owns the pricing, the chosen rate and
- * the rule about when the client may proceed. Three explicit steps in one
- * dialog, because the client is agreeing to three separate things: how much
- * money may reach the vendor before the event, how they are paying, and that
- * the total is more than the price they negotiated. None of them should be
- * something they discover afterwards.
+ * Layout only — `useEscrowActivation` owns the pricing, the chosen rate, the
+ * rule about when the client may proceed and what the button says; the shared
+ * `CheckoutDialogFrame` owns the responsive shell. The client is agreeing to
+ * three separate things — how much money may reach the vendor before the
+ * event, how they are paying, and that the total is more than the price they
+ * negotiated — so each is a visible, numbered part of one screen.
  */
 export default function EscrowActivationDialog({
   open,
@@ -51,141 +49,119 @@ export default function EscrowActivationDialog({
   isAcceptingTerms,
   acceptError,
 }: Props) {
-  const {
-    quote,
-    rail,
-    rails,
-    railIndex,
-    setRailIndex,
-    isQuoting,
-    isRepricing,
-    pay,
-    isPaying,
-    payError,
-    advance,
-    canEditAdvance,
-    agreed,
-    setAgreed,
-    blocked,
-    currency,
-    fx,
-  } = useEscrowActivation({ booking, open, needsAdvanceApproval, onAcceptTerms });
-
-  const limit = quote?.advance_rate_limit ?? null;
-  const isEditable = canEditAdvance && limit != null && !isPaying;
+  const c = useEscrowActivation({
+    booking,
+    open,
+    needsAdvanceApproval,
+    onAcceptTerms,
+    isAcceptingTerms,
+  });
 
   return (
-    // `onClose`/Cancel stay reachable while `isPaying`. The checkout call
-    // carries its own client-side timeout, but a payer should never be
-    // trapped in a modal with no way out for however long that takes —
-    // dismissing here is safe; the request is left to resolve in the
-    // background and the server's in-flight guard + idempotency key both
-    // already assume a checkout attempt can be walked away from.
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Pay through Sinnapi escrow</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2.5} sx={{ pt: 0.5 }}>
-          {quote && (
-            <AdvanceTermsPanel
-              advanceRate={quote.advance_rate}
-              advanceAmount={quote.advance_amount}
-              balanceAmount={quote.balance_amount}
-              daysBefore={quote.advance_release_days_before}
-              releaseDueAt={quote.advance_release_due_at}
-              currency={currency}
-              note={booking.advance_terms_note}
-              isRepricing={isRepricing}
-              control={
-                isEditable ? (
-                  <AdvanceRateControl
-                    control={advance.form.control}
-                    limit={limit}
-                    value={advance.sliderValue}
-                    onChange={advance.setRate}
-                    disabled={isPaying}
-                  />
-                ) : undefined
-              }
-            />
-          )}
+    <CheckoutDialogFrame
+      open={open}
+      onClose={onClose}
+      title="Pay through Sinnapi escrow"
+      subtitle="Sinnapi holds your money and releases it to your vendor on the schedule you approve."
+      summary={
+        <EscrowCheckoutSummary
+          quote={c.quote}
+          currency={c.currency}
+          rail={c.rail}
+          formattedTotal={c.formattedTotal}
+          isLoading={c.isQuoting}
+          isRepricing={c.isRepricing}
+        />
+      }
+      actions={
+        <CheckoutActions
+          onCancel={onClose}
+          primaryLabel={c.payLabel}
+          onPrimary={c.pay}
+          primaryDisabled={!c.canPay}
+          isBusy={c.isPaying}
+          primaryIcon={<OpenInNewIcon />}
+        />
+      }
+      footerTotal={{ label: 'Total to pay', amount: c.formattedTotal }}
+      overlays={
+        // PayPal only: where the client accepts what the shilling total
+        // becomes in the currency PayPal can charge. Nothing is created at
+        // the provider until they do.
+        <FxConfirmationDialog
+          open={c.fx.open}
+          quote={c.fx.quote}
+          providerLabel={c.rail.label}
+          isLoading={c.fx.isLoading}
+          isConfirming={c.fx.isConfirming}
+          error={c.fx.error}
+          onConfirm={c.fx.confirm}
+          onCancel={c.fx.cancel}
+          onRequote={c.fx.requote}
+          formatMoney={formatMoney}
+        />
+      }
+    >
+      <SinglePaymentNotice grossAmount={c.quote?.gross_amount ?? null} currency={c.currency} />
 
-          <Box>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-              How would you like to pay?
-            </Typography>
-            <CheckoutRailPicker
-              rails={rails}
-              selected={railIndex}
-              onSelect={setRailIndex}
-              disabled={isPaying}
-            />
-          </Box>
+      <CheckoutSection
+        step={1}
+        title="Payment schedule"
+        description={
+          c.isAdvanceEditable
+            ? 'Choose how much of your vendor’s fee is released before the event.'
+            : undefined
+        }
+      >
+        {c.quote ? (
+          <AdvanceTermsPanel
+            advanceRate={c.quote.advance_rate}
+            advanceAmount={c.quote.advance_amount}
+            balanceAmount={c.quote.balance_amount}
+            daysBefore={c.quote.advance_release_days_before}
+            releaseDueAt={c.quote.advance_release_due_at}
+            currency={c.currency}
+            note={booking.advance_terms_note}
+            isRepricing={c.isRepricing}
+            control={
+              c.isAdvanceEditable && c.advanceLimit != null ? (
+                <AdvanceRateControl
+                  control={c.advance.form.control}
+                  limit={c.advanceLimit}
+                  value={c.advance.sliderValue}
+                  onChange={c.advance.setRate}
+                  disabled={c.isPaying}
+                />
+              ) : undefined
+            }
+          />
+        ) : (
+          <Skeleton variant="rounded" height={112} />
+        )}
+      </CheckoutSection>
 
-          <Box>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.25 }}>
-              What you pay
-            </Typography>
-            {/* Immediately above the breakdown, which is the one place a client
-                can misread the advance/balance split as a payment plan. Here
-                the total is known, so it is named. */}
-            <Box sx={{ mb: 1.5 }}>
-              <SinglePaymentNotice grossAmount={quote?.gross_amount ?? null} currency={currency} />
-            </Box>
-            <EscrowCostBreakdown
-              quote={quote}
-              currency={currency}
-              railLabel={rail.label}
-              isLoading={isQuoting}
-              isRepricing={isRepricing}
-            />
-          </Box>
+      <CheckoutSection step={2} title={METHOD_HEADING}>
+        <CheckoutRailPicker
+          rails={c.rails}
+          selected={c.railIndex}
+          onSelect={c.setRailIndex}
+          disabled={c.isPaying}
+          label={METHOD_HEADING}
+        />
+      </CheckoutSection>
 
-          {needsAdvanceApproval && (
-            <AdvanceConsentCheckbox
-              checked={agreed}
-              onChange={setAgreed}
-              disabled={isPaying}
-              advanceAmount={quote?.advance_amount ?? null}
-              currency={currency}
-            />
-          )}
+      {needsAdvanceApproval && (
+        <AdvanceConsentCheckbox
+          checked={c.agreed}
+          onChange={c.setAgreed}
+          disabled={c.isPaying}
+          advanceAmount={c.quote?.advance_amount ?? null}
+          currency={c.currency}
+        />
+      )}
 
-          {acceptError && <Alert severity="error">{acceptError}</Alert>}
-          {payError && <Alert severity="error">{payError}</Alert>}
-        </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={pay}
-          disabled={blocked || isQuoting || isPaying || isAcceptingTerms || !quote}
-          startIcon={<OpenInNewIcon />}
-        >
-          {isPaying
-            ? 'Opening…'
-            : rail.provider === 'paypal'
-              ? 'Continue'
-              : `Pay ${quote ? formatMoney(quote.gross_amount, currency) : ''}`}
-        </Button>
-      </DialogActions>
-
-      {/* PayPal only. The client has agreed to a shilling total; this is
-          where they see, and accept, what that becomes in the currency
-          PayPal can actually charge. Nothing is created at the provider
-          until they do. */}
-      <FxConfirmationDialog
-        open={fx.open}
-        quote={fx.quote}
-        providerLabel={rail.label}
-        isLoading={fx.isLoading}
-        isConfirming={fx.isConfirming}
-        error={fx.error}
-        onConfirm={fx.confirm}
-        onCancel={fx.cancel}
-        onRequote={fx.requote}
-        formatMoney={formatMoney}
-      />
-    </Dialog>
+      {acceptError && <Alert severity="error">{acceptError}</Alert>}
+      {c.payError && <Alert severity="error">{c.payError}</Alert>}
+    </CheckoutDialogFrame>
   );
 }

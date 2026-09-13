@@ -12,37 +12,56 @@
 export type CheckoutProvider = 'pesapal' | 'paypal';
 export type CheckoutMethod = 'mtn_momo' | 'airtel_money' | 'card';
 
+/** A payment brand whose mark `ProviderLogo` can draw. */
+export type ProviderLogoId = 'mtn_momo' | 'airtel_money' | 'visa' | 'mastercard' | 'paypal';
+
 export type CheckoutRail = {
   provider: CheckoutProvider;
   method: CheckoutMethod;
 };
 
-export type CheckoutRailOption = CheckoutRail & { label: string; caption: string };
+export type CheckoutRailOption = CheckoutRail & {
+  label: string;
+  caption: string;
+  /** The marks shown on the rail, in the order the payer should read them. */
+  logos: readonly ProviderLogoId[];
+  /**
+   * A fact about this rail the payer should know before choosing it, shown on
+   * the card itself. PayPal's is the currency: it is the one rail where the
+   * statement will not read in shillings.
+   */
+  notice?: string;
+};
 
 export const CHECKOUT_RAILS: readonly CheckoutRailOption[] = [
   {
     provider: 'pesapal',
     method: 'mtn_momo',
     label: 'MTN Mobile Money',
-    caption: 'Approve on your phone',
+    caption: 'Approve the prompt on your phone',
+    logos: ['mtn_momo'],
   },
   {
     provider: 'pesapal',
     method: 'airtel_money',
     label: 'Airtel Money',
-    caption: 'Approve on your phone',
+    caption: 'Approve the prompt on your phone',
+    logos: ['airtel_money'],
   },
   {
     provider: 'pesapal',
     method: 'card',
-    label: 'Card',
+    label: 'Debit or credit card',
     caption: 'Visa or Mastercard',
+    logos: ['visa', 'mastercard'],
   },
   {
     provider: 'paypal',
     method: 'card',
     label: 'PayPal',
-    caption: 'Card or PayPal balance',
+    caption: 'PayPal balance or a card saved to PayPal',
+    logos: ['paypal'],
+    notice: 'Charged in USD',
   },
 ];
 
@@ -59,6 +78,26 @@ export function checkoutRailLabel(provider: string | null, method: string | null
     default:
       return 'the payment provider';
   }
+}
+
+/** Who runs the hosted page a rail hands the payer to. */
+export function checkoutProcessorLabel(rail: CheckoutRail): string {
+  return rail.provider === 'paypal' ? 'PayPal' : 'Pesapal';
+}
+
+/**
+ * The primary button's words for the chosen rail.
+ *
+ * Baymard's checkout research found generic button copy is where payers
+ * hesitate when the button is about to send them to a third party, so the
+ * label says where they are going. PayPal also gets a confirmation step
+ * first (the currency conversion), so its button promises the next step
+ * rather than a payment. Every other rail leaves for the hosted page with the
+ * figure on screen, so it names the amount.
+ */
+export function checkoutActionLabel(rail: CheckoutRail, formattedAmount: string | null): string {
+  if (rail.provider === 'paypal') return 'Continue to PayPal';
+  return formattedAmount ? `Pay ${formattedAmount}` : 'Pay';
 }
 
 /**

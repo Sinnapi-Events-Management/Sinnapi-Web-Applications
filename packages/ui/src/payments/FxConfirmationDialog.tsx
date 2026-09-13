@@ -1,9 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
 import {
   Alert,
-  Box,
-  Button,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -13,9 +10,14 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import SouthIcon from '@mui/icons-material/South';
+import { ProviderLogo } from './atoms/ProviderLogo';
+import { CheckoutActions } from './molecules/CheckoutActions';
+import { FxAmountHero } from './molecules/FxAmountHero';
+import { FxRateLines } from './molecules/FxRateLines';
+import { FxLockNotice } from './molecules/FxLockNotice';
+import { useFxCountdown } from './hooks/useFxCountdown';
+import { useCheckoutDialogLayout } from './hooks/useCheckoutDialogLayout';
 
 /** The conversion a payer is being asked to accept, as the server priced it. */
 export type FxQuoteView = {
@@ -42,7 +44,7 @@ export type FxQuoteView = {
 export type FxConfirmationDialogProps = {
   open: boolean;
   quote: FxQuoteView | null;
-  /** The rail's name, for the button and the title. */
+  /** The rail's name, for the explanation and the title. */
   providerLabel: string;
   isLoading: boolean;
   isConfirming: boolean;
@@ -58,28 +60,15 @@ export type FxConfirmationDialogProps = {
 /**
  * The currency-conversion step, shown before the payer leaves for PayPal.
  *
- * WHY THIS IS ITS OWN STEP
- * PayPal cannot accept shillings, so a client who agreed to a figure in UGX is
- * about to be charged a different-looking number in USD. Folding that into the
- * existing breakdown would put the most surprising fact in the checkout — "the
- * amount I approved is not the amount on my statement" — in the smallest type
- * on the screen. It gets a step of its own, one decision per screen, and the
- * conversion is the only thing on it.
+ * PayPal cannot accept shillings, so a payer who agreed to a figure in UGX is
+ * about to be charged a different-looking number in USD. That is the most
+ * surprising fact in the checkout, so it gets a step of its own with the
+ * conversion as the only thing on it — never folded into the breakdown's
+ * smallest type.
  *
- * WHAT IT DISCLOSES, AND WHY EACH PART
- * The obligation and the charge are shown at equal weight with the rate
- * between them, so neither currency reads as the "real" one. The margin is a
- * named line rather than something blended into the rate, because a payer who
- * compares our rate against a search result should be able to see exactly
- * where the difference went. The rate's true age is always stated — including
- * when it is older than we would like — since a rate with no timestamp is a
- * claim rather than a disclosure.
- *
- * THE LOCK IS A PROMISE, SO IT IS VISIBLE
- * The quote is held for a fixed window and the charge is re-derived from it
- * server-side, which means this figure is what will be taken. The countdown is
- * shown so that promise is legible, and when it lapses the payer is asked to
- * re-quote rather than being sent to PayPal against a stale figure.
+ * Layout only. The lock's clock is `useFxCountdown`, the breakpoint rules are
+ * `useCheckoutDialogLayout`, and each block of the disclosure is its own
+ * molecule with its own reasoning.
  */
 export function FxConfirmationDialog({
   open,
@@ -93,102 +82,53 @@ export function FxConfirmationDialog({
   formatMoney,
   onRequote,
 }: FxConfirmationDialogProps) {
-  const remaining = useCountdown(open ? (quote?.expiresAt ?? null) : null);
+  const { fullScreen } = useCheckoutDialogLayout();
+  const remaining = useFxCountdown(open ? (quote?.expiresAt ?? null) : null);
   const expired = quote != null && remaining === 0;
+  const needsRequote = expired || (!quote && !isLoading);
 
   return (
-    // `onCancel` stays reachable even mid-confirm. The checkout call this
-    // dialog is waiting on carries its own client-side timeout, but that
-    // still leaves a real window with nothing on screen to do — and a
-    // slow provider or a dropped connection is not a reason to trap someone
-    // in a modal with no way out. Dismissing here does not cancel the
-    // in-flight request; it is safe to let it resolve in the background
-    // (the server's in-flight guard and idempotency key both assume exactly
-    // this can happen) and simply stop making the payer stare at it.
-    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>Confirm the amount</DialogTitle>
+    // `onCancel` stays reachable even mid-confirm — see `CheckoutActions`.
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="sm"
+      fullWidth
+      fullScreen={fullScreen}
+      // Same surface as the checkout under it: MUI's dark-mode elevation
+      // overlay otherwise greys this step out against the warm frame.
+      PaperProps={{ sx: { borderRadius: fullScreen ? 0 : 4, backgroundImage: 'none' } }}
+    >
+      <DialogTitle component="div">
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <ProviderLogo id="paypal" decorative />
+          <Typography variant="h6" component="h2">
+            Confirm the amount in {quote?.currency ?? 'USD'}
+          </Typography>
+        </Stack>
+      </DialogTitle>
+
       <DialogContent dividers>
         {isLoading && !quote ? (
-          <Stack alignItems="center" spacing={1.5} sx={{ py: 4 }}>
-            <CircularProgress size={28} />
+          <Stack alignItems="center" spacing={1.5} sx={{ py: 6 }} aria-live="polite">
+            <CircularProgress size={28} color="secondary" />
             <Typography variant="body2" color="text.secondary">
               Getting today&rsquo;s rate…
             </Typography>
           </Stack>
         ) : quote ? (
-          <Stack spacing={2}>
+          <Stack spacing={2.5}>
             <Typography variant="body2" color="text.secondary">
-              {providerLabel} cannot charge in {quote.baseCurrency}, so this booking is paid in{' '}
+              {providerLabel} cannot charge in {quote.baseCurrency}, so this payment is charged in{' '}
               {quote.currency}.
             </Typography>
-
-            {/* Both currencies at equal weight. Neither is the small print. */}
-            <Box
-              sx={(theme) => ({
-                borderRadius: 2,
-                p: 2,
-                bgcolor: alpha(theme.palette.primary.main, 0.06),
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
-              })}
-            >
-              <Stack spacing={0.75} alignItems="center">
-                <Typography variant="caption" color="text.secondary">
-                  Booking total
-                </Typography>
-                <Typography variant="h6" fontWeight={700}>
-                  {formatMoney(quote.baseAmount, quote.baseCurrency)}
-                </Typography>
-
-                <SouthIcon fontSize="small" sx={{ color: 'text.disabled', my: 0.25 }} />
-
-                <Typography variant="caption" color="text.secondary">
-                  You will be charged
-                </Typography>
-                <Typography variant="h5" fontWeight={800}>
-                  {formatMoney(quote.amount, quote.currency)}
-                </Typography>
-              </Stack>
-            </Box>
-
+            <FxAmountHero
+              owed={formatMoney(quote.baseAmount, quote.baseCurrency)}
+              charged={formatMoney(quote.amount, quote.currency)}
+            />
             <Divider />
-
-            {/* The working. Every line the total is built from, named. */}
-            <Stack spacing={1}>
-              <FxLine
-                label="Market rate"
-                value={`1 ${quote.currency} = ${formatMoney(quote.midRate, quote.baseCurrency)}`}
-              />
-              <FxLine
-                label={`Conversion fee (${formatPercent(quote.marginRate)})`}
-                value={formatMoney(quote.marginAmount, quote.baseCurrency)}
-              />
-              <FxLine
-                label="Your rate"
-                value={`1 ${quote.currency} = ${formatMoney(quote.effectiveRate, quote.baseCurrency)}`}
-                emphasis
-              />
-            </Stack>
-
-            <Typography variant="caption" color="text.secondary">
-              Rate updated {relativeAge(quote.rateFetchedAt)}.
-              {quote.rateStale
-                ? ' Live rates are briefly unavailable, so this is the most recent rate on file.'
-                : ''}
-            </Typography>
-
-            {expired ? (
-              <Alert severity="warning">
-                This rate has expired. Get an updated amount before continuing.
-              </Alert>
-            ) : (
-              <Alert severity="info" icon={false} sx={{ py: 0.5 }}>
-                <Typography variant="caption">
-                  This amount is held for <strong>{formatRemaining(remaining)}</strong>. You will be
-                  charged exactly this, whatever the rate does next.
-                </Typography>
-              </Alert>
-            )}
-
+            <FxRateLines quote={quote} formatMoney={formatMoney} />
+            <FxLockNotice remaining={remaining} />
             {error && <Alert severity="error">{error}</Alert>}
           </Stack>
         ) : (
@@ -197,86 +137,32 @@ export function FxConfirmationDialog({
           </Alert>
         )}
       </DialogContent>
+
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onCancel}>Back</Button>
-        {expired || (!quote && !isLoading) ? (
-          <Button variant="contained" onClick={onRequote} disabled={isLoading}>
-            Get updated amount
-          </Button>
+        {needsRequote ? (
+          <CheckoutActions
+            onCancel={onCancel}
+            cancelLabel="Back"
+            primaryLabel="Get updated amount"
+            onPrimary={onRequote}
+            isBusy={isLoading}
+          />
         ) : (
-          <Button
-            variant="contained"
-            onClick={onConfirm}
-            disabled={!quote || isLoading || isConfirming}
-            startIcon={<OpenInNewIcon />}
-          >
-            {isConfirming
-              ? 'Opening…'
-              : `Pay ${quote ? formatMoney(quote.amount, quote.currency) : ''}`}
-          </Button>
+          <CheckoutActions
+            onCancel={onCancel}
+            cancelLabel="Back"
+            primaryLabel={
+              isConfirming
+                ? `Opening ${providerLabel}…`
+                : `Pay ${quote ? formatMoney(quote.amount, quote.currency) : ''}`
+            }
+            onPrimary={onConfirm}
+            primaryDisabled={!quote || isLoading}
+            isBusy={isConfirming}
+            primaryIcon={<OpenInNewIcon />}
+          />
         )}
       </DialogActions>
     </Dialog>
   );
-}
-
-function FxLine({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
-  return (
-    <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={2}>
-      <Typography variant="body2" color={emphasis ? 'text.primary' : 'text.secondary'}>
-        {label}
-      </Typography>
-      <Typography variant="body2" fontWeight={emphasis ? 700 : 500}>
-        {value}
-      </Typography>
-    </Stack>
-  );
-}
-
-/**
- * Seconds left on the lock, ticking. Null target means no countdown — which is
- * also what stops the interval while the dialog is closed.
- */
-function useCountdown(expiresAt: string | null): number {
-  const [remaining, setRemaining] = useState(() => secondsUntil(expiresAt));
-
-  useEffect(() => {
-    setRemaining(secondsUntil(expiresAt));
-    if (!expiresAt) return;
-    const id = setInterval(() => setRemaining(secondsUntil(expiresAt)), 1000);
-    return () => clearInterval(id);
-  }, [expiresAt]);
-
-  return remaining;
-}
-
-function secondsUntil(iso: string | null): number {
-  if (!iso) return 0;
-  const ms = Date.parse(iso) - Date.now();
-  return ms > 0 ? Math.floor(ms / 1000) : 0;
-}
-
-function formatRemaining(seconds: number): string {
-  if (seconds <= 0) return '0:00';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-function formatPercent(rate: number): string {
-  const pct = rate * 100;
-  return `${Number.isInteger(pct) ? pct : pct.toFixed(2)}%`;
-}
-
-/** Deliberately plain-spoken: "3 hours ago" reads truer than a timestamp. */
-function relativeAge(iso: string): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 1000));
-  if (!Number.isFinite(seconds)) return 'recently';
-  if (seconds < 90) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minutes ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }

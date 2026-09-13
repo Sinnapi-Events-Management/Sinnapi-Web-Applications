@@ -147,6 +147,22 @@ function BreakdownRow({
   format: NonNullable<MoneyBreakdownProps['format']>;
   wrapLabels?: boolean;
 }) {
+  const hint = line.hint && (
+    <Tooltip title={line.hint}>
+      <InfoOutlinedIcon
+        sx={{
+          fontSize: 15,
+          color: 'text.disabled',
+          cursor: 'help',
+          // Inline in a wrapping label: sits on the text's last line instead
+          // of floating beside a two-line block.
+          ...(wrapLabels && { verticalAlign: '-2px', ml: 0.5 }),
+        }}
+        aria-label={line.hint}
+      />
+    </Tooltip>
+  );
+
   return (
     <Stack
       direction="row"
@@ -154,24 +170,24 @@ function BreakdownRow({
       spacing={1}
       sx={{ opacity: line.muted ? 0.7 : 1 }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={0.5}
-        sx={{ minWidth: 0, flexShrink: wrapLabels ? 1 : 0 }}
-      >
-        <Typography variant="body2" color="text.secondary" noWrap={!wrapLabels}>
+      {wrapLabels ? (
+        <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0 }}>
           {line.label}
+          {hint}
         </Typography>
-        {line.hint && (
-          <Tooltip title={line.hint}>
-            <InfoOutlinedIcon
-              sx={{ fontSize: 15, color: 'text.disabled', cursor: 'help' }}
-              aria-label={line.hint}
-            />
-          </Tooltip>
-        )}
-      </Stack>
+      ) : (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          sx={{ minWidth: 0, flexShrink: 0 }}
+        >
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {line.label}
+          </Typography>
+          {hint}
+        </Stack>
+      )}
       <Box sx={{ flex: 1 }} />
       <Typography variant="body2" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
         {line.additive && '+ '}

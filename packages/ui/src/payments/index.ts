@@ -20,6 +20,26 @@ export * from './CheckoutRailPicker';
 export * from './FxConfirmationDialog';
 export * from './NextStepsList';
 
+// Checkout frame — atoms up. Shared by the escrow and subscription checkouts
+// for the same reason as the outcome frame below: one payment dialog, not two
+// that drift.
+export * from './atoms/ProviderLogo';
+export * from './atoms/PesapalLogo';
+export * from './atoms/RadioIndicator';
+export * from './molecules/CheckoutRailCard';
+export * from './molecules/CheckoutActions';
+export * from './molecules/CheckoutSection';
+export * from './molecules/CheckoutDialogHeader';
+export * from './molecules/SecureCheckoutNote';
+export * from './molecules/FxAmountHero';
+export * from './molecules/FxRateLines';
+export * from './molecules/FxLockNotice';
+export * from './organisms/CheckoutSummaryPanel';
+export * from './organisms/CheckoutDialogFrame';
+export * from './hooks/useCheckoutDialogLayout';
+export * from './hooks/useRadioGroupNavigation';
+export * from './hooks/useFxCountdown';
+
 // Outcome frame — atoms up.
 export * from './atoms/OutcomeMark';
 export * from './atoms/ReceiptTotal';
