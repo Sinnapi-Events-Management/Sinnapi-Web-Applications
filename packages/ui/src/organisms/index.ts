@@ -8,6 +8,8 @@ export * from './PackageTierBreakdown';
 export * from './PackageShowcase';
 export * from './Dialog';
 export * from './ConfirmDialog';
+// Blocking near-full-viewport modal for flows that must be finished first.
+export * from './SetupDialog';
 export * from './Drawer';
 export * from './AppBar';
 export * from './LegalContent';

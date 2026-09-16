@@ -1,6 +1,7 @@
 import { Stack } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
 import type { Control } from 'react-hook-form';
+import SocialLinksFields from '@/components/social/SocialLinksFields';
 import type { VendorProfileFormValues } from '../../schema';
 
 type Props = {
@@ -8,17 +9,10 @@ type Props = {
   disabled?: boolean;
 };
 
-/** Where to find the business: the city it works from and its own site. */
-export default function BusinessReachFields({ control, disabled }: Props) {
+/** The business's own site, then the four social profiles two per row. */
+export default function OnlinePresenceFields({ control, disabled }: Props) {
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
-      <ControlledField
-        name="base_city"
-        control={control}
-        label="Base city"
-        disabled={disabled}
-        helperText="Where you work from. Set the regions you travel to under Service coverage."
-      />
+    <Stack spacing={2.5}>
       <ControlledField
         name="website"
         control={control}
@@ -26,6 +20,7 @@ export default function BusinessReachFields({ control, disabled }: Props) {
         placeholder="https://yourbusiness.com"
         disabled={disabled}
       />
+      <SocialLinksFields control={control} disabled={disabled} />
     </Stack>
   );
 }

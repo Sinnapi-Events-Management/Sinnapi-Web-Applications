@@ -21,7 +21,7 @@ import { useVendorProfileDetails } from './useVendorProfileDetails';
 export function useBusinessProfileForm(
   vendorId: string,
   vendor: VendorProfileSource | null | undefined,
-  onDone: (message: string) => void,
+  onDone?: (message: string) => void,
 ) {
   const { busy, error, save } = useVendorProfileDetails(vendorId, onDone);
   const values = useMemo(() => toVendorProfileValues(vendor), [vendor]);

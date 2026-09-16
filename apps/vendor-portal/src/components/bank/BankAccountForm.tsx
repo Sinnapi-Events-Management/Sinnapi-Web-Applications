@@ -1,4 +1,4 @@
-import { Stack, Button, Alert, Grid, Snackbar, Typography } from '@sinnapi/ui';
+import { Stack, Button, Alert, Box, Snackbar, Typography } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
 import { useBankAccountForm } from './hooks/useBankAccountForm';
 import BankAccountOnFile from './molecules/BankAccountOnFile';
@@ -39,32 +39,36 @@ export default function BankAccountForm({ vendorId }: { vendorId: string }) {
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}>
-            <ControlledField name="bank_name" control={control} label="Bank name" />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <ControlledField name="branch" control={control} label="Branch (optional)" />
-          </Grid>
-          <Grid item xs={12}>
-            <ControlledField
-              name="account_name"
-              control={control}
-              label="Account name"
-              helperText="Exactly as it appears on your bank statement."
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <ControlledField
-              name="account_number"
-              control={control}
-              label="Account number"
-              autoComplete="off"
-              inputProps={{ inputMode: 'numeric', spellCheck: false }}
-              sx={{ '& input': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }}
-            />
-          </Grid>
-        </Grid>
+        {/* A CSS grid, not a `Grid` container: this sits in a Stack, which resets
+            the negative margins a Grid container lays out by, shifting the fields
+            right and past the form's edge. */}
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2.5,
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            '& > .full': { gridColumn: '1 / -1' },
+          }}
+        >
+          <ControlledField name="bank_name" control={control} label="Bank name" />
+          <ControlledField name="branch" control={control} label="Branch (optional)" />
+          <ControlledField
+            className="full"
+            name="account_name"
+            control={control}
+            label="Account name"
+            helperText="Exactly as it appears on your bank statement."
+          />
+          <ControlledField
+            className="full"
+            name="account_number"
+            control={control}
+            label="Account number"
+            autoComplete="off"
+            inputProps={{ inputMode: 'numeric', spellCheck: false }}
+            sx={{ '& input': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }}
+          />
+        </Box>
 
         <Button type="submit" variant="contained" disabled={busy} sx={{ alignSelf: 'flex-start' }}>
           {busy ? 'Saving…' : current ? 'Update bank account' : 'Save bank account'}

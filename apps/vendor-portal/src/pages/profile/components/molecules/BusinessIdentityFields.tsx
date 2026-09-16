@@ -1,4 +1,4 @@
-import { Stack } from '@sinnapi/ui';
+import { Grid } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
 import type { Control } from 'react-hook-form';
 import type { VendorProfileFormValues } from '../../schema';
@@ -10,24 +10,35 @@ type Props = {
 };
 
 /**
- * What the business *is*: its trading name and its bio.
- *
- * The first of the form's three groups. A vendor filling this in is answering
- * three different questions — what you are, where to find you, what you cost — and
- * the flat column of six fields this replaced gave no indication of that.
+ * What the business *is*: trading name, home city and bio — the top of the
+ * listing. Name and city share a row from `sm` up; the bio gets the full width
+ * because it is the one field people write paragraphs in.
  */
 export default function BusinessIdentityFields({ control, disabled }: Props) {
   return (
-    <Stack spacing={2.5}>
-      <ControlledField
-        name="business_name"
-        control={control}
-        label="Business name"
-        required
-        disabled={disabled}
-        helperText="Your trading name — this is the heading on your listing."
-      />
-      <BiographyField control={control} disabled={disabled} />
-    </Stack>
+    <Grid container spacing={2.5}>
+      <Grid item xs={12} sm={7}>
+        <ControlledField
+          name="business_name"
+          control={control}
+          label="Business name"
+          required
+          disabled={disabled}
+          helperText="Your trading name — the heading on your listing."
+        />
+      </Grid>
+      <Grid item xs={12} sm={5}>
+        <ControlledField
+          name="base_city"
+          control={control}
+          label="Base city"
+          placeholder="Kampala"
+          disabled={disabled}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <BiographyField control={control} disabled={disabled} />
+      </Grid>
+    </Grid>
   );
 }
