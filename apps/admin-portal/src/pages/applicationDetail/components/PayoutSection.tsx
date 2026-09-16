@@ -7,6 +7,9 @@ import { InfoRow, SectionCard } from '@sinnapi/ui';
 
 /** Bank / payout destination for the applicant. */
 export default function PayoutSection({ a }: { a: IntakeDetailModel }) {
+  // Only older, multi-step applications carry bank details.
+  if (!a.bank_name && !a.account_name && !a.account_number && !a.branch) return null;
+
   return (
     <SectionCard title="Payout details" icon={<AccountBalanceIcon />} accent="secondary">
       <InfoRow label="Bank" value={a.bank_name ?? undefined} icon={<AccountBalanceIcon />} />

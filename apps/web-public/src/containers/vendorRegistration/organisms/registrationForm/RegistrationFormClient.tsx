@@ -1,84 +1,41 @@
 'use client';
-import { Box, Paper, Stack, Button, CircularProgress } from '@sinnapi/ui/atoms';
-import { Alert } from '@sinnapi/ui/molecules';
-import { ArrowBack, ArrowForward, Send } from '@mui/icons-material';
+import { Paper, Stack } from '@sinnapi/ui/atoms';
 import type { ReferenceOption } from '@/lib/queries';
-import { useVendorRegistration, type FailureReason } from '../../hooks/useVendorRegistration';
-import RegistrationStepper from '../../molecules/RegistrationStepper';
+import { SUBMIT_ERRORS } from '../../data/options';
+import { useVendorRegistration } from '../../hooks/useVendorRegistration';
 import RegistrationSuccess from '../../molecules/RegistrationSuccess';
-import StepBusinessOwner from '../../molecules/StepBusinessOwner';
-import StepServicesPortfolio from '../../molecules/StepServicesPortfolio';
-import StepVerificationPayout from '../../molecules/StepVerificationPayout';
-import StepReferencesTerms from '../../molecules/StepReferencesTerms';
+import SubmitBar from '../../molecules/SubmitBar';
+import BusinessSection from '../businessSection';
+import OwnerSection from '../ownerSection';
+import ConsentSection from '../consentSection';
 
-type Props = { categories: ReferenceOption[]; regions: ReferenceOption[] };
+type Props = { categories: ReferenceOption[] };
 
-/** What the banner says for each way a submit can fail. */
-const SUBMIT_ERRORS: Record<FailureReason, string> = {
-  uploading: 'Please wait for your files to finish uploading, then submit again.',
-  captcha:
-    "We couldn't confirm you're human. The check on the last step has been reset — give it a moment, then submit again.",
-  generic:
-    'Something went wrong submitting your application. Please review your details and try again.',
-};
-
-/** Interactive island: the whole multi-step vendor application. */
-export default function RegistrationFormClient({ categories, regions }: Props) {
-  const api = useVendorRegistration();
-  const { step, stepCount, submitting, submitFailed, failure, submitted, next, back, submit } = api;
+/** Interactive island: the one-step vendor application. */
+export default function RegistrationFormClient({ categories }: Props) {
+  const { fields, captcha, submitting, submitFailed, failure, submitted, canSubmit, handleSubmit } =
+    useVendorRegistration();
 
   if (submitted) return <RegistrationSuccess />;
 
-  const isLast = step === stepCount - 1;
-
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 3 }}>
-      <RegistrationStepper activeStep={step} />
-
-      {submitFailed && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {SUBMIT_ERRORS[failure]}
-        </Alert>
-      )}
-
-      <Box sx={{ minHeight: { md: 320 } }}>
-        {step === 0 && <StepBusinessOwner api={api} categories={categories} />}
-        {step === 1 && <StepServicesPortfolio api={api} regions={regions} />}
-        {step === 2 && <StepVerificationPayout api={api} />}
-        {step === 3 && <StepReferencesTerms api={api} />}
-      </Box>
-
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}
-      >
-        <Button
-          variant="text"
-          startIcon={<ArrowBack />}
-          onClick={back}
-          disabled={step === 0 || submitting}
-          sx={{ visibility: step === 0 ? 'hidden' : 'visible' }}
-        >
-          Back
-        </Button>
-
-        {isLast ? (
-          <Button
-            variant="contained"
-            size="large"
-            endIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <Send />}
-            onClick={submit}
-            disabled={!api.canSubmit}
-          >
-            {submitting ? 'Submitting…' : 'Submit application'}
-          </Button>
-        ) : (
-          <Button variant="contained" size="large" endIcon={<ArrowForward />} onClick={next}>
-            Continue
-          </Button>
-        )}
+    <Paper
+      component="form"
+      noValidate
+      onSubmit={handleSubmit}
+      variant="outlined"
+      sx={{ p: { xs: 2, sm: 3, md: 4 }, borderRadius: 3, bgcolor: 'background.paper' }}
+    >
+      <Stack spacing={{ xs: 3, md: 4 }}>
+        <BusinessSection fields={fields} categories={categories} disabled={submitting} />
+        <OwnerSection fields={fields} disabled={submitting} />
+        <ConsentSection fields={fields} captcha={captcha} disabled={submitting} />
       </Stack>
+      <SubmitBar
+        submitting={submitting}
+        canSubmit={canSubmit}
+        errorMessage={submitFailed ? SUBMIT_ERRORS[failure] : undefined}
+      />
     </Paper>
   );
 }

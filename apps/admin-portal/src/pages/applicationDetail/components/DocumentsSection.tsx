@@ -26,6 +26,10 @@ export default function DocumentsSection({
     { label: 'Proof of work', icon: <WorkspacePremiumIcon />, path: proofOfWorkPath },
   ];
 
+  // The one-step application collects no documents, so for those a card of
+  // "Not provided" rows would read as something the applicant left out.
+  if (!nationalIdPath && !proofOfWorkPath) return null;
+
   return (
     <SectionCard title="Documents" icon={<FolderSharedIcon />} accent="info">
       <Stack spacing={1.5}>

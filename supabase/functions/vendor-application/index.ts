@@ -125,8 +125,10 @@ Deno.serve(
       Array.isArray(b.serviceCategoryKeys) && b.serviceCategoryKeys.length > 0,
       'serviceCategoryKeys',
     );
-    req(Array.isArray(b.serviceRegionKeys) && b.serviceRegionKeys.length > 0, 'serviceRegionKeys');
-    req(!!b.nationalIdPath, 'nationalIdPath');
+    // Service regions, identity documents and payout details are no longer
+    // required: the application is one short step, identity is checked during
+    // review, and coverage is set from the vendor portal after approval. The
+    // columns remain, and are still stored when a caller sends them.
 
     // Enum fields, when present, must be valid.
     if (b.yearsInOperation) req(YEARS.includes(b.yearsInOperation), 'yearsInOperation');

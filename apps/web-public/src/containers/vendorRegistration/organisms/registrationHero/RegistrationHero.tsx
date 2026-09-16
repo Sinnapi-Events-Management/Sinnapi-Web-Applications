@@ -1,14 +1,28 @@
 import { Box, Container, Chip, Typography, Stack } from '@sinnapi/ui/atoms';
-import { Storefront, LockOutlined, ScheduleOutlined, VerifiedOutlined } from '@mui/icons-material';
+import {
+  Storefront,
+  DescriptionOutlined,
+  ScheduleOutlined,
+  VerifiedOutlined,
+} from '@mui/icons-material';
 import { palette, withAlpha } from '@sinnapi/ui/tokens';
 
 const REASSURANCES = [
-  { Icon: ScheduleOutlined, text: 'Takes about 10 minutes' },
-  { Icon: LockOutlined, text: 'Your documents stay private' },
+  { Icon: ScheduleOutlined, text: 'Takes about 2 minutes' },
+  { Icon: DescriptionOutlined, text: 'No documents needed to apply' },
   { Icon: VerifiedOutlined, text: 'Reviewed within 2–3 days' },
 ];
 
-/** Compact page header for the vendor application — orients, reassures, no CTA. */
+const gradient = (hex: string, opacity: number) =>
+  `linear-gradient(180deg, ${withAlpha(hex, opacity)} 0%, transparent 100%)`;
+
+/**
+ * Compact page header for the vendor application — orients, reassures, no CTA.
+ *
+ * Tints are plain strings with a `data-mui-color-scheme` override rather than
+ * `theme => …` callbacks: this is a server component, and a function `sx` can't
+ * cross the RSC boundary into the client `Box`. Same approach as `lib/sx.ts`.
+ */
 export default function RegistrationHero() {
   return (
     <Box
@@ -16,7 +30,10 @@ export default function RegistrationHero() {
         bgcolor: 'background.default',
         pt: { xs: 5, md: 7 },
         pb: { xs: 3, md: 4 },
-        background: `linear-gradient(180deg, ${withAlpha(palette.light.primary.light, 0.14)} 0%, transparent 100%)`,
+        background: gradient(palette.light.primary.light, 0.14),
+        '[data-mui-color-scheme="dark"] &': {
+          background: gradient(palette.dark.primary.main, 0.12),
+        },
       }}
     >
       <Container>
@@ -29,6 +46,9 @@ export default function RegistrationHero() {
             fontWeight: 600,
             color: 'primary.main',
             bgcolor: withAlpha(palette.light.primary.main, 0.1),
+            '[data-mui-color-scheme="dark"] &': {
+              bgcolor: withAlpha(palette.dark.primary.main, 0.18),
+            },
             '& .MuiChip-icon': { color: 'primary.main' },
           }}
         />
@@ -39,8 +59,8 @@ export default function RegistrationHero() {
           variant="h6"
           sx={{ mt: 1.5, fontWeight: 400, color: 'text.secondary', maxWidth: 620 }}
         >
-          Tell us about your business and we’ll get you listed. You can apply as an individual or a
-          registered business — no account needed to start.
+          Tell us who you are and what you offer, and we’ll be in touch to get you listed. Apply as
+          an individual or a registered business — no account needed to start.
         </Typography>
 
         <Stack
