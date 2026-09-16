@@ -75,3 +75,25 @@ export type AccountFact = {
   /** Render the value in a monospace face (ids, references). */
   mono?: boolean;
 };
+
+/**
+ * Why a section in a `ProfileSectionNav` is flagged. Ordered by urgency: a field
+ * error outranks unsaved edits, which outrank a gap worth filling.
+ */
+export type ProfileSectionState = 'error' | 'dirty' | 'attention';
+
+/** One entry in a `ProfileSectionNav`. */
+export type ProfileSectionItem<T extends string> = ProfileTabItem<T> & {
+  /** Flag shown beside the label; omit or null when the section is fine. */
+  state?: ProfileSectionState | null;
+};
+
+/** One line in a `CompletenessMeter`. */
+export type CompletenessItem = {
+  key: string;
+  /** Phrased as the action that completes it, e.g. `Add a website`. */
+  label: string;
+  done: boolean;
+  /** Takes the user to where the item is filled in. */
+  onSelect?: () => void;
+};

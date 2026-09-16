@@ -18,8 +18,8 @@ export type StatusChipProps = {
  * A blanket `color: 'white'` was tried and is exactly wrong twice over: it erased
  * every outlined chip — white label on a white card, which is how `Public` came to
  * render as an empty pill on the vendor's listing card — and it also overrode the
- * dark ink that `warning` carries on purpose, so amber chips lost their contrast in
- * both schemes. The theme already computes an AA-legible ink per colour per scheme
+ * dark ink the dark scheme's pale `warning` needs, so amber chips lost their
+ * contrast there. The theme already computes an AA-legible ink per colour per scheme
  * (see `palette` in `../theme/tokens`); the chip's job is to pick the colour, not
  * to second-guess the ink.
  *

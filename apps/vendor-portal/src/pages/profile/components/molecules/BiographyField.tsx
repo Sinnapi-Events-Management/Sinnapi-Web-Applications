@@ -27,7 +27,8 @@ export default function BiographyField({ control, disabled }: Props) {
         control={control}
         label="Business bio"
         multiline
-        minRows={5}
+        minRows={4}
+        maxRows={12}
         disabled={disabled}
         placeholder="What you do, who you do it for, and what makes booking you different."
       />

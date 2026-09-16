@@ -1042,6 +1042,26 @@ export type VendorProfileEditModel = {
   starting_price_currency: string | null;
   /** The listing image clients see. Managed by the logo card on the profile page. */
   primary_image_url: string | null;
+  /** The logo/headshot, collected during onboarding. Public readers fall back to it. */
+  profile_image_url: string | null;
+  /** Collected by the onboarding wizard; editable here afterwards. */
+  business_location: string | null;
+  years_in_operation: string | null;
+  pricing_model: string | null;
+  lead_time: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  /**
+   * Verification particulars. The two `_path` columns are private-bucket paths,
+   * never URLs — the profile page reports only whether a document is on file.
+   */
+  national_id_path: string | null;
+  proof_of_work_path: string | null;
+  business_reg_number: string | null;
+  tax_id: string | null;
+  icandy_alumni: boolean | null;
   /** Read-only listing facts, shown beside the form rather than as dead fields. */
   slug: string;
   status: string;

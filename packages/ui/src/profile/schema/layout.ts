@@ -4,29 +4,29 @@
  */
 
 /** Clears the fixed app bar, with a little breathing room above the card. */
-const STICKY_TOP = 88;
+export const PROFILE_STICKY_TOP = 88;
+
+/**
+ * The fixed app bar's height below `md` — MUI's default toolbar. The section nav
+ * pins directly under it on phones and tablets.
+ */
+export const PROFILE_MOBILE_STICKY_TOP = { xs: 56, sm: 64 } as const;
 
 /**
  * The side column that holds the photo and the read-only facts.
  *
- * Sticky from `md` up, so the picture someone has just changed stays in view while
- * they work down the form beside it instead of sliding off the top.
+ * Sticky on wide *and* tall viewports only, so the picture someone has just
+ * changed stays in view while they work down the form beside it.
  *
- * The `maxHeight`/`overflowY` pair is not decoration — it is what makes sticky safe
- * here. A sticky column taller than the viewport has its bottom pinned off-screen
- * and unreachable, because the page scroll no longer moves it; the Business tab's
- * column (logo plus five listing facts) is exactly tall enough for that to bite on
- * a laptop. Capping the height and letting the column scroll itself keeps every
- * card reachable at any window size, and on shorter columns — the common case — the
- * cap never engages and no scrollbar appears.
+ * The height condition replaces an earlier `maxHeight` + `overflowY: auto` cap.
+ * That kept a tall column reachable, but at the price of a second scrollbar inside
+ * the page — cards appeared cut off mid-row and the user had two scroll areas to
+ * manage. A sticky column taller than the viewport is unreachable, so on a short
+ * window the column now simply scrolls with the page instead.
  */
 export const profileSideColumnSx = {
-  position: { md: 'sticky' },
-  top: { md: STICKY_TOP },
-  maxHeight: { md: `calc(100vh - ${STICKY_TOP + 16}px)` },
-  overflowY: { md: 'auto' },
-  // The focus ring on the picker sits outside the card's box; without this the
-  // scroll container would clip it.
-  px: { md: 0.5 },
-  mx: { md: -0.5 },
+  '@media (min-width: 900px) and (min-height: 820px)': {
+    position: 'sticky',
+    top: PROFILE_STICKY_TOP,
+  },
 } as const;

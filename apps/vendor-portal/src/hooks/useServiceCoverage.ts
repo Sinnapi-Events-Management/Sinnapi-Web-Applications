@@ -40,15 +40,27 @@ export function useServiceCoverage(vendorId: string, onSaved?: (message: string)
   const isDirty =
     selected.length !== serverKeys.length || selected.some((key) => !serverKeys.includes(key));
 
-  // Reports success through the page's own notice rather than a local snackbar, so
-  // every save on the profile page confirms itself in the same place.
+  // Resolves false rather than throwing: the failure is already on `saveError`,
+  // and a caller committing several writes at once needs to know which landed.
+  // Success goes through the page's own notice rather than a local snackbar, so
+  // every save confirms itself in the same place.
+  const { mutateAsync } = save;
+  const commit = useCallback(async (): Promise<boolean> => {
+    try {
+      await mutateAsync(selected);
+    } catch {
+      return false;
+    }
+    onSaved?.('Your service coverage has been updated.');
+    return true;
+  }, [mutateAsync, onSaved, selected]);
+
   const submit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
-      await save.mutateAsync(selected);
-      onSaved?.('Your service coverage has been updated.');
+      await commit();
     },
-    [onSaved, save, selected],
+    [commit],
   );
 
   return {
@@ -57,6 +69,11 @@ export function useServiceCoverage(vendorId: string, onSaved?: (message: string)
     toggle,
     isDirty,
     submit,
+    save: commit,
+    /** Regions actually saved — the draft in `selected` may differ. */
+    savedCount: serverKeys.length,
+    /** Back to the saved selection. */
+    revert: useCallback(() => setSelected(serverKeys), [serverKeys]),
     isLoading: regions.isLoading || coverage.isLoading,
     error: regions.error ?? coverage.error,
     busy: save.isPending,

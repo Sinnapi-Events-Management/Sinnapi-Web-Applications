@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
 import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { VendorProvider } from '@/vendor/VendorProvider';
+import OnboardingGate from '@/vendor/OnboardingGate';
 import AppShell from '@/components/shell/AppShell';
 
 import SignIn from '@/pages/auth/signIn';
@@ -16,6 +17,7 @@ import Privacy from '@/pages/privacy';
 
 import Dashboard from '@/pages/dashboard';
 import Onboarding from '@/pages/onboarding';
+import GettingStarted from '@/pages/gettingStarted';
 import Subscription from '@/pages/subscription';
 import PaymentReturn from '@/pages/paymentReturn';
 import Profile from '@/pages/profile';
@@ -83,7 +85,13 @@ export default function App() {
           element={
             <ProtectedRoute>
               <VendorProvider>
-                <AppShell />
+                {/* The public application collects six fields, so an approved
+                    vendor arrives with no category, city, bio, price, coverage
+                    or photo. This holds them on the setup wizard until their
+                    listing is something a client could actually find. */}
+                <OnboardingGate>
+                  <AppShell />
+                </OnboardingGate>
               </VendorProvider>
             </ProtectedRoute>
           }
@@ -91,6 +99,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/getting-started" element={<GettingStarted />} />
           <Route path="/subscription" element={<Subscription />} />
           {/* Where Pesapal sends the browser after a subscription checkout
               (create-payment passes VENDOR_PORTAL_URL + this path as the

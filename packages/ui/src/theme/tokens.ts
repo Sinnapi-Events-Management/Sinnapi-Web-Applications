@@ -40,7 +40,9 @@ export const palette = {
       light: '#FFB547',
       main: '#ED6C02',
       dark: '#B53D00',
-      contrastText: '#1A1320',
+      // White, like every other solid status fill. The dark scheme keeps dark
+      // ink: its warning is a pale amber that white would wash out.
+      contrastText: '#FFFFFF',
     },
     error: {
       lightest: '#FDE5E5',
