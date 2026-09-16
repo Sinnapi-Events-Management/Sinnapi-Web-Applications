@@ -9,7 +9,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     Icon: Description,
     title: 'Submit your application',
-    body: 'Share your business details, media, and verification documents in a few guided steps.',
+    body: 'Tell us your business name, contact details and the services you offer — it takes about two minutes.',
   },
   {
     Icon: FactCheck,

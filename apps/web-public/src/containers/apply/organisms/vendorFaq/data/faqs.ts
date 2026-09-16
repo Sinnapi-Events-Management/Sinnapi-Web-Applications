@@ -11,7 +11,7 @@ export const VENDOR_FAQS: Faq[] = [
   {
     question: 'How long does approval take?',
     answer:
-      'Most applications are reviewed within a few business days once we receive your details and verification documents and complete due diligence.',
+      'Most applications are reviewed within a few business days. Our team may contact you to verify your business before approving it.',
   },
   {
     question: 'What does it cost to join?',
@@ -26,6 +26,6 @@ export const VENDOR_FAQS: Faq[] = [
   {
     question: 'What documents do I need?',
     answer:
-      'Business or ID verification and a few samples of your work. We guide you through exactly what is needed during the application, step by step.',
+      'None to apply. The application only asks for your business name, contact details and the services you offer. If we need to verify anything, such as your ID, our team will reach out during review.',
   },
 ];

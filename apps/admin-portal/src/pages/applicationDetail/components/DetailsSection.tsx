@@ -16,9 +16,22 @@ import SchoolIcon from '@mui/icons-material/School';
 import { formatDate, formatMoney, titleize } from '@/lib/config';
 import type { IntakeDetailModel } from '@/lib/types';
 
+type Row = {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  copy?: string | null;
+  mono?: boolean;
+};
+
+// The one-step application fills only a handful of these; rows with nothing in
+// them are left out rather than listed as a column of dashes.
+const filled = (rows: Row[]) =>
+  rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== '');
+
 /** Two-column key/value grid of the applicant + business particulars. */
 export default function DetailsSection({ a }: { a: IntakeDetailModel }) {
-  const left = [
+  const left = filled([
     { label: 'Applicant', value: a.owner_full_name, icon: <PersonIcon /> },
     { label: 'Email', value: a.owner_email, icon: <EmailIcon />, copy: a.owner_email },
     { label: 'Phone', value: a.owner_phone, icon: <PhoneIcon />, copy: a.owner_phone },
@@ -30,8 +43,8 @@ export default function DetailsSection({ a }: { a: IntakeDetailModel }) {
     { label: 'Base city', value: a.base_city, icon: <PlaceIcon /> },
     { label: 'Location', value: a.business_location, icon: <BusinessIcon /> },
     { label: 'Submitted', value: formatDate(a.created_at), icon: <ScheduleIcon /> },
-  ];
-  const right = [
+  ]);
+  const right = filled([
     {
       label: 'Years in operation',
       value: a.years_in_operation || null,
@@ -44,7 +57,8 @@ export default function DetailsSection({ a }: { a: IntakeDetailModel }) {
     },
     {
       label: 'Starting price',
-      value: formatMoney(a.starting_price, a.starting_price_currency),
+      value:
+        a.starting_price === null ? null : formatMoney(a.starting_price, a.starting_price_currency),
       icon: <PaymentsIcon />,
     },
     { label: 'Lead time', value: a.lead_time || null, icon: <ScheduleIcon /> },
@@ -56,35 +70,35 @@ export default function DetailsSection({ a }: { a: IntakeDetailModel }) {
       copy: a.business_reg_number,
     },
     { label: 'Tax ID', value: a.tax_id, icon: <ReceiptIcon />, mono: true, copy: a.tax_id },
-    { label: 'iCandy alumni', value: a.icandy_alumni ? 'Yes' : 'No', icon: <SchoolIcon /> },
-  ];
+    {
+      label: 'iCandy alumni',
+      value: a.icandy_alumni === null ? null : a.icandy_alumni ? 'Yes' : 'No',
+      icon: <SchoolIcon />,
+    },
+  ]);
+
+  const renderRow = (r: Row) => (
+    <InfoRow
+      key={r.label}
+      label={r.label}
+      value={r.value}
+      icon={r.icon}
+      mono={r.mono}
+      copyValue={r.copy ?? undefined}
+    />
+  );
 
   return (
     <SectionCard title="Application details" icon={<InfoIcon />} accent="secondary">
       <Grid container columnSpacing={4}>
-        <Grid item xs={12} md={6}>
-          {left.map((r) => (
-            <InfoRow
-              key={r.label}
-              label={r.label}
-              value={r.value ?? undefined}
-              icon={r.icon}
-              copyValue={r.copy ?? undefined}
-            />
-          ))}
+        <Grid item xs={12} md={right.length > 0 ? 6 : 12}>
+          {left.map(renderRow)}
         </Grid>
-        <Grid item xs={12} md={6}>
-          {right.map((r) => (
-            <InfoRow
-              key={r.label}
-              label={r.label}
-              value={r.value ?? undefined}
-              icon={r.icon}
-              mono={r.mono}
-              copyValue={r.copy ?? undefined}
-            />
-          ))}
-        </Grid>
+        {right.length > 0 && (
+          <Grid item xs={12} md={6}>
+            {right.map(renderRow)}
+          </Grid>
+        )}
       </Grid>
 
       {a.biography && (
