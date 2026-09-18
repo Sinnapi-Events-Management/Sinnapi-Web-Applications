@@ -98,6 +98,9 @@ grant execute on function public.get_unread_message_count() to authenticated;
 -- otherwise, and the older tab winning would resurrect an unread badge the user
 -- has already cleared.
 -- ---------------------------------------------------------------------
+-- Return type changes from void to timestamptz, which create or replace cannot do.
+drop function if exists public.mark_conversation_read(uuid);
+
 create or replace function public.mark_conversation_read(p_conversation_id uuid)
 returns timestamptz
 language plpgsql

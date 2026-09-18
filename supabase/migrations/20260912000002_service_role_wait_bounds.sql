@@ -201,4 +201,6 @@ end;$$;
 revoke all on function public.apply_payment_fx(uuid, uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.apply_payment_fx(uuid, uuid, jsonb) to service_role;
 
-supabase secrets set ALLOWED_ORIGINS=http://localhost:3003,http://localhost:3002,http://localhost:3001,http://localhost:3000,https://admin.sinnapi.com,https://sinnapi.com,https://sinnapi-web-applications-web-public.vercel.app/,https://ultratropical-magda-nonperverted.ngrok-free.dev
+-- Not SQL. This is a shell command that was pasted into the migration; it is
+-- kept here only as a record of the origins that were set. Run it yourself:
+-- supabase secrets set ALLOWED_ORIGINS=http://localhost:3003,http://localhost:3002,http://localhost:3001,http://localhost:3000,https://admin.sinnapi.com,https://sinnapi.com,https://sinnapi-web-applications-web-public.vercel.app/,https://ultratropical-magda-nonperverted.ngrok-free.dev

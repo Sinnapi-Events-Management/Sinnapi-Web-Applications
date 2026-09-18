@@ -284,3 +284,10 @@ Deno.serve(
     return json(req, { ok: true, email, portal }, 200);
   }),
 );
+
+// supabase secrets set --project-ref oxrndnpnecrwldbigxek \
+//   SMTP_HOST=premium22-3.web-hosting.com \
+//   NEWSLETTER_SMTP_HOST=premium22-3.web-hosting.com
+
+// npx supabase secrets unset --project-ref oxrndnpnecrwldbigxek \
+//   SMTP_SERVERNAME NEWSLETTER_SMTP_SERVERNAME
