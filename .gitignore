@@ -24,3 +24,8 @@ out
 .DS_Store
 *.log
 coverage
+
+#sql
+supabase/reset-admin-password.sql
+supabase/reset-client-password.sql
+supabase/reset-vendor-password.sql
