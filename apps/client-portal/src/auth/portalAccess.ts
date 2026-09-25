@@ -1,5 +1,6 @@
 import { parseUserAgent } from '@sinnapi/utils/userAgent';
 import { supabase } from '@/lib/supabase';
+import { requestPortalSignIn } from '@sinnapi/utils/portalSignIn';
 
 /**
  * This portal's half of the portal-access boundary.
@@ -158,10 +159,6 @@ export async function logSignOut(reason: SignOutReason = 'user_initiated'): Prom
   }
 }
 
-type SignInResponse = {
-  session?: { access_token?: string; refresh_token?: string };
-};
-
 /**
  * Sign in through the audited server-side endpoint.
  *
@@ -176,6 +173,11 @@ type SignInResponse = {
  * redeems it with Cloudflare before it looks at the password at all, so a
  * submission without one never reaches the credential check.
  *
+ * The request is sent anonymously, and its answer is classified on the response
+ * BODY rather than on the status code alone. Both rules live in
+ * `requestPortalSignIn`, shared by all three portals — see there for the outage
+ * they were written to end.
+ *
  * Resolves to an error string to display, or `null` on success (at which point
  * the session is live and `onAuthStateChange` has fired).
  */
@@ -184,30 +186,25 @@ export async function signInToPortal(
   password: string,
   captchaToken: string,
 ): Promise<string | null> {
-  const { data, error } = await supabase.functions.invoke<SignInResponse>('portal-sign-in', {
-    body: { email, password, portal: PORTAL, captchaToken },
+  const outcome = await requestPortalSignIn(supabase, {
+    portal: PORTAL,
+    email,
+    password,
+    captchaToken,
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   });
 
-  if (error) {
-    // Every credential refusal the endpoint makes is a 401, which supabase-js
-    // surfaces as a FunctionsHttpError. 403 is the CAPTCHA — a different
-    // failure with different advice. Anything else is infrastructure, and
-    // saying "invalid password" to someone whose password was never checked
-    // would send them off resetting a credential that works.
-    const status = (error as { context?: Response }).context?.status;
-    if (status === 403) return CAPTCHA_ERROR;
-    return status === 401 ? GENERIC_SIGN_IN_ERROR : UNAVAILABLE_ERROR;
-  }
-
-  const accessToken = data?.session?.access_token;
-  const refreshToken = data?.session?.refresh_token;
-  if (!accessToken || !refreshToken) return UNAVAILABLE_ERROR;
+  if (outcome.kind === 'credentials') return GENERIC_SIGN_IN_ERROR;
+  if (outcome.kind === 'captcha') return CAPTCHA_ERROR;
+  if (outcome.kind === 'unavailable') return UNAVAILABLE_ERROR;
 
   // Hand the vetted tokens to supabase-js, which persists them under this
-  // portal's own storage key and starts the refresh timer.
+  // portal's own storage key and starts the refresh timer. This is also what
+  // evicts a stale session left in storage by an earlier project or an expired
+  // login — precisely the token the request above had to refuse to send.
   const { error: setErr } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
+    access_token: outcome.accessToken,
+    refresh_token: outcome.refreshToken,
   });
   if (setErr) return UNAVAILABLE_ERROR;
 

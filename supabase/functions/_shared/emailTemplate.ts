@@ -39,6 +39,7 @@ export const PUBLIC_SITE_URL = env('PUBLIC_SITE_URL') ?? 'https://sinnapi.com';
 // KEEP IN SYNC with `packages/utils/constants.ts` -> CONTACT.
 export const contact = {
   supportEmail: 'support@sinnapi.com',
+  supportPhone: '+256 700 988931',
   social: [
     { label: 'Instagram', href: 'https://www.instagram.com/sinnapi_inc' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/company/sinnapi' },

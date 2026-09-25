@@ -10,7 +10,8 @@
     "./userAgent": "./userAgent.ts",
     "./download": "./download.ts",
     "./quotationPdf": "./quotationPdf/index.ts",
-    "./publicId": "./publicId.ts"
+    "./publicId": "./publicId.ts",
+    "./portalSignIn": "./portalSignIn.ts"
   },
   "scripts": {
     "lint": "eslint . --ext ts,tsx",

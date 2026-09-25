@@ -64,6 +64,15 @@ verify_jwt = false
 [functions.escrow-lifecycle]
 verify_jwt = false
 
+# One-off worker for the 2026-09 legacy import: mails imported clients and
+# vendors their one-time password. Open at the gateway on the same terms as the
+# workers above — it is invoked with the service-role key and `isServiceRoleCaller`
+# is its first statement, before it reads a single credential. No browser path
+# exists, and it is deliberately NOT `verify_jwt = true`: an admin JWT must not
+# be able to read 169 live passwords.
+[functions.send-migration-credentials]
+verify_jwt = false
+
 [functions.vendor-application]
 verify_jwt = false
 
