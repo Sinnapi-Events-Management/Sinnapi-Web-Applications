@@ -9,6 +9,15 @@ build
 .next
 out
 
+# app dist folders
+apps/web-public/.next
+apps/admin-portal/dist
+apps/client-portal/dist
+apps/vendor-portal/dist
+apps/admin-portal/dist.zip
+apps/client-portal/dist.zip
+apps/vendor-portal/dist.zip
+
 # turborepo
 .turbo
 

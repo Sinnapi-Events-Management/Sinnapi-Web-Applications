@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/auth/AuthProvider';
 import { resetPasswordSchema, emptyResetPasswordValues } from '../schema';
 
 /**
@@ -20,13 +21,21 @@ import { resetPasswordSchema, emptyResetPasswordValues } from '../schema';
  */
 export function useResetPasswordForm() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   const {
     control,
     handleSubmit,
     formState: { isSubmitting },
   } = useZodForm(resetPasswordSchema, { defaultValues: emptyResetPasswordValues });
+
+  useEffect(() => {
+    if (passwordChanged && !session?.user.user_metadata?.must_change_password) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate, passwordChanged, session]);
 
   const submit = handleSubmit(async ({ password }) => {
     setError(null);
@@ -38,7 +47,7 @@ export function useResetPasswordForm() {
       setError(updateError.message);
       return;
     }
-    navigate('/dashboard', { replace: true });
+    setPasswordChanged(true);
   });
 
   return { control, error, submitting: isSubmitting, submit };
