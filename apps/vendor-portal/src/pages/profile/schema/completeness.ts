@@ -15,11 +15,21 @@ export const VERIFICATION_EDIT_HREF =
   '/getting-started?step=verification&returnTo=' +
   encodeURIComponent('/profile?section=verification');
 
+/**
+ * Where the profile photo is set. Like verification, it has no section on this
+ * page — `vendors.profile_image_url` is written only by the wizard's photo step
+ * — so a vendor who was let past that step after a failed upload comes back
+ * through here.
+ */
+export const PHOTO_EDIT_HREF =
+  '/getting-started?step=photo&returnTo=' + encodeURIComponent('/profile');
+
 /** Where each check is fixed: a section on this page, or a route when it can't be. */
 export const LISTING_CHECK_TARGETS: Record<
   ListingCheckKey,
   { section: BusinessSectionKey } | { href: string }
 > = {
+  photo: { href: PHOTO_EDIT_HREF },
   logo: { section: 'logo' },
   bio: { section: 'basics' },
   city: { section: 'basics' },

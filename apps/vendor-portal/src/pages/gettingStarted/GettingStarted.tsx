@@ -26,8 +26,21 @@ import ShowcaseStep from './components/organisms/ShowcaseStep';
  * navigates away, which unmounts the route and the modal with it.
  */
 export default function GettingStarted() {
-  const { vendorId, step, index, isLast, status, back, next, goTo, canLeave, leaveLabel, leave } =
-    useGettingStarted();
+  const {
+    vendorId,
+    step,
+    index,
+    isLast,
+    status,
+    back,
+    next,
+    goTo,
+    canLeave,
+    leaveLabel,
+    leave,
+    deferPhoto,
+    photoDeferred,
+  } = useGettingStarted();
   const signOut = useSignOut();
 
   const stepProps = {
@@ -83,7 +96,9 @@ export default function GettingStarted() {
             {step.key === 'basics' && <BasicsStep {...stepProps} />}
             {step.key === 'story' && <StoryStep {...stepProps} />}
             {step.key === 'coverage' && <CoverageStep {...stepProps} />}
-            {step.key === 'photo' && <PhotoStep {...stepProps} />}
+            {step.key === 'photo' && (
+              <PhotoStep {...stepProps} onDeferPhoto={deferPhoto} deferred={photoDeferred} />
+            )}
             {step.key === 'verification' && (
               <VerificationStep {...stepProps} hasBankAccount={status.hasBankAccount} />
             )}
