@@ -28,6 +28,26 @@ export type UseProfileImageUploadOptions = {
 const SESSION_EXPIRED = 'Your session has expired. Sign in again to change your photo.';
 
 /**
+ * What a storage refusal says instead of what Postgres says.
+ *
+ * A bucket policy that declines the write surfaces as the raw string `new row
+ * violates row-level security policy for table "objects"`, which reads as a
+ * broken site and tells the person nothing they can act on. Everything else is
+ * passed through untouched — the size and type rejections are already written
+ * for the person who picked the file.
+ */
+const UPLOAD_REFUSED =
+  'We could not save that image — this account is not allowed to upload right now. Try again, and contact support if it keeps happening.';
+
+const REFUSAL =
+  /row-level security|violates row-level|not authoriz|unauthorized|permission denied|\b403\b/i;
+
+function readableError(e: unknown, fallback: string): string {
+  if (!(e instanceof Error) || !e.message) return fallback;
+  return REFUSAL.test(e.message) ? UPLOAD_REFUSED : e.message;
+}
+
+/**
  * Owns the profile-image lifecycle: pick → validate → downscale → upload →
  * point the record at it → clean up what it replaced. Plus removal.
  *
@@ -109,7 +129,7 @@ export function useProfileImageUpload({
         // unreachable — drop it rather than leave it orphaned.
         if (uploadedPath) await storage.remove([uploadedPath]);
         setPreviewUrl(null);
-        setError(e instanceof Error ? e.message : 'Upload failed. Try again.');
+        setError(readableError(e, 'Upload failed. Try again.'));
       } finally {
         setBusy(false);
       }
@@ -145,7 +165,7 @@ export function useProfileImageUpload({
       setPreviewUrl(null);
       onDone?.(messages.removed);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not remove the photo. Try again.');
+      setError(readableError(e, 'Could not remove the photo. Try again.'));
     } finally {
       setBusy(false);
     }

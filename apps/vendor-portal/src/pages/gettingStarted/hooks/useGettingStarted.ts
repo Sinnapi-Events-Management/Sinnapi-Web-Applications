@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVendorContext } from '@/vendor/VendorProvider';
-import { STEPS, type StepKey } from '../schema/steps';
+import { REQUIRED_STEPS, STEPS, type StepKey } from '../schema/steps';
 import { useOnboardingStatus } from './useOnboardingStatus';
 import { useVendorPatch } from './useVendorPatch';
 
@@ -36,6 +36,20 @@ export function useGettingStarted() {
 
   const [index, setIndex] = useState<number | null>(null);
 
+  /**
+   * Set when the vendor was let past the photo step because the upload itself
+   * failed, not because they declined to supply one (`PhotoStep` only offers
+   * that after a refusal it cannot retry past).
+   *
+   * Deliberately in memory rather than a column: it is not a fact about the
+   * listing, it is a note about this sitting. A reload puts the vendor back on
+   * the photo step and makes them try the upload again, which is right — the
+   * next attempt may be the one that works, and the way out is only reoffered
+   * if it fails again.
+   */
+  const [photoDeferred, setPhotoDeferred] = useState(false);
+  const deferPhoto = useCallback(() => setPhotoDeferred(true), []);
+
   useEffect(() => {
     if (index !== null) return;
     if (requestedStep >= 0) {
@@ -59,11 +73,27 @@ export function useGettingStarted() {
    * listing.
    */
   const finish = useCallback(async () => {
-    if (status.isComplete && !status.vendor?.onboarding_completed_at) {
+    // A deferred photo still releases the portal, provided it is the ONLY
+    // required thing outstanding. Without this the vendor is stamped nowhere,
+    // `OnboardingGate` sends them straight back here, and a storage fault the
+    // vendor cannot do anything about becomes a locked account.
+    const releasable =
+      status.isComplete ||
+      (photoDeferred && REQUIRED_STEPS.every((s) => s.key === 'photo' || status.done[s.key]));
+
+    if (releasable && !status.vendor?.onboarding_completed_at) {
       await patch.mutateAsync({ onboarding_completed_at: new Date().toISOString() });
     }
     navigate(returnTo ?? '/dashboard');
-  }, [navigate, patch, returnTo, status.isComplete, status.vendor?.onboarding_completed_at]);
+  }, [
+    navigate,
+    patch,
+    photoDeferred,
+    returnTo,
+    status.done,
+    status.isComplete,
+    status.vendor?.onboarding_completed_at,
+  ]);
 
   /** Advance, or leave the wizard when this was the last step. */
   const next = useCallback(() => {
@@ -93,6 +123,8 @@ export function useGettingStarted() {
     status,
     back,
     next,
+    deferPhoto,
+    photoDeferred,
     finish,
     goTo: setIndex,
     finishing: patch.isPending,

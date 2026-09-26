@@ -16,6 +16,7 @@ export const MEANINGFUL_BIO_LENGTH = 80;
 
 /** The saved vendor columns the score reads. */
 export type ListingFields = {
+  profile_image_url: string | null;
   primary_image_url: string | null;
   biography: string | null;
   base_city: string | null;
@@ -33,6 +34,7 @@ export type ListingFields = {
 };
 
 export type ListingCheckKey =
+  | 'photo'
   | 'logo'
   | 'bio'
   | 'city'
@@ -56,6 +58,12 @@ export function listingChecks(vendor: ListingFields, regionCount: number): Listi
     value !== null && value !== undefined && String(value).trim() !== '';
 
   return [
+    // The profile photo is a *required* onboarding step, so it is normally in
+    // before a vendor ever reaches Profile. It is scored anyway because the
+    // wizard lets a vendor past it when the upload itself fails — see
+    // `PhotoStep` — and this checklist is then the only thing still asking for
+    // it, and the only route back to the step that sets it.
+    { key: 'photo', label: 'Add a profile photo', done: has(vendor.profile_image_url) },
     { key: 'logo', label: 'Add a logo', done: has(vendor.primary_image_url) },
     {
       key: 'bio',
