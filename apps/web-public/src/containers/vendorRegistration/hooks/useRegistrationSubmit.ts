@@ -35,10 +35,14 @@ export function useRegistrationSubmit() {
       body: toApplicationPayload(values, captcha.token, submissionRef.current),
     });
     if (error) {
-      // 403 is the endpoint refusing the Turnstile token; everything else is a
-      // validation or transport failure, which the generic copy covers.
+      // 403 is the endpoint refusing the Turnstile token. 409 is the duplicate
+      // guard: this email is already an approved vendor, so there is nothing to
+      // retry and the copy has to say so rather than invite another submit.
+      // Everything else is a validation or transport failure — generic copy.
       const httpStatus = (error as { context?: Response }).context?.status;
-      fail(httpStatus === 403 ? 'captcha' : 'generic');
+      if (httpStatus === 403) fail('captcha');
+      else if (httpStatus === 409) fail('alreadyApplied');
+      else fail('generic');
       // Spent on the refused submission either way — the form is still on
       // screen, so the retry needs its own challenge.
       captcha.reset();

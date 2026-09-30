@@ -3,9 +3,16 @@
 // this module only builds per-status subjects + bodies so the handler stays
 // focused on authorization and the state transition.
 //
-// One builder per applicant-visible status. `approved` is deliberately absent:
-// approval runs through the `promote-intake` Edge Function, which provisions the
-// applicant's account and owns that email (see `promote-intake/emails.ts`).
+// One builder per applicant-visible status. Two statuses are deliberately
+// absent, for different reasons:
+//   • `approved` — approval runs through the `promote-intake` Edge Function,
+//     which provisions the applicant's account and owns that email (see
+//     `promote-intake/emails.ts`).
+//   • `withdrawn` — a submission superseded by a newer one from the same
+//     applicant, or retired by an admin. It is bookkeeping, not a decision
+//     about their business, and the applicant has already been told which
+//     reference is live (by the vendor-application confirmation email that
+//     replaced it). A second mail here would only cast doubt on that.
 import {
   APP_NAME,
   PUBLIC_SITE_URL,

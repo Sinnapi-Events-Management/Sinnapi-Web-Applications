@@ -87,6 +87,30 @@ Set `TURNSTILE_SECRET` on the functions — `supabase secrets set TURNSTILE_SECR
 
 Two design notes (non-blocking): bank numbers use pgp_sym_encrypt with a Vault-stored key (swap to native pgsodium keyrings if you prefer managed keys); and approve_escrow_release auto-creates the payout against the vendor's primary bank account — if none exists it leaves escrow at payout_approved for the vendor to add banking, rather than erroring.
 
+## 6. Internal vendor-application alerts
+
+`VENDOR_APPLICATIONS_INBOX` is the mailbox — or mailboxes — that hear about a new vendor application the moment `vendor-application` records it:
+
+```bash
+supabase secrets set VENDOR_APPLICATIONS_INBOX=vendors@sinnapi.com
+```
+
+Several reviewers go in one value, separated by commas or semicolons, and surrounding whitespace is ignored:
+
+```bash
+supabase secrets set VENDOR_APPLICATIONS_INBOX="vendors@sinnapi.com, ops@sinnapi.com"
+```
+
+The mail is the "New vendor application" notification in `vendor-application/emails.ts`: business, applicant, email and the submission reference, with `Reply-To` set to the applicant so a reviewer answering it writes to them and not to the inbox.
+
+Three things worth knowing before it is set:
+
+- **It is a notification, not a gate.** Unset, the application is still written, the applicant still gets their confirmation, and the endpoint still answers 201. Only the internal copy is skipped, recorded in the function logs as `internal_notification_not_sent` with `internal_inbox_not_configured` as the detail. Nothing about a missing value can lose an application — the admin portal's applications queue is the system of record either way.
+- **It needs working SMTP.** Delivery goes through `_shared/email.ts`, so `SMTP_HOST`, `SMTP_USER` and `SMTP_PASS` must already be set; without them every send is a no-op that reports `SMTP not configured`. Set those first, or the inbox value looks broken when the transport is what is missing.
+- **Entries that are not address-shaped are dropped**, so a stray typo in a list cannot make the whole notification bounce. That also means a value that is _entirely_ malformed behaves exactly like an unset one — check the logs for `internal_notification_not_sent` after setting it rather than assuming silence means success.
+
+Verify with `supabase secrets list` (values are hashed, so this confirms presence only), then submit one application from the public site and look for `internal_notification_not_sent` in `supabase functions logs vendor-application`. Its absence is the success signal.
+
 ## Newsletter SMTP — TLS certificate name
 
 `newsletter-dispatch` fails every campaign message with `ESOCKET invalid peer certificate: NotValidForName` when the mail host's TLS certificate does not cover the hostname in `NEWSLETTER_SMTP_HOST`. This is the normal state of affairs on shared cPanel hosting: `mail.sinnapi.com` resolves to a Namecheap shared server that presents the provider's own wildcard (`CN=*.web-hosting.com`, SANs `*.web-hosting.com` and `web-hosting.com`), which does not include the customer domain. Verification fails during the handshake and the socket closes before AUTH, so the failure says nothing about mail.

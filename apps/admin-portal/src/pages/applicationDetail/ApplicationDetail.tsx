@@ -28,6 +28,7 @@ export default function ApplicationDetail() {
     rejectOpen,
     setRejectOpen,
     markReviewing,
+    withdraw,
     reject,
     promote,
     openDoc,
@@ -75,6 +76,7 @@ export default function ApplicationDetail() {
                   onMarkReviewing={markReviewing}
                   onPromote={promote}
                   onReject={() => setRejectOpen(true)}
+                  onWithdraw={withdraw}
                 />
                 <DocumentsSection
                   nationalIdPath={a.national_id_path}

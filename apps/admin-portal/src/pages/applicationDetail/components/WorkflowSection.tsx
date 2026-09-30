@@ -3,6 +3,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ArchiveIcon from '@mui/icons-material/Archive';
 
 type Props = {
   status: string;
@@ -11,6 +12,7 @@ type Props = {
   onMarkReviewing: () => void;
   onPromote: () => void;
   onReject: () => void;
+  onWithdraw: () => void;
 };
 
 /** Triage actions available for the current reviewer + application state. */
@@ -21,8 +23,12 @@ export default function WorkflowSection({
   onMarkReviewing,
   onPromote,
   onReject,
+  onWithdraw,
 }: Props) {
-  const decided = status === 'approved' || status === 'rejected';
+  // Every state that closes the queue entry. `withdrawn` counts: it is reversible
+  // (an admin can move it back to submitted) but it is not a row anyone should be
+  // approving or rejecting from here without first putting it back deliberately.
+  const decided = status === 'approved' || status === 'rejected' || status === 'withdrawn';
 
   return (
     <SectionCard title="Workflow" icon={<AccountTreeIcon />} accent="success">
@@ -73,6 +79,25 @@ export default function WorkflowSection({
           >
             Reject
           </Button>
+        )}
+
+        {has('vendor.review') && !decided && (
+          <Button
+            variant="text"
+            color="inherit"
+            startIcon={<ArchiveIcon />}
+            disabled={busy}
+            onClick={onWithdraw}
+          >
+            Withdraw as duplicate
+          </Button>
+        )}
+
+        {status === 'withdrawn' && (
+          <Alert severity="info" icon={<ArchiveIcon />}>
+            Withdrawn — replaced by a newer submission from this applicant, or retired by an admin.
+            Nothing was sent to the applicant.
+          </Alert>
         )}
 
         {status === 'approved' && (

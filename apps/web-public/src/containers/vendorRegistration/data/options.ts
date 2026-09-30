@@ -54,11 +54,18 @@ export const MARKETING_CONSENT_DESCRIPTION =
   'Occasional emails about growing your business on Sinnapi — new features, seasonal demand and tips from vendors who book well. No more than twice a month.';
 
 /** What to tell the applicant when a submit does not go through. */
-export type FailureReason = 'captcha' | 'generic';
+export type FailureReason = 'captcha' | 'alreadyApplied' | 'generic';
 
 export const SUBMIT_ERRORS: Record<FailureReason, string> = {
   captcha:
     "We couldn't confirm you're human. The check above has been reset — give it a moment, then submit again.",
+  // The endpoint refuses a second application from an email that is already an
+  // approved vendor. Re-submitting cannot help, so the copy must not invite a
+  // retry the way the generic message does — it points at the two routes that
+  // actually resolve it.
+  alreadyApplied:
+    'This email address is already registered as a Sinnapi vendor. Sign in to your Business ' +
+    'Portal to update your details, or contact support if you think this is a mistake.',
   generic:
     'Something went wrong submitting your application. Please review your details and try again.',
 };
