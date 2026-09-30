@@ -197,6 +197,11 @@ export type HeroModel = {
   format: 'money' | 'number' | 'percent';
   delta: number | null;
   comparisonLabel: string;
+  /**
+   * Sentence explaining what `comparisonLabel` compares, shown as a tooltip.
+   * Null where the headline has no delta, since there is then nothing to explain.
+   */
+  comparisonHint: string | null;
   caption: string | null;
   accent: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
   /** Which metric was chosen — drives the icon at the render layer. */

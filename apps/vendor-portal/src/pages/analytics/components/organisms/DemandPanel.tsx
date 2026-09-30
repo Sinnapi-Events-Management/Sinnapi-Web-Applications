@@ -8,6 +8,7 @@ import {
   GroupedBarChart,
   KpiRow,
   StackedShareBar,
+  HALF_PERIOD,
   halfPeriodDelta,
   type Kpi,
   type SeriesDef,
@@ -44,6 +45,7 @@ function toKpis(pipeline: PipelineModel): Kpi[] {
       value: pipeline.quotations,
       format: 'number',
       delta: halfPeriodDelta(pipeline.trend, 'quotations'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'bookings',
@@ -51,6 +53,7 @@ function toKpis(pipeline: PipelineModel): Kpi[] {
       value: pipeline.bookings,
       format: 'number',
       delta: halfPeriodDelta(pipeline.trend, 'bookings'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'upcoming',
@@ -59,6 +62,7 @@ function toKpis(pipeline: PipelineModel): Kpi[] {
       // A forward-looking count, not a windowed one: it has no previous period.
       format: 'number',
       delta: null,
+      noDeltaLabel: 'Live total',
     },
     {
       key: 'completed',
@@ -66,6 +70,7 @@ function toKpis(pipeline: PipelineModel): Kpi[] {
       value: pipeline.completed,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'This period',
     },
   ];
 }
@@ -92,7 +97,12 @@ export default function DemandPanel({
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="vs first half" />
+      <KpiRow
+        kpis={kpis}
+        loading={loading}
+        comparisonLabel={HALF_PERIOD.label}
+        comparisonHint={HALF_PERIOD.hint}
+      />
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} lg={8}>

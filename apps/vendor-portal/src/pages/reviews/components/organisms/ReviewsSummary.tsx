@@ -38,7 +38,9 @@ export default function ReviewsSummary({
   return (
     <Stack component="section" spacing={3} sx={{ mb: 3 }}>
       <Box>
-        <KpiRow kpis={kpis} loading={loading} comparisonLabel="" skeletonCount={4} />
+        {/* No comparison label: none of these is a delta, so there is no window
+            to name. Each tile captions the span it covers instead. */}
+        <KpiRow kpis={kpis} loading={loading} skeletonCount={4} />
       </Box>
 
       <RatingBreakdownCard

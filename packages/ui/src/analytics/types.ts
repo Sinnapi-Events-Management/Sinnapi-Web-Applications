@@ -11,10 +11,25 @@ export type Kpi = {
   label: string;
   value: number;
   format: ValueFormat;
-  /** Fractional change vs the previous comparable period (0.12 = +12%). */
+  /** Fractional change under the row's declared comparison (0.12 = +12%). */
   delta: number | null;
   /** When true, a downward delta is the *good* outcome (e.g. churn, refunds). */
   invertDelta?: boolean;
+  /**
+   * Caption shown in place of the badge when `delta` is null, e.g. "Live total"
+   * on a custody balance or "No comparison yet" on a window total too quiet to
+   * compare. Omitted means show nothing — a tile must never be captioned with a
+   * comparison it did not make.
+   */
+  noDeltaLabel?: string;
+  /**
+   * Overrides the row's `comparisonLabel`/`comparisonHint` for this tile alone.
+   * Needed where one row mixes comparisons — a level measured first-vs-last
+   * bucket sitting beside window totals measured half-vs-half — since a single
+   * row caption would then be wrong for some of its own tiles.
+   */
+  comparisonLabel?: string;
+  comparisonHint?: string;
 };
 
 /**

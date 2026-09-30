@@ -63,6 +63,16 @@ async function load(period: ReportPeriod): Promise<RevenueReport> {
   const commission = sumSeries(trend, 'commission');
   const refundTotal = sumSeries(refunds, 'refunds');
 
+  // Net has to be its own series before it can have its own delta: borrowing
+  // gross's movement claimed the net figure moved at a rate nothing measured,
+  // and the two diverge exactly when it matters — a period where gross climbed
+  // but refunds climbed faster. `trend` and `refunds` are both mapped from the
+  // same RPC rows in order, so the buckets line up index for index.
+  const net: TrendPoint[] = trend.map((p, i) => ({
+    bucket: String(p.bucket),
+    net: Number(p.gross) - Number(refunds[i]?.refunds ?? 0),
+  }));
+
   const kpis: Kpi[] = [
     {
       key: 'gross',
@@ -70,6 +80,7 @@ async function load(period: ReportPeriod): Promise<RevenueReport> {
       value: gross,
       format: 'money',
       delta: seriesDelta(trend, 'gross'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'commission',
@@ -77,13 +88,15 @@ async function load(period: ReportPeriod): Promise<RevenueReport> {
       value: commission,
       format: 'money',
       delta: seriesDelta(trend, 'commission'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'net',
       label: 'Net of refunds',
       value: gross - refundTotal,
       format: 'money',
-      delta: seriesDelta(trend, 'gross'),
+      delta: seriesDelta(net, 'net'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'refunds',
@@ -91,6 +104,7 @@ async function load(period: ReportPeriod): Promise<RevenueReport> {
       value: refundTotal,
       format: 'money',
       delta: seriesDelta(refunds, 'refunds'),
+      noDeltaLabel: 'No comparison yet',
       invertDelta: true,
     },
   ];

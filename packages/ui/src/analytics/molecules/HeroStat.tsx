@@ -1,5 +1,5 @@
 'use client';
-import { Box, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Card, CardContent, Skeleton, Stack, Tooltip, Typography } from '@mui/material';
 import { IconBadge } from '../../molecules/IconBadge';
 import { formatValue, type TrendPoint, type ValueFormat } from '../core';
 import TrendBadge from './TrendBadge';
@@ -14,6 +14,8 @@ type Props = {
   /** Fractional change over the window; null hides the badge. */
   delta?: number | null;
   comparisonLabel?: string;
+  /** Tooltip on `comparisonLabel`, spelling the comparison out in a sentence. */
+  comparisonHint?: string;
   icon?: React.ReactNode;
   accent?: Accent;
   /** Optional context series drawn behind the figure. */
@@ -38,6 +40,7 @@ export default function HeroStat({
   format,
   delta,
   comparisonLabel,
+  comparisonHint,
   icon,
   accent = 'success',
   trend,
@@ -71,14 +74,27 @@ export default function HeroStat({
           </Typography>
         )}
 
-        {!loading && (
+        {/* The caption names the comparison the badge made, so it goes only where
+            there is a badge — on its own it claims a comparison that never ran. */}
+        {!loading && delta !== null && delta !== undefined && (
           <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 1 }} useFlexGap>
-            {delta !== null && delta !== undefined && <TrendBadge delta={delta} />}
-            {comparisonLabel && (
-              <Typography variant="caption" color="text.secondary">
-                {comparisonLabel}
-              </Typography>
-            )}
+            <TrendBadge delta={delta} />
+            {comparisonLabel &&
+              (comparisonHint ? (
+                <Tooltip title={comparisonHint} enterTouchDelay={0} arrow>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ borderBottom: '1px dotted', borderColor: 'divider', cursor: 'help' }}
+                  >
+                    {comparisonLabel}
+                  </Typography>
+                </Tooltip>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  {comparisonLabel}
+                </Typography>
+              ))}
           </Stack>
         )}
 

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { statusColor } from '@/lib/status';
 import { titleize } from '@/lib/config';
+import { HALF_PERIOD } from '@sinnapi/ui/analytics';
 import {
   getPeriodOption,
   type BreakdownSlice,
@@ -11,7 +12,7 @@ import {
   type TrendPoint,
 } from '../schema';
 import { toSeriesColor } from './helpers';
-import { bucketLabel, seriesDelta, sumSeries } from '../format';
+import { bucketLabel, ratioDelta, sumSeries } from '../format';
 
 export type OperationsReport = {
   kpis: Kpi[];
@@ -76,10 +77,16 @@ async function load(period: ReportPeriod): Promise<OperationsReport> {
   const kpis: Kpi[] = [
     {
       key: 'bookings',
+      // An all-time count from the snapshot RPC, not a windowed one. It used to
+      // carry the delta of bookings *created in the window*, which described a
+      // different figure entirely — a quiet fortnight cannot move a lifetime
+      // total by the rate new bookings moved. The window's own volume is the
+      // chart directly below.
       label: 'Total bookings',
       value: Number(snap?.bookings_total ?? 0),
       format: 'number',
-      delta: seriesDelta(volume, 'bookings'),
+      delta: null,
+      noDeltaLabel: 'All time',
     },
     {
       key: 'escrow',
@@ -87,13 +94,18 @@ async function load(period: ReportPeriod): Promise<OperationsReport> {
       value: Number(snap?.escrow_in_flight ?? 0),
       format: 'number',
       delta: null,
+      noDeltaLabel: 'Live total',
     },
     {
       key: 'disputes',
+      // A live count of what is open right now, so the flow of disputes *opened*
+      // is not its delta: disputes opened and closed inside the window move that
+      // series without changing this figure at all.
       label: 'Open disputes',
       value: Number(snap?.open_disputes ?? 0),
       format: 'number',
-      delta: seriesDelta(disputes, 'opened'),
+      delta: null,
+      noDeltaLabel: 'Live total',
       invertDelta: true,
     },
     {
@@ -101,7 +113,14 @@ async function load(period: ReportPeriod): Promise<OperationsReport> {
       label: 'Resolution rate',
       value: openedTotal > 0 ? resolvedTotal / openedTotal : 0,
       format: 'percent',
-      delta: seriesDelta(disputes, 'resolved'),
+      // The rate's own movement, not the resolution count's: resolving more
+      // disputes out of many more opened is the count up and the rate down.
+      // Rates compare by halves, so this tile names its own comparison rather
+      // than inheriting the row's period-start caption.
+      delta: ratioDelta(disputes, 'resolved', 'opened'),
+      comparisonLabel: HALF_PERIOD.label,
+      comparisonHint: HALF_PERIOD.hint,
+      noDeltaLabel: 'No comparison yet',
     },
   ];
 

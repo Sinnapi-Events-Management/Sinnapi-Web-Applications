@@ -10,7 +10,7 @@ import { TrendAreaChart } from '@sinnapi/ui/analytics';
 import { GroupedBarChart } from '@sinnapi/ui/analytics';
 import { BreakdownDonut } from '@sinnapi/ui/analytics';
 import { StackedShareBar } from '@sinnapi/ui/analytics';
-import { halfPeriodDelta, seriesDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
+import { PERIOD_START, seriesDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
 import type { SubscriptionModel } from '../../schema';
 import ConversionMeter from '../molecules/ConversionMeter';
 
@@ -40,13 +40,18 @@ function toKpis(subs: SubscriptionModel): Kpi[] {
       value: subs.mrr,
       format: 'money',
       delta: seriesDelta(subs.trend, 'mrr'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'active',
+      // A live count of the current base. It used to show the delta of
+      // subscriptions *added*, which measures intake, not the base: a period
+      // that added many and churned more moved this figure the other way.
       label: 'Active subscriptions',
       value: subs.active,
       format: 'number',
-      delta: halfPeriodDelta(subs.trend, 'added'),
+      delta: null,
+      noDeltaLabel: 'Live total',
     },
     {
       key: 'at-risk',
@@ -55,14 +60,20 @@ function toKpis(subs: SubscriptionModel): Kpi[] {
       format: 'money',
       // A live balance in a failure state — no window to compare it against.
       delta: null,
+      noDeltaLabel: 'Live total',
       invertDelta: true,
     },
     {
       key: 'churn',
+      // No delta: `churnRate` divides by the live active base, which is not in
+      // `trend`, so the rate has no series of its own — and the churned count's
+      // delta, which used to sit here, describes a different figure. The churn
+      // flow chart below carries the movement.
       label: 'Churn rate',
       value: subs.churnRate,
       format: 'percent',
-      delta: halfPeriodDelta(subs.trend, 'churned'),
+      delta: null,
+      noDeltaLabel: 'This period',
       // Churn climbing is the bad direction, so the badge inverts.
       invertDelta: true,
     },
@@ -74,7 +85,14 @@ export default function SubscriptionsSection({ subscriptions, loading }: Props) 
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="over period" />
+      {/* MRR is the only tile here with a delta, and it is a level measured
+          first bucket against last — so that is what the row's caption says. */}
+      <KpiRow
+        kpis={kpis}
+        loading={loading}
+        comparisonLabel={PERIOD_START.label}
+        comparisonHint={PERIOD_START.hint}
+      />
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} lg={8}>

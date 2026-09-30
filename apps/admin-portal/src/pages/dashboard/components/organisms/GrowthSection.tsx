@@ -7,7 +7,7 @@ import { KpiRow } from '@sinnapi/ui/analytics';
 import { TrendAreaChart } from '@sinnapi/ui/analytics';
 import { GroupedBarChart } from '@sinnapi/ui/analytics';
 import { StackedShareBar } from '@sinnapi/ui/analytics';
-import { halfPeriodDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
+import { HALF_PERIOD, halfPeriodDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
 import type { GrowthModel } from '../../schema';
 
 type Props = {
@@ -37,6 +37,7 @@ function toKpis(growth: GrowthModel): Kpi[] {
         value: growth.vendors.active,
         format: 'number',
         delta: null,
+        noDeltaLabel: 'Live total',
       },
       {
         key: 'new-vendors',
@@ -44,6 +45,7 @@ function toKpis(growth: GrowthModel): Kpi[] {
         value: growth.vendors.added,
         format: 'number',
         delta: halfPeriodDelta(growth.vendors.trend, 'signups'),
+        noDeltaLabel: 'No comparison yet',
       },
     );
   }
@@ -56,6 +58,7 @@ function toKpis(growth: GrowthModel): Kpi[] {
         value: growth.operations.bookings,
         format: 'number',
         delta: halfPeriodDelta(growth.operations.trend, 'bookings'),
+        noDeltaLabel: 'No comparison yet',
       },
       {
         key: 'conversion',
@@ -63,6 +66,7 @@ function toKpis(growth: GrowthModel): Kpi[] {
         value: growth.operations.conversion,
         format: 'percent',
         delta: null,
+        noDeltaLabel: 'This period',
       },
     );
   }
@@ -74,6 +78,7 @@ function toKpis(growth: GrowthModel): Kpi[] {
       value: growth.users.new,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'This period',
     });
   }
 
@@ -87,7 +92,13 @@ export default function GrowthSection({ growth, loading }: Props) {
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="vs first half" skeletonCount={4} />
+      <KpiRow
+        kpis={kpis}
+        loading={loading}
+        comparisonLabel={HALF_PERIOD.label}
+        comparisonHint={HALF_PERIOD.hint}
+        skeletonCount={4}
+      />
 
       {/* Each permitted dataset contributes a 7/5 trend-plus-distribution pair,
           so one dataset fills a single tidy row and both stack into two. */}

@@ -6,6 +6,7 @@ export {
   formatCompact,
   formatDelta,
   formatValue,
+  ratioDelta,
   seriesDelta,
   sumSeries,
 } from '@sinnapi/ui/analytics';

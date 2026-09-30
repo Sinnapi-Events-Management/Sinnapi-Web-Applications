@@ -27,6 +27,7 @@ function toKpis(reputation: ReputationModel): Kpi[] {
       value: reputation.reviewCount,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'All time',
     },
     {
       key: 'new',
@@ -34,6 +35,7 @@ function toKpis(reputation: ReputationModel): Kpi[] {
       value: reputation.newReviews,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'This period',
     },
     {
       key: 'unanswered',
@@ -41,6 +43,7 @@ function toKpis(reputation: ReputationModel): Kpi[] {
       value: reputation.unanswered,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'Live total',
     },
   ];
 }
@@ -57,7 +60,9 @@ export default function ReputationSection({ reputation, loading }: Props) {
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="" skeletonCount={3} />
+      {/* No comparison label: none of these three is a delta, so there is no
+          window to name. Each tile captions itself instead. */}
+      <KpiRow kpis={kpis} loading={loading} skeletonCount={3} />
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} md={5} lg={4}>
