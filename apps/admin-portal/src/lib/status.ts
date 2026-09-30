@@ -44,7 +44,16 @@ export type VendorAccountStatus = (typeof VENDOR_ACCOUNT_STATUSES)[number];
  * authoritative list of `vendor_application_intake.status` values — the review
  * queue's tabs and status counts are both derived from it.
  */
-export const INTAKE_STATUSES = ['submitted', 'reviewing', 'approved', 'rejected'] as const;
+export const INTAKE_STATUSES = [
+  'submitted',
+  'reviewing',
+  'approved',
+  'rejected',
+  // Superseded by a newer submission from the same applicant, or retired by an
+  // admin. Last in workflow order because it is an exit from the queue rather
+  // than a step through it.
+  'withdrawn',
+] as const;
 
 export type IntakeStatus = (typeof INTAKE_STATUSES)[number];
 

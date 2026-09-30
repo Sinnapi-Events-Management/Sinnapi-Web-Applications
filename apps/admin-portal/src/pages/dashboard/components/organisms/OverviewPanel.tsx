@@ -47,6 +47,7 @@ export default function OverviewPanel({ data, loading, canSee }: Props) {
                 format={hero.format}
                 delta={hero.delta}
                 comparisonLabel={hero.comparisonLabel}
+                comparisonHint={hero.comparisonHint ?? undefined}
                 caption={hero.caption ?? undefined}
                 accent={hero.accent}
                 icon={HERO_ICONS[hero.kind]}

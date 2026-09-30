@@ -1,6 +1,6 @@
 import { Grid, Skeleton, Stack } from '@sinnapi/ui';
 import PaymentsIcon from '@mui/icons-material/Payments';
-import { HeroStat, halfPeriodDelta } from '@sinnapi/ui/analytics';
+import { HALF_PERIOD, HeroStat, halfPeriodDelta } from '@sinnapi/ui/analytics';
 import { formatMoney } from '@/lib/config';
 import type { DashboardModel } from '../../schema';
 import ActionQueuesSection from './ActionQueuesSection';
@@ -38,7 +38,8 @@ export default function OverviewPanel({ data, loading, periodLabel }: Props) {
               value={earnings.released}
               format="money"
               delta={halfPeriodDelta(earnings.trend, 'released')}
-              comparisonLabel="vs first half"
+              comparisonLabel={HALF_PERIOD.label}
+              comparisonHint={HALF_PERIOD.hint}
               caption={`${formatMoney(earnings.inEscrow)} held in escrow · ${formatMoney(
                 earnings.pendingPayout,
               )} awaiting settlement`}

@@ -29,6 +29,7 @@ function toKpis(reputation: ReputationModel, speed: SpeedModel | undefined): Kpi
       value: reputation.reviewCount,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'All time',
     },
     {
       key: 'new',
@@ -36,6 +37,7 @@ function toKpis(reputation: ReputationModel, speed: SpeedModel | undefined): Kpi
       value: reputation.newReviews,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'This period',
     },
     {
       key: 'unanswered',
@@ -43,6 +45,7 @@ function toKpis(reputation: ReputationModel, speed: SpeedModel | undefined): Kpi
       value: reputation.unanswered,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'Live total',
     },
     {
       key: 'reply-rate',
@@ -51,6 +54,7 @@ function toKpis(reputation: ReputationModel, speed: SpeedModel | undefined): Kpi
       value: speed?.replyRate ?? 0,
       format: 'percent',
       delta: null,
+      noDeltaLabel: 'All time',
     },
   ];
 }
@@ -71,7 +75,9 @@ export default function ReputationPanel({ reputation, speed, loading, tables, on
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="" />
+      {/* No comparison label: none of these is a delta, so there is no window to
+          name. Each tile captions the span it covers instead. */}
+      <KpiRow kpis={kpis} loading={loading} />
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} md={5} lg={4}>

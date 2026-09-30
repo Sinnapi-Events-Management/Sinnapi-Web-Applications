@@ -22,7 +22,25 @@ export interface ApplicantSummary {
   ownerEmail: string;
   businessName: string;
   submissionRef: string;
+  /**
+   * True when this submission replaced an earlier, still-pending one from the
+   * same applicant (see the duplicate guard in `index.ts`). Worth one line in
+   * the email: someone who re-applied to fix a typo has no other way to know
+   * which of their submissions we will act on, and the alternative — saying
+   * nothing — is what left an applicant and our reviewers equally confused.
+   */
+  replacesEarlier?: boolean;
 }
+
+/**
+ * Shown only to an applicant whose new submission superseded a pending one.
+ * Names the reference above as the live one, so there is no ambiguity about
+ * which application is under review.
+ */
+const REPLACED_NOTE =
+  'This application replaces an earlier one you sent us, which we have now closed. ' +
+  'Only the reference above is under review — there is nothing else you need to do, ' +
+  'and no need to apply again.';
 
 const NEXT_STEPS = [
   'Our team reviews your application and verifies your business details.',
@@ -41,6 +59,7 @@ export function applicantConfirmationEmail(a: ApplicantSummary): EmailMessage {
     '',
     `Reference: ${a.submissionRef}`,
     '',
+    ...(a.replacesEarlier ? [REPLACED_NOTE, ''] : []),
     'What happens next:',
     ...NEXT_STEPS.map((s, i) => `  ${i + 1}. ${s}`),
     '',
@@ -63,6 +82,15 @@ export function applicantConfirmationEmail(a: ApplicantSummary): EmailMessage {
         { label: 'Business', value: a.businessName },
         { label: 'Reference', value: emailCredential(a.submissionRef), raw: true },
       ]),
+      ...(a.replacesEarlier
+        ? [
+            emailPanel({
+              tone: 'info',
+              title: 'This replaces your earlier application',
+              body: REPLACED_NOTE,
+            }),
+          ]
+        : []),
       emailHeading('What happens next'),
       emailList(NEXT_STEPS.map(escapeHtml), { ordered: true }),
       emailPanel({
@@ -82,7 +110,14 @@ export function applicantConfirmationEmail(a: ApplicantSummary): EmailMessage {
 }
 
 // ── Internal team notification ────────────────────────────────────────────
-export function internalNotificationEmail(to: string, a: ApplicantSummary): EmailMessage {
+/**
+ * The copy that goes to the team, addressed to whatever
+ * `VENDOR_APPLICATIONS_INBOX` resolves to — one mailbox or several.
+ */
+export function internalNotificationEmail(
+  to: string | string[],
+  a: ApplicantSummary,
+): EmailMessage {
   const rows = [
     { label: 'Business', value: a.businessName },
     { label: 'Applicant', value: a.ownerFullName },

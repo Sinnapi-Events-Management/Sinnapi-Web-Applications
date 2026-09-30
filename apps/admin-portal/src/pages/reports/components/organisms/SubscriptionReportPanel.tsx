@@ -4,7 +4,7 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import type { ReportPeriod, SeriesDef } from '../../schema';
 import { useSubscriptionReport } from '../../data';
-import { KpiRow } from '@sinnapi/ui/analytics';
+import { KpiRow, PERIOD_START } from '@sinnapi/ui/analytics';
 import ChartCard from '../molecules/ChartCard';
 import { TrendAreaChart } from '@sinnapi/ui/analytics';
 import { GroupedBarChart } from '@sinnapi/ui/analytics';
@@ -34,7 +34,12 @@ export default function SubscriptionReportPanel({ period, onPeriodChange }: Prop
     >
       {(exportTables) => (
         <Stack spacing={3}>
-          <KpiRow kpis={data?.kpis ?? []} loading={isLoading} comparisonLabel="vs period start" />
+          <KpiRow
+            kpis={data?.kpis ?? []}
+            loading={isLoading}
+            comparisonLabel={PERIOD_START.label}
+            comparisonHint={PERIOD_START.hint}
+          />
           <Grid container spacing={3}>
             <Grid item xs={12} lg={8}>
               <ChartCard

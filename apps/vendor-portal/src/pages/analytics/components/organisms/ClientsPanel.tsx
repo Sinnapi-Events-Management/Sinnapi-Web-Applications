@@ -36,6 +36,7 @@ function toKpis(detail: AnalyticsModel): Kpi[] {
       value: detail.clients.total,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'All time',
     },
     {
       key: 'new',
@@ -43,6 +44,7 @@ function toKpis(detail: AnalyticsModel): Kpi[] {
       value: detail.clients.newClients,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'This period',
     },
     {
       key: 'repeat',
@@ -50,6 +52,7 @@ function toKpis(detail: AnalyticsModel): Kpi[] {
       value: detail.clients.repeat,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'All time',
     },
     {
       key: 'repeat-rate',
@@ -59,6 +62,7 @@ function toKpis(detail: AnalyticsModel): Kpi[] {
       value: detail.clients.repeatRate ?? 0,
       format: 'percent',
       delta: null,
+      noDeltaLabel: 'All time',
     },
   ];
 }
@@ -76,7 +80,9 @@ export default function ClientsPanel({ detail, loading, tables, onExport }: Prop
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="" />
+      {/* No comparison label: none of these is a delta, so there is no window to
+          name. Each tile captions the span it covers instead. */}
+      <KpiRow kpis={kpis} loading={loading} />
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} md={6}>

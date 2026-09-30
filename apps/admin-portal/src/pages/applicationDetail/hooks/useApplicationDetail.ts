@@ -10,6 +10,31 @@ import { docKindFromPath, type PreviewDoc } from '@/components/ui/documentPrevie
 
 const INTAKE_BUCKET = 'application-intake';
 
+/**
+ * Turn `promote-intake`'s refusal codes into something a reviewer can act on.
+ * The function answers with machine codes (`invokeFunction` surfaces the `error`
+ * body verbatim), and the two duplicate guards are precisely the cases where a
+ * reviewer needs to be told what to do next rather than shown a symbol.
+ */
+function promoteErrorMessage(code: string): string {
+  if (code.startsWith('owner_already_has_vendor')) {
+    const existing = code.split(':').slice(1).join(':').trim();
+    return (
+      `This applicant already has a live vendor${existing ? ` — "${existing}"` : ''}. ` +
+      'Approving would create a second listing for the same owner, which locks them out of ' +
+      'the Business Portal. Withdraw this application as a duplicate, or remove the existing ' +
+      'vendor first if this submission is meant to replace it.'
+    );
+  }
+  if (code === 'intake_withdrawn') {
+    return (
+      'This application was withdrawn — the applicant replaced it with a newer submission, ' +
+      'or an admin retired it. Approve the current submission instead.'
+    );
+  }
+  return code;
+}
+
 type StatusResult = { emailSent?: boolean; emailWarning?: string };
 
 // Detail + triage for a single vendor application intake. Both triage actions
@@ -41,7 +66,7 @@ export function useApplicationDetail() {
   }
 
   // Applies the transition and notifies the applicant by email, in one call.
-  async function setStatus(status: 'reviewing' | 'rejected', notes?: string) {
+  async function setStatus(status: 'reviewing' | 'rejected' | 'withdrawn', notes?: string) {
     setBusy(true);
     setErr(null);
     setNotice(null);
@@ -66,6 +91,15 @@ export function useApplicationDetail() {
     await setStatus('reviewing');
   }
 
+  // Retire a submission without judging the business behind it — a duplicate the
+  // applicant filed twice, or a row that should not have been in the queue.
+  // Distinct from Reject: rejection is a decision, emails the applicant a reason,
+  // and invites them to re-apply. Withdrawing says nothing to them at all, which
+  // is why it takes no reason and sends no mail.
+  async function withdraw() {
+    await setStatus('withdrawn');
+  }
+
   async function reject(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const reason = String(new FormData(e.currentTarget).get('reason'));
@@ -82,7 +116,7 @@ export function useApplicationDetail() {
     const { data, error } = await invokeFunction<StatusResult>('promote-intake', { intakeId: id });
     setBusy(false);
     if (error) {
-      setErr(error);
+      setErr(promoteErrorMessage(error));
       return;
     }
     refresh();
@@ -135,6 +169,7 @@ export function useApplicationDetail() {
     rejectOpen,
     setRejectOpen,
     markReviewing,
+    withdraw,
     reject,
     promote,
     openDoc,

@@ -114,6 +114,14 @@ export type QueueCardModel = {
 export type EarningsModel = {
   released: number;
   earned: number;
+  /**
+   * Sinnapi's cut on this vendor's funded escrows. Carried because the RPC
+   * returns it, but deliberately shown on no vendor surface: under the on-top
+   * model the *client* pays it above `agreed_amount`, so it is neither deducted
+   * from nor paid to the vendor. Presenting it beside their own money read as a
+   * fee they were charged. The platform's commission line lives on the admin
+   * Finance dashboard.
+   */
   commission: number;
   inEscrow: number;
   escrowCount: number;

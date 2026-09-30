@@ -1,4 +1,6 @@
 import {
+  HALF_PERIOD,
+  PERIOD_START,
   bucketLabel,
   formatAge,
   formatValue,
@@ -173,6 +175,8 @@ function toHero(
       format: 'money',
       delta: seriesDelta(subscriptions.trend, 'mrr'),
       comparisonLabel: `over ${periodLabel.toLowerCase()}`,
+      // MRR is a level, so the delta is first bucket against last.
+      comparisonHint: PERIOD_START.hint,
       caption: parts.join(' · '),
       accent: 'success',
       kind: 'mrr',
@@ -188,6 +192,7 @@ function toHero(
       format: 'money',
       delta: halfPeriodDelta(finance.trend, 'gross'),
       comparisonLabel: `vs first half of ${periodLabel.toLowerCase()}`,
+      comparisonHint: HALF_PERIOD.hint,
       caption: `${formatValue(finance.commission, 'money')} commission earned`,
       accent: 'primary',
       kind: 'revenue',
@@ -204,8 +209,15 @@ function toHero(
       value: waiting,
       format: 'number',
       delta: null,
-      comparisonLabel: `across ${queues.length} queue${queues.length === 1 ? '' : 's'}`,
-      caption: overdue > 0 ? `${overdue.toLocaleString()} past their SLA` : 'None past their SLA',
+      // No delta, so no comparison to name. "across N queues" is context, and
+      // context belongs in the caption — beside the badge it read as a window
+      // this figure had been compared against.
+      comparisonLabel: '',
+      comparisonHint: null,
+      caption: [
+        `Across ${queues.length} queue${queues.length === 1 ? '' : 's'}`,
+        overdue > 0 ? `${overdue.toLocaleString()} past their SLA` : 'none past their SLA',
+      ].join(' · '),
       accent: overdue > 0 ? 'error' : 'info',
       kind: 'workload',
       trend: [],

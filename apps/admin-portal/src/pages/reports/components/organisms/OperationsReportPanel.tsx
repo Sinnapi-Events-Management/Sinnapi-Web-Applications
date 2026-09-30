@@ -37,7 +37,9 @@ export default function OperationsReportPanel({ period, onPeriodChange }: Props)
     >
       {(exportTables) => (
         <Stack spacing={3}>
-          <KpiRow kpis={data?.kpis ?? []} loading={isLoading} comparisonLabel="vs period start" />
+          {/* No row default: the three counts here are snapshots with no delta, and
+              the one rate that has a delta names its own comparison. */}
+          <KpiRow kpis={data?.kpis ?? []} loading={isLoading} />
           <Grid container spacing={3}>
             <Grid item xs={12} lg={7}>
               <ChartCard

@@ -78,6 +78,7 @@ export function toReviewKpis(rows: ReviewRow[], now: number): Kpi[] {
       value: published.length,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'All time',
     },
     {
       key: 'awaiting',
@@ -85,6 +86,7 @@ export function toReviewKpis(rows: ReviewRow[], now: number): Kpi[] {
       value: awaiting,
       format: 'number',
       delta: null,
+      noDeltaLabel: 'Live total',
     },
     {
       key: 'replyRate',
@@ -92,7 +94,15 @@ export function toReviewKpis(rows: ReviewRow[], now: number): Kpi[] {
       value: rows.length ? replied / rows.length : 0,
       format: 'percent',
       delta: null,
+      noDeltaLabel: 'All time',
     },
-    { key: 'recent', label: 'New in 30 days', value: recent, format: 'number', delta: null },
+    {
+      key: 'recent',
+      label: 'New in 30 days',
+      value: recent,
+      format: 'number',
+      delta: null,
+      noDeltaLabel: 'Rolling 30 days',
+    },
   ];
 }

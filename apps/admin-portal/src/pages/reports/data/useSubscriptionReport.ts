@@ -73,15 +73,36 @@ async function load(period: ReportPeriod): Promise<SubscriptionReport> {
       value: latestMrr,
       format: 'money',
       delta: seriesDelta(mrr, 'mrr'),
+      noDeltaLabel: 'No comparison yet',
     },
-    { key: 'active', label: 'Active subscriptions', value: active, format: 'number', delta: null },
-    { key: 'trialing', label: 'On trial', value: trialing, format: 'number', delta: null },
+    {
+      key: 'active',
+      label: 'Active subscriptions',
+      value: active,
+      format: 'number',
+      delta: null,
+      noDeltaLabel: 'Live total',
+    },
+    {
+      key: 'trialing',
+      label: 'On trial',
+      value: trialing,
+      format: 'number',
+      delta: null,
+      noDeltaLabel: 'Live total',
+    },
     {
       key: 'churn',
+      // No delta: the rate's denominator is `active`, a live count from the
+      // status RPC rather than anything in `churnFlow`, so there is no series to
+      // measure the rate's own movement on — and the churned *count*'s delta,
+      // which used to sit here, is a different claim. The churn flow chart below
+      // carries the movement instead.
       label: 'Churn rate',
       value: churnRate,
       format: 'percent',
-      delta: seriesDelta(churnFlow, 'churned'),
+      delta: null,
+      noDeltaLabel: 'This period',
       invertDelta: true,
     },
   ];

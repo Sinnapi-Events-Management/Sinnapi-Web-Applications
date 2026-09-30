@@ -5,7 +5,7 @@ import { ChartCard } from '@sinnapi/ui/analytics';
 import { KpiRow } from '@sinnapi/ui/analytics';
 import { TrendAreaChart } from '@sinnapi/ui/analytics';
 import { StackedShareBar } from '@sinnapi/ui/analytics';
-import { halfPeriodDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
+import { HALF_PERIOD, halfPeriodDelta, type Kpi, type SeriesDef } from '@sinnapi/ui/analytics';
 import type { FinanceModel } from '../../schema';
 
 type Props = {
@@ -32,6 +32,7 @@ function toKpis(finance: FinanceModel): Kpi[] {
       value: finance.gross,
       format: 'money',
       delta: halfPeriodDelta(finance.trend, 'gross'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'commission',
@@ -39,6 +40,7 @@ function toKpis(finance: FinanceModel): Kpi[] {
       value: finance.commission,
       format: 'money',
       delta: halfPeriodDelta(finance.trend, 'commission'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'escrow',
@@ -47,6 +49,7 @@ function toKpis(finance: FinanceModel): Kpi[] {
       format: 'money',
       // A live custody balance, not a windowed total — nothing to compare it to.
       delta: null,
+      noDeltaLabel: 'Live total',
     },
     {
       key: 'refunds',
@@ -54,6 +57,7 @@ function toKpis(finance: FinanceModel): Kpi[] {
       value: finance.refunds,
       format: 'money',
       delta: halfPeriodDelta(finance.trend, 'refunds'),
+      noDeltaLabel: 'No comparison yet',
       // Refunds climbing is the bad direction, so the badge inverts.
       invertDelta: true,
     },
@@ -65,7 +69,12 @@ export default function FinanceSection({ finance, loading }: Props) {
 
   return (
     <Box component="section">
-      <KpiRow kpis={kpis} loading={loading} comparisonLabel="vs first half" />
+      <KpiRow
+        kpis={kpis}
+        loading={loading}
+        comparisonLabel={HALF_PERIOD.label}
+        comparisonHint={HALF_PERIOD.hint}
+      />
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
         <Grid item xs={12} lg={8}>

@@ -108,6 +108,12 @@ const MAP: Record<string, StatusChipColor> = {
   reviewing: 'warning',
   approved: 'success',
   rejected: 'error',
+  // Neutral, not red, for the same reason `voided` is: a withdrawn intake is a
+  // duplicate the applicant replaced (or a row an admin retired), not a business
+  // we turned down. Colouring it like `rejected` would tell a reviewer scanning
+  // the queue that this applicant had been refused, which is untrue and is
+  // exactly the confusion the withdrawn status was added to end.
+  withdrawn: 'default',
   // newsletter campaigns. `draft`, `sent`, `cancelled` and `failed` are already
   // mapped above and mean the same thing here, which is the point of one map.
   scheduled: 'info',

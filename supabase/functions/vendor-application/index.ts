@@ -11,8 +11,29 @@
 // submission lands in a reviewer's queue and fires two emails. A Cloudflare
 // Turnstile token from the registration form is redeemed before any of that —
 // see `_shared/turnstile.ts`. Requires TURNSTILE_SECRET in the environment.
+//
+// DUPLICATE SUBMISSIONS
+// The only de-duplication here used to be on `submission_ref`, which the form
+// mints once per PAGE VIEW — it stops a double-click and nothing else. An
+// applicant who reloaded and applied again filed a second, independent row, and
+// the review queue had no way to tell three submissions from one business apart
+// from three separate businesses. That is not hypothetical: it put two live
+// vendors and two trial subscriptions on one owner, and locked them out of the
+// vendor portal (see `20260930000002_one_vendor_per_owner.sql`).
+//
+// So `owner_email` is now the identity this endpoint de-duplicates on:
+//   • already an approved intake, or already a live vendor → REFUSED (409).
+//     Approval provisions an account, a vendor and a subscription; a second
+//     pass at that is never what the applicant means, and the honest answer is
+//     to send them to support or to their portal.
+//   • an earlier submission still pending → the new one SUPERSEDES it. Fixing a
+//     typo by applying again is a reasonable thing to do, and it is what the
+//     applicant in the incident above was trying to do. The newest submission
+//     is the one the applicant stands behind, so it wins and the older rows
+//     move to 'withdrawn' — kept, linked, and out of the reviewer's queue.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, HttpError } from '../_shared/supabase.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/email.ts';
 import { requireCaptcha } from '../_shared/turnstile.ts';
 import { applicantConfirmationEmail, internalNotificationEmail } from './emails.ts';
@@ -90,6 +111,118 @@ type Body = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** The only columns the duplicate guard reads off an earlier submission. */
+type PriorIntake = { id: string; status: string };
+
+/** Statuses that mean "a reviewer has not decided on this submission yet". */
+const PENDING_STATUSES = ['submitted', 'reviewing'];
+
+/**
+ * Refuse an applicant who is already onboarded, and report which of their
+ * earlier submissions are still pending so the caller can supersede them.
+ *
+ * Read-only and refusal-only: it never writes, so it is safe to run before the
+ * insert and its 409s cost the applicant nothing.
+ *
+ * Throws 409 `already_approved` when an intake for this address has been
+ * approved, and 409 `already_a_vendor` when the address owns a live vendor.
+ * Both mean the same thing to the applicant — you are already in — but they are
+ * distinguished because the second can be true with no intake behind it at all
+ * (the legacy import, or staff onboarding a vendor directly), and support needs
+ * to know which path put them there.
+ */
+async function assertNotAlreadyOnboarded(
+  supa: SupabaseClient,
+  ownerEmail: string,
+): Promise<string[]> {
+  // `owner_email` is citext, so this matches however they capitalised it.
+  const { data: priorIntakes, error: priorErr } = await supa
+    .from('vendor_application_intake')
+    .select('id, status')
+    .eq('owner_email', ownerEmail)
+    .in('status', [...PENDING_STATUSES, 'approved']);
+  if (priorErr) throw new HttpError(400, priorErr.message);
+
+  const prior = (priorIntakes ?? []) as PriorIntake[];
+  if (prior.some((r) => r.status === 'approved')) throw new HttpError(409, 'already_approved');
+
+  // A live vendor with no intake behind it must be refused too, or approval
+  // would later trip the one-live-vendor-per-owner index and reach the reviewer
+  // as an opaque constraint error instead of the applicant as a clear message.
+  const { data: ownerProfile, error: ownerErr } = await supa
+    .from('profiles')
+    .select('id')
+    .eq('email', ownerEmail)
+    .limit(1)
+    .maybeSingle();
+  if (ownerErr) throw new HttpError(400, ownerErr.message);
+
+  if (ownerProfile) {
+    const { data: liveVendor, error: vendorErr } = await supa
+      .from('vendors')
+      .select('id')
+      .eq('owner_id', ownerProfile.id)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+    if (vendorErr) throw new HttpError(400, vendorErr.message);
+    if (liveVendor) throw new HttpError(409, 'already_a_vendor');
+  }
+
+  return prior.filter((r) => PENDING_STATUSES.includes(r.status)).map((r) => r.id);
+}
+
+/**
+ * Move the applicant's earlier pending submissions to 'withdrawn', pointing each
+ * at the one that replaced it. Returns how many were actually retired.
+ *
+ * Never throws: the replacement application is already committed by the time
+ * this runs, and failing the request would tell the applicant their submission
+ * did not land when it did. A leftover duplicate is a reviewer seeing two rows —
+ * the status quo before this guard existed, and fixable by hand — so a failure
+ * is logged loudly and swallowed.
+ */
+async function supersedePending(
+  supa: SupabaseClient,
+  candidateIds: string[],
+  replacementId: string,
+  replacementCreatedAt: string,
+): Promise<number> {
+  if (candidateIds.length === 0) return 0;
+
+  const { data, error } = await supa
+    .from('vendor_application_intake')
+    .update({
+      status: 'withdrawn',
+      superseded_by_intake_id: replacementId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .in('id', candidateIds)
+    // Re-asserted as a conditional update: a reviewer who decided on one of
+    // these rows between the read and this write keeps their decision. An
+    // admin's judgement outranks the applicant's re-submission.
+    .in('status', PENDING_STATUSES)
+    // Only rows strictly older than the replacement. Two submissions racing each
+    // other therefore cannot withdraw one another and leave the applicant with
+    // nothing in the queue — the newest survives whatever the interleaving.
+    .lt('created_at', replacementCreatedAt)
+    .select('id');
+
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'intake_supersede_failed',
+        detail: error.message,
+        replacementId,
+        candidateIds,
+      }),
+    );
+    return 0;
+  }
+  return data?.length ?? 0;
+}
+
 function req(cond: boolean, field: string) {
   if (!cond) throw new HttpError(422, `missing_or_invalid:${field}`);
 }
@@ -97,6 +230,25 @@ function req(cond: boolean, field: string) {
 function clean(v?: string): string | null {
   const t = (v ?? '').trim();
   return t === '' ? null : t;
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Parse an internal-recipient env value into addresses.
+ *
+ * A team inbox is rarely one mailbox, so this accepts a list separated by
+ * commas or semicolons: `ops@sinnapi.com, review@sinnapi.com`. Semicolons are
+ * allowed because a list copied out of Outlook uses them, and that is the
+ * likeliest way this secret gets set wrong. Entries that are not
+ * address-shaped are dropped rather than handed to SMTP, so one typo in the
+ * list cannot make the whole notification bounce.
+ */
+function parseRecipients(v?: string): string[] {
+  return (v ?? '')
+    .split(/[,;]/)
+    .map((s) => s.trim())
+    .filter((s) => EMAIL_RE.test(s));
 }
 
 Deno.serve(
@@ -156,14 +308,21 @@ Deno.serve(
     const userAgent = request.headers.get('user-agent') ?? null;
 
     const supa = adminClient();
+    const ownerEmail = b.ownerEmail!.trim().toLowerCase();
 
-    // Guard against duplicate submits of the same client-generated ref.
+    // Guard against duplicate submits of the same client-generated ref. This
+    // stays first and stays cheap: a double-click must be idempotent, not a
+    // refusal, and it must not consume the supersede logic below.
     const { data: existing } = await supa
       .from('vendor_application_intake')
       .select('id')
       .eq('submission_ref', b.submissionRef)
       .maybeSingle();
     if (existing) return json(request, { id: existing.id, duplicate: true }, 200);
+
+    // --- Duplicate guard, part 1: is this applicant already through? -------
+    // Refuses outright, so it runs before anything is written.
+    const priorPendingIds = await assertNotAlreadyOnboarded(supa, ownerEmail);
 
     const { data, error } = await supa
       .from('vendor_application_intake')
@@ -185,7 +344,7 @@ Deno.serve(
         service_region_keys: b.serviceRegionKeys ?? [],
         icandy_alumni: b.icandyAlumni ?? null,
         owner_full_name: clean(b.ownerFullName),
-        owner_email: b.ownerEmail!.trim().toLowerCase(),
+        owner_email: ownerEmail,
         owner_phone: clean(b.ownerPhone),
         profile_image_url: clean(b.profileImageUrl),
         primary_image_url: clean(b.primaryImageUrl),
@@ -211,19 +370,28 @@ Deno.serve(
         ip_address: ip,
         user_agent: userAgent,
       })
-      .select('id')
+      .select('id, created_at')
       .single();
 
     if (error) throw new HttpError(400, error.message);
+
+    // --- Duplicate guard, part 2: retire the submissions this one replaces ---
+    // After the insert, because the withdrawn rows point at their replacement
+    // and that id does not exist until now.
+    const supersededCount = await supersedePending(supa, priorPendingIds, data.id, data.created_at);
 
     // --- Confirmation + internal notification emails (best-effort) ---
     // The application is already persisted, so email failure must NOT fail the
     // request — we surface the outcome in the response and log any error.
     const summary = {
       ownerFullName: clean(b.ownerFullName)!,
-      ownerEmail: b.ownerEmail!.trim().toLowerCase(),
+      ownerEmail,
       businessName: clean(b.businessName)!,
       submissionRef: b.submissionRef!,
+      // Tells the applicant, in the email they actually read, that this
+      // submission replaced their earlier one — the single question the
+      // incident that prompted this guard left unanswered for everybody.
+      replacesEarlier: supersededCount > 0,
     };
 
     // --- Newsletter opt-in (single, with the full evidence set) -------------
@@ -239,7 +407,7 @@ Deno.serve(
     // application is persisted, and an optional checkbox must not fail it.
     if (b.marketingConsent === true) {
       const { error: consentErr } = await supa.rpc('marketing_capture_consent', {
-        p_email: b.ownerEmail!.trim().toLowerCase(),
+        p_email: ownerEmail,
         p_topic: 'vendor_updates',
         p_source: 'vendor_application',
         p_consent_text: String(b.marketingConsentText ?? MARKETING_CONSENT_FALLBACK).slice(0, 500),
@@ -258,23 +426,48 @@ Deno.serve(
       }
     }
 
-    const internalInbox = clean(Deno.env.get('VENDOR_APPLICATIONS_INBOX'));
+    // Who on the team hears about a new application. Unset means the applicant
+    // still gets their confirmation and the row is still recorded — only the
+    // internal copy is skipped — so this is a notification setting, never a
+    // gate on the submission itself.
+    const internalInbox = parseRecipients(Deno.env.get('VENDOR_APPLICATIONS_INBOX'));
 
-    const [applicantResult] = await Promise.all([
+    const [applicantResult, internalResult] = await Promise.all([
       sendEmail(applicantConfirmationEmail(summary)),
-      internalInbox
+      internalInbox.length > 0
         ? sendEmail(internalNotificationEmail(internalInbox, summary))
         : Promise.resolve({ sent: false, error: 'internal_inbox_not_configured' }),
     ]).catch((e) => {
       // Promise.all itself shouldn't reject (sendEmail never throws), but guard.
-      console.error('[VENDOR-APP] email dispatch error:', (e as Error).message);
-      return [{ sent: false, error: (e as Error).message }] as const;
+      const detail = (e as Error).message;
+      console.error('[VENDOR-APP] email dispatch error:', detail);
+      return [
+        { sent: false, error: detail },
+        { sent: false, error: detail },
+      ] as const;
     });
+
+    // The applicant's own confirmation is reported back to the browser; the
+    // internal copy is not. Without this line a misconfigured inbox surfaces
+    // only as "nobody ever reviewed that application", so say it out loud in
+    // the function logs where it can be found.
+    if (!internalResult.sent) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          message: 'internal_notification_not_sent',
+          detail: internalResult.error ?? 'unknown',
+          submissionRef: summary.submissionRef,
+          recipients: internalInbox.length,
+        }),
+      );
+    }
 
     return json(
       request,
       {
         id: data.id,
+        supersededCount,
         emailSent: applicantResult.sent,
         ...(applicantResult.error && { emailWarning: applicantResult.error }),
       },

@@ -1,7 +1,14 @@
 // set-intake-status — user-invoked (admin with `vendor.review`). Replaces the
 // admin portal's direct `set_intake_status` RPC call: it performs the same
-// transition (submitted → reviewing → rejected) and then emails the applicant
-// copy written for the status they just moved to.
+// transition (submitted → reviewing → rejected → withdrawn) and then emails the
+// applicant copy written for the status they just moved to.
+//
+// 'withdrawn' is the one transition with no applicant email, deliberately. It
+// means "this submission has been replaced or retired" — usually a duplicate the
+// applicant themselves filed twice — and it is bookkeeping, not a decision about
+// their business. Mailing them about a row they did not know existed separately
+// would only confuse. `intakeStatusEmail` returns null for it, so the handler
+// reports `emailSkipped: 'no_template'` and sends nothing.
 //
 // Why an Edge Function (not the RPC alone): sending mail needs SMTP credentials
 // and an outbound network call, neither of which belongs in a SQL function, and
@@ -27,7 +34,7 @@ import { intakeStatusEmail } from './emails.ts';
 
 type Body = { intakeId?: string; status?: string; notes?: string | null };
 
-const STATUSES = ['submitted', 'reviewing', 'rejected'];
+const STATUSES = ['submitted', 'reviewing', 'rejected', 'withdrawn'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function clean(v?: string | null): string | null {
@@ -39,6 +46,7 @@ function clean(v?: string | null): string | null {
 function mapRpcError(message: string): HttpError {
   if (/forbidden/i.test(message)) return new HttpError(403, 'forbidden');
   if (/not_found/i.test(message)) return new HttpError(404, 'intake_not_found');
+  if (/already_approved/i.test(message)) return new HttpError(409, 'intake_already_approved');
   if (/invalid_status/i.test(message)) return new HttpError(422, message);
   return new HttpError(400, message);
 }

@@ -24,13 +24,15 @@ function earningsTables(overview: DashboardModel): ReportTable[] {
   const { earnings } = overview;
   return [
     {
+      // No commission column: the client pays it on top of the agreed amount, so
+      // in a sheet of the vendor's own money it reads as a deduction that never
+      // happened — and it would no longer match the chart it is exported from.
       name: 'Earnings trend',
-      columns: ['Period', 'Booked into escrow', 'Paid out', 'Commission'],
+      columns: ['Period', 'Booked into escrow', 'Paid out'],
       rows: earnings.trend.map((p) => [
         String(p.bucket),
         Number(p.earned) || 0,
         Number(p.released) || 0,
-        Number(p.commission) || 0,
       ]),
     },
     {

@@ -55,16 +55,91 @@ export function sumSeries(rows: Array<Record<string, unknown>>, key: string): nu
  * Fractional change between the first and second half of a series — a steadier
  * read than first-vs-last point, which a single quiet day can swing wildly.
  * Used for dashboard deltas, where the headline is a period total rather than
- * an end-of-period level. Returns null when there is too little to compare.
+ * an end-of-period level.
+ *
+ * Returns null rather than a number whenever the comparison would mislead:
+ *
+ *   - fewer than four buckets, so neither half is a meaningful sample;
+ *   - an empty *older* half, which has no ratio at all;
+ *   - an empty *newer* half, which is arithmetically -100% but reads as a
+ *     collapse. For a low-volume vendor "one booking in the first fortnight and
+ *     none since" is an ordinary month, not a business in freefall — and
+ *     suppressing only that side would leave the badge able to report bad news
+ *     and never good, since growth from zero is already null above.
+ *
+ * Callers render a caption of their own when this is null; see `Kpi.noDeltaLabel`.
  */
 export function halfPeriodDelta(rows: Array<Record<string, unknown>>, key: string): number | null {
   if (rows.length < 4) return null;
   const mid = Math.floor(rows.length / 2);
   const previous = sumSeries(rows.slice(0, mid), key);
   const current = sumSeries(rows.slice(mid), key);
-  if (previous === 0) return null;
+  // Symmetric by design: either half being empty means there is no honest
+  // percentage to show, in either direction.
+  if (previous === 0 || current === 0) return null;
   return (current - previous) / previous;
 }
+
+/**
+ * Change in a *rate* between the two halves of a window — the second half's
+ * numerator-over-denominator against the first half's.
+ *
+ * A rate cannot borrow its numerator's delta. "Resolution rate" moving with the
+ * count of resolutions is a different claim from the rate itself moving: resolve
+ * twice as many out of three times as many disputes and the count is up while
+ * the rate is down. Nor can a rate be read per bucket, where a quiet bucket is
+ * 0/0 and has no value at all — so each half is summed first, then divided.
+ *
+ * Null when there is too little to compare or either half has an empty
+ * denominator, on the same reasoning as `halfPeriodDelta`.
+ */
+export function ratioDelta(
+  rows: Array<Record<string, unknown>>,
+  numerator: string,
+  denominator: string,
+): number | null {
+  if (rows.length < 4) return null;
+  const mid = Math.floor(rows.length / 2);
+  const before = rows.slice(0, mid);
+  const after = rows.slice(mid);
+
+  const beforeDenom = sumSeries(before, denominator);
+  const afterDenom = sumSeries(after, denominator);
+  if (beforeDenom === 0 || afterDenom === 0) return null;
+
+  const beforeRate = sumSeries(before, numerator) / beforeDenom;
+  const afterRate = sumSeries(after, numerator) / afterDenom;
+  if (beforeRate === 0) return null;
+  return (afterRate - beforeRate) / beforeRate;
+}
+
+/**
+ * The two comparisons a delta on this platform can mean, each with the caption
+ * that names it and the sentence that explains it.
+ *
+ * Kept here beside the helpers that compute them so a surface cannot label a
+ * `halfPeriodDelta` as anything else: the caption alone ("vs first half") has
+ * been read as "against the previous period", which is not what any of these
+ * helpers measure.
+ */
+export type Comparison = {
+  /** Caption beside the badge. */
+  label: string;
+  /** Tooltip on that caption, spelling the comparison out. */
+  hint: string;
+};
+
+/** For deltas from `halfPeriodDelta` or `ratioDelta` — the window's two halves. */
+export const HALF_PERIOD: Comparison = {
+  label: 'vs first half',
+  hint: 'The second half of the selected window against its first half — for example days 16–30 against days 1–15 on a 30-day view. This is not a comparison against the previous period.',
+};
+
+/** For deltas from `seriesDelta` — levels, first bucket against last. */
+export const PERIOD_START: Comparison = {
+  label: 'vs period start',
+  hint: 'Where this figure stands now against where it stood at the start of the selected window.',
+};
 
 /**
  * Humanised age of a timestamp, e.g. "3d 4h". Drives the "oldest item waiting"

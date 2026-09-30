@@ -4,7 +4,7 @@ import DonutLargeIcon from '@mui/icons-material/DonutLarge';
 import ReplayIcon from '@mui/icons-material/Replay';
 import type { ReportPeriod, SeriesDef } from '../../schema';
 import { useRevenueReport } from '../../data';
-import { KpiRow } from '@sinnapi/ui/analytics';
+import { KpiRow, PERIOD_START } from '@sinnapi/ui/analytics';
 import ChartCard from '../molecules/ChartCard';
 import { TrendAreaChart } from '@sinnapi/ui/analytics';
 import { GroupedBarChart } from '@sinnapi/ui/analytics';
@@ -34,7 +34,12 @@ export default function RevenueReportPanel({ period, onPeriodChange }: Props) {
     >
       {(exportTables) => (
         <Stack spacing={3}>
-          <KpiRow kpis={data?.kpis ?? []} loading={isLoading} comparisonLabel="vs period start" />
+          <KpiRow
+            kpis={data?.kpis ?? []}
+            loading={isLoading}
+            comparisonLabel={PERIOD_START.label}
+            comparisonHint={PERIOD_START.hint}
+          />
           <Grid container spacing={3}>
             <Grid item xs={12} lg={8}>
               <ChartCard

@@ -61,6 +61,16 @@ async function load(period: ReportPeriod): Promise<VendorReport> {
   const active = statusMix.find((s) => s.name.toLowerCase() === 'active')?.value ?? 0;
   const totalNew = sumSeries(signups, 'signups');
 
+  // Growth rate needs its own series: signups against the roster they were added
+  // to, per bucket. Showing the signup count's delta instead claimed the *rate*
+  // moved by however much the count did, which is only true on a roster that
+  // never grows — the same twenty signups are a smaller rate each period as the
+  // base compounds, which is the whole point of measuring a rate.
+  const growthRate: TrendPoint[] = signups.map((p, i) => {
+    const base = Number(cumulative[i]?.total ?? 0);
+    return { bucket: String(p.bucket), rate: base > 0 ? Number(p.signups) / base : 0 };
+  });
+
   const kpis: Kpi[] = [
     {
       key: 'total',
@@ -68,21 +78,31 @@ async function load(period: ReportPeriod): Promise<VendorReport> {
       value: total,
       format: 'number',
       delta: seriesDelta(cumulative, 'total'),
+      noDeltaLabel: 'No comparison yet',
     },
-    { key: 'active', label: 'Active vendors', value: active, format: 'number', delta: null },
+    {
+      key: 'active',
+      label: 'Active vendors',
+      value: active,
+      format: 'number',
+      delta: null,
+      noDeltaLabel: 'Live total',
+    },
     {
       key: 'new',
       label: 'New this period',
       value: totalNew,
       format: 'number',
       delta: seriesDelta(signups, 'signups'),
+      noDeltaLabel: 'No comparison yet',
     },
     {
       key: 'rate',
       label: 'Growth rate',
       value: total > 0 ? totalNew / total : 0,
       format: 'percent',
-      delta: seriesDelta(signups, 'signups'),
+      delta: seriesDelta(growthRate, 'rate'),
+      noDeltaLabel: 'No comparison yet',
     },
   ];
 

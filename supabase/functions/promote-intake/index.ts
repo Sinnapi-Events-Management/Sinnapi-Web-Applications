@@ -5,6 +5,16 @@
 // create the vendor + trial subscription in one step. The intake is linked and
 // marked 'approved'.
 //
+// ONE VENDOR PER OWNER
+// Promotion refuses an applicant who already owns a live vendor. `approve_vendor`
+// inserts into `vendors` unconditionally, so approving two intakes from the same
+// person used to create two live listings and two trial subscriptions — and the
+// vendor portal resolves the signed-in vendor with `.maybeSingle()` on
+// `owner_id`, which errors on a second row and locks them out entirely.
+// `ux_vendors_one_live_per_owner` enforces this in the schema; the check here
+// exists so the reviewer gets a message instead of a constraint violation raised
+// after an application row has already been written. See `resolveApplicantAccount`.
+//
 // Why an Edge Function (not a SQL RPC): promotion creates an `auth.users` row
 // (only the service_role auth-admin API can do that), while `approve_vendor`
 // must run as the calling admin (its `has_permission('vendor.approve')` check
@@ -16,6 +26,7 @@
 //                       PUBLIC_SITE_URL when unset.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, userClient, requireUser, HttpError } from '../_shared/supabase.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { generatePassword } from '../_shared/password.ts';
 import { sendEmail, PUBLIC_SITE_URL } from '../_shared/email.ts';
 import { vendorApprovedEmail } from './emails.ts';
@@ -23,6 +34,123 @@ import { vendorApprovedEmail } from './emails.ts';
 type Body = { intakeId?: string };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Applicant = { email: string; ownerFullName: string | null; ownerPhone: string };
+
+/**
+ * Resolve the account the vendor will be created under, and the one-time
+ * password (if any) the approval email must carry.
+ *
+ * `tempPassword` is non-null whenever the recipient has no other way in — a
+ * brand new account, or an existing one that has never been signed into. It is
+ * null only for an account already in use, which keeps its own password.
+ *
+ * WHY THIS IS NOT JUST "REUSE IF THE EMAIL EXISTS"
+ * That is what it used to be, and it produced the incident this code now guards
+ * against. One applicant submitted three times, compliance approved two of
+ * them, and the second approval found the profile the FIRST had created — so it
+ * reused the account, sent no password, and switched the email to "you already
+ * have an account". The applicant had no credential and nobody could explain
+ * why. Two rules fix it:
+ *
+ *   1. An owner who already has a live vendor is refused outright. The second
+ *      approval should never have been possible.
+ *   2. Reuse only skips the password when the account has actually been used.
+ *      Never-signed-in means the credential never arrived, so issue a fresh one.
+ */
+async function resolveApplicantAccount(
+  admin: SupabaseClient,
+  a: Applicant,
+): Promise<{ applicantId: string; tempPassword: string | null }> {
+  const { data: existingProfile, error: profErr } = await admin
+    .from('profiles')
+    .select('id, last_login_at')
+    .eq('email', a.email)
+    .limit(1)
+    .maybeSingle();
+  if (profErr) throw new HttpError(400, profErr.message);
+
+  if (!existingProfile) {
+    // A one-time password provisioned server-side (never through the browser),
+    // delivered by the approval email — same contract as create-staff.
+    const tempPassword = generatePassword(16);
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email: a.email,
+      password: tempPassword,
+      email_confirm: true,
+      // `handle_new_user` mirrors full_name + phone into the profile. Phone is
+      // NOT set on auth.users: that field is the SMS/OTP identity, is uniquely
+      // constrained and expects a confirmation flow.
+      user_metadata: {
+        full_name: a.ownerFullName,
+        phone: a.ownerPhone || null,
+        must_change_password: true,
+      },
+    });
+    if (createErr || !created?.user) {
+      throw new HttpError(400, `account_creation_failed:${createErr?.message ?? 'unknown'}`);
+    }
+    return { applicantId: created.user.id, tempPassword };
+  }
+
+  // --- Rule 1: refuse a second vendor for the same owner, before any write.
+  //
+  // `approve_vendor` does an unconditional insert into `vendors`, so approving
+  // two intakes from one applicant produced two live, publicly listed vendors
+  // and two trial subscriptions. Worse, `VendorProvider` resolves the signed-in
+  // vendor with `.maybeSingle()` on `owner_id`, which ERRORS on a second row —
+  // the owner is locked out of their own portal while their business sits
+  // approved and visible.
+  //
+  // `ux_vendors_one_live_per_owner` now makes that state impossible in the
+  // schema, but a unique violation raised from inside approve_vendor would reach
+  // the reviewer as raw SQL, after an application row had already been written.
+  // Refusing here fails cleanly, with a message naming the vendor in the way.
+  const { data: liveVendor, error: vendorErr } = await admin
+    .from('vendors')
+    .select('id, business_name')
+    .eq('owner_id', existingProfile.id)
+    .is('deleted_at', null)
+    .limit(1)
+    .maybeSingle();
+  if (vendorErr) throw new HttpError(400, vendorErr.message);
+  if (liveVendor) {
+    throw new HttpError(
+      409,
+      `owner_already_has_vendor:${liveVendor.business_name ?? liveVendor.id}`,
+    );
+  }
+
+  // --- Rule 2: an account that has never been signed into gets a fresh
+  // credential, because whatever it holds demonstrably never got used.
+  //
+  // An account that HAS been signed into keeps its password: that is a client
+  // upgrading to a vendor, and silently replacing a password they chose is not
+  // ours to do. `resend-vendor-credentials` covers that case on request, on this
+  // same never-signed-in rule.
+  if (existingProfile.last_login_at) {
+    return { applicantId: existingProfile.id, tempPassword: null };
+  }
+
+  const tempPassword = generatePassword(16);
+  const { data: authUser } = await admin.auth.admin.getUserById(existingProfile.id);
+  const meta = { ...(authUser?.user?.user_metadata ?? {}), must_change_password: true };
+  const { error: pwErr } = await admin.auth.admin.updateUserById(existingProfile.id, {
+    password: tempPassword,
+    user_metadata: meta,
+    // A pre-existing unconfirmed account could not use even a valid password.
+    email_confirm: true,
+  });
+  if (pwErr) {
+    // Non-fatal: the promotion is still correct and an admin can re-issue from
+    // the console. Reporting null here means the email falls back to the
+    // "you already have an account" copy, so the failure is logged loudly.
+    console.error('[PROMOTE-INTAKE] credential reissue failed:', pwErr.message);
+    return { applicantId: existingProfile.id, tempPassword: null };
+  }
+
+  return { applicantId: existingProfile.id, tempPassword };
+}
 
 Deno.serve(
   handler(async (req) => {
@@ -56,51 +184,20 @@ Deno.serve(
       return json(req, { applicationId: intake.promoted_application_id, duplicate: true }, 200);
     }
     if (intake.status === 'rejected') throw new HttpError(409, 'intake_rejected');
+    // A withdrawn intake was superseded by a newer submission from the same
+    // applicant, or retired by an admin. Approving it would promote details the
+    // applicant has already replaced — and, if the replacement is approved too,
+    // create the second vendor this whole change exists to prevent.
+    if (intake.status === 'withdrawn') throw new HttpError(409, 'intake_withdrawn');
 
-    // --- Resolve the applicant's account: reuse an existing profile by email,
-    // otherwise create an auth user (the `handle_new_user` trigger mirrors it
-    // into `profiles` and assigns the default role).
+    // --- Resolve the applicant's account (see `resolveApplicantAccount`).
     const email = String(intake.owner_email).trim().toLowerCase();
-    let applicantId: string;
-    // Non-null only when we provision the account here — an applicant who
-    // already had a Sinnapi account keeps their own password untouched, and the
-    // approval email says so instead of shipping a credential they didn't need.
-    let tempPassword: string | null = null;
-
-    const { data: existingProfile, error: profErr } = await admin
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .limit(1)
-      .maybeSingle();
-    if (profErr) throw new HttpError(400, profErr.message);
-
     const ownerPhone = String(intake.owner_phone ?? '').trim();
-
-    if (existingProfile) {
-      applicantId = existingProfile.id;
-    } else {
-      // A one-time password provisioned server-side (never through the browser),
-      // delivered by the approval email below — same contract as create-staff.
-      tempPassword = generatePassword(16);
-      const { data: created, error: createErr } = await admin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-        // `handle_new_user` mirrors full_name + phone into the profile. Phone is
-        // NOT set on auth.users: that field is the SMS/OTP identity, is uniquely
-        // constrained and expects a confirmation flow.
-        user_metadata: {
-          full_name: intake.owner_full_name ?? null,
-          phone: ownerPhone || null,
-          must_change_password: true,
-        },
-      });
-      if (createErr || !created?.user) {
-        throw new HttpError(400, `account_creation_failed:${createErr?.message ?? 'unknown'}`);
-      }
-      applicantId = created.user.id;
-    }
+    const { applicantId, tempPassword } = await resolveApplicantAccount(admin, {
+      email,
+      ownerFullName: intake.owner_full_name ?? null,
+      ownerPhone,
+    });
 
     // The trigger only fires for accounts we just created, so a promotion onto a
     // pre-existing profile (or one created before phone was carried through)

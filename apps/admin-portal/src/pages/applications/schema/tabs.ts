@@ -37,6 +37,7 @@ const EMPTY_MESSAGES: Record<IntakeTabValue, string> = {
   reviewing: 'No applications are currently in review.',
   approved: 'No applications have been approved yet.',
   rejected: 'No applications have been rejected.',
+  withdrawn: 'No applications have been withdrawn or superseded.',
 };
 
 /**
