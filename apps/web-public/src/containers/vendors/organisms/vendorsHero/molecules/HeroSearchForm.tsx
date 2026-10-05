@@ -14,9 +14,12 @@ import { useVendorsSearchInput } from '../../../hooks/useVendorsSearchInput';
  * which a div with an onChange gives you. Submit's own job is small: flush the
  * pending debounce and scroll the results into view, since on a hero this tall
  * the grid the visitor just asked for is off screen.
+ *
+ * Emptying the box — by backspace or by the ✕ — resets the whole view rather
+ * than just the search term; see `useVendorsSearchInput` for why.
  */
 export default function HeroSearchForm() {
-  const { value, setValue, submit, clear } = useVendorsSearchInput();
+  const { value, setValue, submit, clear, clearsFilters } = useVendorsSearchInput();
 
   return (
     <Paper
@@ -52,7 +55,14 @@ export default function HeroSearchForm() {
         sx={{ '& .MuiInputBase-input': { py: 1, fontSize: '1rem' } }}
       />
       {value && (
-        <IconButton aria-label="Clear search" size="small" onClick={clear}>
+        <IconButton
+          // Emptying the box drops the facets too, so the accessible name has
+          // to say so when there are any — "Clear search" would understate it.
+          aria-label={clearsFilters ? 'Clear search and filters' : 'Clear search'}
+          title={clearsFilters ? 'Clear search and filters' : 'Clear search'}
+          size="small"
+          onClick={clear}
+        >
           <Close fontSize="small" />
         </IconButton>
       )}

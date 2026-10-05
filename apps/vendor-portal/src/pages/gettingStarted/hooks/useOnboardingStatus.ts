@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useVendorBankAccount, useVendorCoverage } from '@/hooks/queries';
+import { useVendorCoverage } from '@/hooks/queries';
 import { listingChecks, listingPercent } from '@/lib/listingCompleteness';
 import { REQUIRED_STEPS, STEPS, type StepKey } from '../schema/steps';
 
@@ -61,10 +61,6 @@ export function useOnboardingStatus(vendorId: string | undefined) {
   });
 
   const coverage = useVendorCoverage(vendorId);
-  // The row itself, never the number: `vendor_bank_accounts` only ever hands the
-  // client the last four digits, and onboarding needs nothing more than whether
-  // a payout destination exists.
-  const bank = useVendorBankAccount(vendorId);
 
   const vendor = vendorQuery.data ?? null;
   const regionCount = coverage.data?.length ?? 0;
@@ -80,7 +76,8 @@ export function useOnboardingStatus(vendorId: string | undefined) {
     story: !!vendor?.biography && vendor?.starting_price != null,
     coverage: regionCount > 0,
     photo: !!vendor?.profile_image_url,
-    verification: !!vendor?.national_id_path && !!bank.data,
+    // Optional, so this only decides the tick and the meter — never the gate.
+    verification: !!vendor?.national_id_path,
     // Nothing here is required, so "done" only decides the tick and the meter.
     showcase: !!vendor?.primary_image_url || hasSocial,
   };
@@ -92,7 +89,6 @@ export function useOnboardingStatus(vendorId: string | undefined) {
   return {
     vendor,
     done,
-    hasBankAccount: !!bank.data,
     /** The first step still missing something, or null when everything is in. */
     firstIncomplete: STEPS.find((s) => !done[s.key])?.key ?? null,
     /**
@@ -102,7 +98,7 @@ export function useOnboardingStatus(vendorId: string | undefined) {
     isComplete: REQUIRED_STEPS.every((s) => done[s.key]),
     /** The shared listing score — identical to the Profile header's. */
     percent: vendor ? listingPercent(checks) : 0,
-    isLoading: vendorQuery.isLoading || coverage.isLoading || bank.isLoading,
-    error: vendorQuery.error ?? coverage.error ?? bank.error,
+    isLoading: vendorQuery.isLoading || coverage.isLoading,
+    error: vendorQuery.error ?? coverage.error,
   };
 }

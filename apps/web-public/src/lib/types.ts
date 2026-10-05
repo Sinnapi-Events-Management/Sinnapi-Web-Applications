@@ -334,3 +334,34 @@ export type PublicOfferModel = PublicVendorOfferModel & {
 
 /** A service category with both identifiers: the key for URLs, the id for RPCs. */
 export type CategoryOption = { id: string; key: string; name: string };
+
+/**
+ * One row of the navbar type-ahead, from `search_suggestions_public`.
+ *
+ * Two record kinds share one shape because the dropdown renders them in one
+ * list: `kind` decides the icon, the section it falls under and the route a
+ * click follows (`/vendors/<slug>` or `/events/<id>`). `slug` is therefore
+ * non-null exactly when `kind` is 'vendor' — the discriminated union below is
+ * what makes that a compile-time fact rather than a convention.
+ */
+export type SuggestionRow = {
+  kind: 'vendor' | 'event';
+  id: string;
+  slug: string | null;
+  label: string;
+  sublabel: string | null;
+  image_url: string | null;
+  /**
+   * How the row was matched: 4 name-prefix · 3 name-infix · 2 place ·
+   * 1 category · 0 fuzzy. The panel uses it to decide whether the typed text
+   * can be highlighted inside the label at all — on a fuzzy row ("Photography"
+   * for "photographer") there is no literal substring to mark.
+   */
+  tier: number;
+};
+
+/** A suggestion narrowed to a vendor, where `slug` is guaranteed present. */
+export type VendorSuggestion = SuggestionRow & { kind: 'vendor'; slug: string };
+
+/** A suggestion narrowed to an event, routed by id. */
+export type EventSuggestion = SuggestionRow & { kind: 'event' };

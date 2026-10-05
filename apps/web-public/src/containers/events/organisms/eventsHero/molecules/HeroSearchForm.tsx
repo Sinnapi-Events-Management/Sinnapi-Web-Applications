@@ -19,9 +19,12 @@ import { useEventsSearchInput } from '../../../hooks/useEventsSearchInput';
  * The hidden inputs that used to carry the active facets through a GET
  * navigation are gone with the navigation itself — filters live in the URL and
  * are never cleared by a search, so there is nothing left to carry.
+ *
+ * Emptying the box — by backspace or by the ✕ — resets the whole view rather
+ * than just the search term; see `useEventsSearchInput` for why.
  */
 export default function HeroSearchForm({ typeOptions }: { typeOptions: FilterOption[] }) {
-  const { value, setValue, submit, clear } = useEventsSearchInput(typeOptions);
+  const { value, setValue, submit, clear, clearsFilters } = useEventsSearchInput(typeOptions);
 
   return (
     <Paper
@@ -57,7 +60,14 @@ export default function HeroSearchForm({ typeOptions }: { typeOptions: FilterOpt
         sx={{ '& .MuiInputBase-input': { py: 1, fontSize: '1rem' } }}
       />
       {value && (
-        <IconButton aria-label="Clear search" size="small" onClick={clear}>
+        <IconButton
+          // Emptying the box drops the facets too, so the accessible name has
+          // to say so when there are any — "Clear search" would understate it.
+          aria-label={clearsFilters ? 'Clear search and filters' : 'Clear search'}
+          title={clearsFilters ? 'Clear search and filters' : 'Clear search'}
+          size="small"
+          onClick={clear}
+        >
           <Close fontSize="small" />
         </IconButton>
       )}

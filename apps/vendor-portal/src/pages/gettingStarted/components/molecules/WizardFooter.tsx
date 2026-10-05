@@ -9,10 +9,9 @@ type Props = {
   disabled?: boolean;
   /**
    * The id of the form this button submits, for a step whose footer sits OUTSIDE
-   * that form. A step carrying a second, independent form (the payout step does)
-   * cannot nest them — HTML has no nested forms, and the browser silently drops
-   * the inner one, so its submit button ends up submitting the outer form. The
-   * `form` attribute is how a button reaches its form without containing it.
+   * that form — the verification step, whose uploads commit on their own and so
+   * are not wrapped by the form the footer submits. The `form` attribute is how
+   * a button reaches its form without being contained by it.
    */
   formId?: string;
   saving: boolean;
