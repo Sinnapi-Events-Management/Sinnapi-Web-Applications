@@ -96,7 +96,7 @@ function EmptyPortfolio({ vendorName }: { vendorName: string }) {
       <PhotoLibraryOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
       <Typography variant="subtitle1">No photos or videos yet</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        {vendorName} hasn’t published a portfolio here. Message them and ask to see recent work.
+        {vendorName} hasn’t published a portfolio here yet.
       </Typography>
     </Paper>
   );

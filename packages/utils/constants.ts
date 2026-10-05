@@ -23,3 +23,20 @@ export const CONTACT = {
 } as const;
 
 export type Contact = typeof CONTACT;
+
+/** Shared client-side feature switches for portal experiences. */
+export const FEATURES = {
+  // Set true to restore client-vendor messaging in both portal frontends.
+  clientVendorMessaging: false,
+} as const;
+
+export function isClientVendorMessageNotification(notification: {
+  triggerKey: string;
+  data: Record<string, unknown> | null;
+}): boolean {
+  return (
+    !FEATURES.clientVendorMessaging &&
+    notification.triggerKey.startsWith('message.') &&
+    notification.data?.conversation_type === 'client_vendor'
+  );
+}

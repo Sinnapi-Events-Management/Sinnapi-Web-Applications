@@ -1,5 +1,6 @@
 import { Button } from '@sinnapi/ui';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import { FEATURES } from '@sinnapi/utils/constants';
 
 type Props = {
   onClick: () => void;
@@ -32,6 +33,8 @@ export default function MessageClientButton({
   label = 'Message client',
   fullWidth,
 }: Props) {
+  if (!FEATURES.clientVendorMessaging) return null;
+
   return (
     <Button
       variant={emphasis === 'primary' ? 'contained' : 'outlined'}

@@ -19,7 +19,7 @@ export default function Notifications() {
     <>
       <PageTitle
         title="Notifications"
-        subtitle="Alerts about your bookings, quotes, payouts and client messages."
+        subtitle="Alerts about your bookings, quotes, payouts and Sinnapi support."
         action={
           counts.unread > 0 ? (
             <Button

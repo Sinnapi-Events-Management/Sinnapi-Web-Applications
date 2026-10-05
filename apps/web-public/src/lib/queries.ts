@@ -22,6 +22,7 @@ import type {
   PublicVendorOfferModel,
   PublicOfferModel,
   CategoryOption,
+  SuggestionRow,
 } from './types';
 
 // Public columns only — vendor email/phone are intentionally excluded everywhere.
@@ -588,4 +589,52 @@ export async function listPlanFeatures(): Promise<PlanFeatureModel[]> {
   const { data, error } = await supa.rpc('list_plan_features_public');
   if (error) throw error;
   return (data ?? []) as PlanFeatureModel[];
+}
+
+/**
+ * Shortest query the suggestion RPC will answer.
+ *
+ * One letter matches a large slice of the marketplace, which is a useless
+ * dropdown and an expensive scan, so both ends enforce the floor: the client
+ * so it never makes the request, the function so a caller that is not this
+ * client cannot either.
+ */
+export const SUGGEST_MIN_CHARS = 2;
+
+/**
+ * Type-ahead rows for the navbar search: a few vendors, then a few events.
+ *
+ * Deliberately not `searchPublicVendors` with a small limit. That RPC pages,
+ * window-counts and decorates each row with its category array for a result
+ * grid, which is a lot of work to repeat on a debounce; and its text predicate
+ * cannot answer the case this feature exists for — it matches `search_tsv` as
+ * a prefix query, so an over-typed word ("photographer" against a vendor
+ * listed as "… Photography") returns nothing. `search_suggestions_public`
+ * falls back to trigram word-similarity for exactly that.
+ *
+ * Below the floor it resolves to `[]` without a round trip, so the caller can
+ * keep the query mounted and let the key change do the work.
+ *
+ * Returns `[]` on failure rather than throwing, unlike the grid reads. A
+ * dropdown is an accelerator, not the page: a suggestion outage should leave
+ * the visitor with a search box that still submits, not an error state
+ * hanging under the navbar.
+ */
+export async function getSearchSuggestions(
+  q: string,
+  { vendorLimit = 6, eventLimit = 4 } = {},
+): Promise<SuggestionRow[]> {
+  const term = q.trim();
+  if (term.length < SUGGEST_MIN_CHARS) return [];
+
+  const supa = createPublicClient();
+  if (!supa) return [];
+
+  const { data, error } = await supa.rpc('search_suggestions_public', {
+    p_q: term,
+    p_vendor_limit: vendorLimit,
+    p_event_limit: eventLimit,
+  });
+  if (error) return [];
+  return (data ?? []) as SuggestionRow[];
 }

@@ -46,7 +46,7 @@ export default function VendorOverviewSection({ vendor }: { vendor: VendorDetail
         ) : (
           <Typography color="text.secondary" sx={{ lineHeight: 1.8, maxWidth: '70ch' }}>
             {vendor.business_name} hasn’t written an introduction yet. Their work, pricing and
-            availability are in the sections above — or message them and ask.
+            availability are in the sections above.
           </Typography>
         )}
       </Stack>

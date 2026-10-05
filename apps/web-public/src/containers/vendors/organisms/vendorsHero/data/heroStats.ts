@@ -5,6 +5,6 @@
  */
 export const HERO_STATS: { value: string; label: string }[] = [
   { value: '500+', label: 'Verified vendors' },
-  { value: '12', label: 'Service categories' },
+  { value: '55', label: 'Service categories' },
   { value: '4.8★', label: 'Average rating' },
 ];

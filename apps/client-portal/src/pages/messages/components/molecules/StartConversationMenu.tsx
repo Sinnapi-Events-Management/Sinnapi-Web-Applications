@@ -3,6 +3,7 @@ import { Button, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress } 
 import AddCommentIcon from '@mui/icons-material/AddComment';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import { FEATURES } from '@sinnapi/utils/constants';
 
 type Props = {
   onMessageVendor: () => void;
@@ -18,9 +19,8 @@ type Props = {
  * This is the control the client inbox never had: the old page told people to
  * "message a vendor from their profile" and then offered no way to do it,
  * which left the Sinnapi team unreachable entirely. Both destinations are named
- * here because they are genuinely different errands — a question for a vendor
- * about a quote, and a question for the platform about a payment — and burying
- * either behind the other loses one of them.
+ * here because they are genuinely different errands — marketplace messaging is
+ * shown only while enabled, while support stays available independently.
  */
 export default function StartConversationMenu({
   onMessageVendor,
@@ -29,6 +29,8 @@ export default function StartConversationMenu({
   compact = false,
 }: Props) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  let buttonLabel = 'Contact support';
+  if (FEATURES.clientVendorMessaging) buttonLabel = compact ? 'New' : 'New message';
 
   function pick(action: () => void) {
     setAnchor(null);
@@ -40,25 +42,35 @@ export default function StartConversationMenu({
       <Button
         variant="contained"
         color="secondary"
-        onClick={(e) => setAnchor(e.currentTarget)}
+        onClick={(e) =>
+          FEATURES.clientVendorMessaging ? setAnchor(e.currentTarget) : onContactSupport()
+        }
         disabled={busy}
         startIcon={busy ? <CircularProgress size={16} color="inherit" /> : <AddCommentIcon />}
         sx={{ whiteSpace: 'nowrap', minWidth: 0 }}
-        aria-label="Start a new conversation"
+        aria-label={
+          FEATURES.clientVendorMessaging ? 'Start a new conversation' : 'Contact Sinnapi support'
+        }
       >
-        {compact ? 'New' : 'New message'}
+        {buttonLabel}
       </Button>
 
-      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
-        <MenuItem onClick={() => pick(onMessageVendor)}>
-          <ListItemIcon>
-            <StorefrontIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary="Message a vendor"
-            secondary="Someone you have a booking or quote with"
-          />
-        </MenuItem>
+      <Menu
+        anchorEl={anchor}
+        open={FEATURES.clientVendorMessaging && !!anchor}
+        onClose={() => setAnchor(null)}
+      >
+        {FEATURES.clientVendorMessaging && (
+          <MenuItem onClick={() => pick(onMessageVendor)}>
+            <ListItemIcon>
+              <StorefrontIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Message a vendor"
+              secondary="Someone you have a booking or quote with"
+            />
+          </MenuItem>
+        )}
         <MenuItem onClick={() => pick(onContactSupport)}>
           <ListItemIcon>
             <SupportAgentIcon fontSize="small" />

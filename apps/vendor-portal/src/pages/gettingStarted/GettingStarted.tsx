@@ -99,9 +99,7 @@ export default function GettingStarted() {
             {step.key === 'photo' && (
               <PhotoStep {...stepProps} onDeferPhoto={deferPhoto} deferred={photoDeferred} />
             )}
-            {step.key === 'verification' && (
-              <VerificationStep {...stepProps} hasBankAccount={status.hasBankAccount} />
-            )}
+            {step.key === 'verification' && <VerificationStep {...stepProps} />}
             {step.key === 'showcase' && <ShowcaseStep {...stepProps} />}
           </>
         )}

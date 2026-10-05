@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { ConversationView } from '@sinnapi/ui/messaging';
 import { useConversationViews } from '@/hooks/messaging/useConversationViews';
 import { useMessagingSync } from '@/hooks/messaging/useMessagingSync';
@@ -32,7 +33,9 @@ export function useQuotationConversation(
   vendorId: string | null | undefined,
   { isActive }: { isActive: boolean },
 ) {
-  const { conversations, isLoading } = useConversationViews();
+  const { conversations, isLoading } = useConversationViews({
+    enabled: FEATURES.clientVendorMessaging,
+  });
   const start = useStartConversation();
 
   const conversation = useMemo<ConversationView | null>(() => {
@@ -53,9 +56,15 @@ export function useQuotationConversation(
    * `channelSeq` in `useMessagingRealtime`, which exists precisely because the
    * shell and an open thread subscribe at the same time.
    */
-  useMessagingSync(conversation?.id ?? null, { enabled: isActive && !!conversation });
+  useMessagingSync(conversation?.id ?? null, {
+    enabled: FEATURES.clientVendorMessaging && isActive && !!conversation,
+  });
 
-  const open = useCallback(() => start.messageVendorInPlace(vendorId), [start, vendorId]);
+  const open = useCallback(
+    () =>
+      FEATURES.clientVendorMessaging ? start.messageVendorInPlace(vendorId) : Promise.resolve(null),
+    [start, vendorId],
+  );
 
   return {
     conversation,

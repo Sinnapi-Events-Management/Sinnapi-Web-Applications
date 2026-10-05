@@ -1,6 +1,6 @@
 import { Box, Container, Stack, Divider } from '@sinnapi/ui/atoms';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
-import NavSearchForm from '@/components/molecules/navSearchForm';
+import NavSearch from '@/components/organisms/navSearch';
 import SocialLinks from '@/components/molecules/socialLinks';
 import NavContactLinks from './NavContactLinks';
 
@@ -47,7 +47,7 @@ export default function NavTopBar({ transparent = false }: { transparent?: boole
           sx={{ gap: 2, py: 1 }}
         >
           <Box sx={{ flexGrow: { xs: 1, lg: 0 }, width: { xs: '100%', lg: 380 } }}>
-            <NavSearchForm transparent sx={{ width: '100%' }} />
+            <NavSearch transparent sx={{ width: '100%' }} />
           </Box>
 
           <Stack

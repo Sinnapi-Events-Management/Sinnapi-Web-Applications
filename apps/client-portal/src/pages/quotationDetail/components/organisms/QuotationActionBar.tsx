@@ -1,5 +1,6 @@
 import { Alert, QuotationActionDialog, SectionCard, Typography } from '@sinnapi/ui';
 import BoltIcon from '@mui/icons-material/Bolt';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { QuotationDetailModel } from '@/lib/types';
 import { useQuotationActions } from '../../hooks/useQuotationActions';
 import QuotationActionButtons from '../molecules/QuotationActionButtons';
@@ -13,13 +14,8 @@ type Props = { quotation: QuotationDetailModel };
  * not be described as if they were.
  */
 const BLOCKED_COPY: Record<'lapsed' | 'unpriced', string> = {
-  lapsed:
-    'This quote has passed its valid-until date, so it can no longer be accepted. Message the ' +
-    'vendor to ask for a fresh one.',
-  unpriced:
-    'This quote does not have a price on it, so there is nothing here to accept. Message the ' +
-    'vendor and ask them to send the priced quote — accepting an empty one would create a ' +
-    'booking worth nothing.',
+  lapsed: `This quote has passed its valid-until date, so it can no longer be accepted. ${FEATURES.clientVendorMessaging ? 'Message the vendor to ask for a fresh one.' : 'A fresh quote will be needed.'}`,
+  unpriced: `This quote does not have a price on it, so there is nothing here to accept. ${FEATURES.clientVendorMessaging ? 'Message the vendor and ask them to send the priced quote' : 'A priced quote will be needed'} — accepting an empty one would create a booking worth nothing.`,
 };
 
 /**

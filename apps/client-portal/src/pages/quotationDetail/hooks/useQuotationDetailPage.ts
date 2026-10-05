@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { useUrlTab } from '@sinnapi/ui/router';
 import { QUOTATION_TABS } from '../schema';
 import { useQuotationBooking } from './useQuotationBooking';
@@ -31,6 +32,10 @@ import { useQuotationConversation } from './useQuotationConversation';
 export function useQuotationDetailPage() {
   const detail = useQuotationDetail();
   const { tab, setTab } = useUrlTab(QUOTATION_TABS);
+
+  useEffect(() => {
+    if (!FEATURES.clientVendorMessaging && tab === 'messages') setTab('overview');
+  }, [tab, setTab]);
 
   const feedback = useQuotationFeedback(detail.quotation);
   const booking = useQuotationBooking(detail.quotation, detail.pricing);

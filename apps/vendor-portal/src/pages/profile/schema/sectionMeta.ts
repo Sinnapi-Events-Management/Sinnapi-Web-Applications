@@ -83,7 +83,7 @@ export const PERSONAL_SECTION_META: Record<PersonalSectionKey, SectionMeta> = {
   photo: {
     label: 'Photo',
     title: 'Profile photo',
-    subtitle: 'Shown beside your messages to clients. Saves as soon as you pick it.',
+    subtitle: 'Used to identify your account. Saves as soon as you pick it.',
     icon: createElement(PhotoCameraIcon),
   },
   account: {

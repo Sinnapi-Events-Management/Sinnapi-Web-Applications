@@ -27,8 +27,8 @@ export default function NextAvailableCallout({ date, inView, onShowMonth, onRequ
   if (!date) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-        This vendor has no open days in the year ahead. Message them — they may be able to
-        rearrange, or suggest someone who can help.
+        This vendor has no open days in the year ahead. Try another vendor or check back later for
+        updated availability.
       </Typography>
     );
   }

@@ -114,6 +114,8 @@ export interface PortalMenuFeed {
  */
 export interface PortalMessagesFeed extends PortalMenuFeed {
   conversations: ConversationView[];
+  /** Label for the message centre, e.g. a support-only inbox. */
+  label?: string;
   /** Who is reading — decides how a conversation type is labelled. */
   audience: MessagingAudience;
   onSelect: (conversationId: string) => void;

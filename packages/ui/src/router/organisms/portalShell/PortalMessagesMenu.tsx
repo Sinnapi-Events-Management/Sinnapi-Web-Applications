@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Stack } from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ForumIcon from '@mui/icons-material/Forum';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import { PortalAlertsToggle } from './PortalAlertsToggle';
 import { PortalBadgeButton } from './PortalBadgeButton';
 import { PortalMenuFooterLink } from './PortalMenuFooterLink';
@@ -36,6 +37,7 @@ export type PortalMessagesMenuProps = {
 export function PortalMessagesMenu({ feed }: PortalMessagesMenuProps) {
   const menu = useBadgeMenu({ onOpen: feed.onOpen });
   const pulse = useUnreadPulse(feed.unread);
+  const label = feed.label ?? 'Messages';
 
   const rows = useMemo(() => previewConversations(feed.conversations), [feed.conversations]);
 
@@ -47,8 +49,8 @@ export function PortalMessagesMenu({ feed }: PortalMessagesMenuProps) {
   return (
     <>
       <PortalBadgeButton
-        icon={<ChatBubbleOutlineIcon />}
-        label="Messages"
+        icon={label === 'Messages' ? <ChatBubbleOutlineIcon /> : <SupportAgentIcon />}
+        label={label}
         count={feed.unread}
         color="primary"
         open={menu.open}
@@ -60,13 +62,26 @@ export function PortalMessagesMenu({ feed }: PortalMessagesMenuProps) {
         anchorEl={menu.anchor}
         open={menu.open}
         onClose={menu.onClose}
-        title="Messages"
-        subtitle={unreadSummary(feed.unread, 'message', 'messages')}
+        title={label}
+        subtitle={
+          label === 'Messages'
+            ? unreadSummary(feed.unread, 'message', 'messages')
+            : unreadSummary(feed.unread, 'support reply', 'support replies')
+        }
         headerAction={
-          feed.alerts && <PortalAlertsToggle alerts={feed.alerts} subject="new messages" />
+          feed.alerts && (
+            <PortalAlertsToggle
+              alerts={feed.alerts}
+              subject={label === 'Messages' ? 'new messages' : 'support replies'}
+            />
+          )
         }
         footer={
-          <PortalMenuFooterLink to={feed.to} label="View all messages" onNavigate={menu.onClose} />
+          <PortalMenuFooterLink
+            to={feed.to}
+            label={label === 'Messages' ? 'View all messages' : 'View support'}
+            onNavigate={menu.onClose}
+          />
         }
       >
         <PortalMessagesMenuBody feed={feed} rows={rows} onOpen={open} />
@@ -93,9 +108,15 @@ function PortalMessagesMenuBody({
   if (rows.length === 0) {
     return (
       <PortalMenuEmpty
-        icon={<ForumIcon />}
-        title="No conversations yet"
-        description="Messages from your bookings and quotes will appear here."
+        icon={feed.label === 'Sinnapi support' ? <SupportAgentIcon /> : <ForumIcon />}
+        title={
+          feed.label === 'Sinnapi support' ? 'No support conversations yet' : 'No conversations yet'
+        }
+        description={
+          feed.label === 'Sinnapi support'
+            ? 'Your conversations with the Sinnapi team will appear here.'
+            : 'Messages from your bookings and quotes will appear here.'
+        }
       />
     );
   }

@@ -1,12 +1,12 @@
 /**
  * The onboarding wizard's steps, in order.
  *
- * Five required steps, then one optional. Setup flows longer than about five
- * steps lose a large share of users between start and finish, so verification
- * and payout share one step — they are the same errand to a vendor ("prove who
- * you are and tell us where the money goes"), and that is how the old public
- * application grouped them too. Showcase sits last precisely because it is the
- * one step a vendor may leave: nothing behind it is blocked by skipping it.
+ * Four required steps, then two optional. Only what a client needs in order to
+ * find, judge and contact a vendor is required — business, offer, coverage,
+ * photo. Verification and showcase sit last because they are the two steps a
+ * vendor may leave: an ID is reviewed by our team on its own schedule and
+ * nothing in the portal waits on it, and nothing behind showcase is blocked by
+ * skipping it.
  *
  * `optional: true` is what puts a "Skip for now" in the footer, and what keeps a
  * step out of the completeness test that releases the rest of the portal.
@@ -51,8 +51,10 @@ export const STEPS: StepMeta[] = [
   {
     key: 'verification',
     label: 'Verification',
-    title: 'Verification and payout',
-    caption: 'Your ID stays private to our review team, and your bank details are encrypted.',
+    title: 'Verify your identity',
+    caption:
+      'Optional — your ID stays private to our review team. A verified badge helps clients trust you.',
+    optional: true,
   },
   {
     key: 'showcase',

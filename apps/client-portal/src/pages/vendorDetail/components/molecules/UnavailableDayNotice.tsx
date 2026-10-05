@@ -38,8 +38,8 @@ export default function UnavailableDayNotice({ date, nextOpen, onDismiss, onTake
     >
       <AlertTitle sx={{ mb: 0.25 }}>{formatIsoDateLong(date)} is unavailable</AlertTitle>
       <Typography variant="body2">
-        The vendor is already committed on this day. You can still message them — they may be able
-        to rearrange — but they are more likely to decline.
+        The vendor is already committed on this day and may be more likely to decline. Choose
+        another date or vendor.
       </Typography>
     </Alert>
   );

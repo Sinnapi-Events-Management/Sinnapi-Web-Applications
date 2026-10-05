@@ -17,6 +17,8 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
 export const APP = {
@@ -76,9 +78,14 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Inbox',
+    title: FEATURES.clientVendorMessaging ? 'Inbox' : 'Support & alerts',
     items: [
-      { label: 'Messages', to: '/messages', icon: ChatIcon, badgeKey: 'messages' },
+      {
+        label: FEATURES.clientVendorMessaging ? 'Messages' : 'Support',
+        to: '/messages',
+        icon: FEATURES.clientVendorMessaging ? ChatIcon : SupportAgentIcon,
+        badgeKey: 'messages',
+      },
       {
         label: 'Notifications',
         to: '/notifications',

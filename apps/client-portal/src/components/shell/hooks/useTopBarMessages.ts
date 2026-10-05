@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { PortalMessagesFeed } from '@sinnapi/ui/router';
 import { useDesktopNotifications } from '@sinnapi/ui/notifications';
 import type { MessageArrivalRow } from '@sinnapi/ui/messaging';
@@ -24,8 +25,15 @@ export function useTopBarMessages(): PortalMessagesFeed {
   const navigate = useNavigate();
   const [panelOpened, setPanelOpened] = useState(false);
 
-  const { data: unread = 0 } = useUnreadMessageCount();
-  const { conversations, isLoading, error } = useConversationViews({ enabled: panelOpened });
+  const { data: allUnread = 0 } = useUnreadMessageCount({
+    enabled: FEATURES.clientVendorMessaging,
+  });
+  const { conversations, isLoading, error } = useConversationViews({
+    enabled: panelOpened || !FEATURES.clientVendorMessaging,
+  });
+  const unread = FEATURES.clientVendorMessaging
+    ? allUnread
+    : conversations.reduce((total, conversation) => total + conversation.unreadCount, 0);
   const alerts = useDesktopNotifications({ storageKey: 'sinnapi.client.messageAlerts' });
 
   // Read inside a subscription callback, so it is held in a ref rather than
@@ -34,9 +42,14 @@ export function useTopBarMessages(): PortalMessagesFeed {
   const titles = useMemo(() => new Map(conversations.map((c) => [c.id, c.title])), [conversations]);
   const titlesRef = useRef(titles);
   titlesRef.current = titles;
+  const conversationIdsRef = useRef(new Set(conversations.map((conversation) => conversation.id)));
+  conversationIdsRef.current = new Set(conversations.map((conversation) => conversation.id));
 
   const onMessageArrived = useCallback(
     (row: MessageArrivalRow) => {
+      if (!FEATURES.clientVendorMessaging && !conversationIdsRef.current.has(row.conversation_id)) {
+        return;
+      }
       alerts.notify({
         // Falls back rather than waiting: the panel may never have been opened,
         // in which case no conversation list exists to name the sender from.
@@ -51,10 +64,17 @@ export function useTopBarMessages(): PortalMessagesFeed {
     [alerts, navigate],
   );
 
-  useMessagingSync(null, { onMessageArrived });
+  useMessagingSync(null, {
+    onMessageArrived,
+    conversationIds: FEATURES.clientVendorMessaging
+      ? undefined
+      : conversations.map((conversation) => conversation.id),
+    enabled: FEATURES.clientVendorMessaging || !isLoading,
+  });
 
   return {
     to: '/messages',
+    label: FEATURES.clientVendorMessaging ? 'Messages' : 'Sinnapi support',
     unread,
     conversations,
     audience: 'client',

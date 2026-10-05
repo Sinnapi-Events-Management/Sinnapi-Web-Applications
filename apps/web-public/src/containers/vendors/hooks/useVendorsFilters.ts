@@ -47,6 +47,26 @@ export function useVendorsFilters() {
     [search],
   );
 
+  /**
+   * What the address bar holds *right now* — not what the last render saw.
+   *
+   * Every write merges onto this rather than onto the memoised `params`,
+   * because the two can disagree for a beat: `useSearchParams` re-renders in a
+   * transition, so a debounced search landing just after a quick-filter tap
+   * would otherwise merge onto the pre-tap snapshot and silently drop the
+   * category the visitor had just chosen. Reading `window.location` makes the
+   * merge base the real URL, and keeps every setter below referentially stable
+   * — which matters for `setQuery`, whose identity changing mid-debounce used
+   * to restart the timer on every unrelated URL change.
+   */
+  const readParams = useCallback(
+    () =>
+      parseVendorsSearchParams(
+        Object.fromEntries(new URLSearchParams(window.location.search)) as VendorsSearchParams,
+      ),
+    [],
+  );
+
   const commit = useCallback((next: VendorsSearchParams, mode: 'push' | 'replace') => {
     const query = toQueryString(next);
     const url = query ? `?${query}` : window.location.pathname;
@@ -57,37 +77,47 @@ export function useVendorsFilters() {
   /** Sets one facet (empty value clears it). Every other filter is preserved. */
   const setFacet = useCallback(
     (key: FacetKey, value: string) => {
-      commit({ ...params, [key]: value || undefined }, 'push');
+      commit({ ...readParams(), [key]: value || undefined }, 'push');
     },
-    [commit, params],
+    [commit, readParams],
   );
 
   const setSort = useCallback(
     (value: string) => {
       // The default order is the absence of the param, not `sort=recommended`.
-      commit({ ...params, sort: value === DEFAULT_SORT ? undefined : value }, 'push');
+      commit({ ...readParams(), sort: value === DEFAULT_SORT ? undefined : value }, 'push');
     },
-    [commit, params],
+    [commit, readParams],
   );
 
   /** Debounced by the caller — see `useVendorsSearchInput`. */
   const setQuery = useCallback(
     (value: string) => {
-      commit({ ...params, q: value.trim() || undefined }, 'replace');
+      commit({ ...readParams(), q: value.trim() || undefined }, 'replace');
     },
-    [commit, params],
+    [commit, readParams],
   );
 
-  /** Clears the search and every facet. Sort is a preference, so it survives. */
+  /**
+   * Clears the search and every facet. Sort is a preference, so it survives.
+   *
+   * Guarded against the already-clear case off the *live* URL rather than off
+   * the render's `params`: the search box calls this the instant it is emptied,
+   * which can be the same frame a commit landed in, and a render-state guard
+   * would either push a history entry for a URL identical to the one showing or
+   * skip a clear that was genuinely needed.
+   */
   const clearAll = useCallback(() => {
-    commit({ sort: params.sort }, 'push');
-  }, [commit, params.sort]);
+    const current = readParams();
+    if (countActiveFilters(current) === 0) return;
+    commit({ sort: current.sort }, 'push');
+  }, [commit, readParams]);
 
   const clearFacet = useCallback(
     (key: FacetKey | 'q') => {
-      commit({ ...params, [key]: undefined }, 'push');
+      commit({ ...readParams(), [key]: undefined }, 'push');
     },
-    [commit, params],
+    [commit, readParams],
   );
 
   return {
@@ -95,6 +125,8 @@ export function useVendorsFilters() {
     /** Resolved numeric filters for the RPC / query keys. */
     filters: useMemo(() => toVendorFilters(params), [params]),
     activeFilters: countActiveFilters(params),
+    /** True when any dropdown/chip facet is narrowing the grid, search aside. */
+    hasFacets: FACET_KEYS.some((key) => Boolean(params[key])),
     isDefaultView: isDefaultView(params),
     facetKeys: FACET_KEYS,
     setFacet,

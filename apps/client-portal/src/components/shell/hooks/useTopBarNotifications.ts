@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isClientVendorMessageNotification } from '@sinnapi/utils/constants';
 import { MENU_PREVIEW_LIMIT, type PortalNotificationsFeed } from '@sinnapi/ui/router';
 import { toNotificationView, type NotificationView } from '@sinnapi/ui/notifications';
 import {
@@ -36,7 +37,13 @@ export function useTopBarNotifications(): PortalNotificationsFeed {
   const setRead = useSetNotificationsRead();
   const markAll = useMarkAllNotificationsRead();
 
-  const notifications = useMemo(() => rows.map(toNotificationView), [rows]);
+  const notifications = useMemo(
+    () =>
+      rows
+        .map(toNotificationView)
+        .filter((notification) => !isClientVendorMessageNotification(notification)),
+    [rows],
+  );
 
   const onSelect = (notification: NotificationView) => {
     if (notification.unread) setRead.mutate({ ids: [notification.id], read: true });

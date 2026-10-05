@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { ConversationView } from '@sinnapi/ui/messaging';
 import { titleize } from '@/lib/config';
 import { useConversations } from '@/hooks/queries';
@@ -44,10 +45,10 @@ export function useConversationViews({ enabled = true }: { enabled?: boolean } =
   const { user } = useAuth();
   const { data, isLoading, error } = useConversations({ enabled });
 
-  const conversations = useMemo(
-    () => (data ?? []).map((c) => toView(c, user?.id)),
-    [data, user?.id],
-  );
+  const conversations = useMemo(() => {
+    const views = (data ?? []).map((c) => toView(c, user?.id));
+    return FEATURES.clientVendorMessaging ? views : views.filter((c) => c.type !== 'client_vendor');
+  }, [data, user?.id]);
 
   return { conversations, isLoading, error };
 }

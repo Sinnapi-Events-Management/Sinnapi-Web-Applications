@@ -21,5 +21,6 @@ export * from './Tooltip';
 export * from './Skeleton';
 export * from './Progress';
 export * from './Paper';
+export * from './Overlay';
 export * from './Layout';
 export * from './FormControls';

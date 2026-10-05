@@ -6,6 +6,8 @@ import { useAuth } from '@/auth/AuthProvider';
 import { MESSAGING_KEYS } from '@/hooks/queries';
 
 export type MessagingSyncOptions = {
+  /** Limit global refreshes to known support conversations when required. */
+  conversationIds?: string[];
   /**
    * A message from someone else landed. Only the shell passes this — it is the
    * one subscriber mounted on every page, so it is the only one that can
@@ -37,7 +39,7 @@ export type MessagingSyncOptions = {
  */
 export function useMessagingSync(
   conversationId?: string | null,
-  { onMessageArrived, enabled = true }: MessagingSyncOptions = {},
+  { onMessageArrived, conversationIds, enabled = true }: MessagingSyncOptions = {},
 ) {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -64,6 +66,7 @@ export function useMessagingSync(
     client: supabase,
     currentUserId: user?.id,
     conversationId,
+    conversationIds,
     onInboxChange: refreshInbox,
     onThreadChange: refreshThread,
     onParticipantChange: refreshReadState,

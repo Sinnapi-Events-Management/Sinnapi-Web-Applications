@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isClientVendorMessageNotification } from '@sinnapi/utils/constants';
 import {
   toNotificationView,
   useNotificationFeed,
@@ -36,7 +37,11 @@ export function useNotifications() {
   const { data: unreadCount = 0, isLoading: unreadLoading } = useUnreadCount();
 
   const all = useMemo(
-    () => (data?.pages ?? []).flatMap((p) => p.rows).map(toNotificationView),
+    () =>
+      (data?.pages ?? [])
+        .flatMap((p) => p.rows)
+        .map(toNotificationView)
+        .filter((notification) => !isClientVendorMessageNotification(notification)),
     [data?.pages],
   );
   const total = data?.pages[0]?.total ?? 0;

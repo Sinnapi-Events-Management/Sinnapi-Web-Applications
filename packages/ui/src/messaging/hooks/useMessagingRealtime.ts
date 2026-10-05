@@ -57,6 +57,8 @@ export type UseMessagingRealtimeOptions = {
   currentUserId: string | undefined;
   /** The thread currently on screen, if any. */
   conversationId?: string | null;
+  /** Restrict inbox invalidations and arrivals to these conversations. */
+  conversationIds?: string[];
   /** A message landed in the open thread. */
   onThreadChange?: () => void;
   /** A message landed anywhere, or a conversation row moved. */
@@ -105,6 +107,7 @@ export function useMessagingRealtime({
   client,
   currentUserId,
   conversationId,
+  conversationIds,
   onThreadChange,
   onInboxChange,
   onParticipantChange,
@@ -129,6 +132,8 @@ export function useMessagingRealtime({
   // decides what a handler does, never what is subscribed to.
   const openThread = useRef(conversationId);
   openThread.current = conversationId;
+  const allowedConversations = useRef<Set<string> | null>(null);
+  allowedConversations.current = conversationIds ? new Set(conversationIds) : null;
 
   useEffect(() => {
     if (!enabled || !currentUserId) return;
@@ -144,6 +149,12 @@ export function useMessagingRealtime({
         old?: { conversation_id?: string };
       }) => {
         const affected = payload.new?.conversation_id ?? payload.old?.conversation_id;
+        if (
+          allowedConversations.current &&
+          (!affected || !allowedConversations.current.has(affected))
+        ) {
+          return;
+        }
         const open = openThread.current;
         // The inbox always cares: the row's preview, order and unread count all
         // move on any message the viewer is entitled to see.
@@ -165,8 +176,26 @@ export function useMessagingRealtime({
         }
       },
     )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () =>
-        inbox.current?.(),
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations' },
+        (payload: {
+          new?: { id?: string; type?: string };
+          old?: { id?: string; type?: string };
+        }) => {
+          const row = payload.new ?? payload.old;
+          if (row?.type === 'client_vendor') return;
+          if (
+            allowedConversations.current &&
+            row?.id &&
+            !allowedConversations.current.has(row.id) &&
+            row.type !== 'client_admin' &&
+            row.type !== 'vendor_admin'
+          ) {
+            return;
+          }
+          inbox.current?.();
+        },
       )
       .on(
         'postgres_changes',
@@ -178,7 +207,16 @@ export function useMessagingRealtime({
           // Another participant's last_read_at is not something we display.
           filter: `profile_id=eq.${currentUserId}`,
         },
-        () => participant.current?.(),
+        (payload: { new?: { conversation_id?: string }; old?: { conversation_id?: string } }) => {
+          const affected = payload.new?.conversation_id ?? payload.old?.conversation_id;
+          if (
+            allowedConversations.current &&
+            (!affected || !allowedConversations.current.has(affected))
+          ) {
+            return;
+          }
+          participant.current?.();
+        },
       )
       .on(
         'postgres_changes',

@@ -20,9 +20,20 @@ export const RESULTS_ANCHOR_ID = 'vendor-results';
  * apart from someone else's. When the toolbar's "Clear" wipes `q`, the URL no
  * longer matches what we last wrote, so the box adopts the new value; when the
  * change is just our own debounce landing, it doesn't fight the user's cursor.
+ *
+ * EMPTYING THE BOX IS A FULL RESET
+ * Backspacing the search away used to clear `q` and nothing else, which quietly
+ * stranded visitors: tapping a "Popular" chip under the box also sets
+ * `category`, so `?q=pho&category=photographer` survived as
+ * `?category=photographer`, and the next thing they typed was silently ANDed
+ * with a filter they had no memory of setting — usually to zero results. The
+ * toolbar's Clear button fixes that, but it is below the fold and most of our
+ * visitors never reach for it. So an empty box now means what it looks like it
+ * means: the whole marketplace, with every facet dropped. Sort survives, being
+ * a preference rather than a filter.
  */
 export function useVendorsSearchInput() {
-  const { params, setQuery } = useVendorsFilters();
+  const { params, hasFacets, setQuery, clearAll } = useVendorsFilters();
   const urlQuery = params.q ?? '';
 
   const [value, setValue] = useState(urlQuery);
@@ -47,23 +58,60 @@ export function useVendorsSearchInput() {
   }, [value, setQuery]);
 
   /**
+   * Back to the full marketplace. Runs immediately rather than on the debounce:
+   * an empty box has no half-typed word to protect, and waiting 350ms to undo
+   * what the visitor already sees gone reads as lag.
+   *
+   * Writing `lastCommitted` is also what cancels any commit still in flight —
+   * the effect above re-runs on the emptied value and returns before scheduling
+   * anything, so a stale "pho" can't land a moment later.
+   */
+  const reset = useCallback(() => {
+    setValue('');
+    lastCommitted.current = '';
+    // A no-op when nothing was active, which `clearAll` decides off the live
+    // URL — see there for why this cannot be guarded from render state.
+    clearAll();
+  }, [clearAll]);
+
+  /**
+   * Every keystroke. Deleting the last character is the reset — including the
+   * held-backspace case, which arrives here as one change event per character
+   * and fires exactly once, when the box finally reads empty.
+   */
+  const change = useCallback(
+    (next: string) => {
+      if (next.trim() === '') {
+        reset();
+        return;
+      }
+      setValue(next);
+    },
+    [reset],
+  );
+
+  /**
    * Enter / the Search button: skip the remaining debounce and take the visitor
    * to the results, since on a tall hero the grid they just asked for is off
-   * screen.
+   * screen. Submitting an empty box is a reset, not a search for "".
    */
   const submit = useCallback(() => {
-    lastCommitted.current = value.trim();
-    setQuery(value);
+    if (value.trim() === '') reset();
+    else {
+      lastCommitted.current = value.trim();
+      setQuery(value);
+    }
     document
       .getElementById(RESULTS_ANCHOR_ID)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [value, setQuery]);
+  }, [value, setQuery, reset]);
 
-  const clear = useCallback(() => {
-    setValue('');
-    lastCommitted.current = '';
-    setQuery('');
-  }, [setQuery]);
-
-  return { value, setValue, submit, clear };
+  return {
+    value,
+    setValue: change,
+    submit,
+    clear: reset,
+    /** Whether clearing would also drop facets — the ✕ has to say so. */
+    clearsFilters: hasFacets,
+  };
 }
