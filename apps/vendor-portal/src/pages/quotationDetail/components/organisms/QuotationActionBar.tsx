@@ -1,5 +1,6 @@
 import { Alert, QuotationActionDialog, SectionCard } from '@sinnapi/ui';
 import BoltIcon from '@mui/icons-material/Bolt';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { QuotationDetailModel } from '@/lib/types';
 import { useQuotationActions } from '../../hooks/useQuotationActions';
 import QuotationActionButtons from '../molecules/QuotationActionButtons';
@@ -45,7 +46,7 @@ export default function QuotationActionBar({
 }: Props) {
   const actions = useQuotationActions(quotation);
 
-  const canMessage = !!quotation.client_id;
+  const canMessage = FEATURES.clientVendorMessaging && !!quotation.client_id;
   if (actions.actions.length === 0 && !canMessage) return null;
 
   const hasTransitions = actions.actions.length > 0;

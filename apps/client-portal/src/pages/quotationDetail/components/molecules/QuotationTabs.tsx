@@ -5,6 +5,7 @@ import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import HandshakeOutlinedIcon from '@mui/icons-material/HandshakeOutlined';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { QUOTATION_TABS, type QuotationTab } from '../../schema';
 
 type Props = {
@@ -39,15 +40,17 @@ export default function QuotationTabs({ value, onChange, unreadCount = 0 }: Prop
   // update — on a page that re-renders whenever a message arrives.
   const items = useMemo(
     () =>
-      QUOTATION_TABS.map((tab) => ({
-        value: tab,
-        ...TAB_META[tab],
-        // Badged even while the reader is standing on the tab: the count comes
-        // from `get_my_conversations`, which clears when the thread is scrolled
-        // to the bottom, not when the tab is selected. Hiding it on the active
-        // tab would drop the badge a moment before the messages were read.
-        ...(tab === 'messages' ? { badge: unreadCount } : null),
-      })),
+      QUOTATION_TABS.filter((tab) => FEATURES.clientVendorMessaging || tab !== 'messages').map(
+        (tab) => ({
+          value: tab,
+          ...TAB_META[tab],
+          // Badged even while the reader is standing on the tab: the count comes
+          // from `get_my_conversations`, which clears when the thread is scrolled
+          // to the bottom, not when the tab is selected. Hiding it on the active
+          // tab would drop the badge a moment before the messages were read.
+          ...(tab === 'messages' ? { badge: unreadCount } : null),
+        }),
+      ),
     [unreadCount],
   );
 

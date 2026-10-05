@@ -1,4 +1,5 @@
 import { Stack, PageTitle, Alert } from '@sinnapi/ui';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { InboxLayout, InboxToolbar, ConversationListPanel } from '@sinnapi/ui/messaging';
 import ConversationThread from '@/components/messaging/ConversationThread';
 import { useMessagesPage } from './hooks/useMessagesPage';
@@ -34,7 +35,7 @@ export default function Messages() {
       <InboxToolbar
         search={page.search}
         audience="vendor"
-        typeFilter={page.typeFilter}
+        typeFilter={FEATURES.clientVendorMessaging ? page.typeFilter : undefined}
         resultCount={page.rows.length}
         action={newMessage(true)}
       />
@@ -50,8 +51,14 @@ export default function Messages() {
         onOpen={page.open}
         isFiltered={page.isFiltered}
         onClearFilters={page.clearAll}
-        emptyTitle="No conversations yet"
-        emptyDescription="Message a client you are working with, or ask the Sinnapi team a question."
+        emptyTitle={
+          FEATURES.clientVendorMessaging ? 'No conversations yet' : 'No support conversations yet'
+        }
+        emptyDescription={
+          FEATURES.clientVendorMessaging
+            ? 'Message a client you are working with, or ask the Sinnapi team a question.'
+            : 'Contact the Sinnapi team if you need help with your account, listing, or payouts.'
+        }
         emptyAction={newMessage(false)}
       />
     </Stack>
@@ -59,7 +66,14 @@ export default function Messages() {
 
   return (
     <>
-      <PageTitle title="Messages" subtitle="Chat with your clients and the Sinnapi team." />
+      <PageTitle
+        title={FEATURES.clientVendorMessaging ? 'Messages' : 'Sinnapi support'}
+        subtitle={
+          FEATURES.clientVendorMessaging
+            ? 'Chat with your clients and the Sinnapi team.'
+            : 'Contact the Sinnapi team and view your support conversations.'
+        }
+      />
 
       {/* `contactSupport` has no dialog to fail inside, so its errors surface here. */}
       {start.error && !start.clientPickerOpen && (
@@ -75,13 +89,15 @@ export default function Messages() {
         onCloseDetail={page.close}
       />
 
-      <ClientPickerDialog
-        open={start.clientPickerOpen}
-        onClose={start.closeClientPicker}
-        onPick={start.messageClient}
-        busy={start.isBusy}
-        error={start.error}
-      />
+      {FEATURES.clientVendorMessaging && (
+        <ClientPickerDialog
+          open={start.clientPickerOpen}
+          onClose={start.closeClientPicker}
+          onPick={start.messageClient}
+          busy={start.isBusy}
+          error={start.error}
+        />
+      )}
     </>
   );
 }

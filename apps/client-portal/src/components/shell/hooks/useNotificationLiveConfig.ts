@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { isClientVendorMessageNotification } from '@sinnapi/utils/constants';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -65,5 +66,7 @@ export function useNotificationLiveConfig(): UseNotificationLiveOptions {
     onCountsChanged,
     onFeedChanged,
     onOpen,
+    shouldSurface: (row) =>
+      !isClientVendorMessageNotification({ triggerKey: row.trigger_key, data: row.data ?? null }),
   };
 }

@@ -5,6 +5,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query';
+import { FEATURES } from '@sinnapi/utils/constants';
 import {
   paginate,
   rpcErrorMessage,
@@ -1350,9 +1351,10 @@ export function useConversations({ enabled = true }: { enabled?: boolean } = {})
 }
 
 /** Single number for the sidebar badge. */
-export function useUnreadMessageCount() {
+export function useUnreadMessageCount({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: MESSAGING_KEYS.unreadTotal,
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_unread_message_count');
       if (error) throw error;
@@ -1418,13 +1420,18 @@ export function useNotifications() {
         .order('created_at', { ascending: false })
         .range(from, from + NOTIFICATIONS_PAGE_SIZE - 1);
       if (error) throw error;
-      return { rows: (data ?? []) as NotificationModel[], total: count ?? 0 };
+      const hiddenMessages = await countClientVendorMessageNotifications();
+      return {
+        rows: (data ?? []) as NotificationModel[],
+        total: Math.max(0, (count ?? 0) - hiddenMessages),
+        sourceTotal: count ?? 0,
+      };
     },
     getNextPageParam: (lastPage, pages) => {
       const loaded = pages.reduce((n, p) => n + p.rows.length, 0);
       // Stop on a short page too: `total` can shrink under us if rows are
       // purged between requests, and an empty page would otherwise loop.
-      if (lastPage.rows.length === 0 || loaded >= lastPage.total) return undefined;
+      if (lastPage.rows.length === 0 || loaded >= lastPage.sourceTotal) return undefined;
       return pages.length;
     },
   });
@@ -1504,14 +1511,30 @@ export function useMarkAllNotificationsRead() {
 export function useUnreadCount() {
   return useQuery({
     queryKey: ['unread'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .is('read_at', null);
-      return count ?? 0;
-    },
+    queryFn: getUnreadNotificationCount,
   });
+}
+
+async function countClientVendorMessageNotifications(unreadOnly = false): Promise<number> {
+  if (FEATURES.clientVendorMessaging) return 0;
+  let query = supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .like('trigger_key', 'message.%')
+    .eq('data->>conversation_type', 'client_vendor');
+  if (unreadOnly) query = query.is('read_at', null);
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
+}
+
+async function getUnreadNotificationCount(): Promise<number> {
+  const [unread, hiddenMessages] = await Promise.all([
+    supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null),
+    countClientVendorMessageNotifications(true),
+  ]);
+  if (unread.error) throw unread.error;
+  return Math.max(0, (unread.count ?? 0) - hiddenMessages);
 }
 
 // ---------- Service coverage ----------

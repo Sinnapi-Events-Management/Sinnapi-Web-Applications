@@ -1048,7 +1048,10 @@ export type NotificationModel = {
 /** One page of the notification feed, with the server-exact total beside it. */
 export type NotificationPage = {
   rows: NotificationModel[];
+  /** Visible total after client-side filtering. */
   total: number;
+  /** Raw total used to keep server-range pagination advancing correctly. */
+  sourceTotal: number;
 };
 
 export type ProfileModel = {

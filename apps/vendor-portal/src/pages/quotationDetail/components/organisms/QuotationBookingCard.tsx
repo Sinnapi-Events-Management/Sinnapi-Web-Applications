@@ -3,6 +3,7 @@ import { Alert, Button, SectionCard, Skeleton, Stack, StatusChip, Typography } f
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ChatIcon from '@mui/icons-material/Chat';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { formatDate } from '@/lib/config';
 import { formatTimeWindow } from '@/pages/bookingDetail/utils/timeWindow';
 import { useStartConversation } from '@/hooks/messaging/useStartConversation';
@@ -101,16 +102,18 @@ export default function QuotationBookingCard({ quotation }: Props) {
             is on your calendar until they do.
           </Typography>
 
-          <Button
-            fullWidth
-            variant="outlined"
-            color="inherit"
-            startIcon={<ChatIcon />}
-            disabled={!quotation.client_id || message.isBusy}
-            onClick={() => void message.messageClient(quotation.client_id)}
-          >
-            Ask the client for a date
-          </Button>
+          {FEATURES.clientVendorMessaging && (
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              startIcon={<ChatIcon />}
+              disabled={!quotation.client_id || message.isBusy}
+              onClick={() => void message.messageClient(quotation.client_id)}
+            >
+              Ask the client for a date
+            </Button>
+          )}
         </Stack>
       )}
     </SectionCard>

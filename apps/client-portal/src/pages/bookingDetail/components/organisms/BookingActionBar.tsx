@@ -2,6 +2,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { BookingActionDialog, Box, Button, SectionCard, Stack, Typography } from '@sinnapi/ui';
 import BoltIcon from '@mui/icons-material/Bolt';
 import ChatIcon from '@mui/icons-material/Chat';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { BookingDetailModel } from '@/lib/types';
 import { useBookingActions } from '../../hooks/useBookingActions';
 import BookingStartPanel from '../molecules/BookingStartPanel';
@@ -10,18 +11,11 @@ type Props = { booking: BookingDetailModel };
 
 /**
  * What the client can do about this booking right now: the one status write
- * that applies to its current state, and the way to reach the vendor without
- * one.
+ * that applies to its current state.
  *
  * Pinned above the tabs rather than filed inside one of them. Marking an event
  * under way is time-critical — a client does it on the morning of the event,
- * usually on a phone — and messaging the vendor is what someone reaches for
- * when anything on this page surprises them. Neither should be a tab away.
- *
- * The two are still visually separate: the status write changes the booking,
- * the message link goes to another page, and mixing them into one row of equal
- * buttons is how someone taps the wrong one. Message stays a quiet text button
- * on the far side of the bar.
+ * usually on a phone — and it should not be a tab away.
  *
  * Layout only — `useBookingActions` owns the gating, the write and the
  * confirmation state; `BookingActionDialog` owns the modal.
@@ -63,17 +57,17 @@ export default function BookingActionBar({ booking }: Props) {
           )}
         </Box>
 
-        {/* Never gated: reaching the vendor is available in every state,
-            including the ones with no action left. */}
-        <Button
-          component={RouterLink}
-          to="/messages"
-          variant="text"
-          startIcon={<ChatIcon />}
-          sx={{ alignSelf: { xs: 'flex-start', md: 'center' }, flexShrink: 0 }}
-        >
-          Message vendor
-        </Button>
+        {FEATURES.clientVendorMessaging && (
+          <Button
+            component={RouterLink}
+            to="/messages"
+            variant="text"
+            startIcon={<ChatIcon />}
+            sx={{ alignSelf: { xs: 'flex-start', md: 'center' }, flexShrink: 0 }}
+          >
+            Message vendor
+          </Button>
+        )}
       </Stack>
 
       <BookingActionDialog

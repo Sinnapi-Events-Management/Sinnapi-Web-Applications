@@ -36,6 +36,8 @@ export type UseNotificationLiveOptions = {
   onFeedChanged: () => void;
   /** The user activated a desktop toast. Navigate to the notification. */
   onOpen: (row: NotificationRealtimeRow) => void;
+  /** Whether an arriving row belongs in the notification experience. */
+  shouldSurface?: (row: NotificationRealtimeRow) => boolean;
 };
 
 /**
@@ -70,6 +72,7 @@ export function useNotificationLive({
   onCountsChanged,
   onFeedChanged,
   onOpen,
+  shouldSurface,
 }: UseNotificationLiveOptions): NotificationLive {
   const alerts = useDesktopNotifications({ storageKey: `${storagePrefix}.desktopAlerts` });
   const chime = useNotificationChime({ storageKey: `${storagePrefix}.notificationChime` });
@@ -78,6 +81,7 @@ export function useNotificationLive({
 
   const onInsert = useCallback(
     (row: NotificationRealtimeRow) => {
+      if (shouldSurface && !shouldSurface(row)) return;
       arrivals.record(row);
       onCountsChanged();
 
@@ -94,7 +98,7 @@ export function useNotificationLive({
         onClick: () => onOpen(row),
       });
     },
-    [arrivals, onCountsChanged, chime, alerts, onOpen],
+    [arrivals, onCountsChanged, chime, alerts, onOpen, shouldSurface],
   );
 
   const onUpdate = useCallback(() => {

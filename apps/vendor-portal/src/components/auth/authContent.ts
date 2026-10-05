@@ -1,4 +1,5 @@
 import type { AuthShowcaseSlide } from '@sinnapi/ui';
+import { FEATURES } from '@sinnapi/utils/constants';
 
 // Copy for the vendor auth showcase (left panel). Vendor-oriented value props —
 // winning work, getting paid and growing the listing — deliberately distinct
@@ -7,7 +8,9 @@ import type { AuthShowcaseSlide } from '@sinnapi/ui';
 export const AUTH_SLIDES: AuthShowcaseSlide[] = [
   {
     title: 'Win More Bookings',
-    body: 'Quotation requests, bookings and client messages arrive in one inbox — no more losing work to a missed WhatsApp reply.',
+    body: FEATURES.clientVendorMessaging
+      ? 'Quotation requests, bookings and client messages arrive in one inbox — no more losing work to a missed WhatsApp reply.'
+      : 'Quotation requests and bookings stay organized in one place, with clear updates as work moves forward.',
   },
   {
     title: 'Get Paid, Guaranteed',

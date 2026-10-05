@@ -1,5 +1,6 @@
 import { Button, CircularProgress, Alert, Stack } from '@sinnapi/ui';
 import ChatIcon from '@mui/icons-material/Chat';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { useStartConversation } from '@/hooks/messaging/useStartConversation';
 
 type Props = {
@@ -26,6 +27,8 @@ export default function MessageVendorButton({
   variant = 'outlined',
 }: Props) {
   const { messageVendor, isBusy, error } = useStartConversation();
+
+  if (!FEATURES.clientVendorMessaging) return null;
 
   return (
     <Stack spacing={1} sx={{ width: fullWidth ? '100%' : 'auto' }}>

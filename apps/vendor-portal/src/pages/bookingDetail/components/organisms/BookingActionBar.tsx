@@ -10,6 +10,7 @@ import {
 } from '@sinnapi/ui';
 import BoltIcon from '@mui/icons-material/Bolt';
 import ChatIcon from '@mui/icons-material/Chat';
+import { FEATURES } from '@sinnapi/utils/constants';
 import type { VendorBookingDetailModel } from '@/lib/types';
 import { useBookingActions } from '../../hooks/useBookingActions';
 import BookingActionButtons from '../molecules/BookingActionButtons';
@@ -26,7 +27,7 @@ type Props = {
 
 /**
  * What the vendor can do about this booking: the status writes that apply to
- * its current state, plus the way to reach the client without one.
+ * its current state.
  *
  * Pinned above the tabs rather than filed inside one of them, and that is the
  * whole point of it. Accept, decline and counter are the reason a vendor opens
@@ -73,17 +74,17 @@ export default function BookingActionBar({ booking, needsResponse }: Props) {
           )}
         </Box>
 
-        {/* Never gated and never the loudest thing here: reaching the client is
-            available in every state, including the ones with no action left. */}
-        <Button
-          component={RouterLink}
-          to="/messages"
-          variant="text"
-          startIcon={<ChatIcon />}
-          sx={{ alignSelf: { xs: 'flex-start', md: 'center' }, flexShrink: 0 }}
-        >
-          Message client
-        </Button>
+        {FEATURES.clientVendorMessaging && (
+          <Button
+            component={RouterLink}
+            to="/messages"
+            variant="text"
+            startIcon={<ChatIcon />}
+            sx={{ alignSelf: { xs: 'flex-start', md: 'center' }, flexShrink: 0 }}
+          >
+            Message client
+          </Button>
+        )}
       </Stack>
 
       <BookingActionDialog

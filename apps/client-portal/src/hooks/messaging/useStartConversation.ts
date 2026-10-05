@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { supabase } from '@/lib/supabase';
 import { MESSAGING_KEYS } from '@/hooks/queries';
 
@@ -44,6 +45,7 @@ export function useStartConversation() {
 
   const open = useCallback(
     async (target: Target, { goTo = true }: { goTo?: boolean } = {}) => {
+      if (target.kind === 'vendor' && !FEATURES.clientVendorMessaging) return null;
       if (isBusy) return null;
       setBusy(true);
       setError(null);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FEATURES } from '@sinnapi/utils/constants';
 import { useInboxFilters } from '@sinnapi/ui/messaging';
 import { useConversationViews } from '@/hooks/messaging/useConversationViews';
 import { useMessagingSync } from '@/hooks/messaging/useMessagingSync';
@@ -57,8 +58,19 @@ export function useMessagesPage() {
 
   const close = useCallback(() => navigate('/messages'), [navigate]);
 
+  useEffect(() => {
+    if (!isLoading && conversationId && !active) {
+      navigate('/messages', { replace: true });
+    }
+  }, [active, conversationId, isLoading, navigate]);
+
   // Subscribes once for the whole inbox, narrowed to the open thread.
-  useMessagingSync(conversationId ?? null);
+  useMessagingSync(active?.id ?? null, {
+    conversationIds: FEATURES.clientVendorMessaging
+      ? undefined
+      : conversations.map((conversation) => conversation.id),
+    enabled: !!active,
+  });
 
   return {
     ...filters,

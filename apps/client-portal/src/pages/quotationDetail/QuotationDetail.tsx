@@ -1,5 +1,6 @@
 import { Box, DetailTabPanel, QueryState } from '@sinnapi/ui';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
+import { FEATURES } from '@sinnapi/utils/constants';
 import QuotationHero from './components/organisms/QuotationHero';
 import QuotationFeedbackBanner from './components/organisms/QuotationFeedbackBanner';
 import QuotationActionBar from './components/organisms/QuotationActionBar';
@@ -129,18 +130,20 @@ export default function QuotationDetail() {
               daysBefore={quotation.advance_release_days_before}
             />
           </DetailTabPanel>
-          <DetailTabPanel value="messages" active={tab} idPrefix="quotation">
-            <MessagesSection
-              conversation={conversation.conversation}
-              vendorName={vendor?.business_name ?? 'the vendor'}
-              vendorId={quotation.vendor_id}
-              isLoading={conversation.isLoading}
-              isStarting={conversation.isStarting}
-              error={conversation.error}
-              onClearError={conversation.clearError}
-              onStart={() => void messageVendor()}
-            />
-          </DetailTabPanel>
+          {FEATURES.clientVendorMessaging && (
+            <DetailTabPanel value="messages" active={tab} idPrefix="quotation">
+              <MessagesSection
+                conversation={conversation.conversation}
+                vendorName={vendor?.business_name ?? 'the vendor'}
+                vendorId={quotation.vendor_id}
+                isLoading={conversation.isLoading}
+                isStarting={conversation.isStarting}
+                error={conversation.error}
+                onClearError={conversation.clearError}
+                onStart={() => void messageVendor()}
+              />
+            </DetailTabPanel>
+          )}
           <DetailTabPanel value="progress" active={tab} idPrefix="quotation">
             <ProgressSection
               quotationId={quotationId}
