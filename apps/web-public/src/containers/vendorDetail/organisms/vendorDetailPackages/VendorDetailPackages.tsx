@@ -7,6 +7,7 @@ import { packageTiers } from '@sinnapi/ui/molecules';
 import { groupOffersByPackage, offersForTier, type PackageOfferRow } from '@sinnapi/ui/offers';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import VendorSectionHeading from '../../atoms/VendorSectionHeading';
+import { NEW_TAB_LINK_PROPS, isExternalHref } from '@/lib/config/site';
 import type { PackageModel } from '@/lib/types';
 
 type Props = {
@@ -21,6 +22,16 @@ type Props = {
    * a crawler reads rather than appearing after hydration.
    */
   packageOffers?: PackageOfferRow[];
+  /**
+   * This vendor's profile in the client portal, resolved by the server
+   * container and handed down.
+   *
+   * A prop rather than a call to `clientPortalVendorUrl` here, and it has to
+   * be: the portal's origin comes from `NEXT_CLIENT_PORTAL_URL`, which has no
+   * `NEXT_PUBLIC_` prefix and so does not exist in this client bundle. Reading
+   * it here would quietly resolve to the fallback on every render.
+   */
+  portalProfileHref: string;
 };
 
 /**
@@ -43,9 +54,11 @@ type Props = {
  * page above stays a server component — only this section hydrates, and what it
  * receives (the packages themselves) is plain serialisable data.
  *
- * The action routes to `/sign-in` rather than opening a form, matching the
- * sidebar's quote and message buttons exactly: vendor contact and quoting are
- * gated until a client is authenticated.
+ * The action routes into the client portal — to this vendor's packages section
+ * — rather than opening a form, matching the sidebar's buttons exactly: vendor
+ * contact and quoting are gated until a client is authenticated. The portal
+ * decides what a signed-out arrival sees, sending them through its own sign-in
+ * and back to this same tier list; this page never claims to know.
  *
  * WHAT A SIGNED-OUT VISITOR SEES OF AN OFFER
  * The saving, the deadline, what it covers and the discounted total — all of
@@ -61,12 +74,20 @@ type Props = {
  * way to work, so the empty case now says that instead — and says it in the
  * HTML, which is worth more to this page than silence.
  */
-export default function VendorDetailPackages({ packages, vendorName, packageOffers = [] }: Props) {
+export default function VendorDetailPackages({
+  packages,
+  vendorName,
+  packageOffers = [],
+  portalProfileHref,
+}: Props) {
   // Indexed once rather than filtered per card. The showcase then picks the
   // best offer for whichever tier the reader is on and prices it — the same
   // component, the same arithmetic and the same result the client portal
   // renders after sign-in, which is the whole point of it being one component.
   const offersByPackage = groupOffersByPackage(packageOffers);
+  // Another origin, so a new tab — and not when the href degraded to this
+  // site's own `/sign-in`. See `NEW_TAB_LINK_PROPS`.
+  const newTab = isExternalHref(portalProfileHref) ? NEW_TAB_LINK_PROPS : {};
   // The database refuses to publish a package with no priced tier, but one can
   // lose its tiers to a later edit. A card offering nothing is worse than one
   // fewer card.
@@ -113,13 +134,24 @@ export default function VendorDetailPackages({ packages, vendorName, packageOffe
                 offers={offersForTier(offersByPackage.get(pkg.id), null)}
                 renderAction={(tier, pricing, offer) => (
                   <Stack spacing={1}>
-                    <Button component={NextLink} href="/sign-in" variant="contained" fullWidth>
+                    <Button
+                      component={NextLink}
+                      href={portalProfileHref}
+                      {...newTab}
+                      variant="contained"
+                      fullWidth
+                    >
                       Request the {tier.name} package
                     </Button>
+                    {/* Hedged on purpose. The caption used to assert "you will
+                        be asked to sign in first", which this page is in no
+                        position to claim: the portal holds the session on
+                        another origin, so half the readers of that sentence
+                        are already signed in and go straight through. */}
                     <Typography variant="caption" color="text.secondary" textAlign="center">
                       {offer
-                        ? `Sign in to claim ${formatAmount(pricing.offerSaving, pricing.currency)} off this tier.`
-                        : 'You will be asked to sign in first.'}
+                        ? `Claim ${formatAmount(pricing.offerSaving, pricing.currency)} off this tier in your account.`
+                        : 'Continues in your Sinnapi account.'}
                     </Typography>
                   </Stack>
                 )}

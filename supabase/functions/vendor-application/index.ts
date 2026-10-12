@@ -34,7 +34,7 @@
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, HttpError } from '../_shared/supabase.ts';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail } from '../_shared/email.ts';
+import { parseRecipients, sendEmail } from '../_shared/email.ts';
 import { requireCaptcha } from '../_shared/turnstile.ts';
 import { applicantConfirmationEmail, internalNotificationEmail } from './emails.ts';
 
@@ -230,25 +230,6 @@ function req(cond: boolean, field: string) {
 function clean(v?: string): string | null {
   const t = (v ?? '').trim();
   return t === '' ? null : t;
-}
-
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-
-/**
- * Parse an internal-recipient env value into addresses.
- *
- * A team inbox is rarely one mailbox, so this accepts a list separated by
- * commas or semicolons: `ops@sinnapi.com, review@sinnapi.com`. Semicolons are
- * allowed because a list copied out of Outlook uses them, and that is the
- * likeliest way this secret gets set wrong. Entries that are not
- * address-shaped are dropped rather than handed to SMTP, so one typo in the
- * list cannot make the whole notification bounce.
- */
-function parseRecipients(v?: string): string[] {
-  return (v ?? '')
-    .split(/[,;]/)
-    .map((s) => s.trim())
-    .filter((s) => EMAIL_RE.test(s));
 }
 
 Deno.serve(

@@ -22,8 +22,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       </Box>
     );
   }
+  // The route this visit was actually for. Carried across both redirects
+  // below, not just the sign-in one: a vendor promoted with a one-time password
+  // who follows a deep link out of a notification email has to clear two gates
+  // before reaching it, and either gate dropping the destination loses it just
+  // as completely.
+  const returnTo = encodeURIComponent(location.pathname + location.search);
+
   if (!session) {
-    const returnTo = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/sign-in?returnTo=${returnTo}`} replace />;
   }
 
@@ -34,7 +40,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   // loop.
   const mustChangePassword = Boolean(session.user?.user_metadata?.must_change_password);
   if (mustChangePassword && location.pathname !== '/change-password') {
-    return <Navigate to="/change-password" replace />;
+    return <Navigate to={`/change-password?returnTo=${returnTo}`} replace />;
   }
 
   return <>{children}</>;

@@ -3,13 +3,32 @@ import { Box, Paper, Stack, Typography, Button, Divider } from '@sinnapi/ui/atom
 import { Alert } from '@sinnapi/ui/molecules';
 import { Storefront, Lock as LockIcon, Language } from '@mui/icons-material';
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
-import { formatMoney } from '@/lib/config/site';
+import {
+  NEW_TAB_LINK_PROPS,
+  clientPortalVendorUrl,
+  formatMoney,
+  isExternalHref,
+} from '@/lib/config/site';
 import type { VendorDetailModel } from '@/lib/types';
 
 /**
  * The call-to-action card: the starting price, then the gated actions, which
- * route to sign-in because vendor contact details stay protected until a client
- * is authenticated.
+ * route into the client portal because vendor contact details stay protected
+ * until a client is authenticated.
+ *
+ * Both actions now point at *this vendor's* profile in the portal rather than
+ * at this site's `/sign-in`. That old href was not a login form at all — it is
+ * a role chooser, so a reader who had just decided they wanted this vendor was
+ * asked to pick "client or vendor", sent to the portal's front door, and left
+ * to find the same business again in its directory. The decision they had
+ * already made was thrown away at the one click where it mattered most.
+ *
+ * Nothing here asks whether they are signed in, and nothing here could: the
+ * portal is a separate origin keeping its session in its own `localStorage`,
+ * and this page is static. `clientPortalVendorUrl` documents why the whole
+ * branch is delegated to the portal, which already answers it both ways —
+ * straight through when there is a session, through `/sign-in?returnTo=…` and
+ * back to the same profile when there is not.
  *
  * One component in two shapes, switched entirely in CSS so the page stays a
  * server component and the card is in the static HTML either way.
@@ -23,6 +42,16 @@ import type { VendorDetailModel } from '@/lib/types';
  */
 export default function VendorDetailSidebar({ vendor }: { vendor: VendorDetailModel }) {
   const price = formatMoney(vendor.starting_price, vendor.starting_price_currency);
+  // One destination for both actions. The quote dialog and the availability
+  // calendar both live on the portal's profile for this vendor, so there is no
+  // second place for either button to go — only a different reason to go there.
+  const portalProfileHref = clientPortalVendorUrl(vendor.slug);
+  // A new tab, because this is another app on another origin. A visitor who is
+  // mid-comparison has this profile open for a reason — handing the portal the
+  // only tab they had would cost them the page they were reading, and the back
+  // button is a poor substitute once the portal has bounced them through its
+  // own sign-in. Skipped when the href degraded to this site's own `/sign-in`.
+  const newTab = isExternalHref(portalProfileHref) ? NEW_TAB_LINK_PROPS : {};
 
   return (
     <Paper
@@ -90,21 +119,30 @@ export default function VendorDetailSidebar({ vendor }: { vendor: VendorDetailMo
             <Stack direction={{ xs: 'column', sm: 'row', md: 'column' }} spacing={1.5}>
               <Button
                 component={NextLink}
-                href="/sign-in"
+                href={portalProfileHref}
+                {...newTab}
                 variant="contained"
                 size="large"
                 sx={{ flex: 1 }}
               >
                 Request a quote
               </Button>
+              {/* Was "Message vendor". Client–vendor messaging is switched off
+                  (`FEATURES.clientVendorMessaging`), and the portal profile
+                  this now opens hides its own message button for the same
+                  reason — so the old label promised the one thing the
+                  destination cannot currently do. Named for what the click
+                  actually delivers instead. If messaging is restored, this is
+                  the label to revisit; the href does not change. */}
               <Button
                 component={NextLink}
-                href="/sign-in"
+                href={portalProfileHref}
+                {...newTab}
                 variant="outlined"
                 size="large"
                 sx={{ flex: 1 }}
               >
-                Message vendor
+                View vendor profile
               </Button>
             </Stack>
             {vendor.website && (
@@ -131,7 +169,8 @@ export default function VendorDetailSidebar({ vendor }: { vendor: VendorDetailMo
           severity="info"
           sx={{ display: { xs: 'none', md: 'flex' }, mt: 2.5 }}
         >
-          Sign in to chat and request quotations. Vendor contact details are protected.
+          Sign in to request quotations and check availability. Vendor contact details are
+          protected.
         </Alert>
       </Box>
     </Paper>
