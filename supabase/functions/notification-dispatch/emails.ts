@@ -14,7 +14,9 @@ import {
   PUBLIC_SITE_URL,
   emailButton,
   emailDataTable,
+  emailHeading,
   emailLayout,
+  emailPanel,
   emailParagraph,
   emailText,
   escapeHtml,
@@ -178,6 +180,12 @@ export function templatedEmail(opts: {
   ctaUrl: string;
   ctaLabel: string;
   facts?: Array<[string, string]>;
+  /**
+   * Set only where answering the mail is a sensible way to act on it — the
+   * support-desk copies, whose payload names the person who wrote in. Most
+   * notifications are machine-sent state changes with nobody to reply to.
+   */
+  replyTo?: string;
 }): EmailMessage {
   const paragraphs = opts.body
     .split(/\n{2,}/)
@@ -201,5 +209,100 @@ export function templatedEmail(opts: {
       preheader: paragraphs[0] ?? opts.subject,
       body: blocks.join('\n'),
     }),
+    ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
+  };
+}
+
+// ── Support desk: an inbound message from a client or vendor ──────────────
+/**
+ * The facts a support message carries, as `tg_message_notify` emits them on a
+ * `message.support_inbox` outbox row. Everything but the identity of the
+ * sender and the message itself is optional, because a support thread can be
+ * opened by an account with no phone on file and a client thread has no
+ * business attached at all.
+ */
+export interface SupportMessageNotice {
+  senderName: string;
+  senderEmail?: string;
+  senderPhone?: string;
+  senderReference?: string;
+  /** 'Client' | 'Vendor' — which queue the thread was opened in. */
+  senderKindLabel?: string;
+  businessName?: string;
+  threadSubject?: string;
+  message: string;
+  /** Admin-portal link to the thread, so the reply happens on the record. */
+  threadUrl: string;
+}
+
+/**
+ * The copy that goes to the support desk, addressed to whatever
+ * `SUPPORT_MESSAGES_INBOX` resolves to — one mailbox or several.
+ *
+ * Deliberately not template-driven, unlike the operator's own copy: this is
+ * the triage email, it is the one an operator reads instead of opening the
+ * portal, and it carries the message WHOLE together with every identifier
+ * needed to look the account up. `notification_templates` is for copy Support
+ * rewords; a facts table is not copy.
+ */
+export function supportMessageInboxEmail(
+  to: string | string[],
+  n: SupportMessageNotice,
+): EmailMessage {
+  const rows = [
+    { label: 'From', value: n.senderName },
+    ...(n.senderKindLabel ? [{ label: 'Account', value: n.senderKindLabel }] : []),
+    ...(n.businessName ? [{ label: 'Business', value: n.businessName }] : []),
+    ...(n.senderEmail ? [{ label: 'Email', value: n.senderEmail }] : []),
+    ...(n.senderPhone ? [{ label: 'Phone', value: n.senderPhone }] : []),
+    ...(n.senderReference ? [{ label: 'Reference', value: n.senderReference }] : []),
+    ...(n.threadSubject ? [{ label: 'Thread', value: n.threadSubject }] : []),
+  ];
+
+  // The sender typed plain text into a chat box, so newlines are the only
+  // structure it has. Escaped first, then turned back into line breaks — a
+  // message quoting HTML must read as what they typed, not render as markup.
+  const messageHtml = escapeHtml(n.message.trim()).replace(/\r?\n/g, '<br />');
+
+  const replyNote = n.senderEmail
+    ? 'Replying to this email reaches the sender directly. Answering in the admin portal instead keeps the reply in their support thread, where they will look for it.'
+    : 'Answer in the admin portal — this account has no email address on file, so the thread is the only way to reach them.';
+
+  const text = emailText([
+    `${n.senderName} has written to ${APP_NAME} support.`,
+    '',
+    ...rows.map((r) => `  ${r.label}: ${r.value}`),
+    '',
+    'Message:',
+    n.message.trim(),
+    '',
+    replyNote,
+    '',
+    `Open the thread: ${n.threadUrl}`,
+  ]);
+
+  const html = emailLayout({
+    heading: 'New support message',
+    preheader: `${n.senderName}: ${n.message.trim().slice(0, 90)}`,
+    body: [
+      emailParagraph(
+        `<strong>${escapeHtml(n.senderName)}</strong> has written to ${escapeHtml(APP_NAME)} support.`,
+      ),
+      emailDataTable(rows),
+      emailHeading('Message'),
+      emailPanel({ tone: 'info', body: messageHtml }),
+      emailParagraph(escapeHtml(replyNote)),
+      emailButton(n.threadUrl, 'Open the thread'),
+    ].join('\n'),
+  });
+
+  return {
+    to,
+    subject: `Support: ${n.senderName}${n.senderKindLabel ? ` (${n.senderKindLabel})` : ''}`,
+    text,
+    html,
+    // Let the desk reply straight to the person who asked, exactly as the
+    // vendor-application internal notice does.
+    ...(n.senderEmail ? { replyTo: n.senderEmail } : {}),
   };
 }

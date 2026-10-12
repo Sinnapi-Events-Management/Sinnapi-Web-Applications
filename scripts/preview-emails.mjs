@@ -296,6 +296,24 @@ async function collect() {
       msg: notify.notificationEmail('client@example.com', key),
     })),
     {
+      name: 'support-message-inbox',
+      title: 'Support · inbound message to the desk',
+      flow: 'notification-dispatch',
+      msg: notify.supportMessageInboxEmail('support@sinnapi.com', {
+        senderName: 'Aisha Namubiru',
+        senderEmail: 'aisha.namubiru@example.com',
+        senderPhone: '+256 700 123456',
+        senderReference: 'CL-7F3K2M',
+        senderKindLabel: 'Client',
+        threadSubject: 'Sinnapi support',
+        message:
+          'Hello,\n\nI paid the advance for my wedding decor booking two days ago and the ' +
+          'booking still shows as awaiting payment. The money has left my MTN account.\n\n' +
+          'Could you check it for me? The reference on the receipt is BK-4821.',
+        threadUrl: 'https://admin.sinnapi.com/messages/9f2c1e40-77ab-4c6d-9d41-b7c02e5a8810',
+      }),
+    },
+    {
       name: 'marketing-confirm-subscription',
       title: 'Marketing · confirm subscription (double opt-in)',
       flow: '_shared/marketingEmails',

@@ -16,8 +16,8 @@
 // key as the in-app title.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
-import { sendEmail, type EmailMessage } from '../_shared/email.ts';
-import { notificationEmail, templatedEmail, deepLink } from './emails.ts';
+import { parseRecipients, sendEmail, type EmailMessage } from '../_shared/email.ts';
+import { notificationEmail, templatedEmail, supportMessageInboxEmail, deepLink } from './emails.ts';
 
 /** Legacy projection for the aggregates that still use blanket triggers. */
 const LEGACY_ROUTES: Record<string, { trigger: string }> = {
@@ -32,6 +32,14 @@ const LEGACY_ROUTES: Record<string, { trigger: string }> = {
 
 const BATCH = 50;
 const MAX_ATTEMPTS = 5;
+
+/**
+ * The one outbox event addressed to a mailbox rather than to a profile: a
+ * support message from a client or vendor, on its way to the support desk.
+ * Emitted by `tg_message_notify` (see `20261011000001_support_message_email_
+ * notifications.sql`).
+ */
+const SUPPORT_INBOX_EVENT = 'message.support_inbox';
 
 type Supa = ReturnType<typeof adminClient>;
 type Payload = Record<string, unknown>;
@@ -71,7 +79,13 @@ Deno.serve(
       try {
         const payload = (row.payload ?? {}) as Payload;
 
-        if (payload.recipient_id && payload.audience) {
+        // Checked before the addressed path, which keys on `recipient_id` +
+        // `audience`: this row is addressed to a MAILBOX, not to a profile, so
+        // it carries neither and would otherwise fall through to the legacy
+        // projection and be silently dropped.
+        if (row.event_type === SUPPORT_INBOX_EVENT) {
+          await dispatchSupportInbox(payload);
+        } else if (payload.recipient_id && payload.audience) {
           await dispatchAddressed(supa, row.event_type, payload);
         } else {
           await dispatchLegacy(supa, row.event_type, payload);
@@ -171,6 +185,11 @@ async function dispatchAddressed(supa: Supa, trigger: string, payload: Payload):
   // not every state change deserves an inbox interruption.
   if (!mail) return;
 
+  // Present only on the support-desk copies, and stripped from the sender's
+  // own receipt by the emitting trigger — see the `reply_to_email` note in
+  // `20261011000001_support_message_email_notifications.sql`.
+  const replyTo = typeof payload.reply_to_email === 'string' ? payload.reply_to_email : undefined;
+
   await deliver(
     templatedEmail({
       to: profile.email,
@@ -178,6 +197,65 @@ async function dispatchAddressed(supa: Supa, trigger: string, payload: Payload):
       body: render(mail.body_template, enriched),
       ctaUrl: deepLink(audience, enriched),
       ctaLabel: audience === 'admin' ? 'Open in admin' : 'View details',
+      // Never back at the recipient: a Reply-To equal to the To address is a
+      // mail loop waiting for an autoresponder.
+      ...(replyTo && replyTo !== profile.email ? { replyTo } : {}),
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------
+// Support desk dispatch — one mailbox, read from a secret.
+//
+// WHY THE ADDRESS IS NOT IN THE DATABASE
+// It is an operational routing setting, not marketplace data: it changes when
+// the team's mail does, it must be changeable without a migration, and the
+// rest of the outbox addresses profiles. Same shape and same reasoning as
+// `VENDOR_APPLICATIONS_INBOX` in `vendor-application`, down to accepting a
+// comma- or semicolon-separated list so a second mailbox can be added by
+// editing one secret.
+//
+// UNSET IS A CONFIGURATION PROBLEM, NOT A LOST MESSAGE
+// The message is already in the thread, every `moderation.manage` operator has
+// an in-app notification and their own copy by mail, and the sender has their
+// receipt. So an unset secret must not fail the row into the dead-letter queue
+// on the fifth attempt — it is logged loudly and the row is marked processed,
+// because retrying an env var that nobody has set yet is five attempts of
+// nothing. A send that genuinely FAILS still throws, so the outbox retries it.
+// ---------------------------------------------------------------------
+async function dispatchSupportInbox(payload: Payload): Promise<void> {
+  const inbox = parseRecipients(Deno.env.get('SUPPORT_MESSAGES_INBOX'));
+  if (inbox.length === 0) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'support_inbox_not_configured',
+        detail: 'SUPPORT_MESSAGES_INBOX is unset or holds no valid address',
+        conversation_id: payload.conversation_id ?? null,
+      }),
+    );
+    return;
+  }
+
+  const str = (key: string): string | undefined => {
+    const value = payload[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+  };
+
+  await deliver(
+    supportMessageInboxEmail(inbox, {
+      senderName: str('sender_name') ?? 'A Sinnapi user',
+      senderEmail: str('sender_email'),
+      senderPhone: str('sender_phone'),
+      senderReference: str('sender_reference'),
+      senderKindLabel: str('sender_kind_label'),
+      businessName: str('vendor_name'),
+      threadSubject: str('subject'),
+      // The excerpt is the fallback, not the content: a `message_body` that
+      // arrived empty means an attachment-only message, and the facts and the
+      // link are still worth sending.
+      message: str('message_body') ?? str('excerpt') ?? '(no message body)',
+      threadUrl: deepLink('admin', payload),
     }),
   );
 }
@@ -457,6 +535,10 @@ async function deliver(msg: EmailMessage): Promise<void> {
       subject: msg.subject,
       html: msg.html,
       text: msg.text,
+      // Carried through deliberately: the support-desk copy relies on Reply-To
+      // to let an operator answer the person who wrote in. Dropping it on the
+      // HTTP path would make that work over SMTP and silently not over Resend.
+      ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
     }),
   });
   // Surface a provider rejection so the outbox retries instead of marking the

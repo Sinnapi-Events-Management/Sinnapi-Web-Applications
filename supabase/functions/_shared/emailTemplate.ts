@@ -515,5 +515,33 @@ export interface EmailResult {
   error?: string;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Internal-inbox secrets
+// ───────────────────────────────────────────────────────────────────────────
+
+const ADDRESS_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Parse an internal-recipient secret into addresses.
+ *
+ * A team inbox is rarely one mailbox, so this accepts a list separated by
+ * commas or semicolons: `ops@sinnapi.com, review@sinnapi.com`. Semicolons are
+ * allowed because a list copied out of Outlook uses them, and that is the
+ * likeliest way one of these secrets gets set wrong. Entries that are not
+ * address-shaped are dropped rather than handed to SMTP, so one typo in the
+ * list cannot make the whole notification bounce.
+ *
+ * Shared rather than per-function: `VENDOR_APPLICATIONS_INBOX` and
+ * `SUPPORT_MESSAGES_INBOX` are the same kind of setting, and an operator who
+ * learns that one takes a comma-separated list is entitled to assume the other
+ * does too.
+ */
+export function parseRecipients(value?: string): string[] {
+  return (value ?? '')
+    .split(/[,;]/)
+    .map((s) => s.trim())
+    .filter((s) => ADDRESS_RE.test(s));
+}
+
 /** Re-exported so the transport layer can attach the logo by Content-ID. */
 export { LOGO_CID, LOGO_PNG_BASE64 };

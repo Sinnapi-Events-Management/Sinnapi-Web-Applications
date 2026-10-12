@@ -1,5 +1,5 @@
 import { Container, Grid } from '@sinnapi/ui/atoms';
-import { SITE } from '@/lib/config/site';
+import { SITE, clientPortalVendorUrl } from '@/lib/config/site';
 import VendorDetailHero from './organisms/vendorDetailHero';
 import VendorDetailHighlights from './organisms/vendorDetailHighlights';
 import VendorDetailTabs from './organisms/vendorDetailTabs';
@@ -39,6 +39,17 @@ export default async function VendorDetailContainer({ params }: { params: { slug
   const { vendor, media, reviews, packages, packageOffers, offers, related } =
     await getVendorDetailData(params.slug);
 
+  /**
+   * Where every gated CTA on this page goes: the same vendor's profile in the
+   * client portal. Resolved here, once, and passed into the two sections that
+   * hydrate — `NEXT_CLIENT_PORTAL_URL` carries no `NEXT_PUBLIC_` prefix, so it
+   * is absent from the browser bundle and those client components cannot read
+   * it themselves. The sidebar is a server component and calls the helper
+   * directly.
+   */
+  const packagesHref = clientPortalVendorUrl(vendor.slug, 'packages');
+  const offersHref = clientPortalVendorUrl(vendor.slug, 'offers');
+
   // Structured data for SEO (LocalBusiness + AggregateRating).
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -77,7 +88,11 @@ export default async function VendorDetailContainer({ params }: { params: { slug
             never opens a fifth tab would read the list prices as the prices.
             It is also the one time-limited thing on the page, which is a poor
             fit for anything a click away. */}
-        <VendorDetailOffers offers={offers} vendorName={vendor.business_name} />
+        <VendorDetailOffers
+          offers={offers}
+          vendorName={vendor.business_name}
+          portalProfileHref={offersHref}
+        />
 
         <Grid container spacing={{ xs: 3, md: 5 }} sx={{ mt: { xs: 0, md: 1 } }}>
           <Grid item xs={12} md={7} lg={8} sx={{ order: { xs: 2, md: 1 } }}>
@@ -88,6 +103,7 @@ export default async function VendorDetailContainer({ params }: { params: { slug
                   packages={packages}
                   vendorName={vendor.business_name}
                   packageOffers={packageOffers}
+                  portalProfileHref={packagesHref}
                 />
               }
               portfolio={<VendorDetailGallery media={media} vendorName={vendor.business_name} />}
