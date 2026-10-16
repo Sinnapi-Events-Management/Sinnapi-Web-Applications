@@ -1,15 +1,18 @@
+'use client';
+
 import { Box, Paper, Typography } from '@sinnapi/ui/atoms';
 import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
+import { MediaTile, MediaViewer } from '@sinnapi/ui/media';
 import ScrollReveal from '@/components/atoms/scrollReveal';
 import VendorSectionHeading from '../../atoms/VendorSectionHeading';
 import type { VendorMediaModel } from '@/lib/types';
+import { useVendorDetailGallery } from './hooks/useVendorDetailGallery';
 
 /**
  * Portfolio gallery — a masonry grid of the vendor's work.
  *
- * Images lazy-load and use a plain <img> (any URL works without remote-image
- * config), fade and lift into place as they scroll into view, and zoom slightly
- * on hover to invite a closer look.
+ * Images lazy-load, fade into place as they scroll into view, and open in the
+ * shared full-screen viewer with keyboard and thumbnail navigation.
  *
  * It used to render nothing at all when a vendor had uploaded no images. Under
  * tabs that inverts: the tab is fixed, so nothing means a tab that opens onto
@@ -28,7 +31,7 @@ export default function VendorDetailGallery({
   media: VendorMediaModel[];
   vendorName: string;
 }) {
-  const images = media.filter((m) => m.media_type === 'image' && m.url);
+  const { images, viewer } = useVendorDetailGallery(media);
 
   return (
     <Box component="section">
@@ -65,31 +68,35 @@ export default function VendorDetailGallery({
             columnGap: '10px',
           }}
         >
-          {images.map((m, i) => (
-            <Box key={m.id} sx={{ breakInside: 'avoid', mb: '10px' }}>
-              <ScrollReveal delay={(i % 9) * 60}>
-                <Box
-                  sx={{
-                    overflow: 'hidden',
-                    borderRadius: '12px',
-                    '& .portfolio-img': { transition: 'transform .5s ease' },
-                    '&:hover .portfolio-img': { transform: 'scale(1.06)' },
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="portfolio-img"
-                    src={m.url!}
-                    alt={m.caption ?? vendorName}
-                    loading="lazy"
-                    style={{ borderRadius: 12, display: 'block', width: '100%' }}
-                  />
-                </Box>
+          {images.map((item, index) => (
+            <Box key={item.id} sx={{ breakInside: 'avoid', mb: '10px' }}>
+              <ScrollReveal delay={(index % 9) * 60}>
+                <MediaTile
+                  item={item}
+                  fallbackAlt={vendorName}
+                  onOpen={() => viewer.openAt(index)}
+                />
               </ScrollReveal>
             </Box>
           ))}
         </Box>
       )}
+
+      <MediaViewer
+        items={images}
+        item={viewer.active}
+        index={viewer.index}
+        position={viewer.position}
+        count={viewer.count}
+        fallbackAlt={vendorName}
+        canStep={viewer.canStep}
+        fullViewport
+        onClose={viewer.close}
+        onNext={viewer.next}
+        onPrevious={viewer.previous}
+        onSelect={viewer.goTo}
+        onKeyDown={viewer.onKeyDown}
+      />
     </Box>
   );
 }

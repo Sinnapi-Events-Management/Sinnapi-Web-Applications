@@ -1,13 +1,13 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import MarketplaceCta from '@/components/organisms/marketplaceCta';
-import VendorsHero from './organisms/vendorsHero';
+import VendorsCompactHeader from './organisms/vendorsCompactHeader';
 import VendorsFeatured from './organisms/vendorsFeatured';
 import VendorsBrowser from './organisms/vendorsBrowser';
 import { parseVendorsSearchParams, type VendorsSearchParams } from './utils/searchParams';
 import { prefetchVendorsData } from './utils/prefetchVendorsData';
 
 /**
- * Vendors page. Sequences the experience — search-led hero → featured spotlight
+ * Vendors page. Sequences the experience — compact header → featured spotlight
  * → toolbar → results grid — and nothing else.
  *
  * The data is deliberately split across the server/client boundary rather than
@@ -21,6 +21,10 @@ import { prefetchVendorsData } from './utils/prefetchVendorsData';
  * The featured rail is server-rendered here and passed *down* as a slot, so it
  * keeps that treatment while the client still decides whether the current view
  * should show it.
+ *
+ * The compact header replaces the large hero to reduce vertical scrolling and
+ * show vendors immediately upon landing. Search and quick filters are now in the
+ * toolbar area for better UX.
  */
 export default async function VendorsContainer({
   searchParams,
@@ -35,7 +39,7 @@ export default async function VendorsContainer({
 
   return (
     <>
-      <VendorsHero />
+      {/* <VendorsCompactHeader /> */}
       <HydrationBoundary state={dehydrate(queryClient)}>
         <VendorsBrowser
           featuredCount={featured.length}

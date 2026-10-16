@@ -47,8 +47,8 @@ export function MediaThumbStrip<T extends MediaRecord>({
   return (
     <Box
       ref={stripRef}
-      role="tablist"
-      aria-label="Portfolio items"
+      role="group"
+      aria-label="Media thumbnails"
       sx={{
         display: 'flex',
         gap: 1,
@@ -57,7 +57,7 @@ export function MediaThumbStrip<T extends MediaRecord>({
         overflowX: 'auto',
         borderTop: (t) => `1px solid ${alpha(t.palette.common.white, 0.12)}`,
         // A visible scrollbar on a dark translucent bar reads as damage; the
-        // strip is navigable by arrow keys and by dragging regardless.
+        // strip stays usable by keyboard and touch without a visible bar.
         scrollbarWidth: 'none',
         '&::-webkit-scrollbar': { display: 'none' },
       }}
@@ -71,8 +71,7 @@ export function MediaThumbStrip<T extends MediaRecord>({
           <ButtonBase
             key={item.id}
             data-index={index}
-            role="tab"
-            aria-selected={isActive}
+            aria-pressed={isActive}
             aria-label={`Show ${label}`}
             onClick={() => onSelect(index)}
             sx={{

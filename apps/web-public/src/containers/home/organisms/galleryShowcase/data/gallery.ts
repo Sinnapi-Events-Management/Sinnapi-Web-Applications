@@ -1,4 +1,5 @@
 import { IMAGES, type LocalImage } from '@/lib/assets';
+import type { MediaRecord, PlayableMedia } from '@sinnapi/ui/media';
 
 /**
  * Editorial "inspiration" tiles built from Sinnapi's own photography. Each tile
@@ -66,3 +67,17 @@ export const GALLERY_TILES: GalleryTile[] = [
     span: { c: 2, r: 1 },
   },
 ];
+
+type GalleryViewerItem = GalleryTile & MediaRecord;
+
+/** Viewer entries retain the same order and descriptions as the bento grid. */
+export const GALLERY_VIEWER_ITEMS: PlayableMedia<GalleryViewerItem>[] = GALLERY_TILES.map(
+  (tile, index) => ({
+    ...tile,
+    id: `gallery-${index}`,
+    media_type: 'image',
+    url: tile.image.src.src,
+    caption: tile.image.alt,
+    source: { kind: 'image', src: tile.image.src.src },
+  }),
+);

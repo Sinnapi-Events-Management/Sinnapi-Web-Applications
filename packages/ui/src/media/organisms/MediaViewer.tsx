@@ -22,6 +22,8 @@ export type MediaViewerProps<T extends MediaRecord> = {
   fallbackAlt: string;
   /** Owner actions for the item on screen, rendered in the title bar. */
   actions?: ReactNode;
+  /** Fill the viewport at every breakpoint instead of using the desktop dialog width. */
+  fullViewport?: boolean;
   onClose: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -53,6 +55,7 @@ export function MediaViewer<T extends MediaRecord>({
   canStep,
   fallbackAlt,
   actions,
+  fullViewport = false,
   onClose,
   onNext,
   onPrevious,
@@ -60,20 +63,24 @@ export function MediaViewer<T extends MediaRecord>({
   onKeyDown,
 }: MediaViewerProps<T>) {
   const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const fullScreen = fullViewport || isMobile;
 
   return (
     <Dialog
       open={item !== null}
       onClose={onClose}
       onKeyDown={onKeyDown}
-      maxWidth="lg"
+      maxWidth={fullViewport ? false : 'lg'}
       fullWidth
       fullScreen={fullScreen}
       aria-label="Media viewer"
+      BackdropProps={
+        fullViewport ? { sx: { bgcolor: alpha(theme.palette.common.black, 0.22) } } : undefined
+      }
       PaperProps={{
         sx: {
-          bgcolor: (t) => alpha(t.palette.common.black, 0.82),
+          bgcolor: (t) => alpha(t.palette.common.black, fullViewport ? 0.38 : 0.82),
           backgroundImage: 'none',
           boxShadow: 'none',
           borderRadius: fullScreen ? 0 : 4,

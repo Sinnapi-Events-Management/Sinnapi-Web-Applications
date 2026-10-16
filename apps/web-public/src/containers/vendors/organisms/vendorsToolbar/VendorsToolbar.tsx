@@ -2,6 +2,7 @@
 import { Paper } from '@sinnapi/ui/atoms';
 import type { VendorFacetCounts } from '@/lib/types';
 import { useVendorsFilters } from '../../hooks/useVendorsFilters';
+import ToolbarSearch from './molecules/ToolbarSearch';
 import ToolbarSummary from './molecules/ToolbarSummary';
 import ToolbarFacets from './molecules/ToolbarFacets';
 import ActiveFilterChips from './atoms/ActiveFilterChips';
@@ -32,6 +33,7 @@ export default function VendorsToolbar({
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, mb: { xs: 3, md: 4 } }}>
+      <ToolbarSearch />
       <ToolbarSummary
         loaded={loaded}
         total={total}
