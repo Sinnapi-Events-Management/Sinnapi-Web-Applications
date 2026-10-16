@@ -78,7 +78,7 @@ export default async function VendorDetailContainer({ params }: { params: { slug
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <VendorDetailHero vendor={vendor} />
+      {/* <VendorDetailHero vendor={vendor} /> */}
 
       <Container sx={{ py: { xs: 4, md: 6 } }}>
         <VendorDetailHighlights vendor={vendor} />

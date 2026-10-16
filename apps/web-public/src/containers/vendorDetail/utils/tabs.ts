@@ -13,6 +13,6 @@
  * and a default that wrote itself into the query string would put a second URL
  * for the same page into circulation.
  */
-export const VENDOR_DETAIL_TABS = ['overview', 'packages', 'portfolio', 'reviews'] as const;
+export const VENDOR_DETAIL_TABS = ['portfolio', 'packages', 'overview', 'reviews'] as const;
 
 export type VendorDetailTab = (typeof VENDOR_DETAIL_TABS)[number];
