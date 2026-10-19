@@ -1,7 +1,7 @@
-import { Container, Grid } from '@sinnapi/ui/atoms';
+import NextLink from 'next/link';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import { Button, Container, Grid, Stack, Typography } from '@sinnapi/ui/atoms';
 import { SITE, clientPortalVendorUrl } from '@/lib/config/site';
-import VendorDetailHero from './organisms/vendorDetailHero';
-import VendorDetailHighlights from './organisms/vendorDetailHighlights';
 import VendorDetailTabs from './organisms/vendorDetailTabs';
 import VendorDetailOverview from './organisms/vendorDetailOverview';
 import VendorDetailGallery from './organisms/vendorDetailGallery';
@@ -14,26 +14,24 @@ import MarketplaceCta from '@/components/organisms/marketplaceCta';
 import { getVendorDetailData } from './utils/getVendorDetailData';
 
 /**
- * Vendor detail page. Composes the experience as: an immersive cover hero →
- * a key-facts highlights strip → a two-column body (four tabbed sections on the
- * left, a quote/contact card on the right) → a related-vendors rail. Data (live
- * with a mock fallback) and SEO structured data are resolved here; presentation
- * lives in the organisms.
+ * Vendor detail page. Leads with a compact vendor identity row and the full
+ * photo gallery, followed by key facts and a two-column body (three tabbed sections
+ * on the left, a quote/contact card on the right) → a related-vendors rail.
+ * Data (live with a mock fallback) and SEO structured data are resolved here;
+ * presentation lives in the organisms.
  *
- * The body used to be one column that stacked about, portfolio, packages and
- * reviews end to end, so a visitor who wanted the price scrolled through the
- * vendor's whole body of work to reach it — and back up again to compare. The
- * four sections are now tabs that each fit a screen.
+ * The gallery leads so visitors see the vendor's work without scrolling past
+ * profile details. Overview, packages and reviews remain switchable below it,
+ * rather than becoming a long sequence a visitor has to scroll through.
  *
- * Every section is still rendered here, on the server, and handed to the
- * switcher as a slot. Only the switcher hydrates: the sections themselves stay
- * in the prerendered HTML whether or not their tab is the open one, because the
- * second reader of this page is a crawler and a profile whose prices and
- * reviews never reach the HTML is a profile that ranks for neither.
+ * The tab panels are still rendered here, on the server, and handed to the
+ * switcher as slots. Only the switcher hydrates: the sections stay in the
+ * prerendered HTML whether or not their tab is open, so crawlers can read the
+ * vendor's biography, packages and reviews.
  *
- * The contact card leads on a phone and trails on desktop — `order` rather than
- * a second copy, so the actions are one element in the document however the
- * page is laid out.
+ * The contact card leads within the lower profile section on a phone and trails
+ * on desktop — `order` rather than a second copy, so the actions are one
+ * element in the document however the page is laid out.
  */
 export default async function VendorDetailContainer({ params }: { params: { slug: string } }) {
   const { vendor, media, reviews, packages, packageOffers, offers, related } =
@@ -78,14 +76,35 @@ export default async function VendorDetailContainer({ params }: { params: { slug
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* <VendorDetailHero vendor={vendor} /> */}
+      <Container sx={{ pt: { xs: 2, md: 3 }, pb: 1 }}>
+        <Stack direction="row" alignItems="center" spacing={{ xs: 1, sm: 2 }} sx={{ minWidth: 0 }}>
+          <Button
+            component={NextLink}
+            href="/vendors"
+            variant="text"
+            startIcon={<ArrowBack />}
+            sx={{ flexShrink: 0 }}
+          >
+            Back
+          </Button>
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {vendor.business_name}
+          </Typography>
+        </Stack>
+      </Container>
 
-      <Container sx={{ py: { xs: 4, md: 6 } }}>
-        <VendorDetailHighlights vendor={vendor} />
+      <Container sx={{ pb: { xs: 3, md: 5 } }}>
+        <VendorDetailGallery media={media} vendorName={vendor.business_name} />
+      </Container>
 
+      <Container sx={{ pb: { xs: 4, md: 6 } }}>
         {/* Above the tabs, not inside one. An offer is not a section of a
             profile — it is a fact about every price on it — and a visitor who
-            never opens a fifth tab would read the list prices as the prices.
+            never opens a tab would read the list prices as the prices.
             It is also the one time-limited thing on the page, which is a poor
             fit for anything a click away. */}
         <VendorDetailOffers
@@ -106,7 +125,6 @@ export default async function VendorDetailContainer({ params }: { params: { slug
                   portalProfileHref={packagesHref}
                 />
               }
-              portfolio={<VendorDetailGallery media={media} vendorName={vendor.business_name} />}
               reviews={<VendorDetailReviews vendor={vendor} reviews={reviews} />}
             />
           </Grid>

@@ -1,6 +1,7 @@
 import { Box, Typography, Stack } from '@sinnapi/ui/atoms';
 import ScrollReveal from '@/components/atoms/scrollReveal';
 import VendorSectionHeading from '../../atoms/VendorSectionHeading';
+import VendorDetailHighlights from '../vendorDetailHighlights';
 import type { VendorDetailModel } from '@/lib/types';
 
 /**
@@ -26,6 +27,10 @@ export default function VendorDetailOverview({ vendor }: { vendor: VendorDetailM
     <ScrollReveal>
       <Box component="section">
         <VendorSectionHeading eyebrow="Overview" title={`About ${vendor.business_name}`} />
+
+        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+          <VendorDetailHighlights vendor={vendor} />
+        </Box>
 
         {paragraphs.length > 0 ? (
           <Stack spacing={2}>

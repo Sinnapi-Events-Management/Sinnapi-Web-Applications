@@ -91,6 +91,17 @@ export default function PublicNavbar() {
   // like the primary-nav items when the vendor-application flow is open.
   const applyActive = isActiveHref(pathname, '/apply');
 
+  // The shared theme sizes every Button as a standalone CTA: 20px text and
+  // `paddingInline: 20`. Ten of them in one row is ~440px of padding alone,
+  // which is why the desktop header could not fit inside a `maxWidth="lg"`
+  // Container (1152px of content) at any viewport width — the row simply
+  // ran past the right edge and took the page's scroll width with it.
+  //
+  // The header keeps the brand type scale and tightens only its own padding.
+  // `flexShrink: 0` + `nowrap` stay: a nav label that wraps mid-word or
+  // ellipses is worse than one that is a little tighter.
+  const navItemSx = { flexShrink: 0, whiteSpace: 'nowrap', px: 1.25 } as const;
+
   return (
     <AppBar
       position={isHome ? 'fixed' : 'sticky'}
@@ -120,7 +131,7 @@ export default function PublicNavbar() {
       <NavTopBar transparent={transparent} />
 
       <Container>
-        <Toolbar disableGutters sx={{ gap: 2 }}>
+        <Toolbar disableGutters sx={{ gap: 1.5, minWidth: 0 }}>
           <Box
             component={NextLink}
             href="/"
@@ -140,7 +151,7 @@ export default function PublicNavbar() {
           <Stack
             direction="row"
             spacing={0.5}
-            sx={{ display: { xs: 'none', lg: 'flex' }, flex: 1 }}
+            sx={{ display: { xs: 'none', lg: 'flex' }, flex: 1, minWidth: 0 }}
           >
             {PRIMARY_NAV.map((item) => {
               const active = isActiveHref(pathname, item.href);
@@ -151,10 +162,7 @@ export default function PublicNavbar() {
                   href={item.href}
                   color="inherit"
                   aria-current={active ? 'page' : undefined}
-                  sx={[
-                    { flexShrink: 0, whiteSpace: 'nowrap', fontSize: '1.25rem' },
-                    active && activeNavSx,
-                  ]}
+                  sx={[navItemSx, active && activeNavSx]}
                 >
                   {item.label}
                 </Button>
@@ -164,7 +172,7 @@ export default function PublicNavbar() {
 
           <Stack
             direction="row"
-            spacing={1.0}
+            spacing={0.5}
             sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center' }}
           >
             <Button
@@ -172,10 +180,7 @@ export default function PublicNavbar() {
               href="/apply"
               color="inherit"
               aria-current={applyActive ? 'page' : undefined}
-              sx={[
-                { flexShrink: 0, whiteSpace: 'nowrap', fontSize: '1.25rem' },
-                applyActive && activeNavSx,
-              ]}
+              sx={[navItemSx, applyActive && activeNavSx]}
             >
               Become a Vendor
             </Button>
@@ -186,19 +191,13 @@ export default function PublicNavbar() {
               variant="outlined"
               color={transparent ? 'inherit' : 'primary'}
               sx={{
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-                fontSize: '1.25rem',
+                ...navItemSx,
                 ...(transparent ? { borderColor: withAlpha(common.white, 0.6) } : {}),
               }}
             >
               Sign in
             </Button>
-            <PrimaryButton
-              component={NextLink}
-              href="/sign-up"
-              sx={{ flexShrink: 0, whiteSpace: 'nowrap', fontSize: '1.25rem' }}
-            >
+            <PrimaryButton component={NextLink} href="/sign-up" sx={navItemSx}>
               Get started
             </PrimaryButton>
           </Stack>

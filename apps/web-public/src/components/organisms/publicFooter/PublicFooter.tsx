@@ -70,7 +70,7 @@ export default function PublicFooter() {
       <Container>
         <Grid container spacing={{ xs: 5, md: 4 }}>
           {/* Brand + mission + socials */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <Box
               component={NextLink}
               href="/"
@@ -138,7 +138,7 @@ export default function PublicFooter() {
           ))}
 
           {/* Contact column */}
-          <Grid item xs={6} md={2}>
+          <Grid item xs={6} md={3}>
             <Typography
               variant="h5"
               sx={{ color: withAlpha(common.white, 0.9), letterSpacing: '1px' }}
@@ -148,9 +148,16 @@ export default function PublicFooter() {
             <Stack spacing={1.75} sx={{ mt: 2 }}>
               {CONTACT_ITEMS.map(({ label, href, Icon, external }) => {
                 const content = (
-                  <Stack direction="row" spacing={1.25} alignItems="center">
-                    <Icon sx={{ color: 'secondary.light', fontSize: 18 }} />
-                    <Typography variant="body2" sx={{ color: withAlpha(common.white, 0.72) }}>
+                  <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+                    <Icon sx={{ color: 'secondary.light', fontSize: 18, flexShrink: 0 }} />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: withAlpha(common.white, 0.72),
+                        minWidth: 0,
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
                       {label}
                     </Typography>
                   </Stack>
@@ -190,7 +197,7 @@ export default function PublicFooter() {
             © {year} {SITE.name}. Empowering everyone to plan their events seamlessly, wherever they
             are.
           </Typography>
-          <Stack direction="row" spacing={2.5}>
+          <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', columnGap: 2.5, rowGap: 1 }}>
             {BOTTOM_LINKS.map((l) => (
               <FooterLink key={l.href} href={l.href} sx={bottomLinkSx}>
                 {l.label}

@@ -46,7 +46,7 @@ export default function NavTopBar({ transparent = false }: { transparent?: boole
           justifyContent="space-between"
           sx={{ gap: 2, py: 1 }}
         >
-          <Box sx={{ flexGrow: { xs: 1, lg: 0 }, width: { xs: '100%', lg: 380 } }}>
+          <Box sx={{ flexGrow: { xs: 1, lg: 0 }, minWidth: 0, width: { xs: '100%', lg: 380 } }}>
             <NavSearch transparent sx={{ width: '100%' }} />
           </Box>
 
