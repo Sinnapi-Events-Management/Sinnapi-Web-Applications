@@ -11,6 +11,8 @@ export type MediaTileProps<T extends MediaRecord> = {
   /** Names the owner when an item has no caption of its own. */
   fallbackAlt: string;
   onOpen: () => void;
+  /** Load above-the-fold tiles immediately; later tiles can remain lazy. */
+  loading?: 'eager' | 'lazy';
   /**
    * Controls layered above the image — the vendor portal's delete and
    * set-as-cover, say. Rendered outside the ButtonBase so its own buttons are
@@ -38,6 +40,7 @@ export function MediaTile<T extends MediaRecord>({
   item,
   fallbackAlt,
   onOpen,
+  loading = 'lazy',
   overlay,
   badge,
 }: MediaTileProps<T>) {
@@ -81,7 +84,7 @@ export function MediaTile<T extends MediaRecord>({
               className="media-tile-visual"
               src={poster}
               alt={label}
-              loading="lazy"
+              loading={loading}
               sx={{ objectFit: 'cover' }}
             />
           ) : item.source.kind === 'video-file' ? (

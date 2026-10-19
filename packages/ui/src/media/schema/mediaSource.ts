@@ -17,10 +17,9 @@ const VIDEO_FILE_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.ogg'];
 /**
  * Parse, and reject any scheme that isn't plain web traffic.
  *
- * The base is only needed to resolve a relative URL, and `window` is absent
- * during a server render — so it falls back to a syntactically valid origin that
- * cannot match either embed host, meaning a relative URL degrades to `external`
- * rather than throwing.
+ * The base lets this classify relative paths during server rendering too.
+ * Relative paths are kept relative in the returned source so the browser
+ * resolves them against the app's real origin.
  */
 function toUrl(raw: string): URL | null {
   const base = typeof window === 'undefined' ? 'https://localhost' : window.location.origin;
@@ -34,6 +33,11 @@ function toUrl(raw: string): URL | null {
 
 function host(url: URL): string {
   return url.hostname.replace(/^www\./, '').toLowerCase();
+}
+
+function sourceHref(raw: string, url: URL): string {
+  const isAbsolute = /^[a-z][a-z\d+.-]*:/i.test(raw) || raw.startsWith('//');
+  return isAbsolute ? url.href : raw;
 }
 
 /** The video id from any of YouTube's URL shapes, or null if it isn't one. */
@@ -67,7 +71,7 @@ export function resolveMediaSource(item: MediaRecord): MediaSource | null {
   const url = toUrl(item.url);
   if (!url) return null;
 
-  if (item.media_type === 'image') return { kind: 'image', src: url.href };
+  if (item.media_type === 'image') return { kind: 'image', src: sourceHref(item.url, url) };
 
   const youtube = youTubeId(url);
   if (youtube)
@@ -76,9 +80,9 @@ export function resolveMediaSource(item: MediaRecord): MediaSource | null {
   const vimeo = vimeoId(url);
   if (vimeo) return { kind: 'video-embed', src: `https://player.vimeo.com/video/${vimeo}` };
 
-  if (hasVideoExtension(url)) return { kind: 'video-file', src: url.href };
+  if (hasVideoExtension(url)) return { kind: 'video-file', src: sourceHref(item.url, url) };
 
-  return { kind: 'external', src: url.href };
+  return { kind: 'external', src: sourceHref(item.url, url) };
 }
 
 /**

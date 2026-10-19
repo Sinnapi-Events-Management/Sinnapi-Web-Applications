@@ -3,26 +3,19 @@
 import { Box, Paper, Typography } from '@sinnapi/ui/atoms';
 import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
 import { MediaTile, MediaViewer } from '@sinnapi/ui/media';
-import ScrollReveal from '@/components/atoms/scrollReveal';
 import VendorSectionHeading from '../../atoms/VendorSectionHeading';
 import type { VendorMediaModel } from '@/lib/types';
 import { useVendorDetailGallery } from './hooks/useVendorDetailGallery';
 
 /**
- * Portfolio gallery — a masonry grid of the vendor's work.
+ * An Instagram-inspired, square gallery of the vendor's photos and videos.
  *
- * Images lazy-load, fade into place as they scroll into view, and open in the
- * shared full-screen viewer with keyboard and thumbnail navigation.
+ * Images and videos open in the shared full-screen viewer with keyboard and
+ * thumbnail navigation. Tiles are visible immediately rather than waiting for
+ * a scroll reveal, because this gallery is the first content on the page.
  *
- * It used to render nothing at all when a vendor had uploaded no images. Under
- * tabs that inverts: the tab is fixed, so nothing means a tab that opens onto
- * blank space, which reads as a page that failed rather than a vendor who
- * hasn't uploaded. The empty case now says which of the two it is.
- *
- * The masonry is a plain CSS multi-column box rather than MUI's `ImageList`,
- * which writes its `columnCount` as an inline style and so cannot be given a
- * responsive value. That matters here: three columns of a 360px screen is a
- * 110px thumbnail, too small to tell one reception hall from another.
+ * Two columns on phones keep each thumbnail large enough to recognize; the
+ * three-column desktop grid preserves the familiar social-profile rhythm.
  */
 export default function VendorDetailGallery({
   media,
@@ -31,17 +24,13 @@ export default function VendorDetailGallery({
   media: VendorMediaModel[];
   vendorName: string;
 }) {
-  const { images, viewer } = useVendorDetailGallery(media);
+  const { items, viewer } = useVendorDetailGallery(media);
 
   return (
     <Box component="section">
-      <VendorSectionHeading
-        eyebrow="Portfolio"
-        title="Recent work"
-        subtitle={`Photos ${vendorName} has published from past events.`}
-      />
+      <VendorSectionHeading eyebrow="Gallery" title="Photos & videos" />
 
-      {images.length === 0 ? (
+      {items.length === 0 ? (
         <Paper
           variant="outlined"
           sx={{
@@ -55,35 +44,49 @@ export default function VendorDetailGallery({
           }}
         >
           <PhotoLibraryOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-          <Typography variant="subtitle1">No photos published yet</Typography>
+          <Typography variant="subtitle1">No work samples published yet</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {vendorName} hasn’t added a portfolio here. Sign in and message them to ask for recent
-            work.
+            {vendorName} hasn’t added photos or videos here yet. Sign in and contact them to ask for
+            recent work.
           </Typography>
         </Paper>
       ) : (
         <Box
           sx={{
-            columnCount: { xs: 2, md: 3 },
-            columnGap: '10px',
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(2, minmax(0, 1fr))',
+              md: 'repeat(3, minmax(0, 1fr))',
+            },
+            gap: { xs: 1, sm: 1.5, md: 2 },
           }}
         >
-          {images.map((item, index) => (
-            <Box key={item.id} sx={{ breakInside: 'avoid', mb: '10px' }}>
-              <ScrollReveal delay={(index % 9) * 60}>
-                <MediaTile
-                  item={item}
-                  fallbackAlt={vendorName}
-                  onOpen={() => viewer.openAt(index)}
-                />
-              </ScrollReveal>
+          {items.map((item, index) => (
+            <Box
+              key={item.id}
+              sx={{
+                aspectRatio: '1 / 1',
+                '& > div, & > div > button, & > div > button > div': { height: '100%' },
+                '& .media-tile-visual': {
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                },
+              }}
+            >
+              <MediaTile
+                item={item}
+                fallbackAlt={vendorName}
+                onOpen={() => viewer.openAt(index)}
+                loading={index < 3 ? 'eager' : 'lazy'}
+              />
             </Box>
           ))}
         </Box>
       )}
 
       <MediaViewer
-        items={images}
+        items={items}
         item={viewer.active}
         index={viewer.index}
         position={viewer.position}

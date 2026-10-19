@@ -9,10 +9,9 @@ import { pricingModelLabel, leadTimeLabel, yearsLabel } from '../../utils/vendor
 type Highlight = { icon: ReactNode; label: string; value: string };
 
 /**
- * Bento-style "at a glance" strip directly under the hero. Surfaces the vendor's
+ * Compact "at a glance" cards at the top of the Overview tab. Surfaces the vendor's
  * key facts (starting price, pricing model, lead time, experience) as equal
- * rounded tiles across the full width, so the page leads with scannable data.
- * Tiles render only for facts that exist, and the row keeps its rhythm regardless.
+ * rounded tiles before the biography. Tiles render only for facts that exist.
  */
 export default function VendorDetailHighlights({ vendor }: { vendor: VendorDetailModel }) {
   const price = formatMoney(vendor.starting_price, vendor.starting_price_currency);
@@ -32,7 +31,7 @@ export default function VendorDetailHighlights({ vendor }: { vendor: VendorDetai
   return (
     <Grid container spacing={2}>
       {highlights.map((highlight) => (
-        <Grid item xs={12} sm={6} md={3} key={highlight.label}>
+        <Grid item xs={6} sm={6} md={3} key={highlight.label}>
           <Paper
             variant="outlined"
             sx={{
