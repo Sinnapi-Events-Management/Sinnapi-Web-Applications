@@ -11,7 +11,7 @@ export default function OwnerSection({ fields, disabled }: Props) {
     <Box component="section">
       <FormSectionHeading
         title="Business owner"
-        caption="We’ll use these details to contact you about your application."
+        caption="The person responsible for this application. We’ll use their details to follow up; this may be you or someone applying on the owner’s behalf."
       />
       <Grid container spacing={2.5}>
         <Grid item xs={12}>

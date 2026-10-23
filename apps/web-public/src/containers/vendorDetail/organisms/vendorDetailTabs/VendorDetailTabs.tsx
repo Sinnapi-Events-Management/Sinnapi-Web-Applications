@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { Box } from '@sinnapi/ui/atoms';
 import { DetailTabs, DetailTabPanel, type DetailTabItem } from '@sinnapi/ui/molecules';
+import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
@@ -15,6 +16,7 @@ import { VENDOR_DETAIL_TABS, type VendorDetailTab } from '../../utils/tabs';
  * type error rather than a tab that renders blank.
  */
 const TAB_META: Record<VendorDetailTab, Omit<DetailTabItem<VendorDetailTab>, 'value'>> = {
+  gallery: { label: 'Gallery', icon: <PhotoLibraryOutlinedIcon fontSize="small" /> },
   overview: { label: 'Overview', icon: <StorefrontOutlinedIcon fontSize="small" /> },
   packages: { label: 'Packages', icon: <LocalOfferOutlinedIcon fontSize="small" /> },
   reviews: { label: 'Reviews', icon: <StarOutlineIcon fontSize="small" /> },
@@ -34,22 +36,27 @@ const ITEMS = VENDOR_DETAIL_TABS.map((value) => ({ value, ...TAB_META[value] }))
 type Props = Record<VendorDetailTab, ReactNode>;
 
 /**
- * The public profile's section switcher.
+ * The public profile's section switcher — now including the photo gallery,
+ * which used to sit above it.
  *
- * The gallery is rendered before this switcher; these remaining panels stay
- * mounted and inactive ones are hidden, which is the opposite of what the
- * portals do — see `keepMounted` on `DetailTabPanel`. Keeping them in the static
- * HTML lets search engines read the vendor's biography, packages and reviews.
+ * Panels stay mounted and inactive ones are hidden, which is the opposite of
+ * what the portals do — see `keepMounted` on `DetailTabPanel`. Keeping them in
+ * the static HTML lets search engines read the vendor's biography, packages and
+ * reviews. The gallery joining them costs nothing on that front: it was already
+ * rendered unconditionally when it lived above the switcher, and its tiles
+ * past the first row stay lazy either way.
  *
  * The bar pins itself under the site navbar, at whatever height the navbar
  * actually is: the header is a two-tier bar whose utility strip changes at `lg`,
- * so the offset is measured rather than assumed.
+ * so the offset is measured rather than assumed. That matters more now than it
+ * did — with the gallery inside a panel the bar is what a visitor scrolls past
+ * twenty photos *with*, rather than what they scroll twenty photos to reach.
  */
-export default function VendorDetailTabs({ overview, packages, reviews }: Props) {
+export default function VendorDetailTabs({ gallery, overview, packages, reviews }: Props) {
   const { tab, setTab } = useUrlTab(VENDOR_DETAIL_TABS);
   const headerOffset = useStickyHeaderOffset();
 
-  const panels: Props = { overview, packages, reviews };
+  const panels: Props = { gallery, overview, packages, reviews };
 
   return (
     <Box>

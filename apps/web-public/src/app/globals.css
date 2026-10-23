@@ -28,3 +28,14 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* Room at the end of the document while a page's fixed mobile action bar is
+   up, so the footer's last row can be scrolled clear of it. On <body> rather
+   than inside the page, because the footer lives in the root layout and the
+   bar does not — see `@/lib/stickyCta` for the attribute's other reader. Kept
+   in step with STICKY_CTA_HEIGHT. The attribute is only ever set below `md`,
+   and only once the inline buttons have scrolled away, so this costs nothing
+   on desktop and nothing at the top of the page. */
+body[data-sticky-cta='open'] {
+  padding-bottom: 84px;
+}

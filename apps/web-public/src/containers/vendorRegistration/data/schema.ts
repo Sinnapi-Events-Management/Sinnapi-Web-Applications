@@ -4,37 +4,68 @@ const PHONE_RE = /^[+\d][\d\s()-]{6,}$/;
 
 /** A required acceptance: the box has to be ticked, not merely present. */
 const accepted = z.literal(true, { errorMap: () => ({ message: 'Required' }) });
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+const allowedDocumentTypes = new Set(['application/pdf', 'image/png', 'image/jpeg']);
+const allowedDocumentExtensions = /\.(pdf|png|jpe?g)$/i;
+const applicationDocument = z.custom<File>(
+  (value) =>
+    typeof File !== 'undefined' &&
+    value instanceof File &&
+    value.size <= MAX_DOCUMENT_SIZE &&
+    allowedDocumentExtensions.test(value.name) &&
+    (!value.type || allowedDocumentTypes.has(value.type)),
+  'Choose a PDF, PNG or JPG/JPEG file up to 10 MB',
+);
 
 /**
  * The whole vendor application, in one step.
  *
  * Deliberately short: who the business is, who is applying, what they offer and
  * how to reach them. Bio, media and service regions are filled in from the
- * vendor portal after approval, and identity is checked by the review team
- * rather than by upload.
+ * vendor portal after approval. A National ID is required for review, and
+ * registered businesses also provide their certificate of incorporation.
  *
  * Key order is the on-screen order. Zod reports issues in shape order, so the
  * first issue is the field nearest the top of the form — the one to focus.
  */
-export const registrationSchema = z.object({
-  businessName: z.string().trim().min(2, 'Enter your business or working name'),
-  applicantType: z.enum(['individual', 'registered_business'], {
-    errorMap: () => ({ message: 'Select who is applying' }),
-  }),
-  serviceCategoryKeys: z.array(z.string()).min(1, 'Select at least one service'),
-  ownerFullName: z.string().trim().min(2, 'Enter the owner’s full name'),
-  ownerEmail: z.string().trim().email('Enter a valid email'),
-  ownerPhone: z.string().trim().regex(PHONE_RE, 'Enter a valid phone number'),
-  acceptedInfoAccuracy: accepted,
-  acceptedVendorTerms: accepted,
-  acceptedEscrowPolicy: accepted,
-  acceptedFalseInfoRemoval: accepted,
-  // `boolean`, not `literal(true)`, and that is the whole point: the four above
-  // are acceptances an applicant must give to proceed, this is a choice they
-  // are free to decline. Validating it as required would make the consent
-  // conditional on the application, which GDPR Art.7(4) does not allow.
-  marketingConsent: z.boolean(),
-});
+export const registrationSchema = z
+  .object({
+    businessName: z.string().trim().min(2, 'Enter your business or working name'),
+    applicantType: z.enum(['individual', 'registered_business'], {
+      errorMap: () => ({ message: 'Select who is applying' }),
+    }),
+    serviceCategoryKeys: z.array(z.string()).min(1, 'Select at least one service'),
+    ownerFullName: z.string().trim().min(2, 'Enter the owner’s full name'),
+    ownerEmail: z.string().trim().email('Enter a valid email'),
+    ownerPhone: z.string().trim().regex(PHONE_RE, 'Enter a valid phone number'),
+    nationalIdFile: applicationDocument.nullable(),
+    businessRegistrationFile: applicationDocument.nullable(),
+    acceptedInfoAccuracy: accepted,
+    acceptedVendorTerms: accepted,
+    acceptedEscrowPolicy: accepted,
+    acceptedFalseInfoRemoval: accepted,
+    // `boolean`, not `literal(true)`, and that is the whole point: the four above
+    // are acceptances an applicant must give to proceed, this is a choice they
+    // are free to decline. Validating it as required would make the consent
+    // conditional on the application, which GDPR Art.7(4) does not allow.
+    marketingConsent: z.boolean(),
+  })
+  .superRefine((values, context) => {
+    if (!values.nationalIdFile) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['nationalIdFile'],
+        message: 'Upload your National ID',
+      });
+    }
+    if (values.applicantType === 'registered_business' && !values.businessRegistrationFile) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['businessRegistrationFile'],
+        message: 'Upload your certificate of incorporation',
+      });
+    }
+  });
 
 export type TermKey =
   | 'acceptedInfoAccuracy'
@@ -58,6 +89,8 @@ export const INITIAL_VALUES: RegistrationValues = {
   ownerFullName: '',
   ownerEmail: '',
   ownerPhone: '',
+  nationalIdFile: null,
+  businessRegistrationFile: null,
   acceptedInfoAccuracy: false,
   acceptedVendorTerms: false,
   acceptedEscrowPolicy: false,

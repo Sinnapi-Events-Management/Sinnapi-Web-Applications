@@ -13,22 +13,34 @@ type DocEntry = {
 
 /** Verification documents — click to preview in-app (no new tab). */
 export default function DocumentsSection({
+  applicantType,
   nationalIdPath,
+  businessRegistrationDocumentPath,
   proofOfWorkPath,
   onOpen,
 }: {
+  applicantType: string | null;
   nationalIdPath: string | null;
+  businessRegistrationDocumentPath: string | null;
   proofOfWorkPath: string | null;
   onOpen: (path: string | null, title: string) => void;
 }) {
   const docs: DocEntry[] = [
     { label: 'National ID', icon: <BadgeIcon />, path: nationalIdPath },
+    ...(applicantType === 'registered_business'
+      ? [
+          {
+            label: 'Business registration document',
+            icon: <FolderSharedIcon />,
+            path: businessRegistrationDocumentPath,
+          },
+        ]
+      : []),
     { label: 'Proof of work', icon: <WorkspacePremiumIcon />, path: proofOfWorkPath },
   ];
 
-  // The one-step application collects no documents, so for those a card of
-  // "Not provided" rows would read as something the applicant left out.
-  if (!nationalIdPath && !proofOfWorkPath) return null;
+  // Older application rows may predate document uploads, so omit an empty card.
+  if (!nationalIdPath && !businessRegistrationDocumentPath && !proofOfWorkPath) return null;
 
   return (
     <SectionCard title="Documents" icon={<FolderSharedIcon />} accent="info">

@@ -8,14 +8,29 @@ import type { VendorMediaModel } from '@/lib/types';
 import { useVendorDetailGallery } from './hooks/useVendorDetailGallery';
 
 /**
- * An Instagram-inspired, square gallery of the vendor's photos and videos.
+ * An Instagram-inspired, square gallery of the vendor's photos and videos —
+ * the profile's first tab, and what the page opens on.
  *
  * Images and videos open in the shared full-screen viewer with keyboard and
  * thumbnail navigation. Tiles are visible immediately rather than waiting for
- * a scroll reveal, because this gallery is the first content on the page.
+ * a scroll reveal, because this is still the first content a visitor sees.
  *
  * Two columns on phones keep each thumbnail large enough to recognize; the
  * three-column desktop grid preserves the familiar social-profile rhythm.
+ *
+ * Deliberately uncapped — no "show the first twelve" button. A vendor with
+ * thirty photos is a vendor with thirty pieces of evidence, and hiding
+ * two-thirds of them behind a tap would cost the one thing this section is
+ * for. What made a long gallery painful was never its length but its
+ * *position*: it used to sit above the tab bar, so every photo stood between
+ * the visitor and the prices, the reviews and the quote button. Inside a tab,
+ * under a bar that stays pinned to the top of the viewport, scrolling past it
+ * is a choice rather than a toll.
+ *
+ * Length is paid for instead, not avoided: each tile reserves its square
+ * through `aspectRatio` before anything loads, so a slow connection gets the
+ * final layout immediately and nothing shifts under a thumb mid-scroll, and
+ * only the first row is eager — the rest decode as they are approached.
  */
 export default function VendorDetailGallery({
   media,
@@ -78,6 +93,9 @@ export default function VendorDetailGallery({
                 item={item}
                 fallbackAlt={vendorName}
                 onOpen={() => viewer.openAt(index)}
+                // The first row, which is three tiles at `md` and one and a
+                // half on a phone. Everything past it is lazy; the square is
+                // already reserved above, so a late arrival costs no reflow.
                 loading={index < 3 ? 'eager' : 'lazy'}
               />
             </Box>

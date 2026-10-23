@@ -14,7 +14,7 @@ export type UploadedFile = {
   size?: number;
   /** Preview/served URL once available (image items render a thumbnail). */
   url?: string;
-  status: 'uploading' | 'done' | 'error';
+  status: 'selected' | 'uploading' | 'done' | 'error';
   /** 0–100 while `status === 'uploading'`. */
   progress?: number;
   error?: string;

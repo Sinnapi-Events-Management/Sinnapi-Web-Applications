@@ -8,6 +8,7 @@ import SubmitBar from '../../molecules/SubmitBar';
 import BusinessSection from '../businessSection';
 import OwnerSection from '../ownerSection';
 import ConsentSection from '../consentSection';
+import VerificationDocumentsSection from '../verificationDocumentsSection';
 
 type Props = { categories: ReferenceOption[] };
 
@@ -28,6 +29,7 @@ export default function RegistrationFormClient({ categories }: Props) {
     >
       <Stack spacing={{ xs: 3, md: 4 }}>
         <BusinessSection fields={fields} categories={categories} disabled={submitting} />
+        <VerificationDocumentsSection fields={fields} disabled={submitting} />
         <OwnerSection fields={fields} disabled={submitting} />
         <ConsentSection fields={fields} captcha={captcha} disabled={submitting} />
       </Stack>
