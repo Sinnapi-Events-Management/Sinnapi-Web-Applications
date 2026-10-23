@@ -79,7 +79,9 @@ export default function ApplicationDetail() {
                   onWithdraw={withdraw}
                 />
                 <DocumentsSection
+                  applicantType={a.applicant_type}
                   nationalIdPath={a.national_id_path}
+                  businessRegistrationDocumentPath={a.business_registration_document_path}
                   proofOfWorkPath={a.proof_of_work_path}
                   onOpen={openDoc}
                 />

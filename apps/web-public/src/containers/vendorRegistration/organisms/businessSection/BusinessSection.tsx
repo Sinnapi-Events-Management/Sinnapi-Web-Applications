@@ -15,7 +15,10 @@ export default function BusinessSection({ fields, categories, disabled }: Props)
 
   return (
     <Box component="section">
-      <FormSectionHeading title="Your business" caption="How clients will find and know you." />
+      <FormSectionHeading
+        title="Your business"
+        caption="The business that will provide services to Sinnapi clients. Enter your shop, brand or working name."
+      />
       <Grid container spacing={2.5}>
         <Grid item xs={12}>
           <RegistrationTextField
@@ -31,7 +34,10 @@ export default function BusinessSection({ fields, categories, disabled }: Props)
           <ApplicantTypeToggle
             value={values.applicantType}
             disabled={disabled}
-            onChange={(next) => set('applicantType', next)}
+            onChange={(next) => {
+              set('applicantType', next);
+              if (next === 'individual') set('businessRegistrationFile', null);
+            }}
           />
         </Grid>
         <Grid item xs={12}>

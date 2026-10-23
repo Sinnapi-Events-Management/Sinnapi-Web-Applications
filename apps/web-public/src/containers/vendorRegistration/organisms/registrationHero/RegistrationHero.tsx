@@ -9,7 +9,7 @@ import { palette, withAlpha } from '@sinnapi/ui/tokens';
 
 const REASSURANCES = [
   { Icon: ScheduleOutlined, text: 'Takes about 2 minutes' },
-  { Icon: DescriptionOutlined, text: 'No documents needed to apply' },
+  { Icon: DescriptionOutlined, text: 'Documents required for verification' },
   { Icon: VerifiedOutlined, text: 'Reviewed within 2–3 days' },
 ];
 

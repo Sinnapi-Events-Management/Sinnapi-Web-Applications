@@ -9,6 +9,7 @@ import {
   formatMoney,
   isExternalHref,
 } from '@/lib/config/site';
+import { VENDOR_CTA_ANCHOR_ID } from '../../utils/ctaAnchor';
 import type { VendorDetailModel } from '@/lib/types';
 
 /**
@@ -34,11 +35,19 @@ import type { VendorDetailModel } from '@/lib/types';
  * server component and the card is in the static HTML either way.
  *
  * On `md` and up it is the sticky right-hand column it has always been. Below
- * that it sits *above* the tab bar as a single band — price beside the buttons
- * — rather than falling under the open section. Under a tabbed page the card
- * would otherwise be the last thing on every panel, so a visitor who has just
- * read the price would scroll a wall of photos to reach the button that acts on
- * it, which is the journey the tabs exist to delete.
+ * that it is a single band — price beside the buttons — closing the page after
+ * the tabs.
+ *
+ * It used to be reordered *above* the tab bar on small screens, because a card
+ * that fell under a tabbed panel was a card a visitor had to scroll a wall of
+ * photos to reach. `VendorDetailCtaBar` answers that instead: below `md` these
+ * same two actions are also fixed to the bottom of the viewport, up from the
+ * moment the page opens. With them always within reach the card no longer has
+ * to come first — and it should not, because the first screen belongs to the
+ * vendor's photos, which is what a visitor actually decides on.
+ *
+ * This card is the bar's anchor, so the two are never on screen together: the
+ * bar retracts exactly while these buttons are in view. See `utils/ctaAnchor`.
  */
 export default function VendorDetailSidebar({ vendor }: { vendor: VendorDetailModel }) {
   const price = formatMoney(vendor.starting_price, vendor.starting_price_currency);
@@ -116,7 +125,15 @@ export default function VendorDetailSidebar({ vendor }: { vendor: VendorDetailMo
           )}
 
           <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction={{ xs: 'column', sm: 'row', md: 'column' }} spacing={1.5}>
+            {/* The pair the fixed mobile bar watches. While these are in view
+                the bar stays down; the rest of the time it is up, so the two
+                actions are always reachable and never on screen twice. See
+                `utils/ctaAnchor`. */}
+            <Stack
+              id={VENDOR_CTA_ANCHOR_ID}
+              direction={{ xs: 'column', sm: 'row', md: 'column' }}
+              spacing={1.5}
+            >
               <Button
                 component={NextLink}
                 href={portalProfileHref}

@@ -1,5 +1,6 @@
 import type { RegistrationValues } from '../data/schema';
 import { MARKETING_CONSENT_TEXT } from '../data/options';
+import type { IntakeDocumentPaths } from './applicationDocuments';
 
 /**
  * The body the `vendor-application` Edge Function expects — only the fields the
@@ -10,6 +11,7 @@ export function toApplicationPayload(
   values: RegistrationValues,
   captchaToken: string,
   submissionRef: string,
+  documentPaths: IntakeDocumentPaths,
 ) {
   return {
     captchaToken,
@@ -20,6 +22,11 @@ export function toApplicationPayload(
     ownerFullName: values.ownerFullName,
     ownerEmail: values.ownerEmail,
     ownerPhone: values.ownerPhone,
+    // Keyed by storage folder on the way in, by column name on the way out:
+    // these two names are what the endpoint reads, and an absent document is
+    // sent as null rather than omitted so the two sides stay in step.
+    nationalIdPath: documentPaths['national-id'] ?? null,
+    businessRegistrationDocumentPath: documentPaths['business-registration'] ?? null,
     acceptedInfoAccuracy: values.acceptedInfoAccuracy,
     acceptedVendorTerms: values.acceptedVendorTerms,
     acceptedEscrowPolicy: values.acceptedEscrowPolicy,

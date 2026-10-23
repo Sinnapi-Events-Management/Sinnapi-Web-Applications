@@ -83,7 +83,9 @@ type Body = {
   tiktokUrl?: string;
   linkedinUrl?: string;
   facebookUrl?: string;
-  nationalIdPath?: string;
+  /** Null, not absent, when the form had no such document to send. */
+  nationalIdPath?: string | null;
+  businessRegistrationDocumentPath?: string | null;
   proofOfWorkPath?: string;
   businessRegNumber?: string;
   taxId?: string;
@@ -227,9 +229,65 @@ function req(cond: boolean, field: string) {
   if (!cond) throw new HttpError(422, `missing_or_invalid:${field}`);
 }
 
-function clean(v?: string): string | null {
+function clean(v?: string | null): string | null {
   const t = (v ?? '').trim();
   return t === '' ? null : t;
+}
+
+/** Applicants may attach only the supported private documents to their own submission folder. */
+function isIntakeDocumentPath(
+  path: string | null | undefined,
+  submissionRef: string,
+  kind: string,
+): boolean {
+  if (!path) return false;
+  const escapedRef = submissionRef.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escapedRef}/${kind}/[A-Za-z0-9_.-]+\\.(pdf|png|jpe?g)$`, 'i').test(path);
+}
+
+/**
+ * The documents an intake row actually carries, named by their storage folder.
+ *
+ * Read back off the row rather than echoed from the request, so it is a receipt
+ * and not a repetition: the form compares it against what it uploaded and says
+ * so loudly when a document it sent was not recorded. That is the one signal
+ * that would have caught a deployed function older than the form silently
+ * dropping a certificate of incorporation it had never heard of.
+ */
+function storedDocumentKinds(row: {
+  national_id_path?: string | null;
+  business_registration_document_path?: string | null;
+}): string[] {
+  const kinds: string[] = [];
+  if (row.national_id_path) kinds.push('national-id');
+  if (row.business_registration_document_path) kinds.push('business-registration');
+  return kinds;
+}
+
+async function requireUploadedDocument(
+  supa: SupabaseClient,
+  path: string,
+  submissionRef: string,
+  kind: string,
+  field: string,
+) {
+  const fileName = path.split('/').at(-1)!;
+  const { data, error } = await supa.storage
+    .from('application-intake')
+    .list(`${submissionRef}/${kind}`, { search: fileName, limit: 10 });
+  if (error) throw new HttpError(422, `invalid_document:${field}`);
+
+  const file = data?.find((item) => item.name === fileName);
+  const metadata = file?.metadata as { mimetype?: string; size?: number | string } | null;
+  const size = Number(metadata?.size);
+  req(
+    !!file &&
+      ['application/pdf', 'image/png', 'image/jpeg'].includes(metadata?.mimetype ?? '') &&
+      Number.isFinite(size) &&
+      size > 0 &&
+      size <= 10 * 1024 * 1024,
+    field,
+  );
 }
 
 Deno.serve(
@@ -258,10 +316,17 @@ Deno.serve(
       Array.isArray(b.serviceCategoryKeys) && b.serviceCategoryKeys.length > 0,
       'serviceCategoryKeys',
     );
-    // Service regions, identity documents and payout details are no longer
-    // required: the application is one short step, identity is checked during
-    // review, and coverage is set from the vendor portal after approval. The
-    // columns remain, and are still stored when a caller sends them.
+    req(isIntakeDocumentPath(b.nationalIdPath, b.submissionRef!, 'national-id'), 'nationalIdPath');
+    if (b.applicantType === 'registered_business') {
+      req(
+        isIntakeDocumentPath(
+          b.businessRegistrationDocumentPath,
+          b.submissionRef!,
+          'business-registration',
+        ),
+        'businessRegistrationDocumentPath',
+      );
+    }
 
     // Enum fields, when present, must be valid.
     if (b.yearsInOperation) req(YEARS.includes(b.yearsInOperation), 'yearsInOperation');
@@ -291,15 +356,37 @@ Deno.serve(
     const supa = adminClient();
     const ownerEmail = b.ownerEmail!.trim().toLowerCase();
 
+    await requireUploadedDocument(
+      supa,
+      b.nationalIdPath!,
+      b.submissionRef!,
+      'national-id',
+      'nationalIdPath',
+    );
+    if (b.applicantType === 'registered_business') {
+      await requireUploadedDocument(
+        supa,
+        b.businessRegistrationDocumentPath!,
+        b.submissionRef!,
+        'business-registration',
+        'businessRegistrationDocumentPath',
+      );
+    }
+
     // Guard against duplicate submits of the same client-generated ref. This
     // stays first and stays cheap: a double-click must be idempotent, not a
     // refusal, and it must not consume the supersede logic below.
     const { data: existing } = await supa
       .from('vendor_application_intake')
-      .select('id')
+      .select('id, national_id_path, business_registration_document_path')
       .eq('submission_ref', b.submissionRef)
       .maybeSingle();
-    if (existing) return json(request, { id: existing.id, duplicate: true }, 200);
+    if (existing)
+      return json(
+        request,
+        { id: existing.id, duplicate: true, storedDocuments: storedDocumentKinds(existing) },
+        200,
+      );
 
     // --- Duplicate guard, part 1: is this applicant already through? -------
     // Refuses outright, so it runs before anything is written.
@@ -336,6 +423,10 @@ Deno.serve(
         linkedin_url: clean(b.linkedinUrl),
         facebook_url: clean(b.facebookUrl),
         national_id_path: clean(b.nationalIdPath),
+        business_registration_document_path:
+          b.applicantType === 'registered_business'
+            ? clean(b.businessRegistrationDocumentPath)
+            : null,
         proof_of_work_path: clean(b.proofOfWorkPath),
         business_reg_number: clean(b.businessRegNumber),
         tax_id: clean(b.taxId),
@@ -351,7 +442,7 @@ Deno.serve(
         ip_address: ip,
         user_agent: userAgent,
       })
-      .select('id, created_at')
+      .select('id, created_at, national_id_path, business_registration_document_path')
       .single();
 
     if (error) throw new HttpError(400, error.message);
@@ -449,6 +540,7 @@ Deno.serve(
       {
         id: data.id,
         supersededCount,
+        storedDocuments: storedDocumentKinds(data),
         emailSent: applicantResult.sent,
         ...(applicantResult.error && { emailWarning: applicantResult.error }),
       },

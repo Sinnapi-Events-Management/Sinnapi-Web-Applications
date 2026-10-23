@@ -121,6 +121,7 @@ export type IntakeDetailModel = {
   linkedin_url: string | null;
   facebook_url: string | null;
   national_id_path: string | null;
+  business_registration_document_path: string | null;
   proof_of_work_path: string | null;
   business_reg_number: string | null;
   tax_id: string | null;

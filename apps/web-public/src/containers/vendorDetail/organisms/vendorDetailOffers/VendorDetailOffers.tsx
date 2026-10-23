@@ -45,8 +45,11 @@ type Props = {
  * this client actually fit. A visitor with no session is still asked to sign in
  * first — the portal does that itself and returns them here, tab and all.
  *
- * Renders nothing when the vendor has no offers — `OfferStrip` handles that
- * itself, which is why there is no guard here.
+ * `OfferStrip` renders nothing when there are no offers, but the spacing
+ * wrapper below is this component's own and rendered either way — so the
+ * container guards on `offers.length` before mounting this at all. Without
+ * that guard every vendor without an offer, which is most of them, paid 24px
+ * of empty margin between the title and the tab bar.
  */
 export default function VendorDetailOffers({ offers, vendorName, portalProfileHref }: Props) {
   // Another origin, so a new tab — and not when the href degraded to this
