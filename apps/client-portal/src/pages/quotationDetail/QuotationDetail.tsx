@@ -61,6 +61,8 @@ export default function QuotationDetail() {
     quotationId,
     quotation,
     vendor,
+    vendorContact,
+    isVendorContactLoading,
     event,
     items,
     pricing,
@@ -109,6 +111,8 @@ export default function QuotationDetail() {
             <OverviewSection
               quotation={quotation}
               vendor={vendor}
+              vendorContact={vendorContact}
+              isVendorContactLoading={isVendorContactLoading}
               event={event}
               onMessageVendor={() => void messageVendor()}
               isMessaging={conversation.isStarting}

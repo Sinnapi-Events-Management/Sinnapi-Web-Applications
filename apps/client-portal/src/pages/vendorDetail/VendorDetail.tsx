@@ -10,6 +10,7 @@ import VendorAvailabilitySection from './components/organisms/VendorAvailability
 import VendorEngagePanel from './components/organisms/VendorEngagePanel';
 import VendorOffersStrip from './components/organisms/VendorOffersStrip';
 import VendorOffersSection from './components/organisms/VendorOffersSection';
+import VendorQuotationsSection from './components/organisms/VendorQuotationsSection';
 import { useVendorDetailPage } from './hooks/useVendorDetailPage';
 
 /**
@@ -19,7 +20,8 @@ import { useVendorDetailPage } from './hooks/useVendorDetailPage';
  * Three things sit above the tabs and never move: the identity block, which
  * says whose profile this is, the offers strip when the vendor is running one,
  * and — on a phone — the engage panel, which is the only part of the page that
- * *does* anything. Everything below them is one of six sections that each fit a
+ * *does* anything. The client's own quotes live in a tab, with a badge when one
+ * needs them. Everything below them is one of six sections that each fit a
  * screen. Stacked in one column, a portfolio of forty photos sat between the
  * price and the calendar, so a visitor checking a date scrolled the vendor's
  * entire body of work to reach it.
@@ -28,8 +30,18 @@ import { useVendorDetailPage } from './hooks/useVendorDetailPage';
  * breakpoint, and each section owns its own content.
  */
 export default function VendorDetail() {
-  const { vendor, isLoading, error, media, isMediaLoading, mediaError, tab, setTab, isCompact } =
-    useVendorDetailPage();
+  const {
+    vendor,
+    isLoading,
+    error,
+    media,
+    isMediaLoading,
+    mediaError,
+    tab,
+    setTab,
+    isCompact,
+    quotationsNeedingAction,
+  } = useVendorDetailPage();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -68,10 +80,29 @@ export default function VendorDetail() {
               <VendorOffersStrip vendorId={vendor.id} onSeeOffers={() => setTab('offers')} />
             </Box>
 
-            <VendorDetailTabs value={tab} onChange={setTab} />
+            <VendorDetailTabs
+              value={tab}
+              onChange={setTab}
+              quotationsBadge={quotationsNeedingAction}
+            />
 
+            <DetailTabPanel value="portfolio" active={tab} idPrefix="vendor">
+              <VendorMediaSection
+                items={media}
+                vendorName={vendor.business_name}
+                isLoading={isMediaLoading}
+                error={mediaError}
+              />
+            </DetailTabPanel>
             <DetailTabPanel value="overview" active={tab} idPrefix="vendor">
               <VendorOverviewSection vendor={vendor} />
+            </DetailTabPanel>
+            <DetailTabPanel value="quotations" active={tab} idPrefix="vendor">
+              <VendorQuotationsSection
+                vendorId={vendor.id}
+                vendorName={vendor.business_name}
+                onSeePackages={() => setTab('packages')}
+              />
             </DetailTabPanel>
             <DetailTabPanel value="packages" active={tab} idPrefix="vendor">
               <VendorPackagesSection vendorId={vendor.id} vendorName={vendor.business_name} />
@@ -81,14 +112,6 @@ export default function VendorDetail() {
                 vendorId={vendor.id}
                 vendorName={vendor.business_name}
                 onSeePackages={() => setTab('packages')}
-              />
-            </DetailTabPanel>
-            <DetailTabPanel value="portfolio" active={tab} idPrefix="vendor">
-              <VendorMediaSection
-                items={media}
-                vendorName={vendor.business_name}
-                isLoading={isMediaLoading}
-                error={mediaError}
               />
             </DetailTabPanel>
             <DetailTabPanel value="availability" active={tab} idPrefix="vendor">

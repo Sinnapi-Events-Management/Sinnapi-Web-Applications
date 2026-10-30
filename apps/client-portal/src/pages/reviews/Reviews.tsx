@@ -1,67 +1,129 @@
-import {
-  Stack,
-  Card,
-  CardContent,
-  Typography,
-  Rating,
-  Box,
-  PageTitle,
-  QueryState,
-  StatusChip,
-} from '@sinnapi/ui';
-import { formatDate } from '@/lib/config';
-import { one } from '@/lib/rel';
-import type { VendorNameSlugRefModel } from '@/lib/types';
-import { useReviews } from './hooks/useReviews';
+import { PageTitle, QueryState, Stack, Typography } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
+import { ReviewComposerDialog } from '@sinnapi/ui/reviews';
+import ReviewQueueCard from './components/molecules/ReviewQueueCard';
+import { useReviews } from './hooks/useReviews';
 
+/**
+ * The client's ratings: the ones still owed, and the ones already left.
+ *
+ * WHAT THIS PAGE USED TO BE. First a read-only list that was always empty,
+ * because nothing in the product could write a review — the booking page's
+ * "Leave a review" button linked here, so a client followed it, read "No
+ * reviews yet → View bookings", and arrived back where they started. Then two
+ * titled section cards, each with a subtitle and a paragraph, over rows whose
+ * only control was a button that opened a dialog.
+ *
+ * WHAT IT IS NOW. The rows, with their stars on them. A client who lands here
+ * sees the vendors they can rate and taps a star; nothing is read first, and
+ * nothing is opened. The two groups are separated by one short line each
+ * instead of a card apiece, because a heading that explains the list underneath
+ * it is a heading on a list that was not clear enough.
+ *
+ * WHY THE OUTSTANDING ROWS LEAD. This page is read for one of two reasons and
+ * only one of them is a task: either the client is doing the thing they were
+ * asked to do, or they are looking back at what they said. The task goes first,
+ * and its count is in its heading so a client with one rating left can see that
+ * from the top.
+ *
+ * Layout only — `useReviews` owns the read, the split, the per-row write and
+ * the composer, and the composer itself is the shared dialog the booking page
+ * and the vendor profile also open.
+ */
 export default function Reviews() {
-  const { rows, isLoading, error } = useReviews();
+  const {
+    rows,
+    awaiting,
+    written,
+    outstanding,
+    isLoading,
+    error,
+    editing,
+    open,
+    close,
+    rate,
+    submit,
+    busyId,
+    saved,
+    rowError,
+    isSaving,
+    saveError,
+  } = useReviews();
 
   return (
     <>
-      <PageTitle title="My reviews" subtitle="Reviews you've left for vendors." />
+      <PageTitle title="My ratings" subtitle="Tap a star to rate a vendor you worked with." />
+
       <QueryState isLoading={isLoading} error={error}>
         {rows.length === 0 ? (
           <EmptyState
-            title="No reviews yet"
-            description="After a completed booking you can review the vendor."
+            title="Nothing to rate yet"
+            description="You can rate a vendor once your event starts."
             ctaLabel="View bookings"
             ctaHref="/bookings"
           />
         ) : (
-          <Stack spacing={2}>
-            {rows.map((r) => (
-              <Card key={r.id} variant="outlined">
-                <CardContent>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h6">
-                      {one<VendorNameSlugRefModel>(r.vendors)?.business_name ?? 'Vendor'}
-                    </Typography>
-                    <StatusChip status={r.status} />
-                  </Stack>
-                  <Rating value={r.rating} size="small" readOnly sx={{ mt: 0.5 }} />
-                  {r.title && (
-                    <Typography variant="subtitle2" sx={{ mt: 0.5 }}>
-                      {r.title}
-                    </Typography>
-                  )}
-                  {r.body && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {r.body}
-                    </Typography>
-                  )}
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDate(r.created_at)}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
+          <Stack spacing={1.5}>
+            {awaiting.length > 0 && (
+              <Typography variant="overline" color="text.secondary">
+                {outstanding > 0 ? `Rate these vendors (${outstanding})` : 'Just rated'}
+              </Typography>
+            )}
+
+            {awaiting.map((row) => (
+              <ReviewQueueCard
+                key={row.booking_id}
+                row={row}
+                onRate={rate}
+                onAddWords={open}
+                isSaving={busyId === row.booking_id}
+                justSaved={saved.includes(row.booking_id)}
+                error={rowError?.bookingId === row.booking_id ? rowError.message : null}
+              />
+            ))}
+
+            {/* Omitted entirely until there is a history, rather than shown as
+                a heading over an explanation of its own emptiness. */}
+            {written.length > 0 && (
+              <Typography variant="overline" color="text.secondary" sx={{ pt: 1 }}>
+                Already rated
+              </Typography>
+            )}
+
+            {written.map((row) => (
+              <ReviewQueueCard
+                key={row.booking_id}
+                row={row}
+                onRate={rate}
+                onAddWords={open}
+                isSaving={busyId === row.booking_id}
+                justSaved={saved.includes(row.booking_id)}
+                error={rowError?.bookingId === row.booking_id ? rowError.message : null}
+              />
             ))}
           </Stack>
         )}
       </QueryState>
+
+      <ReviewComposerDialog
+        open={editing != null}
+        mode={editing?.review_id ? 'edit' : 'create'}
+        vendorName={editing?.vendor_name}
+        bookingReference={editing?.reference_no}
+        initial={
+          editing?.review_id
+            ? {
+                rating: editing.rating ?? 0,
+                title: editing.review_title ?? '',
+                body: editing.review_body ?? '',
+              }
+            : null
+        }
+        isBusy={isSaving}
+        error={saveError}
+        onSubmit={submit}
+        onClose={close}
+      />
     </>
   );
 }

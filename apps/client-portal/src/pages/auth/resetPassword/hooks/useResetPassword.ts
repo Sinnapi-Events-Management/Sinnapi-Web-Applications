@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 const LINK_EXPIRED =
-  'This reset link is invalid or has expired. Ask an administrator to resend it.';
+  'This reset link is invalid or has expired. Request a new one from the forgot-password page.';
 
 /**
  * Establishes the recovery session from an emailed reset link.

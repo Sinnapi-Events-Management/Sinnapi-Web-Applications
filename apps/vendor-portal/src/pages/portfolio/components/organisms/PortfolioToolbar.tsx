@@ -48,7 +48,7 @@ export default function PortfolioToolbar({
         <Stack spacing={0.25} sx={{ minWidth: 0 }}>
           <Typography variant="body2" color="text.secondary">
             {counts.all === 0
-              ? 'Nothing in your portfolio yet.'
+              ? 'No photos or videos yet.'
               : `${counts.all} ${counts.all === 1 ? 'item' : 'items'} on your public profile.`}
           </Typography>
           {canReorder && (
@@ -70,7 +70,7 @@ export default function PortfolioToolbar({
             onClick={onAdd}
             sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
           >
-            Add media
+            Add photos or videos
           </Button>
         </Stack>
       </Stack>
@@ -80,7 +80,7 @@ export default function PortfolioToolbar({
           options={filterOptions}
           value={filter}
           onChange={onFilter}
-          ariaLabel="Filter portfolio by media type"
+          ariaLabel="Show photos or videos"
         />
       )}
     </Stack>

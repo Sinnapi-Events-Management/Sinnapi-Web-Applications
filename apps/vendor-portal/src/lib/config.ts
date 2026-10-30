@@ -4,7 +4,7 @@ import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
-import CollectionsIcon from '@mui/icons-material/Collections';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PaymentsIcon from '@mui/icons-material/Payments';
@@ -33,6 +33,25 @@ export type NavItem = PortalNavItem;
 export type NavSection = PortalNavSection;
 
 /**
+ * The gallery, and the gallery with its uploader already open.
+ *
+ * Named here because three surfaces link to it — the sidebar, the dashboard card
+ * and the setup wizard — and the path changed once already, from `/portfolio`.
+ * `?add=1` is read by `usePortfolio`, which opens the upload dialog and then
+ * strips the parameter.
+ */
+export const MEDIA_PATH = '/photos';
+export const ADD_MEDIA_PATH = `${MEDIA_PATH}?add=1`;
+
+/**
+ * One wording for the upload action, everywhere it appears — the dashboard
+ * toolbar, the floating button on a phone, the Overview card and the wizard.
+ * A vendor who learned the gold button as "Add photos or videos" should not
+ * have to recognise "Upload media" as the same thing two screens later.
+ */
+export const ADD_MEDIA_LABEL = 'Add photos or videos';
+
+/**
  * Sidebar groups, mirroring admin's sectioned nav. Nineteen destinations is far
  * too many for a flat list, so they're grouped by the job at hand: winning work,
  * maintaining the public listing, getting paid, and growing demand.
@@ -57,7 +76,10 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Listing',
     items: [
       { label: 'Services', to: '/services', icon: DesignServicesIcon },
-      { label: 'Portfolio', to: '/portfolio', icon: CollectionsIcon },
+      // "Photos & Videos", not "Portfolio": our vendors read "portfolio" as a
+      // document to attach, not as their own gallery, so the page they most need
+      // went unopened. The label is the one WhatsApp uses for the same thing.
+      { label: 'Photos & Videos', to: MEDIA_PATH, icon: PhotoLibraryIcon },
       { label: 'Public Events', to: '/public-events', icon: CelebrationIcon },
     ],
   },

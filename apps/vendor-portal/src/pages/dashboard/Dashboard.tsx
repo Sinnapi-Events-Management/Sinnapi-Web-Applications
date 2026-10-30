@@ -24,6 +24,7 @@ export default function Dashboard() {
     activeTab,
     setTab,
     attentionCount,
+    media,
     title,
     data,
     isLoading,
@@ -77,6 +78,7 @@ export default function Dashboard() {
         tabs={tabs}
         activeTab={activeTab}
         attentionCount={attentionCount}
+        media={media}
         data={data}
         isLoading={isLoading}
         isRefreshing={isRefreshing}

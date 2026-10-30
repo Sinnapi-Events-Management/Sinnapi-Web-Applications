@@ -40,6 +40,7 @@ export default function QuotationDetail() {
     quotationId,
     quotation,
     client,
+    isClientLoading,
     event,
     items,
     pricing,
@@ -89,7 +90,12 @@ export default function QuotationDetail() {
           <QuotationTabs value={tab} onChange={setTab} unreadCount={conversation.unreadCount} />
 
           <DetailTabPanel value="overview" active={tab} idPrefix="quotation">
-            <OverviewSection quotation={quotation} client={client} event={event} />
+            <OverviewSection
+              quotation={quotation}
+              client={client}
+              isClientLoading={isClientLoading}
+              event={event}
+            />
           </DetailTabPanel>
           <DetailTabPanel value="quote" active={tab} idPrefix="quotation">
             <QuoteSection

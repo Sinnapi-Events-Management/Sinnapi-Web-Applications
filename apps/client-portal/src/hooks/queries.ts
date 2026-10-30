@@ -19,6 +19,12 @@ import {
 } from '@sinnapi/ui';
 import type { PackageOfferRow } from '@sinnapi/ui/offers';
 import type { FxQuoteView } from '@sinnapi/ui/payments';
+import type {
+  ReviewDraft,
+  ReviewQueueRow,
+  VendorReview,
+  VendorReviewState,
+} from '@sinnapi/ui/reviews';
 import { supabase } from '@/lib/supabase';
 import { readFunctionError, EDGE_FUNCTION_TIMEOUT_MS } from '@/lib/functions';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
@@ -34,8 +40,10 @@ import type {
   VendorOptionModel,
   BookingListModel,
   BookingDetailModel,
+  DirectoryProfile,
   BookingStatusEventModel,
   QuotationListModel,
+  VendorQuotationModel,
   QuotationDetailModel,
   QuotationStatusEventModel,
   QuotationBookingModel,
@@ -62,7 +70,6 @@ import type {
   ConversationModel,
   EngagedVendorModel,
   MessageModel,
-  ReviewModel,
   NotificationModel,
   NotificationPage,
   ProfileModel,
@@ -584,7 +591,7 @@ export function useUpcomingBookings(limit = 5) {
  */
 const BOOKING_DETAIL_SELECT = [
   '*',
-  'vendors(business_name,slug,primary_image_url)',
+  'vendors(business_name,slug,primary_image_url,owner_id)',
   // `offer_discount_total` rides along so the booking's copy of the quote adds
   // up: without it `quotationPricing` would fall back to a derived total that
   // ignores the promotion and overstate what the client owes.
@@ -655,6 +662,38 @@ export function useQuotations(params: PageParams) {
   );
 }
 
+const VENDOR_QUOTATION_SELECT =
+  'id,reference_no,status,total,currency,valid_until,created_at,vendor_id,events(title,event_date)';
+
+/**
+ * The client's quotes with one vendor, newest first, for the vendor profile's
+ * "your quotes" strip. Every status is returned, including requested, draft,
+ * declined and expired, so the strip is the complete history with this vendor.
+ * Not paginated: a client rarely holds more than a handful
+ * of quotes with any one vendor, and the strip has to show all of them to be
+ * the place they are checked.
+ *
+ * Keyed under `['quotations']` so the accept, decline and void mutations, which
+ * already invalidate that prefix, refresh the strip too. Without that, a quote
+ * the client has just answered would still read "Review quote" on the profile.
+ */
+export function useQuotationsWithVendor(vendorId: string | undefined) {
+  return useQuery({
+    queryKey: ['quotations', 'vendor', vendorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotations')
+        .select(VENDOR_QUOTATION_SELECT)
+        .eq('vendor_id', vendorId!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as VendorQuotationModel[];
+    },
+    enabled: !!vendorId,
+  });
+}
+
 /**
  * One page of comparable quotes. The status narrowing happens server-side, so
  * the row count driving pagination counts only the quotes actually shown —
@@ -690,7 +729,7 @@ export function useQuotation(id: string) {
       const { data, error } = await supabase
         .from('quotations')
         .select(
-          '*,vendors(business_name,slug,primary_image_url),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date,payment_type,payment_terms_note),event_types(id,name)',
+          '*,vendors(business_name,slug,primary_image_url,owner_id),quotation_items(id,description,quantity,unit_price,line_total,sort_order),events(id,title,event_date,payment_type,payment_terms_note),event_types(id,name)',
         )
         .eq('id', id)
         .maybeSingle();
@@ -699,6 +738,31 @@ export function useQuotation(id: string) {
     },
     enabled: !!id,
   });
+}
+
+/**
+ * The vendor's contact details for the client, resolved through
+ * `get_profile_directory`. The directory releases email and phone only once the
+ * client has engaged: a quote they accepted, or a booking past `requested` that
+ * was not declined. Until then the name is still returned and `contact_visible`
+ * is false, so the page can say when the details will appear.
+ *
+ * Keyed on the owner account rather than the vendor id because the directory
+ * resolves profiles. Disabled until a vendor's owner is known, which is also the
+ * case for a vendor whose account was removed.
+ */
+export function useVendorContact(ownerId: string | null | undefined) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['vendor-contact', ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_profile_directory', { p_ids: [ownerId] });
+      if (error) throw error;
+      return ((data ?? []) as DirectoryProfile[])[0] ?? null;
+    },
+    enabled: !!ownerId,
+  });
+
+  return { contact: data ?? null, isLoading, error };
 }
 
 /**
@@ -1403,20 +1467,156 @@ export function useMessages(conversationId: string) {
   });
 }
 
-// ---------- Reviews / Notifications / Profile ----------
-export function useReviews() {
+// ---------- Reviews ----------
+
+/**
+ * Every booking this client may review, with the review when they have left
+ * one. The Reviews page is this one read.
+ *
+ * It replaces a `.from('reviews')` select that could only ever return reviews
+ * the client had already written — which was always none, because the product
+ * had no composer. Two things made the table read the wrong shape for this
+ * page: it cannot see the bookings that are still *owed* a review, and
+ * `profiles_self_read` means it cannot resolve anybody's name but your own.
+ *
+ * One call rather than two because the page shows one list split in two —
+ * outstanding and done — and two reads could disagree about which half a
+ * booking belongs to the moment a review is submitted.
+ */
+export function useReviewQueue() {
   return useQuery({
-    queryKey: ['reviews'],
+    queryKey: REVIEW_KEYS.queue,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('id,rating,title,body,status,created_at,vendors(business_name,slug)')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_my_review_queue');
       if (error) throw error;
-      return (data ?? []) as ReviewModel[];
+      return (data ?? []) as ReviewQueueRow[];
     },
   });
 }
+
+/**
+ * The query keys a review write invalidates.
+ *
+ * Collected because a submitted review changes four things at once: the
+ * client's queue, the vendor profile's review list, the eligibility panel on
+ * that profile, and the vendor's `avg_rating`/`review_count` rollup, which is
+ * denormalised onto the row every vendor card and the discover grid read.
+ * Missing the last one is how a client leaves a five-star review and watches
+ * the vendor's score stay where it was.
+ */
+export const REVIEW_KEYS = {
+  queue: ['review-queue'] as const,
+  vendorReviews: (vendorId?: string) => ['vendor-reviews', vendorId] as const,
+  vendorState: (vendorId?: string) => ['vendor-review-state', vendorId] as const,
+};
+
+const VENDOR_REVIEWS_PAGE_SIZE = 10;
+
+/**
+ * The written reviews on a vendor's profile, paged.
+ *
+ * Infinite rather than a flat read: a vendor with four hundred reviews should
+ * not send four hundred rows to render the first ten. `total_count` rides on
+ * every row, so the "showing 10 of 48" line comes from the same read as the
+ * rows it describes.
+ */
+export function useVendorReviews(vendorId?: string) {
+  return useInfiniteQuery({
+    queryKey: REVIEW_KEYS.vendorReviews(vendorId),
+    enabled: !!vendorId,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await supabase.rpc('get_vendor_reviews', {
+        p_vendor_id: vendorId!,
+        p_limit: VENDOR_REVIEWS_PAGE_SIZE,
+        p_offset: pageParam as number,
+      });
+      if (error) throw error;
+      return (data ?? []) as VendorReview[];
+    },
+    getNextPageParam: (_lastPage, allPages) => {
+      // Counted across every page rather than from the last one's length: the
+      // offset the next page needs is how many rows are already held, and a
+      // short final page would otherwise ask for the wrong one.
+      const loaded = allPages.reduce((n, page) => n + page.length, 0);
+      const total = allPages[0]?.[0]?.total_count ?? 0;
+      return loaded < total ? loaded : undefined;
+    },
+  });
+}
+
+/**
+ * Whether this client may review this vendor, and why not when they may not.
+ *
+ * Always one row, including for a visitor with no booking — the vendor profile
+ * needs a sentence for every case, not just the eligible one, which is the
+ * whole reason clients thought reviewing was broken.
+ */
+export function useMyVendorReviewState(vendorId?: string) {
+  return useQuery({
+    queryKey: REVIEW_KEYS.vendorState(vendorId),
+    enabled: !!vendorId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_vendor_review_state', {
+        p_vendor_id: vendorId!,
+      });
+      if (error) throw error;
+      // `returns table` with one row arrives as a one-element array.
+      return ((data ?? [])[0] ?? null) as VendorReviewState | null;
+    },
+  });
+}
+
+/**
+ * Submit a new review, or correct an existing one.
+ *
+ * One mutation for both because the caller's situation decides it — a review id
+ * means edit, its absence means create — and the invalidation, the error
+ * mapping and the in-flight state are identical either way. Two hooks would be
+ * two copies of the four keys below.
+ */
+export function useSaveReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      input: ReviewDraft & {
+        /** Present when editing. */
+        reviewId?: string | null;
+        /** Required when creating. */
+        bookingId?: string | null;
+      },
+    ) => {
+      const args = {
+        p_rating: input.rating,
+        p_title: input.title || null,
+        p_body: input.body || null,
+      };
+
+      const { error } = input.reviewId
+        ? await supabase.rpc('update_review', { p_review_id: input.reviewId, ...args })
+        : await supabase.rpc('create_review', { p_booking_id: input.bookingId!, ...args });
+
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: REVIEW_KEYS.queue }),
+        // Broad on purpose: a review belongs to one vendor, but the client may
+        // have the profile of that vendor open under either key, and the cost
+        // of refetching a cached profile is a round trip nobody is waiting on.
+        qc.invalidateQueries({ queryKey: ['vendor-reviews'] }),
+        qc.invalidateQueries({ queryKey: ['vendor-review-state'] }),
+        // The score is denormalised onto `vendors` by `trg_recalc_rating`, so
+        // every surface that reads a vendor row is now stale: the profile
+        // header, the discover grid and the cards on the dashboard.
+        qc.invalidateQueries({ queryKey: ['vendor'] }),
+        qc.invalidateQueries({ queryKey: ['vendors'] }),
+      ]);
+    },
+  });
+}
+
+// ---------- Notifications / Profile ----------
 
 export const NOTIFICATIONS_PAGE_SIZE = 25;
 

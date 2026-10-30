@@ -5,6 +5,7 @@ import { useVendorContext } from '@/vendor/VendorProvider';
 import { useMyApplication, useProfile } from '@/hooks/queries';
 import { useVendorOverview } from '../data';
 import { useDashboardTabs } from './useDashboardTabs';
+import { useDashboardMedia } from './useDashboardMedia';
 
 /** Time-of-day greeting, so the page opens with a human line rather than a label. */
 function greeting(): string {
@@ -36,6 +37,9 @@ export function useDashboard() {
   // Only asked for when there is no vendor yet — that branch is the entire
   // reason to fetch it, and an approved vendor should not pay for the request.
   const application = useMyApplication();
+  // Listing state, not period state: it is deliberately outside the overview
+  // read so changing the date range cannot refetch or blank the gallery card.
+  const media = useDashboardMedia(vendor?.id);
 
   const name = firstName(profile?.full_name) ?? vendor?.business_name;
   // Badged on the Overview tab so a backlog stays visible from the analytics
@@ -58,6 +62,7 @@ export function useDashboard() {
     activeTab,
     setTab,
     attentionCount,
+    media,
     periodLabel: getPeriodOption(period).longLabel,
     title: name ? `${greeting()}, ${name}` : greeting(),
     data,

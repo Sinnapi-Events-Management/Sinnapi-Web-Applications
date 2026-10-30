@@ -924,6 +924,45 @@ export type ReviewModel = {
   review_responses: ReviewResponseRel | ReviewResponseRel[] | null;
 };
 
+/**
+ * The reply as the booking page reads it — the same row, with the two dates the
+ * Reviews page's list does not need.
+ *
+ * `deleted_at` is selected rather than filtered in the query: PostgREST applies
+ * a filter on an embedded column to the parent row, not to the embed, so a
+ * withdrawn reply would take the whole review out of the read. The row is
+ * picked in the hook instead. `ux_review_response` means there is at most one
+ * live reply per review.
+ */
+export type BookingReviewResponseRel = {
+  id: string;
+  body: string | null;
+  created_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+/**
+ * The one review left on one booking, as the vendor's booking page reads it.
+ *
+ * Separate from `ReviewModel` because it is a different read: that one is the
+ * whole list for the Reviews page, keyed by vendor, and pulling a vendor's four
+ * hundred reviews to show the one on this booking would be the wrong request.
+ * `edited_at` is here because a review the client corrected is a different
+ * thing from the one the vendor was notified about.
+ */
+export type BookingReviewModel = {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  status: string;
+  created_at: string;
+  edited_at: string | null;
+  client_id: string | null;
+  review_responses: BookingReviewResponseRel | BookingReviewResponseRel[] | null;
+};
+
 export type PlanFeatureModel = {
   feature_key: string;
   value: string | boolean | null;

@@ -5,11 +5,14 @@ import LocalActivityOutlinedIcon from '@mui/icons-material/LocalActivityOutlined
 import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
 import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined';
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { VENDOR_DETAIL_TABS, type VendorDetailTab } from '../../schema';
 
 type Props = {
   value: VendorDetailTab;
   onChange: (next: VendorDetailTab) => void;
+  /** Quotes that need the client's answer or a booking. Zero shows no badge. */
+  quotationsBadge?: number;
 };
 
 /**
@@ -25,6 +28,7 @@ type Props = {
  */
 const TAB_META: Record<VendorDetailTab, Omit<DetailTabItem<VendorDetailTab>, 'value'>> = {
   overview: { label: 'Overview', icon: <StorefrontOutlinedIcon fontSize="small" /> },
+  quotations: { label: 'Quotations', icon: <ReceiptLongOutlinedIcon fontSize="small" /> },
   packages: { label: 'Packages', icon: <LocalOfferOutlinedIcon fontSize="small" /> },
   offers: { label: 'Offers', icon: <LocalActivityOutlinedIcon fontSize="small" /> },
   portfolio: { label: 'Portfolio', icon: <PhotoLibraryOutlinedIcon fontSize="small" /> },
@@ -34,10 +38,16 @@ const TAB_META: Record<VendorDetailTab, Omit<DetailTabItem<VendorDetailTab>, 'va
 
 const ITEMS = VENDOR_DETAIL_TABS.map((value) => ({ value, ...TAB_META[value] }));
 
-export default function VendorDetailTabs({ value, onChange }: Props) {
+export default function VendorDetailTabs({ value, onChange, quotationsBadge }: Props) {
+  // Only the quotations tab carries a live count. Built per render rather than
+  // in the module constant, because the count arrives with the quotes.
+  const items = ITEMS.map((item) =>
+    item.value === 'quotations' ? { ...item, badge: quotationsBadge } : item,
+  );
+
   return (
     <DetailTabs
-      items={ITEMS}
+      items={items}
       value={value}
       onChange={onChange}
       idPrefix="vendor"

@@ -1,13 +1,18 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Avatar, Box, Button, SectionCard, Stack, Typography } from '@sinnapi/ui';
+import { Avatar, Box, Button, ContactRows, SectionCard, Stack, Typography } from '@sinnapi/ui';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import type { VendorRefModel } from '@/lib/types';
+import type { DirectoryProfile, VendorRefModel } from '@/lib/types';
 
-type Props = { vendor: VendorRefModel | null };
+type Props = {
+  vendor: VendorRefModel | null;
+  contact: DirectoryProfile | null;
+  isContactLoading: boolean;
+};
 
 /**
- * Who the client is dealing with, and the way back to their listing.
+ * Who the client is dealing with, how to reach them, and the way back to their
+ * listing.
  *
  * The hero names the vendor too, but the hero scrolls away and this does not:
  * a client reading the facts of a booking on a phone is several screens below
@@ -15,11 +20,16 @@ type Props = { vendor: VendorRefModel | null };
  * usual reason to look a vendor up again mid-booking, and the alternative is a
  * search from the discover page.
  *
+ * The contact rows sit under the name because a client who wants to ring the
+ * vendor about a booking is already looking here. They stay withheld until the
+ * booking is confirmed; the note says so rather than leaving a blank that reads
+ * as a vendor with no phone.
+ *
  * Messaging deliberately lives in the pinned action bar instead of here. It is
  * available in every state of the booking, so it belongs where it is always
  * reachable rather than inside a section.
  */
-export default function BookingVendorCard({ vendor }: Props) {
+export default function BookingVendorCard({ vendor, contact, isContactLoading }: Props) {
   const name = vendor?.business_name ?? 'Vendor';
 
   return (
@@ -40,6 +50,16 @@ export default function BookingVendorCard({ vendor }: Props) {
               The business delivering this booking
             </Typography>
           </Box>
+        </Stack>
+
+        <Stack>
+          <ContactRows
+            email={contact?.email}
+            phone={contact?.phone}
+            visible={Boolean(contact?.contact_visible)}
+            unresolved={isContactLoading || !contact}
+            withheldNote="Shared once your booking is confirmed"
+          />
         </Stack>
 
         {/* Only when we hold a slug: a vendor who has never published a listing

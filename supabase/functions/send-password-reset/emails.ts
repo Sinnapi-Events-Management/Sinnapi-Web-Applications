@@ -1,6 +1,13 @@
-// Email content for an admin-triggered password reset. Transport, brand palette
-// and the shared branded shell live in `_shared/emailTemplate.ts`; this module
-// only builds the subject + body.
+// Email content for a password reset, in both flavours. Transport, brand
+// palette and the shared branded shell live in `_shared/emailTemplate.ts`; this
+// module only builds the subject + body.
+//
+// The one sentence that differs is who started the reset, and it has to differ:
+// a self-service request that arrives claiming "a member of the Sinnapi team"
+// acted on the account is simply false, and it is precisely the sentence that
+// makes a recipient distrust the mail — or worse, call support about a breach
+// that never happened. Everything else is shared, because everything else is
+// true of both.
 //
 // Replaces GoTrue's built-in recovery template, which was the last piece of
 // Sinnapi mail that did not look like Sinnapi. Same conventions as the signup
@@ -28,15 +35,34 @@ export interface PasswordReset {
   /** Human name of that portal, e.g. "Vendor Portal". */
   portalName: string;
   expiryHours: number;
+  /**
+   * Who asked. `'self'` is the account holder using a forgot-password form;
+   * `'admin'` is a staff member resetting someone else's password from the
+   * console.
+   */
+  trigger: 'self' | 'admin';
 }
 
 export function passwordResetEmail(r: PasswordReset): EmailMessage {
   const firstName = r.fullName.split(/\s+/)[0] || r.fullName;
 
+  const openingText =
+    r.trigger === 'self'
+      ? `You asked to reset the password for your ${r.portalName} account. Choose a new password using the link below.`
+      : `A member of the ${APP_NAME} team has started a password reset for your ${r.portalName} account. Choose a new password using the link below.`;
+
+  const openingHtml =
+    r.trigger === 'self'
+      ? `You asked to reset the password for your <strong>${escapeHtml(r.portalName)}</strong> ` +
+        `account. Choose a new password using the button below.`
+      : `A member of the ${escapeHtml(APP_NAME)} team has started a password reset for your ` +
+        `<strong>${escapeHtml(r.portalName)}</strong> account. Choose a new password using the ` +
+        `button below.`;
+
   const text = emailText([
     `Hello ${firstName},`,
     '',
-    `A member of the ${APP_NAME} team has started a password reset for your ${r.portalName} account. Choose a new password using the link below.`,
+    openingText,
     '',
     `Reset your password: ${r.resetUrl}`,
     '',
@@ -52,11 +78,7 @@ export function passwordResetEmail(r: PasswordReset): EmailMessage {
     preheader: `Choose a new password for your ${APP_NAME} account.`,
     body: [
       emailParagraph(`Hello <strong>${escapeHtml(firstName)}</strong>,`),
-      emailParagraph(
-        `A member of the ${escapeHtml(APP_NAME)} team has started a password reset for your ` +
-          `<strong>${escapeHtml(r.portalName)}</strong> account. Choose a new password using the ` +
-          `button below.`,
-      ),
+      emailParagraph(openingHtml),
       emailButton(r.resetUrl, 'Choose a new password'),
       emailFallbackLink(r.resetUrl),
       emailPanel({

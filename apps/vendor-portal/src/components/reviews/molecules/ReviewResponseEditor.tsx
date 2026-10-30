@@ -1,6 +1,6 @@
 import { Stack, Button, Alert } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
-import { useReviewResponseForm } from '../../hooks/useReviewResponseForm';
+import { useReviewResponseForm } from '../hooks/useReviewResponseForm';
 
 type Props = {
   reviewId: string;

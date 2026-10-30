@@ -23,7 +23,7 @@ import PortfolioViewerActions from '../molecules/PortfolioViewerActions';
  */
 export default function PortfolioWorkspace({ vendorId }: { vendorId: string }) {
   const { vendor } = useVendorContext();
-  const vendorName = vendor?.business_name ?? 'Your portfolio';
+  const vendorName = vendor?.business_name ?? 'Your photos and videos';
   const {
     isLoading,
     error,
@@ -72,8 +72,8 @@ export default function PortfolioWorkspace({ vendorId }: { vendorId: string }) {
         {isEmpty ? (
           <EmptyState
             title="Show clients what you do"
-            description="Photos and video from past events are the first thing a client looks at. Add a few of your best."
-            ctaLabel="Add your first photos"
+            description="Pictures and clips from past events are the first thing a client looks at. Add three or four of your best."
+            ctaLabel="Add photos or videos"
             onCta={dialog.openDialog}
           />
         ) : (

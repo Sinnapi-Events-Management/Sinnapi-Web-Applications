@@ -1,6 +1,6 @@
 import { Stack, Button, Alert } from '@sinnapi/ui';
 import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi/ui/forms';
-import { AuthSwitchPrompt } from '@sinnapi/ui/router';
+import { AppLink, AuthSwitchPrompt } from '@sinnapi/ui/router';
 import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { useSignInForm } from './hooks/useSignInForm';
 
@@ -17,12 +17,21 @@ export default function SignInForm() {
         label="Email"
         autoComplete="email"
       />
-      <ControlledPasswordField
-        name="password"
-        control={control}
-        label="Password"
-        autoComplete="current-password"
-      />
+      <Stack spacing={0.75}>
+        <ControlledPasswordField
+          name="password"
+          control={control}
+          label="Password"
+          autoComplete="current-password"
+        />
+        <AppLink
+          to="/forgot-password"
+          variant="body2"
+          sx={{ alignSelf: 'flex-end', fontWeight: 600 }}
+        >
+          Forgot password?
+        </AppLink>
+      </Stack>
       <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="client-sign-in" />
       <Button
         type="submit"

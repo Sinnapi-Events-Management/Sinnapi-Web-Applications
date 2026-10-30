@@ -10,7 +10,7 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   plugins: ["check-file"],
   settings: { react: { version: "detect" } },
-  ignorePatterns: ["dist", ".eslintrc.cjs"],
+  ignorePatterns: ["dist", ".eslintrc.cjs", "package.json"],
   rules: {
     // console.log is not allowed; console.warn/error/info are permitted.
     "no-console": ["error", { allow: ["warn", "error", "info"] }],

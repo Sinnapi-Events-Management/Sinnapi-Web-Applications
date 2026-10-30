@@ -1,11 +1,18 @@
 import { SectionGrid } from '@sinnapi/ui';
-import type { EventRefModel, QuotationDetailModel, VendorRefModel } from '@/lib/types';
+import type {
+  DirectoryProfile,
+  EventRefModel,
+  QuotationDetailModel,
+  VendorRefModel,
+} from '@/lib/types';
 import QuotationFactsCard from './QuotationFactsCard';
 import QuotationNextStepsCard from './QuotationNextStepsCard';
 
 type Props = {
   quotation: QuotationDetailModel;
   vendor: VendorRefModel | null;
+  vendorContact: DirectoryProfile | null;
+  isVendorContactLoading: boolean;
   event: EventRefModel | null;
   onMessageVendor: () => void;
   isMessaging: boolean;
@@ -31,13 +38,21 @@ type Props = {
 export default function OverviewSection({
   quotation,
   vendor,
+  vendorContact,
+  isVendorContactLoading,
   event,
   onMessageVendor,
   isMessaging,
 }: Props) {
   return (
     <SectionGrid template={{ xs: '1fr', md: '7fr 5fr' }}>
-      <QuotationFactsCard quotation={quotation} event={event} />
+      <QuotationFactsCard
+        quotation={quotation}
+        vendor={vendor}
+        vendorContact={vendorContact}
+        isVendorContactLoading={isVendorContactLoading}
+        event={event}
+      />
       <QuotationNextStepsCard
         vendorId={quotation.vendor_id}
         vendor={vendor}
