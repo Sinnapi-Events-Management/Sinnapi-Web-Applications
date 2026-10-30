@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { alpha, Box, Button, Stack, Typography } from '@sinnapi/ui';
 import ReplyOutlinedIcon from '@mui/icons-material/ReplyOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import ReviewResponseEditor from './ReviewResponseEditor';
+import ReviewResponseEditor from '../molecules/ReviewResponseEditor';
 
 type Props = {
   reviewId: string;
@@ -27,6 +27,12 @@ type Props = {
  * "Respond" is `contained` while nothing has been written and a quiet text
  * button once it has. The card is a work item until it is answered and a record
  * afterwards, and the weight of the button is what says which.
+ *
+ * THE LINE ABOVE THE FIRST REPLY IS NOT DECORATION. Replying closes the
+ * client's edit window — `review_is_locked` is derived from this very row — so
+ * a vendor who answers a two-star review within the hour has also made it
+ * permanent, and vendors were never told that. It is stated before the first
+ * reply only; by the time they are editing one, the window is long shut.
  */
 export default function ReviewResponse({ reviewId, existing }: Props) {
   const [open, setOpen] = useState(false);
@@ -86,16 +92,21 @@ export default function ReviewResponse({ reviewId, existing }: Props) {
     );
 
   return (
-    <Button
-      size="small"
-      variant="contained"
-      startIcon={<ReplyOutlinedIcon />}
-      onClick={() => setOpen(true)}
-      // Full width on a phone so the one action on the card is a thumb-width
-      // target rather than a chip in the corner.
-      sx={{ mt: 2, alignSelf: 'flex-start', width: { xs: '100%', sm: 'auto' } }}
-    >
-      Respond
-    </Button>
+    <Stack spacing={0.75} sx={{ mt: 2 }}>
+      <Typography variant="caption" color="text.secondary">
+        Your reply is public. Once you answer, the client can no longer change their rating.
+      </Typography>
+      <Button
+        size="small"
+        variant="contained"
+        startIcon={<ReplyOutlinedIcon />}
+        onClick={() => setOpen(true)}
+        // Full width on a phone so the one action on the card is a thumb-width
+        // target rather than a chip in the corner.
+        sx={{ alignSelf: 'flex-start', width: { xs: '100%', sm: 'auto' } }}
+      >
+        Respond
+      </Button>
+    </Stack>
   );
 }

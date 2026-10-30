@@ -1,4 +1,4 @@
-import { Stack, InfoRow, SectionCard } from '@sinnapi/ui';
+import { ContactRows, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TagIcon from '@mui/icons-material/Tag';
 import HistoryIcon from '@mui/icons-material/History';
@@ -9,12 +9,21 @@ import NotesIcon from '@mui/icons-material/Notes';
 import LayersIcon from '@mui/icons-material/Layers';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import { formatDate, formatDateTime } from '@/lib/config';
 import { one } from '@/lib/rel';
-import type { EventRefModel, QuotationDetailModel } from '@/lib/types';
+import type {
+  DirectoryProfile,
+  EventRefModel,
+  QuotationDetailModel,
+  VendorRefModel,
+} from '@/lib/types';
 
 type Props = {
   quotation: QuotationDetailModel;
+  vendor: VendorRefModel | null;
+  vendorContact: DirectoryProfile | null;
+  isVendorContactLoading: boolean;
   event: EventRefModel | null;
 };
 
@@ -24,7 +33,13 @@ type Props = {
  * revision number above one — appear only then rather than sitting empty the
  * rest of the time.
  */
-export default function QuotationFactsCard({ quotation: q, event }: Props) {
+export default function QuotationFactsCard({
+  quotation: q,
+  vendor,
+  vendorContact,
+  isVendorContactLoading,
+  event,
+}: Props) {
   const eventType = one<{ id: string; name: string }>(q.event_types);
 
   return (
@@ -36,6 +51,17 @@ export default function QuotationFactsCard({ quotation: q, event }: Props) {
           value={q.reference_no}
           copyValue={q.reference_no ?? undefined}
           mono
+        />
+        <InfoRow label="Vendor" icon={<StorefrontOutlinedIcon />} value={vendor?.business_name} />
+        {/* The vendor's own contact, which the directory holds back until this
+            quote is accepted. Placed here, beside the name, so the client reads
+            who to ring in the same place they read who the quote is from. */}
+        <ContactRows
+          email={vendorContact?.email}
+          phone={vendorContact?.phone}
+          visible={Boolean(vendorContact?.contact_visible)}
+          unresolved={isVendorContactLoading || !vendorContact}
+          withheldNote="Shared once you accept this quote"
         />
         <InfoRow label="Requested on" icon={<HistoryIcon />} value={formatDateTime(q.created_at)} />
         {q.sent_at && (

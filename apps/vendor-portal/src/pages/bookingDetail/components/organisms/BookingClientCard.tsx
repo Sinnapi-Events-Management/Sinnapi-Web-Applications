@@ -1,44 +1,37 @@
-import { Stack, InfoRow, SectionCard, Typography } from '@sinnapi/ui';
+import { ContactRows, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import type { DirectoryProfile } from '@/lib/types';
 
 type Props = {
   client: DirectoryProfile | null;
+  isClientLoading: boolean;
 };
 
 /**
- * Who the vendor is dealing with. The email carries a copy affordance because
- * the usual next move — mailing the client outside the platform — starts with
- * getting the address somewhere else.
+ * Who the vendor is dealing with, and how to reach them. The email and phone
+ * carry copy affordances because the usual next move — contacting the client
+ * outside the platform — starts with getting the number or address somewhere
+ * else.
  *
- * On a booking still sitting at `requested` there is no address to copy: the
- * directory withholds contact details until the client has actually engaged, so
- * a vendor cannot harvest an address off a request they have not accepted. That
- * state says so, rather than rendering the empty dash that would read as a
- * client who never supplied one.
+ * On a booking still sitting at `requested` there is no contact to copy: the
+ * directory withholds details until the booking is past that state, so a vendor
+ * cannot harvest a number off a request they have not accepted. The rows say so,
+ * rather than rendering the empty dash that would read as a client who never
+ * supplied one. The rule itself lives in `get_profile_directory`; this card only
+ * shows its result.
  */
-export default function BookingClientCard({ client }: Props) {
-  const contactWithheld = Boolean(client) && !client?.contact_visible;
-
+export default function BookingClientCard({ client, isClientLoading }: Props) {
   return (
     <SectionCard title="Client" icon={<PersonOutlineIcon />} accent="info">
       <Stack>
         <InfoRow label="Name" icon={<BadgeOutlinedIcon />} value={client?.full_name} />
-        <InfoRow
-          label="Email"
-          icon={<MailOutlineIcon />}
-          value={
-            contactWithheld ? (
-              <Typography component="span" variant="body2" color="text.secondary">
-                Shared once the booking is confirmed
-              </Typography>
-            ) : (
-              client?.email
-            )
-          }
-          copyValue={client?.email ?? undefined}
+        <ContactRows
+          email={client?.email}
+          phone={client?.phone}
+          visible={Boolean(client?.contact_visible)}
+          unresolved={isClientLoading || !client}
+          withheldNote="Shared once the booking is confirmed"
         />
       </Stack>
     </SectionCard>

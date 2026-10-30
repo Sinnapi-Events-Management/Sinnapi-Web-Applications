@@ -10,6 +10,26 @@ export type VendorRefModel = {
   business_name: string;
   slug: string | null;
   primary_image_url: string | null;
+  /**
+   * The account that owns the vendor. Not shown anywhere: it is the key the
+   * vendor's contact details are looked up by, through `get_profile_directory`,
+   * because the vendor's own profile row is not readable from this portal.
+   */
+  owner_id: string | null;
+};
+
+/**
+ * A counterparty resolved through `get_profile_directory`, the same shape the
+ * vendor portal uses. `email` and `phone` stay null until the engagement is
+ * live, which `contact_visible` reports — null with `false` means "not yet".
+ */
+export type DirectoryProfile = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  email: string | null;
+  phone: string | null;
+  contact_visible: boolean;
 };
 
 export type VendorNameRefModel = {
@@ -343,6 +363,19 @@ export type QuotationListModel = {
   created_at: string;
   vendor_id: string | null;
   vendors: VendorNameSlugRefModel | VendorNameSlugRefModel[] | null;
+};
+
+/**
+ * A quote as the vendor profile lists it: the list row plus the event it was
+ * written for, so two quotes with the same vendor can be told apart.
+ */
+export type VendorQuotationModel = Omit<QuotationListModel, 'vendors'> & {
+  events: QuotationEventRefModel | QuotationEventRefModel[] | null;
+};
+
+export type QuotationEventRefModel = {
+  title: string | null;
+  event_date: string | null;
 };
 
 /** One priced line of a quote. Absent on a quote the vendor has not built yet. */
@@ -1012,16 +1045,11 @@ export type ConversationUnreadModel = {
   is_muted: boolean;
 };
 
-// ---------- Reviews / Notifications / Profile ----------
-export type ReviewModel = {
-  id: string;
-  rating: number;
-  title: string | null;
-  body: string | null;
-  status: string;
-  created_at: string;
-  vendors: VendorNameSlugRefModel | VendorNameSlugRefModel[] | null;
-};
+// ---------- Notifications / Profile ----------
+// Review shapes are owned by the reviews kit (`@sinnapi/ui/reviews`) rather
+// than re-declared here: all three of them come from RPCs whose columns the
+// kit's components consume directly, so a second copy of the shape in each
+// portal is a second thing to keep in step with the migration.
 
 export type NotificationModel = {
   id: string;

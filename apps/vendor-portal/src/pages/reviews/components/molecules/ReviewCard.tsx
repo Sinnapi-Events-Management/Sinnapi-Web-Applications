@@ -1,7 +1,7 @@
 import { Card, CardContent, Divider, Stack, Typography } from '@sinnapi/ui';
 import type { ReviewRow } from '../../schema';
 import ReviewCardHeader from './ReviewCardHeader';
-import ReviewResponse from './ReviewResponse';
+import ReviewResponse from '@/components/reviews/organisms/ReviewResponse';
 
 /**
  * One review, read in the order a vendor triages it: who and how well, then

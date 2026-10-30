@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@sinnapi/ui/router';
-import { useBooking } from '@/hooks/queries';
+import { useBooking, useVendorContact } from '@/hooks/queries';
 import { one } from '@/lib/rel';
 import type { VendorRefModel } from '@/lib/types';
 import { formatTimeWindow } from '../utils/timeWindow';
@@ -19,15 +19,20 @@ export function useBookingDetail() {
   useBreadcrumbTitle(booking?.reference_no ? `Booking ${booking.reference_no}` : undefined);
 
   const vendor = one<VendorRefModel>(booking?.vendors);
+  // The vendor's email and phone. Withheld by the directory until this booking
+  // is past `requested`, so the card renders the name and a note until then.
+  const { contact: vendorContact, isLoading: isVendorContactLoading } = useVendorContact(
+    vendor?.owner_id,
+  );
 
   return {
     bookingId: id,
     booking,
     vendor,
+    vendorContact,
+    isVendorContactLoading,
     /** `null` when the request carried no times — the row is then omitted. */
     timeWindow: formatTimeWindow(booking?.start_time, booking?.end_time),
-    /** A completed booking is the only state where a review is worth offering. */
-    canReview: booking?.status === 'completed',
     isLoading,
     error,
   };

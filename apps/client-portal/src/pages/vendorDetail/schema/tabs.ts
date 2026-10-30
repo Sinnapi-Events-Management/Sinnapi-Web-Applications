@@ -1,11 +1,13 @@
 /**
- * The vendor profile's six sections, mirrored into the URL
+ * The vendor profile's seven sections, mirrored into the URL
  * (`/vendors/:slug?tab=availability`).
  *
- * The split follows the order a visitor actually asks their questions, which is
- * also the order the single-column page used to stack them in: who is this
- * (overview) → what does it cost (packages) → can I pay less than that (offers)
- * → is the work any good (portfolio) → can they do my date (availability) → do
+ * Portfolio leads the bar: the work is what a visitor came to judge, so it is
+ * the first thing offered. Overview follows as the profile's own introduction.
+ * Quotations sits right after Overview, because a client's own quote with this
+ * vendor is part of the profile they are reading rather than a separate page.
+ * The rest follow the questions a visitor asks next: what does it cost (packages)
+ * → can I pay less than that (offers) → can they do my date (availability) → do
  * others trust them (reviews).
  *
  * Offers earns the sixth tab rather than living only in the strip above the
@@ -20,9 +22,10 @@
  * on their date scrolled through the entire body of work to find out — twice, if
  * they wanted to compare it against the price again.
  *
- * Overview leads and is the default, represented by the *absence* of the
- * parameter, so `/vendors/:slug` stays canonical and adding a section later can
- * never re-point a link someone has already shared.
+ * The first entry is the default, represented by the *absence* of the parameter,
+ * so `/vendors/:slug` stays canonical. That makes Portfolio the landing section.
+ * It also means a link someone shared before this change, which opened on
+ * Overview, now opens on Portfolio. Overview is one tap away.
  *
  * The public site names its sections the same way, minus availability, which it
  * has no read for, and minus offers, which it shows as a strip on the overview
@@ -32,10 +35,11 @@
  * and comes back signed in should not have to relearn where anything lives.
  */
 export const VENDOR_DETAIL_TABS = [
+  'portfolio',
   'overview',
+  'quotations',
   'packages',
   'offers',
-  'portfolio',
   'availability',
   'reviews',
 ] as const;

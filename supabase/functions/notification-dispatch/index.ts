@@ -152,56 +152,59 @@ async function dispatchAddressed(supa: Supa, trigger: string, payload: Payload):
   // user every quotation and booking event twice.
   const emailOnly = payload.email_only === true;
 
-  let title = render(humanise(trigger), enriched);
-  if (!emailOnly) {
-    const inApp = await resolveTemplate(supa, trigger, audience, 'in_app', locale);
-    title = render(inApp?.subject ?? humanise(trigger), enriched);
-    const body = inApp?.body_template ? render(inApp.body_template, enriched) : null;
+  const inApp = emailOnly ? null : await resolveTemplate(supa, trigger, audience, 'in_app', locale);
+  const title = render(inApp?.subject ?? humanise(trigger), enriched);
+  const body = inApp?.body_template ? render(inApp.body_template, enriched) : null;
 
-    await supa.from('notifications').insert({
-      recipient_id: recipientId,
-      trigger_key: trigger,
-      channel: 'in_app',
-      title,
-      body,
-      data: {
-        ...pickReferences(enriched),
-        audience,
-        url: deepLink(audience, enriched),
-        // This pass owns both channels for this notification: the row above and
-        // the mail below. `trg_notification_email` fires on the insert and
-        // would otherwise enqueue a second copy of the same email, because its
-        // rule is simply "an email template exists for this trigger" — and for
-        // every escrow, settlement and payment-window trigger, one does.
-        dispatched: true,
-      },
-    });
+  // The mail goes before the in-app row. A failed send throws, so the outbox
+  // retries the whole row; with the in-app row written first, each retry would
+  // show the bell a second time.
+  if (profile.email) {
+    const mail = await resolveTemplate(supa, trigger, audience, 'email', locale);
+    // An in-app-only trigger has no email template, and that is deliberate —
+    // not every state change deserves an inbox interruption.
+    if (mail) {
+      // Present only on the support-desk copies, and stripped from the sender's
+      // own receipt by the emitting trigger — see the `reply_to_email` note in
+      // `20261011000001_support_message_email_notifications.sql`.
+      const replyTo =
+        typeof payload.reply_to_email === 'string' ? payload.reply_to_email : undefined;
+
+      await deliver(
+        templatedEmail({
+          to: profile.email,
+          subject: render(mail.subject ?? title, enriched),
+          body: render(mail.body_template, enriched),
+          ctaUrl: deepLink(audience, enriched),
+          ctaLabel: audience === 'admin' ? 'Open in admin' : 'View details',
+          // Never back at the recipient: a Reply-To equal to the To address is a
+          // mail loop waiting for an autoresponder.
+          ...(replyTo && replyTo !== profile.email ? { replyTo } : {}),
+        }),
+      );
+    }
   }
 
-  // ---- email ----
-  if (!profile.email) return;
-  const mail = await resolveTemplate(supa, trigger, audience, 'email', locale);
-  // An in-app-only trigger has no email template, and that is deliberate —
-  // not every state change deserves an inbox interruption.
-  if (!mail) return;
+  if (emailOnly) return;
 
-  // Present only on the support-desk copies, and stripped from the sender's
-  // own receipt by the emitting trigger — see the `reply_to_email` note in
-  // `20261011000001_support_message_email_notifications.sql`.
-  const replyTo = typeof payload.reply_to_email === 'string' ? payload.reply_to_email : undefined;
-
-  await deliver(
-    templatedEmail({
-      to: profile.email,
-      subject: render(mail.subject ?? title, enriched),
-      body: render(mail.body_template, enriched),
-      ctaUrl: deepLink(audience, enriched),
-      ctaLabel: audience === 'admin' ? 'Open in admin' : 'View details',
-      // Never back at the recipient: a Reply-To equal to the To address is a
-      // mail loop waiting for an autoresponder.
-      ...(replyTo && replyTo !== profile.email ? { replyTo } : {}),
-    }),
-  );
+  await supa.from('notifications').insert({
+    recipient_id: recipientId,
+    trigger_key: trigger,
+    channel: 'in_app',
+    title,
+    body,
+    data: {
+      ...pickReferences(enriched),
+      audience,
+      url: deepLink(audience, enriched),
+      // This pass owns both channels for this notification: the row above and
+      // the mail sent first. `trg_notification_email` fires on the insert and
+      // would otherwise enqueue a second copy of the same email, because its
+      // rule is simply "an email template exists for this trigger" — and for
+      // every escrow, settlement and payment-window trigger, one does.
+      dispatched: true,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -525,7 +528,9 @@ async function deliver(msg: EmailMessage): Promise<void> {
   if (result.sent) return;
 
   const key = Deno.env.get('EMAIL_API_KEY');
-  if (!key) return; // no provider configured in this environment
+  // Throwing here is what makes the outbox retry and then dead-letter the row.
+  // Returning quietly marked it processed with nothing delivered.
+  if (!key) throw new Error(`email_not_sent: ${result.error ?? 'unknown'}`);
   const res = await fetch(Deno.env.get('EMAIL_API_URL') ?? 'https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },

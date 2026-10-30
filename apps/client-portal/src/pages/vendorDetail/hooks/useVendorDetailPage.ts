@@ -2,6 +2,7 @@ import { useMediaQuery, useTheme } from '@sinnapi/ui/system';
 import { useUrlTab } from '@sinnapi/ui/router';
 import { VENDOR_DETAIL_TABS } from '../schema';
 import { useVendorDetail } from './useVendorDetail';
+import { useVendorQuotations } from './useVendorQuotations';
 
 /**
  * The page's own state: which section is open, and where the engage panel goes.
@@ -21,6 +22,9 @@ import { useVendorDetail } from './useVendorDetail';
 export function useVendorDetailPage() {
   const detail = useVendorDetail();
   const { tab, setTab } = useUrlTab(VENDOR_DETAIL_TABS);
+  // Read here, not in the tab, so the tab bar can carry the count. The section
+  // reads the same query, and React Query serves both from one request.
+  const quotations = useVendorQuotations(detail.vendor?.id);
 
   const theme = useTheme();
   // `noSsr` because the portal is a client-rendered SPA with no server pass to
@@ -29,5 +33,11 @@ export function useVendorDetailPage() {
   // the whole page on exactly the devices least able to absorb one.
   const isCompact = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
-  return { ...detail, tab, setTab, isCompact };
+  return {
+    ...detail,
+    tab,
+    setTab,
+    isCompact,
+    quotationsNeedingAction: quotations.actionableCount,
+  };
 }

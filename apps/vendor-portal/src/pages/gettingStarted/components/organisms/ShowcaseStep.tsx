@@ -1,11 +1,12 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Divider, Stack, Typography } from '@sinnapi/ui';
 import { ImagePicker } from '@sinnapi/ui/profile';
-import CollectionsIcon from '@mui/icons-material/CollectionsOutlined';
+import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined';
 import type { VendorOnboardingModel } from '../../hooks/useOnboardingStatus';
 import { useOnboardingCover } from '../../hooks/useOnboardingCover';
 import { useStepForm } from '../../hooks/useStepForm';
 import { showcaseSchema, toShowcasePatch, toShowcaseValues } from '../../schema/showcaseForm';
+import { ADD_MEDIA_PATH } from '@/lib/config';
 import SocialLinksFields from '@/components/social/SocialLinksFields';
 import WizardFooter from '../molecules/WizardFooter';
 
@@ -21,11 +22,11 @@ type Props = {
 
 /**
  * The optional finishing touches: a cover image, social profiles, and the way
- * through to the portfolio.
+ * through to Photos & Videos.
  *
  * Gallery images and videos are NOT uploaded here. They are rows in
  * `vendor_media` with plan limits, cover selection and soft deletes behind them,
- * all of which the portfolio page already owns — a second uploader would be a
+ * all of which the Photos & Videos page already owns — a second uploader would be a
  * second place for those rules to drift. The vendor is pointed at it instead.
  */
 export default function ShowcaseStep({
@@ -86,16 +87,16 @@ export default function ShowcaseStep({
             Photos and videos
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            Your gallery lives in the portfolio, where you can caption items, reorder them and pick
-            which one leads.
+            Your gallery lives under Photos & Videos, where you can caption items, reorder them and
+            pick which one leads.
           </Typography>
           <Button
             component={RouterLink}
-            to="/portfolio"
+            to={ADD_MEDIA_PATH}
             variant="outlined"
-            startIcon={<CollectionsIcon />}
+            startIcon={<AddPhotoAlternateOutlinedIcon />}
           >
-            Open portfolio
+            Add photos or videos
           </Button>
         </Box>
       </Stack>

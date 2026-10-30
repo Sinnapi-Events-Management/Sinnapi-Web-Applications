@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * Dialog shell for adding portfolio media.
+ * Dialog shell for adding photos and videos.
  *
  * The form is mounted with the dialog and unmounted with it, which is what resets
  * the fields and — through `useMediaUpload`'s cleanup — deletes any object that
@@ -35,9 +35,9 @@ export default function MediaDialog({
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
       <DialogTitle sx={{ pb: 1 }}>
-        Add to your portfolio
+        Add photos or videos
         <Typography variant="body2" color="text.secondary">
-          Photos and video shown to clients on your public profile.
+          Shown to clients on your public profile.
         </Typography>
       </DialogTitle>
 

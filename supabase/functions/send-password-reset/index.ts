@@ -143,13 +143,14 @@ function rolesOf(profile: ProfileRow): { keys: string[]; isAdmin: boolean } {
 
 /**
  * Mint a recovery link for one account and mail it, addressed at the portal
- * that account actually belongs to. Shared verbatim by both actions — the only
- * thing that differs between them is who is allowed to ask and what the caller
- * is told afterwards.
+ * that account actually belongs to. Shared by both actions — what differs
+ * between them is who is allowed to ask, what the caller is told afterwards,
+ * and the one sentence of the email naming who started the reset.
  */
 async function deliverReset(
   admin: ReturnType<typeof adminClient>,
   profile: ProfileRow,
+  trigger: Action,
 ): Promise<{ sent: boolean; email: string; portal: string }> {
   const email = String(profile.email).trim().toLowerCase();
   const { keys, isAdmin } = rolesOf(profile);
@@ -171,6 +172,7 @@ async function deliverReset(
       resetUrl: resetUrl(dest, link.properties.hashed_token),
       portalName: dest.name,
       expiryHours: EXPIRY_HOURS,
+      trigger,
     }),
   );
 
@@ -224,7 +226,7 @@ Deno.serve(
         // Best-effort: a send failure here must not become a 502, which would
         // confirm the address exists.
         try {
-          const { sent } = await deliverReset(admin, row);
+          const { sent } = await deliverReset(admin, row, 'self');
           if (!sent) {
             console.error(JSON.stringify({ level: 'error', message: 'self_reset_send_failed' }));
           }
@@ -262,7 +264,7 @@ Deno.serve(
     if (!row || row.deleted_at) throw new HttpError(404, 'account_not_found');
     if (!row.email) throw new HttpError(422, 'no_email_on_file');
 
-    const { sent, email, portal } = await deliverReset(admin, row);
+    const { sent, email, portal } = await deliverReset(admin, row, 'admin');
     if (!sent) throw new HttpError(502, 'reset_email_failed');
 
     // A staff member causing a credential email to be sent to someone else is

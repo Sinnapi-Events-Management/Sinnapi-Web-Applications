@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@sinnapi/ui/router';
 import { advanceSplit, isQuoteLapsed, quotationPricing } from '@sinnapi/ui';
-import { useQuotation, useQuotationOffer } from '@/hooks/queries';
+import { useQuotation, useQuotationOffer, useVendorContact } from '@/hooks/queries';
 import { one } from '@/lib/rel';
 import type { EventRefModel, QuotationItemModel, VendorRefModel } from '@/lib/types';
 
@@ -55,10 +55,19 @@ export function useQuotationDetail() {
     [pricing.total, quotation?.advance_rate],
   );
 
+  const vendor = one<VendorRefModel>(quotation?.vendors);
+  // The vendor's email and phone. Withheld by the directory until the client
+  // accepts the quote, so the card shows the name and a note until then.
+  const { contact: vendorContact, isLoading: isVendorContactLoading } = useVendorContact(
+    vendor?.owner_id,
+  );
+
   return {
     quotationId: id,
     quotation,
-    vendor: one<VendorRefModel>(quotation?.vendors),
+    vendor,
+    vendorContact,
+    isVendorContactLoading,
     event: one<EventRefModel>(quotation?.events),
     items,
     /**

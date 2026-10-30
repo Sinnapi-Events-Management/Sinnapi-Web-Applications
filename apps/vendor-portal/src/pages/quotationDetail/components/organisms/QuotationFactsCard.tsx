@@ -1,4 +1,4 @@
-import { Stack, InfoRow, SectionCard } from '@sinnapi/ui';
+import { ContactRows, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TagIcon from '@mui/icons-material/Tag';
 import PersonIcon from '@mui/icons-material/Person';
@@ -13,6 +13,7 @@ import type { DirectoryProfile, EventRefModel, QuotationDetailModel } from '@/li
 type Props = {
   quotation: QuotationDetailModel;
   client: DirectoryProfile | null;
+  isClientLoading: boolean;
   event: EventRefModel | null;
 };
 
@@ -28,7 +29,12 @@ type Props = {
  * levels of detail would leave a vendor comparing their own page against
  * itself.
  */
-export default function QuotationFactsCard({ quotation: q, client, event }: Props) {
+export default function QuotationFactsCard({
+  quotation: q,
+  client,
+  isClientLoading,
+  event,
+}: Props) {
   return (
     <SectionCard title="Quotation details" icon={<DescriptionIcon />}>
       <Stack>
@@ -40,6 +46,16 @@ export default function QuotationFactsCard({ quotation: q, client, event }: Prop
           mono
         />
         <InfoRow label="Client" icon={<PersonIcon />} value={client?.full_name ?? 'Client'} />
+        {/* The client's own contact. The directory holds it back until they accept
+            the quote, so until then the row says so rather than reading as a client
+            who never gave a number. */}
+        <ContactRows
+          email={client?.email}
+          phone={client?.phone}
+          visible={Boolean(client?.contact_visible)}
+          unresolved={isClientLoading || !client}
+          withheldNote="Shared once the client accepts this quote"
+        />
         <InfoRow label="Requested on" icon={<HistoryIcon />} value={formatDateTime(q.created_at)} />
         {q.sent_at && (
           <InfoRow label="Sent on" icon={<SendIcon />} value={formatDateTime(q.sent_at)} />

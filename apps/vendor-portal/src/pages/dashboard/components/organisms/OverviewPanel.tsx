@@ -3,12 +3,15 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import { HALF_PERIOD, HeroStat, halfPeriodDelta } from '@sinnapi/ui/analytics';
 import { formatMoney } from '@/lib/config';
 import type { DashboardModel } from '../../schema';
+import type { DashboardMedia } from '../../hooks/useDashboardMedia';
 import ActionQueuesSection from './ActionQueuesSection';
 import UpcomingBookings from './UpcomingBookings';
 import ActivityFeed from './ActivityFeed';
+import MediaShowcase from './MediaShowcase';
 
 type Props = {
   data: DashboardModel | undefined;
+  media: DashboardMedia;
   loading: boolean;
   periodLabel: string;
 };
@@ -22,7 +25,7 @@ type Props = {
  * keeps this panel to one headline, one card band and two lists instead of the
  * full chart stack.
  */
-export default function OverviewPanel({ data, loading, periodLabel }: Props) {
+export default function OverviewPanel({ data, media, loading, periodLabel }: Props) {
   const earnings = data?.earnings;
 
   return (
@@ -51,6 +54,13 @@ export default function OverviewPanel({ data, loading, periodLabel }: Props) {
           )}
 
           <ActionQueuesSection queues={data?.queues ?? []} loading={loading} />
+
+          {/* Under the queues, not above them: a reply someone is waiting on
+              outranks housekeeping. It is in the main column all the same,
+              because a listing with no pictures is the one gap on a profile that
+              no amount of pricing or availability work makes up for — and until
+              now the only route to it was the ninth item in the sidebar. */}
+          <MediaShowcase media={media} />
         </Stack>
       </Grid>
 

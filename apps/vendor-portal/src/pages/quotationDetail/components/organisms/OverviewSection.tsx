@@ -6,6 +6,7 @@ import QuotationFactsCard from './QuotationFactsCard';
 type Props = {
   quotation: QuotationDetailModel;
   client: DirectoryProfile | null;
+  isClientLoading: boolean;
   event: EventRefModel | null;
 };
 
@@ -26,7 +27,7 @@ type Props = {
  * facts: the valid-until date, the event and the sent stamp are all rows here,
  * so nothing dropped from the phone hero is actually lost.
  */
-export default function OverviewSection({ quotation, client, event }: Props) {
+export default function OverviewSection({ quotation, client, isClientLoading, event }: Props) {
   const hasRequest = Boolean(quotation.request_details);
 
   return (
@@ -34,7 +35,12 @@ export default function OverviewSection({ quotation, client, event }: Props) {
       {quotation.request_details && (
         <QuotationRequestCard requestDetails={quotation.request_details} />
       )}
-      <QuotationFactsCard quotation={quotation} client={client} event={event} />
+      <QuotationFactsCard
+        quotation={quotation}
+        client={client}
+        isClientLoading={isClientLoading}
+        event={event}
+      />
     </SectionGrid>
   );
 }

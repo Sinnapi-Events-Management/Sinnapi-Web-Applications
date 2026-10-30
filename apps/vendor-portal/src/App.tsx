@@ -108,7 +108,11 @@ export default function App() {
           <Route path="/payments/return" element={<PaymentReturn />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/services" element={<Services />} />
-          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/photos" element={<Portfolio />} />
+          {/* "Portfolio" until vendors told us the word meant nothing to them.
+              The old path is in sidebars people bookmarked and in the links we
+              have already emailed, so it keeps resolving. */}
+          <Route path="/portfolio" element={<Navigate to="/photos" replace />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/bookings/:id" element={<BookingDetail />} />

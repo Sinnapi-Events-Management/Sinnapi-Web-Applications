@@ -6,6 +6,7 @@ import BookingClientCard from './BookingClientCard';
 type Props = {
   booking: VendorBookingDetailModel;
   client: DirectoryProfile | null;
+  isClientLoading: boolean;
   timeWindow: string | null;
 };
 
@@ -18,11 +19,11 @@ type Props = {
  * because their values are dates, addresses and a reference number; the
  * client's are a name and an email.
  */
-export default function OverviewSection({ booking, client, timeWindow }: Props) {
+export default function OverviewSection({ booking, client, isClientLoading, timeWindow }: Props) {
   return (
     <SectionGrid template={{ xs: '1fr', md: '7fr 5fr' }}>
       <BookingFactsCard booking={booking} timeWindow={timeWindow} />
-      <BookingClientCard client={client} />
+      <BookingClientCard client={client} isClientLoading={isClientLoading} />
     </SectionGrid>
   );
 }

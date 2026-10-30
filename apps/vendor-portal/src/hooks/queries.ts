@@ -57,6 +57,7 @@ import type {
   PromotionDiscountModel,
   DiscountModel,
   ReviewModel,
+  BookingReviewModel,
   PlanModel,
   ConversationModel,
   MessageModel,
@@ -1294,6 +1295,43 @@ export function useVendorReviews(vendorId?: string) {
         .eq('vendor_id', vendorId!)
         .order('created_at', { ascending: false });
       return (data ?? []) as ReviewModel[];
+    },
+  });
+}
+
+/**
+ * The one review left on one booking, with the vendor's reply.
+ *
+ * NOT the Reviews page's read narrowed down. That one is keyed by vendor and
+ * returns every review they have ever had, which is the right read for a
+ * triage list and the wrong one for a booking page: a vendor with four hundred
+ * reviews would fetch all of them to show the one on this booking. This is one
+ * row by `booking_id`, which `ux_reviews_booking` guarantees is unique.
+ *
+ * The vendor is admitted by `reviews_public_read`, whose `is_vendor_owner`
+ * branch is what lets them see a review of theirs that moderation has pulled —
+ * the card says when that has happened, because a review the vendor was
+ * notified about and can no longer find reads as a review we lost.
+ *
+ * `maybeSingle` because most bookings have no review: that is an empty answer,
+ * not an error, and the card renders nothing for it.
+ */
+export function useBookingReview(bookingId?: string) {
+  return useQuery({
+    queryKey: ['v-booking-review', bookingId],
+    enabled: !!bookingId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(
+          'id,rating,title,body,status,created_at,edited_at,client_id,' +
+            'review_responses(id,body,created_at,edited_at,deleted_at)',
+        )
+        .eq('booking_id', bookingId!)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as BookingReviewModel | null;
     },
   });
 }

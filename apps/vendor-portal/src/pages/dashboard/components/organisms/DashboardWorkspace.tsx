@@ -2,7 +2,9 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Stack, Typography } from '@sinnapi/ui';
 import type { AnalyticsPeriod } from '@sinnapi/ui/analytics';
 import type { DashboardModel, DashboardTab, TabDef } from '../../schema';
+import type { DashboardMedia } from '../../hooks/useDashboardMedia';
 import { MetricsToolbar } from '@/components/metrics';
+import { AddMediaFab } from '@/components/media';
 import DashboardTabs from './DashboardTabs';
 import OverviewPanel from './OverviewPanel';
 import EarningsSection from './EarningsSection';
@@ -18,6 +20,8 @@ type Props = {
   tabs: TabDef[];
   activeTab: TabDef;
   attentionCount: number;
+  /** The listing's photos and videos, for the Overview panel's gallery card. */
+  media: DashboardMedia;
   data: DashboardModel | undefined;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -42,6 +46,7 @@ export default function DashboardWorkspace({
   tabs,
   activeTab,
   attentionCount,
+  media,
   data,
   isLoading,
   isRefreshing,
@@ -57,7 +62,14 @@ export default function DashboardWorkspace({
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
         surfaceLabel="Dashboard"
+        showAddMedia
       />
+
+      {/* Mounted here rather than inside the toolbar: it is fixed to the
+          viewport, and the toolbar's backdrop-filtered Paper would become its
+          containing block. Phone-only, and it waits for the bar's own button to
+          scroll away — see `AddMediaFab`. */}
+      <AddMediaFab />
 
       <DashboardTabs
         tabs={tabs}
@@ -97,7 +109,12 @@ export default function DashboardWorkspace({
       ) : (
         <Box>
           {tab === 'overview' && (
-            <OverviewPanel data={data} loading={isLoading} periodLabel={periodLabel} />
+            <OverviewPanel
+              data={data}
+              media={media}
+              loading={isLoading}
+              periodLabel={periodLabel}
+            />
           )}
           {tab === 'earnings' && <EarningsSection earnings={data?.earnings} loading={isLoading} />}
           {tab === 'bookings' && <BookingsSection pipeline={data?.pipeline} loading={isLoading} />}

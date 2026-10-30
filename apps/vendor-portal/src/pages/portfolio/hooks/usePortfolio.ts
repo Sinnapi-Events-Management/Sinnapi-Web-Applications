@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toPlayableMedia, useMediaViewer } from '@sinnapi/ui/media';
 import { useMedia } from '@/hooks/queries';
 import type { MediaModel } from '@/lib/types';
@@ -30,7 +31,20 @@ export function usePortfolio(vendorId: string) {
   const actions = useMediaActions(vendorId);
 
   const [filter, setFilter] = useState<MediaFilter>('all');
-  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // `?add=1` — the dashboard card and the setup wizard send a vendor here to
+  // add something, not to browse. Opening on arrival saves them hunting for the
+  // button on a grid they did not come to read.
+  const [isDialogOpen, setDialogOpen] = useState(() => searchParams.get('add') === '1');
+
+  // Dropped once consumed, so closing the dialog and reloading — or coming back
+  // with the browser's Back button — doesn't reopen it over the grid.
+  useEffect(() => {
+    if (searchParams.get('add') !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('add');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const counts = useMemo(() => countMedia(reorder.ordered), [reorder.ordered]);
   const filterOptions = useMemo(() => mediaFilterOptions(counts), [counts]);

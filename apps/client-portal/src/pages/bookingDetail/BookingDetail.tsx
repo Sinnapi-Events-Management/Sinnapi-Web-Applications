@@ -20,12 +20,26 @@ import { useBookingDetailPage } from './hooks/useBookingDetailPage';
  * meant a client checking whether their deposit had landed scrolled past the
  * event, the quote and the whole status trail to reach it.
  *
+ * Both things a booking asks of the client are therefore in the action bar:
+ * starting the event, and rating the vendor afterwards. The rating used to be a
+ * button inside the Progress tab, which is where clients told us they could not
+ * find it — the vendor's name goes to the bar for that reason.
+ *
  * Layout only — `useBookingDetailPage` owns the reads and the open section, and
  * each section owns its own content.
  */
 export default function BookingDetail() {
-  const { booking, vendor, timeWindow, canReview, tab, setTab, isLoading, error } =
-    useBookingDetailPage();
+  const {
+    booking,
+    vendor,
+    vendorContact,
+    isVendorContactLoading,
+    timeWindow,
+    tab,
+    setTab,
+    isLoading,
+    error,
+  } = useBookingDetailPage();
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -43,18 +57,24 @@ export default function BookingDetail() {
       ) : (
         <>
           <BookingHero booking={booking} vendor={vendor} timeWindow={timeWindow} />
-          <BookingActionBar booking={booking} />
+          <BookingActionBar booking={booking} vendorName={vendor?.business_name} />
 
           <BookingTabs value={tab} onChange={setTab} />
 
           <DetailTabPanel value="overview" active={tab} idPrefix="booking">
-            <OverviewSection booking={booking} vendor={vendor} timeWindow={timeWindow} />
+            <OverviewSection
+              booking={booking}
+              vendor={vendor}
+              vendorContact={vendorContact}
+              isVendorContactLoading={isVendorContactLoading}
+              timeWindow={timeWindow}
+            />
           </DetailTabPanel>
           <DetailTabPanel value="money" active={tab} idPrefix="booking">
             <MoneySection booking={booking} />
           </DetailTabPanel>
           <DetailTabPanel value="progress" active={tab} idPrefix="booking">
-            <ProgressSection booking={booking} canReview={canReview} />
+            <ProgressSection booking={booking} />
           </DetailTabPanel>
           <DetailTabPanel value="origin" active={tab} idPrefix="booking">
             <OriginSection booking={booking} />
