@@ -56,7 +56,7 @@ export function useQuotationDetail() {
   );
 
   const vendor = one<VendorRefModel>(quotation?.vendors);
-  // The vendor's email and phone. Withheld by the directory until the client
+  // The vendor's phone number. Withheld by the directory until the client
   // accepts the quote, so the card shows the name and a note until then.
   const { contact: vendorContact, isLoading: isVendorContactLoading } = useVendorContact(
     vendor?.owner_id,

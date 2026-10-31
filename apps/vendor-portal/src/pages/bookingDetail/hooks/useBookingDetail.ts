@@ -17,8 +17,8 @@ export function useBookingDetail() {
   useBreadcrumbTitle(booking?.reference_no ? `Booking ${booking.reference_no}` : undefined);
 
   // Not an embedded relation: `profiles_self_read` hides the client's row from
-  // the vendor, so the booking carries only `client_id` and the name and email
-  // come from `get_profile_directory`. The email is disclosed only once the
+  // the vendor, so the booking carries only `client_id` and the name and phone
+  // come from `get_profile_directory`. The phone is disclosed only once the
   // booking is past `requested`, which is exactly when the vendor has a reason
   // to reach the client directly.
   const { profile: client, isLoading: isClientLoading } = useDirectoryProfile(booking?.client_id);

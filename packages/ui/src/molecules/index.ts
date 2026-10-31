@@ -61,7 +61,7 @@ export * from './HeroMeta';
 export * from './IconBadge';
 export * from './ActionNote';
 export * from './InfoRow';
-export * from './ContactRows';
+export * from './PhoneRow';
 export * from './PasswordStrength';
 export * from './MarketingConsent';
 export * from './money';

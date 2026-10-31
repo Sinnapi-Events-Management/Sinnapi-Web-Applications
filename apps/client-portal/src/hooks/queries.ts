@@ -742,7 +742,7 @@ export function useQuotation(id: string) {
 
 /**
  * The vendor's contact details for the client, resolved through
- * `get_profile_directory`. The directory releases email and phone only once the
+ * `get_profile_directory`. The directory releases the phone number only once the
  * client has engaged: a quote they accepted, or a booking past `requested` that
  * was not declined. Until then the name is still returned and `contact_visible`
  * is false, so the page can say when the details will appear.

@@ -1,4 +1,4 @@
-import { ContactRows, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
+import { PhoneRow, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import type { DirectoryProfile } from '@/lib/types';
@@ -9,10 +9,10 @@ type Props = {
 };
 
 /**
- * Who the vendor is dealing with, and how to reach them. The email and phone
- * carry copy affordances because the usual next move — contacting the client
- * outside the platform — starts with getting the number or address somewhere
- * else.
+ * Who the vendor is dealing with, and how to reach them. The phone number
+ * carries a copy affordance because the usual next move — contacting the client
+ * outside the platform — starts with getting the number somewhere else. Email is
+ * not shown: the directory does not send it.
  *
  * On a booking still sitting at `requested` there is no contact to copy: the
  * directory withholds details until the booking is past that state, so a vendor
@@ -26,8 +26,7 @@ export default function BookingClientCard({ client, isClientLoading }: Props) {
     <SectionCard title="Client" icon={<PersonOutlineIcon />} accent="info">
       <Stack>
         <InfoRow label="Name" icon={<BadgeOutlinedIcon />} value={client?.full_name} />
-        <ContactRows
-          email={client?.email}
+        <PhoneRow
           phone={client?.phone}
           visible={Boolean(client?.contact_visible)}
           unresolved={isClientLoading || !client}

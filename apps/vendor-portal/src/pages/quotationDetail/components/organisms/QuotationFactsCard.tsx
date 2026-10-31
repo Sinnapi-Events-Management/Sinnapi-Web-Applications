@@ -1,4 +1,4 @@
-import { ContactRows, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
+import { PhoneRow, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TagIcon from '@mui/icons-material/Tag';
 import PersonIcon from '@mui/icons-material/Person';
@@ -49,8 +49,7 @@ export default function QuotationFactsCard({
         {/* The client's own contact. The directory holds it back until they accept
             the quote, so until then the row says so rather than reading as a client
             who never gave a number. */}
-        <ContactRows
-          email={client?.email}
+        <PhoneRow
           phone={client?.phone}
           visible={Boolean(client?.contact_visible)}
           unresolved={isClientLoading || !client}
