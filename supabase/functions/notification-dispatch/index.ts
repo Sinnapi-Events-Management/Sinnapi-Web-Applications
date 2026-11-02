@@ -15,7 +15,7 @@
 // vendors and admins were never notified at all, and it used the raw trigger
 // key as the in-app title.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { adminClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
 import { parseRecipients, sendEmail, type EmailMessage } from '../_shared/email.ts';
 import { notificationEmail, templatedEmail, supportMessageInboxEmail, deepLink } from './emails.ts';
 
@@ -48,10 +48,12 @@ Deno.serve(
   handler(async (req) => {
     // Cron-only. The gateway does not verify a JWT here, so the handler is the
     // gate: the outbox is drained with the service-role client and every row
-    // it picks up becomes an email to a real person. pg_cron presents the
-    // service-role key as its bearer, which is what "on-demand" also means —
-    // another function calling this one, never a browser.
-    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+    // it picks up becomes an email to a real person. pg_cron presents
+    // CRON_DISPATCH_SECRET as its bearer — a Sinnapi-minted secret, not the
+    // project's service-role key, so it cannot go stale when Supabase
+    // rotates or retires that key (see `isCronCaller`). "On-demand" means the
+    // same thing: another trusted internal caller, never a browser.
+    if (!isCronCaller(req)) throw new HttpError(401, 'unauthorized');
 
     const supa = adminClient();
     const { data: batch } = await supa

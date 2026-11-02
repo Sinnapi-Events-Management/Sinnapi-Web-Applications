@@ -23,7 +23,7 @@
 // postings land on the original story rather than starting a second one about
 // the same money.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { adminClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
 import { getTransactionStatus, mapPesapalStatus } from '../_shared/pesapal.ts';
 import { getOrder } from '../_shared/paypal.ts';
 import {
@@ -58,7 +58,7 @@ Deno.serve(
     // re-query every stuck payment against the PSPs and apply the result, or
     // flood Finance's queue with exceptions. pg_cron presents the
     // service-role key as its bearer, which is the one thing a browser cannot.
-    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+    if (!isCronCaller(req)) throw new HttpError(401, 'unauthorized');
 
     const supa = adminClient();
     const summary = { requeried: 0, resolved: 0, exceptions: 0, errors: [] as string[] };

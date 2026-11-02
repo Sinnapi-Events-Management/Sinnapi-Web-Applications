@@ -60,7 +60,7 @@
 //     record of people who were in fact never contacted at all. See
 //     `SendOutcome.transportFault` in `_shared/campaignMessage.ts`.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient, userClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { adminClient, userClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
 import { renderBlocks } from '../_shared/newsletterBlocks.ts';
 import {
   sendCampaignBatch,
@@ -116,7 +116,7 @@ Deno.serve(
     }
 
     // Everything below moves real campaign state, so it is cron-only.
-    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+    if (!isCronCaller(req)) throw new HttpError(401, 'unauthorized');
     if (!campaignTransportConfigured()) {
       // Reported rather than thrown: a project with no transport configured
       // should log one clear line a minute, not a stack trace a minute. The
