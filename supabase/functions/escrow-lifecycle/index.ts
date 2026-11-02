@@ -21,7 +21,7 @@
 // which, and the RPC adopts each escrow's own correlation id so the release
 // lands on the same trace as the payment that funded it.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { adminClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
 import { paymentContext, writeAudit, type PaymentContext } from '../_shared/audit.ts';
 import { redactMessage } from '../_shared/redact.ts';
 
@@ -47,7 +47,7 @@ Deno.serve(
     // thing standing between an unauthenticated caller and a sweep that
     // releases advances, requests settlements and fires client reminders.
     // pg_cron presents the service-role key as its bearer.
-    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+    if (!isCronCaller(req)) throw new HttpError(401, 'unauthorized');
 
     const supa = adminClient();
     const now = new Date().toISOString();

@@ -16,16 +16,15 @@ import type { BookingPaymentWindowFields } from '@sinnapi/ui';
  * portal has ever displayed. The RPC discloses these fields for people the
  * vendor already shares a quotation, booking or conversation with.
  *
- * `email` and `phone` stay null until the engagement is live — an accepted
- * quote or a booking past `requested` — which is what `contact_visible`
- * reports. Null contact with `contact_visible: false` means "not yet", not
- * "missing", and the UI should say so rather than render a blank field.
+ * `phone` stays null until the engagement is live — an accepted quote or a
+ * booking past `requested` — which is what `contact_visible` reports. Null
+ * contact with `contact_visible: false` means "not yet", not "missing", and the
+ * UI should say so rather than render a blank field. Email is never returned.
  */
 export type DirectoryProfile = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  email: string | null;
   phone: string | null;
   contact_visible: boolean;
 };

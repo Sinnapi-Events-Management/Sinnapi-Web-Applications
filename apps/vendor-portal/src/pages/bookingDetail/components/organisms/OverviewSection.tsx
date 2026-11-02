@@ -17,7 +17,7 @@ type Props = {
  * short rows and the client is two of them, so side by side they fit a screen
  * together and neither has to be scrolled to. The facts take the wider track
  * because their values are dates, addresses and a reference number; the
- * client's are a name and an email.
+ * client's are a name and a phone number.
  */
 export default function OverviewSection({ booking, client, isClientLoading, timeWindow }: Props) {
   return (

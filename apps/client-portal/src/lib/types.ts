@@ -20,14 +20,13 @@ export type VendorRefModel = {
 
 /**
  * A counterparty resolved through `get_profile_directory`, the same shape the
- * vendor portal uses. `email` and `phone` stay null until the engagement is
+ * vendor portal uses. `phone` stays null until the engagement is
  * live, which `contact_visible` reports — null with `false` means "not yet".
  */
 export type DirectoryProfile = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  email: string | null;
   phone: string | null;
   contact_visible: boolean;
 };

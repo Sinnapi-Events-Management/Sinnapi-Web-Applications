@@ -1,5 +1,5 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Avatar, Box, Button, ContactRows, SectionCard, Stack, Typography } from '@sinnapi/ui';
+import { Avatar, Box, Button, PhoneRow, SectionCard, Stack, Typography } from '@sinnapi/ui';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import type { DirectoryProfile, VendorRefModel } from '@/lib/types';
@@ -53,8 +53,7 @@ export default function BookingVendorCard({ vendor, contact, isContactLoading }:
         </Stack>
 
         <Stack>
-          <ContactRows
-            email={contact?.email}
+          <PhoneRow
             phone={contact?.phone}
             visible={Boolean(contact?.contact_visible)}
             unresolved={isContactLoading || !contact}

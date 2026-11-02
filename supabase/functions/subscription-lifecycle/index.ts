@@ -16,7 +16,7 @@
 //      between the select and the call cannot remind a subscription that
 //      was just paid, and cannot send the same mark twice.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { adminClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
 
 const BATCH = 200;
 
@@ -32,7 +32,7 @@ Deno.serve(
     // apply_subscription_state is revoked from end users for the same reason:
     // rolling trials and periods over is not something a visitor gets to
     // trigger. pg_cron presents the service-role key as its bearer.
-    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+    if (!isCronCaller(req)) throw new HttpError(401, 'unauthorized');
 
     const supa = adminClient();
     const out: Outcome = { transitioned: 0, remindersSent: 0, errors: [] };

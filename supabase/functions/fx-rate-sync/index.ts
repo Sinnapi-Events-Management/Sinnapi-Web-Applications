@@ -15,7 +15,7 @@
 // recording but not worth failing a run over, since either direction is enough
 // to price with.
 import { handler, json } from '../_shared/http.ts';
-import { adminClient, isServiceRoleCaller, HttpError } from '../_shared/supabase.ts';
+import { adminClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
 import { fetchFxRate } from '../_shared/fx.ts';
 
 const PAIRS: Array<[string, string]> = [
@@ -29,7 +29,7 @@ Deno.serve(
     // is read back by escrow pricing, so an open endpoint would let anyone burn
     // the FX API quota at will, and at worst pin a rate they chose. pg_cron
     // presents the service-role key as its bearer.
-    if (!isServiceRoleCaller(req)) throw new HttpError(401, 'unauthorized');
+    if (!isCronCaller(req)) throw new HttpError(401, 'unauthorized');
 
     const supa = adminClient();
     const inserted: Array<{ base: string; quote: string; rate: number }> = [];

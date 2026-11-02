@@ -1,4 +1,4 @@
-import { ContactRows, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
+import { PhoneRow, Stack, InfoRow, SectionCard } from '@sinnapi/ui';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TagIcon from '@mui/icons-material/Tag';
 import HistoryIcon from '@mui/icons-material/History';
@@ -56,8 +56,7 @@ export default function QuotationFactsCard({
         {/* The vendor's own contact, which the directory holds back until this
             quote is accepted. Placed here, beside the name, so the client reads
             who to ring in the same place they read who the quote is from. */}
-        <ContactRows
-          email={vendorContact?.email}
+        <PhoneRow
           phone={vendorContact?.phone}
           visible={Boolean(vendorContact?.contact_visible)}
           unresolved={isVendorContactLoading || !vendorContact}

@@ -19,7 +19,7 @@ export function useBookingDetail() {
   useBreadcrumbTitle(booking?.reference_no ? `Booking ${booking.reference_no}` : undefined);
 
   const vendor = one<VendorRefModel>(booking?.vendors);
-  // The vendor's email and phone. Withheld by the directory until this booking
+  // The vendor's phone number. Withheld by the directory until this booking
   // is past `requested`, so the card renders the name and a note until then.
   const { contact: vendorContact, isLoading: isVendorContactLoading } = useVendorContact(
     vendor?.owner_id,
