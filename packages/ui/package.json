@@ -24,6 +24,7 @@
     "./analytics": "./src/analytics/index.ts",
     "./export": "./src/export/index.ts",
     "./forms": "./src/forms/index.ts",
+    "./phone": "./src/phone/index.ts",
     "./system": "./src/system.ts",
     "./icons": "./src/icons.ts"
   },
@@ -34,7 +35,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
   "dependencies": {
-    "@sinnapi/content": "*"
+    "@sinnapi/content": "*",
+    "libphonenumber-js": "1.13.15"
   },
   "peerDependencies": {
     "@emotion/react": "^11.11.4",

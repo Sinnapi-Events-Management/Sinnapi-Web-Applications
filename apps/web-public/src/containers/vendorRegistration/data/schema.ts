@@ -1,6 +1,5 @@
 import { z } from 'zod';
-
-const PHONE_RE = /^[+\d][\d\s()-]{6,}$/;
+import { phoneProblem } from '@sinnapi/ui/phone';
 
 /** A required acceptance: the box has to be ticked, not merely present. */
 const accepted = z.literal(true, { errorMap: () => ({ message: 'Required' }) });
@@ -37,7 +36,15 @@ export const registrationSchema = z
     serviceCategoryKeys: z.array(z.string()).min(1, 'Select at least one service'),
     ownerFullName: z.string().trim().min(2, 'Enter the owner’s full name'),
     ownerEmail: z.string().trim().email('Enter a valid email'),
-    ownerPhone: z.string().trim().regex(PHONE_RE, 'Enter a valid phone number'),
+    // International (E.164): on approval this becomes the owner's profile
+    // phone, which is where WhatsApp updates go. Same rule as the server.
+    ownerPhone: z
+      .string()
+      .trim()
+      .superRefine((v, ctx) => {
+        const problem = phoneProblem(v, true);
+        if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+      }),
     nationalIdFile: applicationDocument.nullable(),
     businessRegistrationFile: applicationDocument.nullable(),
     acceptedInfoAccuracy: accepted,

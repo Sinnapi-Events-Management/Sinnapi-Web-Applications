@@ -1,5 +1,6 @@
 import { Alert, Box, Button, Divider, FormField, SectionCard, Stack } from '@sinnapi/ui';
-import { ControlledField, useSavedForm } from '@sinnapi/ui/forms';
+import type { ReactNode } from 'react';
+import { ControlledField, ControlledPhoneField, useSavedForm } from '@sinnapi/ui/forms';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import { CURRENCY_OPTIONS, profileFormSchema, type ProfileFormValues } from '../../schema';
 
@@ -11,6 +12,8 @@ type Props = {
   busy: boolean;
   error: string | null;
   onSave: (values: ProfileFormValues) => Promise<boolean>;
+  /** The WhatsApp updates switch, rendered under the phone. Saves on its own. */
+  whatsapp?: ReactNode;
 };
 
 /**
@@ -19,7 +22,14 @@ type Props = {
  * fire a pointless write, and "Discard changes" gives the user a way back that
  * isn't a page reload.
  */
-export default function ProfileDetailsForm({ values, email, busy, error, onSave }: Props) {
+export default function ProfileDetailsForm({
+  values,
+  email,
+  busy,
+  error,
+  onSave,
+  whatsapp,
+}: Props) {
   const { control, isDirty, revert, submit } = useSavedForm(profileFormSchema, values, onSave);
 
   return (
@@ -56,14 +66,15 @@ export default function ProfileDetailsForm({ values, email, busy, error, onSave 
             helperText="Your email is your account identity and can't be changed here."
           />
 
-          <ControlledField
+          <ControlledPhoneField
             name="phone"
             control={control}
             label="Phone"
-            placeholder="+256 700 000000"
             disabled={busy}
-            helperText="Used when a vendor or our support team needs to reach you about a booking."
+            helperText="For WhatsApp updates, and when a vendor or our support team needs to reach you about a booking."
           />
+
+          {whatsapp}
 
           <ControlledField
             name="preferred_currency"

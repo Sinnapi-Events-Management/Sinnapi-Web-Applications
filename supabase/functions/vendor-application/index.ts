@@ -37,6 +37,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { parseRecipients, sendEmail } from '../_shared/email.ts';
 import { requireCaptcha } from '../_shared/turnstile.ts';
 import { applicantConfirmationEmail, internalNotificationEmail } from './emails.ts';
+import { isE164, normalisePhone } from '../_shared/whatsapp.ts';
 
 const YEARS = ['lt_1y', '1_3y', '3_5y', '5_10y', '10y_plus'];
 const PRICING = ['fixed', 'hourly', 'custom', 'combination'];
@@ -311,7 +312,9 @@ Deno.serve(
       !!clean(b.ownerEmail) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(b.ownerEmail!.trim()),
       'ownerEmail',
     );
-    req(!!clean(b.ownerPhone), 'ownerPhone');
+    // International (E.164) only: on approval this number becomes the owner's
+    // profile phone, which is where WhatsApp updates go.
+    req(isE164(normalisePhone(b.ownerPhone)), 'ownerPhone');
     req(
       Array.isArray(b.serviceCategoryKeys) && b.serviceCategoryKeys.length > 0,
       'serviceCategoryKeys',
@@ -413,7 +416,7 @@ Deno.serve(
         icandy_alumni: b.icandyAlumni ?? null,
         owner_full_name: clean(b.ownerFullName),
         owner_email: ownerEmail,
-        owner_phone: clean(b.ownerPhone),
+        owner_phone: normalisePhone(b.ownerPhone),
         profile_image_url: clean(b.profileImageUrl),
         primary_image_url: clean(b.primaryImageUrl),
         gallery_image_urls: b.galleryImageUrls ?? [],

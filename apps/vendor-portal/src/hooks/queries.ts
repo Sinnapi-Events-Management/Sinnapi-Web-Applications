@@ -107,7 +107,9 @@ export function useProfile() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('id,public_id,full_name,email,phone,avatar_url,preferred_currency,created_at')
+        .select(
+          'id,public_id,full_name,email,phone,phone_e164,whatsapp_opt_out_at,avatar_url,preferred_currency,created_at',
+        )
         .eq('id', user.id)
         .maybeSingle();
       return (data as ProfileModel) ?? null;

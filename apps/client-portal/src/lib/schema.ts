@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema } from '@sinnapi/ui/forms';
 
 /**
  * Field builders shared by more than one form schema.
@@ -14,12 +15,6 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** `TimeField` always hands back `HH:mm` on a 24-hour clock, or an empty string. */
 const ISO_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-/**
- * Deliberately permissive: digits, spaces and the usual grouping punctuation.
- * Real validation of a dialable number belongs to a phone library, not a regex.
- */
-const PHONE_RE = /^[+()\-\s\d]{6,20}$/;
 
 const isRealDate = (v: string) => !Number.isNaN(Date.parse(v));
 
@@ -68,9 +63,12 @@ export const requiredIntField = (label: string, min = 1) =>
     .refine((v) => /^\d+$/.test(v), `Enter a whole number.`)
     .refine((v) => Number(v) >= min, `${label} must be at least ${min}.`);
 
-/** An optional phone number. */
-export const optionalPhoneField = () =>
-  z.union([z.string().trim().regex(PHONE_RE, 'Enter a valid phone number.'), z.literal('')]);
+/**
+ * An optional phone number, international (E.164) — the shared rule every portal
+ * uses, so a saved number is one WhatsApp can reach. Render it with
+ * `ControlledPhoneField`, which produces that format.
+ */
+export const optionalPhoneField = () => phoneSchema();
 
 /** An optional URL. Blank stays blank; anything present must parse. */
 export const optionalUrlField = (message = 'Enter a valid URL, e.g. https://example.com.') =>

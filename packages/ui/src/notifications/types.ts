@@ -31,7 +31,7 @@ export type NotificationView = {
   body: string | null;
   triggerKey: string;
   domain: NotificationDomain;
-  /** `notification_channel` enum — 'in_app' | 'email'. */
+  /** `notification_channel` enum — 'in_app' | 'email' | 'whatsapp'. */
   channel: string;
   /** Producer-supplied references. Shapes vary by writer; always probe. */
   data: Record<string, unknown> | null;

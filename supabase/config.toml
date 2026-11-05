@@ -124,3 +124,11 @@ verify_jwt = true
 # remembered to write — is what scopes the document to one person.
 [functions.data-export]
 verify_jwt = true
+
+# Meta WhatsApp Cloud API callbacks: delivery statuses and STOP/START replies.
+# Public by necessity (Meta holds no JWT); every POST is verified against the
+# X-Hub-Signature-256 HMAC before it is parsed, and a missing
+# WHATSAPP_APP_SECRET fails closed. GET is Meta's one-time handshake, answered
+# only when hub.verify_token matches WHATSAPP_WEBHOOK_VERIFY_TOKEN.
+[functions.whatsapp-webhook]
+verify_jwt = false

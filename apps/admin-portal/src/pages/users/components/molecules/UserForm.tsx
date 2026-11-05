@@ -2,6 +2,7 @@ import { Box, Button, Divider, Stack } from '@sinnapi/ui';
 import { STATUS_OPTIONS, type SelectOption, type UserFormValues } from '../../schema';
 import { useUserForm } from '../../hooks/useUserForm';
 import ControlledField from './ControlledField';
+import { ControlledPhoneField } from '@sinnapi/ui/forms';
 import RoleMultiSelect from './RoleMultiSelect';
 
 type Props = {
@@ -60,11 +61,11 @@ export default function UserForm({ mode, values, roleOptions, busy, onCancel, on
             }
           />
 
-          <ControlledField
+          <ControlledPhoneField
             name="phone"
             control={control}
             label="Phone"
-            placeholder="+256 700 000000"
+            helperText="Optional. Staff get WhatsApp updates on this number."
           />
 
           <RoleMultiSelect name="roleIds" control={control} label="Roles" options={roleOptions} />

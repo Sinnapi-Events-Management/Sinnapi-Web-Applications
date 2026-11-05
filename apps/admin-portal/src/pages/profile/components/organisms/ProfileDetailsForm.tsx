@@ -3,6 +3,8 @@ import PersonIcon from '@mui/icons-material/PersonOutline';
 import { useProfileForm } from '../../hooks/useProfileForm';
 import type { ProfileFormValues } from '../../schema';
 import ControlledField from '../molecules/ControlledField';
+import { ControlledPhoneField } from '@sinnapi/ui/forms';
+import type { ReactNode } from 'react';
 
 type Props = {
   /** Last saved values; must be referentially stable per profile revision. */
@@ -12,6 +14,8 @@ type Props = {
   busy: boolean;
   err: string | null;
   onSave: (values: ProfileFormValues) => Promise<boolean>;
+  /** The WhatsApp updates switch, rendered under the phone. Saves on its own. */
+  whatsapp?: ReactNode;
 };
 
 /**
@@ -19,7 +23,7 @@ type Props = {
  * and only lights up once something has actually changed, so an untouched form
  * can't fire a pointless write.
  */
-export default function ProfileDetailsForm({ values, email, busy, err, onSave }: Props) {
+export default function ProfileDetailsForm({ values, email, busy, err, onSave, whatsapp }: Props) {
   const { control, isDirty, revert, submit } = useProfileForm(values, onSave);
 
   return (
@@ -72,14 +76,15 @@ export default function ProfileDetailsForm({ values, email, busy, err, onSave }:
             helperText="Email is your account identity and can't be changed here. Contact a super admin if it needs updating."
           />
 
-          <ControlledField
+          <ControlledPhoneField
             name="phone"
             control={control}
             label="Phone"
-            placeholder="+256 700 000000"
             disabled={busy}
-            helperText="Used when the team needs to reach you about an escalation."
+            helperText="For WhatsApp updates, and when the team needs to reach you about an escalation."
           />
+
+          {whatsapp}
         </Stack>
 
         <Divider sx={{ my: 3 }} />
