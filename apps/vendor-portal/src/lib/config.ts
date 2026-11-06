@@ -18,6 +18,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { FEATURES } from '@sinnapi/utils/constants';
 import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
@@ -88,6 +89,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Escrow', to: '/escrow', icon: AccountBalanceIcon },
       { label: 'Payouts', to: '/payouts', icon: PaymentsIcon },
+      { label: 'Invoices & Receipts', to: '/invoices', icon: ReceiptLongIcon },
     ],
   },
   {

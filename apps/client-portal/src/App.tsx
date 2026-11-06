@@ -25,6 +25,9 @@ import MyEvents from '@/pages/myEvents';
 import EventDetail from '@/pages/eventDetail';
 import Messages from '@/pages/messages';
 import Payments from '@/pages/payments';
+import Documents from '@/pages/documents';
+import InvoiceDetail from '@/pages/invoiceDetail';
+import ReceiptDetail from '@/pages/receiptDetail';
 import PaymentReturn from '@/pages/paymentReturn';
 import Escrow from '@/pages/escrow';
 import Reviews from '@/pages/reviews';
@@ -78,6 +81,11 @@ export default function App() {
               the list rather than on a detached page with no way back. */}
           <Route path="/messages/:conversationId" element={<Messages />} />
           <Route path="/payments" element={<Payments />} />
+          {/* Invoices and receipts vendors have sent this client (read-only).
+              `/invoices` carries both tabs; `?tab=receipts` opens the second. */}
+          <Route path="/invoices" element={<Documents />} />
+          <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/receipts/:id" element={<ReceiptDetail />} />
           {/* Where Pesapal sends the browser back after a hosted checkout
               (PESAPAL_CALLBACK_URL). Inside the shell on purpose: a session
               that lapsed during checkout goes through sign-in and returns

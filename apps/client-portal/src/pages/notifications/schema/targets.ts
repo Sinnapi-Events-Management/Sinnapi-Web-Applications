@@ -21,6 +21,8 @@ const KNOWN_PREFIXES = [
   '/quotations',
   '/messages',
   '/payments',
+  '/invoices',
+  '/receipts',
   '/escrow',
   '/reviews',
   '/my-events',
@@ -64,8 +66,15 @@ export function resolveTarget(notification: NotificationView): NotificationTarge
     // Refunds surface on the payments ledger for a client; there is no separate
     // refunds page the way there is in admin.
     case 'payments':
-    case 'refunds':
+    case 'refunds': {
+      // Invoices and receipts a vendor issued (20261105000008) ride the
+      // `payment.` domain and carry their own id.
+      const invoiceId = id('invoice_id');
+      if (invoiceId) return { path: `/invoices/${invoiceId}`, label: 'View invoice' };
+      const receiptId = id('receipt_id');
+      if (receiptId) return { path: `/receipts/${receiptId}`, label: 'View receipt' };
       return { path: '/payments', label: 'View payments' };
+    }
 
     case 'reviews':
       return { path: '/reviews', label: 'View reviews' };

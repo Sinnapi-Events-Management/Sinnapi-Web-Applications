@@ -33,6 +33,11 @@ import PublicEvents from '@/pages/publicEvents';
 import PublicEventDetail from '@/pages/publicEventDetail';
 import Escrow from '@/pages/escrow';
 import Payouts from '@/pages/payouts';
+import Documents from '@/pages/documents';
+import InvoiceEditor from '@/pages/invoiceEditor';
+import InvoiceDetail from '@/pages/invoiceDetail';
+import ReceiptEditor from '@/pages/receiptEditor';
+import ReceiptDetail from '@/pages/receiptDetail';
 import Promotions from '@/pages/promotions';
 import Discounts from '@/pages/discounts';
 import Reviews from '@/pages/reviews';
@@ -126,6 +131,16 @@ export default function App() {
           <Route path="/public-events/:id" element={<PublicEventDetail />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/payouts" element={<Payouts />} />
+          {/* Invoices & receipts. `/invoices` holds all three tabs (invoices,
+              receipts, saved clients); `new` routes sit above `:id` so the
+              literal segment wins. */}
+          <Route path="/invoices" element={<Documents />} />
+          <Route path="/invoices/new" element={<InvoiceEditor />} />
+          <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/invoices/:id/edit" element={<InvoiceEditor />} />
+          <Route path="/receipts" element={<Navigate to="/invoices?tab=receipts" replace />} />
+          <Route path="/receipts/new" element={<ReceiptEditor />} />
+          <Route path="/receipts/:id" element={<ReceiptDetail />} />
           <Route path="/promotions" element={<Promotions />} />
           <Route path="/discounts" element={<Discounts />} />
           <Route path="/reviews" element={<Reviews />} />

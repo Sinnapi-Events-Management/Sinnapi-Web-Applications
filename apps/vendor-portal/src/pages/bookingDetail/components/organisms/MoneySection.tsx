@@ -4,6 +4,7 @@ import BookingSettlementCard from './BookingSettlementCard';
 import BookingTermsCard from './BookingTermsCard';
 import BookingPaymentCard from './BookingPaymentCard';
 import BookingAdvanceTermsCard from './BookingAdvanceTermsCard';
+import BookingInvoiceCard from './BookingInvoiceCard';
 
 type Props = { booking: VendorBookingDetailModel };
 
@@ -30,6 +31,7 @@ export default function MoneySection({ booking }: Props) {
       <BookingTermsCard booking={booking} />
       <BookingPaymentCard booking={booking} />
       <BookingAdvanceTermsCard booking={booking} />
+      <BookingInvoiceCard booking={booking} />
     </SectionGrid>
   );
 }
