@@ -74,3 +74,52 @@ export async function toSquareImage(file: File, size = PROFILE_IMAGE_SIZE): Prom
     bitmap.close();
   }
 }
+
+/** Longest edge, in px, of a stored logo. Sharp at print size on an A4 header. */
+export const LOGO_IMAGE_MAX_EDGE = 1200;
+
+/** How a picked image is shaped before upload. */
+export type ImageFit = 'square' | 'contain';
+
+/**
+ * Downscale `file` so its longest edge is at most `maxEdge`, keeping its shape.
+ *
+ * For logos. A wide wordmark centre-cropped to a square loses its ends, so the
+ * whole image is kept and only ever made smaller, never stretched. WebP keeps
+ * the alpha channel, so a transparent PNG stays transparent on any background.
+ */
+export async function toContainedImage(file: File, maxEdge = LOGO_IMAGE_MAX_EDGE): Promise<Blob> {
+  const bitmap = await createImageBitmap(file).catch(() => {
+    throw new Error("That file couldn't be read as an image.");
+  });
+
+  try {
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Your browser could not process the image.');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) =>
+          blob ? resolve(blob) : reject(new Error('Your browser could not process the image.')),
+        OUTPUT_TYPE,
+        OUTPUT_QUALITY,
+      );
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
+/** Shape a picked image the way its `fit` asks. */
+export function prepareImage(file: File, fit: ImageFit): Promise<Blob> {
+  return fit === 'contain' ? toContainedImage(file) : toSquareImage(file);
+}

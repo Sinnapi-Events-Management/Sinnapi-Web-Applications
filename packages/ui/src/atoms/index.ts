@@ -24,3 +24,5 @@ export * from './Paper';
 export * from './Overlay';
 export * from './Layout';
 export * from './FormControls';
+export * from './LogoTile';
+export * from './LogoMedia';

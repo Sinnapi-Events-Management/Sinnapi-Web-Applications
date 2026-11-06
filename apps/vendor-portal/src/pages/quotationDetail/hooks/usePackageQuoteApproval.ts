@@ -4,6 +4,7 @@ import { quotationActionError } from '@sinnapi/ui';
 import { offerSaving } from '@sinnapi/ui/offers';
 import { supabase } from '@/lib/supabase';
 import { usePackageQuoteTerms } from '@/hooks/queries';
+import { useLogoGate } from '@/components/businessLogo';
 import type { QuotationDetailModel } from '@/lib/types';
 
 export type PackageApprovalAction = 'approve' | 'decline';
@@ -32,6 +33,7 @@ export type PackageApprovalAction = 'approve' | 'decline';
  */
 export function usePackageQuoteApproval(quotation: QuotationDetailModel | null | undefined) {
   const qc = useQueryClient();
+  const { requireLogo } = useLogoGate();
   const quotationId = quotation?.id;
 
   const isPackageOrder = quotation?.quote_origin === 'package';
@@ -177,7 +179,7 @@ export function usePackageQuoteApproval(quotation: QuotationDetailModel | null |
       ? reason.trim().length > 0
       : isExtraValid && !terms?.package_changed && !wouldZeroTheTotal;
 
-  const confirm = useCallback(async () => {
+  const run = useCallback(async () => {
     if (!quotationId || !pending || !canConfirm) return;
 
     setBusy(true);
@@ -213,6 +215,13 @@ export function usePackageQuoteApproval(quotation: QuotationDetailModel | null |
     qc.invalidateQueries({ queryKey: ['v-offer-performance'] });
   }, [quotationId, pending, canConfirm, nextRate, reason, qc]);
 
+  // Approving sends the client an accepted quotation with the vendor's logo
+  // at the top, so it is asked for first. Declining sends no document.
+  const confirm = useCallback(
+    () => (pending === 'approve' ? requireLogo('package', run) : run()),
+    [pending, requireLogo, run],
+  );
+
   return {
     isPackageOrder,
     isPending,
@@ -244,6 +253,7 @@ function round2(value: number): number {
 
 /** `respond_package_quotation`'s own refusals, in plain language. */
 const APPROVAL_ERRORS: Record<string, string> = {
+  logo_required: 'Add your business logo before approving orders.',
   package_changed_since_request:
     'You have edited this package since the client ordered it, so it can no longer be approved as ' +
     'published. Decline this order and send them a fresh quote.',

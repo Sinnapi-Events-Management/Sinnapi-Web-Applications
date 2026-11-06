@@ -1,6 +1,7 @@
 import { Button, PageTitle, Stack, StatusTabs } from '@sinnapi/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import VendorGate from '@/vendor/VendorGate';
+import { LogoMissingBanner } from '@/components/businessLogo';
 import { useDocuments } from './hooks/useDocuments';
 import { TABS, type DocumentsTab } from './schema';
 import DocumentsSummary from './components/organisms/DocumentsSummary';
@@ -30,6 +31,7 @@ export default function Documents() {
       <VendorGate>
         {(vendorId) => (
           <Stack spacing={2.5}>
+            <LogoMissingBanner />
             <DocumentsSummary vendorId={vendorId} />
             <StatusTabs<DocumentsTab>
               options={TABS.map((t) => ({ value: t.value, label: t.label }))}

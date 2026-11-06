@@ -1,19 +1,28 @@
 /**
- * The vendor's logo, ready for jsPDF.
+ * The vendor's business logo, ready for jsPDF.
+ *
+ * One loader for every document Sinnapi prints — invoices, receipts and
+ * quotations — so a vendor's logo looks the same on all three.
  *
  * Logos live in `public-media` as JPEG, PNG, WebP or AVIF. jsPDF embeds PNG
  * and JPEG only, so the browser decodes whatever it is and redraws it to a
- * canvas: square-cropped like the preview's `object-fit: cover`, with the
- * same rounded corners, exported as PNG.
+ * canvas, exported as PNG (transparency kept). The logo keeps its own shape:
+ * never cropped, never stretched — a wide wordmark keeps its ends, exactly as
+ * the on-screen preview's `object-fit: contain` shows it.
  *
  * Best-effort by design. A logo that is slow, missing or blocked must never
- * stop a vendor downloading their invoice — `null` makes the renderer draw
- * the initials tile instead, exactly as the preview does with no logo.
+ * stop a vendor or client downloading a document — `null` makes the renderer
+ * draw the initials tile instead, exactly as the preview does with no logo.
  */
-export type PdfLogo = { dataUrl: string };
+export type PdfLogo = {
+  dataUrl: string;
+  /** Intrinsic pixel size of `dataUrl`, so it can be drawn without distortion. */
+  width: number;
+  height: number;
+};
 
-const SIZE_PX = 256;
-const RADIUS_PX = 48;
+/** Longest edge of the embedded image. ~300 DPI at the size it is drawn. */
+const MAX_EDGE_PX = 640;
 
 export async function loadLogo(
   url: string | null | undefined,
@@ -28,38 +37,36 @@ export async function loadLogo(
     if (!res.ok) return null;
     const bitmap = await createImageBitmap(await res.blob());
 
+    const scale = Math.min(1, MAX_EDGE_PX / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
     const canvas = document.createElement('canvas');
-    canvas.width = SIZE_PX;
-    canvas.height = SIZE_PX;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-
-    ctx.beginPath();
-    ctx.moveTo(RADIUS_PX, 0);
-    ctx.arcTo(SIZE_PX, 0, SIZE_PX, SIZE_PX, RADIUS_PX);
-    ctx.arcTo(SIZE_PX, SIZE_PX, 0, SIZE_PX, RADIUS_PX);
-    ctx.arcTo(0, SIZE_PX, 0, 0, RADIUS_PX);
-    ctx.arcTo(0, 0, SIZE_PX, 0, RADIUS_PX);
-    ctx.closePath();
-    ctx.clip();
-
-    const side = Math.min(bitmap.width, bitmap.height);
-    ctx.drawImage(
-      bitmap,
-      (bitmap.width - side) / 2,
-      (bitmap.height - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      SIZE_PX,
-      SIZE_PX,
-    );
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
-    return { dataUrl: canvas.toDataURL('image/png') };
+    return { dataUrl: canvas.toDataURL('image/png'), width, height };
   } catch {
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * The size to draw `logo` at inside a `maxWidth` × `maxHeight` box, keeping
+ * its shape. A logo without a known size (older callers) fills the height.
+ */
+export function fitLogo(
+  logo: Pick<PdfLogo, 'width' | 'height'>,
+  maxWidth: number,
+  maxHeight: number,
+): { width: number; height: number } {
+  if (!logo.width || !logo.height) return { width: maxHeight, height: maxHeight };
+  const scale = Math.min(maxWidth / logo.width, maxHeight / logo.height);
+  return { width: logo.width * scale, height: logo.height * scale };
 }

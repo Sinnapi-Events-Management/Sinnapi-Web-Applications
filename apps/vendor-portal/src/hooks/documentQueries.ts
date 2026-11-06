@@ -305,7 +305,7 @@ export function useVendorBusinessCard(vendorId: string | undefined) {
         supabase
           .from('vendors')
           .select(
-            'business_name,profile_image_url,primary_image_url,business_location,base_city,website,business_reg_number,tax_id,owner_id',
+            'business_name,primary_image_url,business_location,base_city,website,business_reg_number,tax_id,owner_id',
           )
           .eq('id', vendorId!)
           .maybeSingle(),
@@ -320,7 +320,8 @@ export function useVendorBusinessCard(vendorId: string | undefined) {
         .maybeSingle();
       return {
         business_name: vendor.business_name as string,
-        logo_url: (vendor.profile_image_url ?? vendor.primary_image_url) as string | null,
+        // The business logo only — as `_vendor_snapshot` prints it (1107a).
+        logo_url: (vendor.primary_image_url as string | null) || null,
         location: vendor.business_location as string | null,
         city: vendor.base_city as string | null,
         website: vendor.website as string | null,

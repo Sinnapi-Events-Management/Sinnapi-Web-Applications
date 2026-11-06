@@ -69,7 +69,7 @@ export default function BookingQuotationCard({ quotation: q, booking }: Props) {
         <Button
           variant="outlined"
           startIcon={<DownloadIcon />}
-          onClick={() => downloadQuotationPdf(q)}
+          onClick={() => void downloadQuotationPdf(q)}
           sx={{ alignSelf: 'flex-start' }}
         >
           Download quotation

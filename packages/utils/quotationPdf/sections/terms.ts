@@ -10,8 +10,8 @@ import type { QuotationPdfDocument } from '../document';
  * whether it fits on the page — and so a quote carrying no advance terms at all
  * produces an empty list and no section, rather than a heading over nothing.
  *
- * The rate is stored as a fraction and read by humans as a percentage, and the
- * money is spelled out beside it: "40% (USh 720,000)" is a term someone can
+ * The rate is stored as a percentage (50 = 50%, as `send_quotation` checks it
+ * against `advance_rate_max`), and the money is spelled out beside it: "40% (USh 720,000)" is a term someone can
  * check against their bank statement, where "40%" is arithmetic they have to do
  * themselves.
  */
@@ -20,9 +20,9 @@ export function termsLines(doc: QuotationPdfDocument): string[] {
   const currency = doc.currency ?? 'UGX';
 
   if (doc.advance_rate != null && doc.advance_rate > 0) {
-    const percent = Math.round(doc.advance_rate * 100);
+    const percent = Number(doc.advance_rate.toFixed(2));
     const amount =
-      doc.total != null ? ` (${formatMoney(doc.total * doc.advance_rate, currency)})` : '';
+      doc.total != null ? ` (${formatMoney((doc.total * doc.advance_rate) / 100, currency)})` : '';
     const when =
       doc.advance_release_days_before != null
         ? ` released ${doc.advance_release_days_before} day${doc.advance_release_days_before === 1 ? '' : 's'} before the event`

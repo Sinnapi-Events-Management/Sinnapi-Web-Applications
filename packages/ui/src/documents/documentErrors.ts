@@ -51,6 +51,7 @@ export const DOCUMENT_ERROR_COPY: Readonly<Record<string, string>> = {
   recipient_unreachable: 'This client has no email address on Sinnapi.',
   attachment_missing: 'The PDF was not ready yet. Try again.',
   email_failed: 'The email could not be sent. Try again shortly.',
+  logo_required: 'Add your business logo before sending documents to clients.',
   optimistic_lock_conflict: 'This was changed somewhere else. Reload and try again.',
   not_found: 'This document could not be found.',
 };

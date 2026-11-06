@@ -17,7 +17,7 @@ export function useQuotationDownload() {
     setErr(null);
     try {
       const doc = await fetchQuotationDocument(quotationId);
-      downloadQuotationPdf(doc);
+      await downloadQuotationPdf(doc);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to build the quotation PDF.');
     } finally {

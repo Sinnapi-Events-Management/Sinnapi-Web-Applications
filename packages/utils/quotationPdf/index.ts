@@ -11,17 +11,19 @@ import { drawItems } from './sections/items';
 import { drawTerms, termsLines } from './sections/terms';
 import { drawTotals, totalsHeight } from './sections/totals';
 import { drawFooters } from './sections/footer';
+import { loadLogo, type PdfLogo } from '../financialPdf/logo';
 
 export type { QuotationPdfDocument, QuotationPdfItem } from './document';
+export { canDownloadQuotation, type QuotationViewer } from './access';
 
 /**
  * Render a quotation to a branded PDF document.
  *
  * Quotations are structured data, not stored files, so "Download quotation"
  * builds the document client-side from what the page already holds. Kept
- * framework-free (pure jsPDF) so it can run from any handler without React, and
- * synchronous so the three call sites stay plain click handlers — the logo is a
- * constant rather than a fetch precisely to keep that true.
+ * framework-free (pure jsPDF) so it can run from any handler without React.
+ * The vendor's logo is fetched by `downloadQuotationPdf` and passed in, so
+ * this stays synchronous and testable outside a browser.
  *
  * One renderer for all three portals, which is the point of it living here. A
  * vendor filing this with their own books, a client forwarding it to their
@@ -36,7 +38,10 @@ export type { QuotationPdfDocument, QuotationPdfItem } from './document';
  * Returns the document rather than saving it, so the rendering can be exercised
  * outside a browser — `save()` is the one call in here that needs a DOM.
  */
-export function buildQuotationPdf(doc: QuotationPdfDocument): jsPDF {
+export function buildQuotationPdf(
+  doc: QuotationPdfDocument,
+  opts: { logo?: PdfLogo | null } = {},
+): jsPDF {
   const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
 
   const stamp = stampFor(doc);
@@ -46,7 +51,7 @@ export function buildQuotationPdf(doc: QuotationPdfDocument): jsPDF {
   // jsPDF paints in call order.
   painter.paint();
 
-  let y = drawHeader(pdf, doc);
+  let y = drawHeader(pdf, doc, opts.logo ?? null);
   y = drawParties(pdf, doc, y);
   y = drawScope(pdf, doc, y);
   y = drawItems(pdf, doc, y, painter);
@@ -78,9 +83,20 @@ export function quotationFileName(doc: QuotationPdfDocument): string {
 /**
  * Render a quotation and hand it to the browser's downloads.
  *
- * The entry point every "Download quotation" button calls. Synchronous, so it
- * drops straight into a click handler with no busy state to thread through.
+ * The entry point every "Download quotation" button calls. Async only to
+ * fetch the vendor's logo first (best-effort, capped at a few seconds — a
+ * missing logo prints initials, it never blocks the download).
  */
-export function downloadQuotationPdf(doc: QuotationPdfDocument): void {
-  buildQuotationPdf(doc).save(quotationFileName(doc));
+export async function downloadQuotationPdf(doc: QuotationPdfDocument): Promise<void> {
+  const logo = await loadLogo(doc.vendor_logo_url);
+  buildQuotationPdf(doc, { logo }).save(quotationFileName(doc));
+}
+
+/**
+ * Render a quotation to a PDF Blob — for previewing in the browser, or for
+ * saving the very file that was previewed without rendering it twice.
+ */
+export async function renderQuotationPdf(doc: QuotationPdfDocument): Promise<Blob> {
+  const logo = await loadLogo(doc.vendor_logo_url);
+  return buildQuotationPdf(doc, { logo }).output('blob');
 }

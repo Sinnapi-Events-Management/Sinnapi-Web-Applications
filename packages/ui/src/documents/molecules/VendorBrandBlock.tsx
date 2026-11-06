@@ -13,20 +13,31 @@ function initials(name: string): string {
 }
 
 /**
- * The vendor's logo, name and contact lines — the top-left of every
+ * The vendor's business logo, name and contact lines — the top-left of every
  * document. The vendor's brand leads; Sinnapi appears only in the footer.
  * Without a logo, their initials sit in a quiet tile instead of a blank.
  */
 export function VendorBrandBlock({ vendor }: { vendor: VendorSnapshot }) {
   const lines = vendorContactLines(vendor);
   return (
-    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', minWidth: 0 }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-start', minWidth: 0 }}>
       {vendor.logo_url ? (
+        // The whole logo, in its own shape: up to 64px tall and 160px wide,
+        // never cropped — a wide wordmark keeps its ends, the PDF matches.
         <Box
           component="img"
           src={vendor.logo_url}
-          alt=""
-          sx={{ width: 64, height: 64, borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }}
+          alt={`${vendor.business_name} logo`}
+          sx={{
+            maxWidth: { xs: 120, sm: 160 },
+            maxHeight: 64,
+            width: 'auto',
+            height: 'auto',
+            objectFit: 'contain',
+            objectPosition: 'left top',
+            flexShrink: 0,
+            display: 'block',
+          }}
         />
       ) : (
         <Box

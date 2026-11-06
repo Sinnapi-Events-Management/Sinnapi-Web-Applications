@@ -65,6 +65,8 @@ export const CONTENT_BOTTOM = FOOTER_Y - 18;
 export const FONT = {
   family: 'helvetica',
   title: 22,
+  /** The vendor's name beside their logo. */
+  name: 14,
   section: 9,
   body: 9.5,
   small: 8,

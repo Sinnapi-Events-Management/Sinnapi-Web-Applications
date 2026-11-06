@@ -52,6 +52,7 @@ export default function QuotationDetail() {
     feedback,
     conversation,
     messageClient,
+    pdf,
     isLoading,
     error,
   } = useQuotationDetailPage();
@@ -71,7 +72,13 @@ export default function QuotationDetail() {
         />
       ) : (
         <>
-          <QuotationHero quotation={quotation} client={client} event={event} pricing={pricing} />
+          <QuotationHero
+            quotation={quotation}
+            client={client}
+            event={event}
+            pricing={pricing}
+            pdf={pdf}
+          />
 
           <QuotationFeedbackBanner
             feedback={feedback}

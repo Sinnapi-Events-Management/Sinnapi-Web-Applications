@@ -3,6 +3,7 @@ import { useFieldArray, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useLeaveGuard, useZodForm } from '@sinnapi/ui/forms';
 import { useToast } from '@sinnapi/ui';
+import { useLogoGate } from '@/components/businessLogo';
 import {
   addDays,
   discountLabel,
@@ -65,6 +66,7 @@ export function useInvoiceForm({ row, clients, contacts, card }: Args) {
 
   const save = useSaveInvoiceDraft();
   const issue = useIssueInvoice();
+  const { requireLogo } = useLogoGate();
   const remove = useDeleteInvoiceDraft();
 
   const isBookingInvoice = row?.payment_channel === 'sinnapi_escrow';
@@ -209,7 +211,8 @@ export function useInvoiceForm({ row, clients, contacts, card }: Args) {
       setError('An invoice must be for more than zero.');
       return;
     }
-    setConfirmIssue(true);
+    // The logo prints at the top of the issued invoice — ask for it first.
+    requireLogo('invoice', () => setConfirmIssue(true));
   });
 
   const doIssue = handleSubmit(async (v) => {

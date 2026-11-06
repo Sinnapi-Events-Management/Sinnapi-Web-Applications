@@ -113,3 +113,4 @@ export * from './DetailTabs';
 // card that decides it has nothing to say leaves no hole behind.
 export * from './SectionGrid';
 export * from './JsonBlock';
+export * from './PdfDownloadButton';

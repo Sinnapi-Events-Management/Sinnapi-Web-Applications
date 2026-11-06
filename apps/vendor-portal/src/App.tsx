@@ -4,6 +4,7 @@ import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { VendorProvider } from '@/vendor/VendorProvider';
 import OnboardingGate from '@/vendor/OnboardingGate';
 import AppShell from '@/components/shell/AppShell';
+import { LogoGateProvider } from '@/components/businessLogo';
 
 import SignIn from '@/pages/auth/signIn';
 import ForgotPassword from '@/pages/auth/forgotPassword';
@@ -95,7 +96,11 @@ export default function App() {
                     or photo. This holds them on the setup wizard until their
                     listing is something a client could actually find. */}
                 <OnboardingGate>
-                  <AppShell />
+                  {/* Asks for the business logo the moment a document is sent
+                      without one — see `useLogoGate`. */}
+                  <LogoGateProvider>
+                    <AppShell />
+                  </LogoGateProvider>
                 </OnboardingGate>
               </VendorProvider>
             </ProtectedRoute>

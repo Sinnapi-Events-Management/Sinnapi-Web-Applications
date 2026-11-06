@@ -61,7 +61,8 @@ export const BUSINESS_SECTION_META: Record<BusinessSectionKey, SectionMeta> = {
   logo: {
     label: 'Logo',
     title: 'Business logo',
-    subtitle: 'Shown on your listing and in search results. Saves as soon as you pick it.',
+    subtitle:
+      'On your quotations, invoices and receipts, and on your listing. Saves as soon as you pick it.',
     icon: createElement(ImageIcon),
   },
   verification: {

@@ -9,6 +9,7 @@ import {
   roundMoney,
 } from '@sinnapi/ui/documents';
 import { useRecordReceipt } from '@/hooks/documentQueries';
+import { useLogoGate } from '@/components/businessLogo';
 import {
   emptyReceiptValues,
   receiptFormSchema,
@@ -46,6 +47,7 @@ export function useReceiptForm(
   const [error, setError] = useState<string | null>(null);
   const [askOverpay, setAskOverpay] = useState(false);
   const record = useRecordReceipt();
+  const { requireLogo } = useLogoGate();
 
   const form = useZodForm(receiptFormSchema, {
     defaultValues: emptyReceiptValues(
@@ -88,12 +90,16 @@ export function useReceiptForm(
     }
   }
 
-  const submit = handleSubmit(async (values) => {
-    if (money && money.overBy > 0) {
-      setAskOverpay(true);
-      return;
-    }
-    await save(values, false);
+  const submit = handleSubmit((values) => {
+    // The logo prints at the top of the receipt — ask for it first, then
+    // carry on exactly where the vendor was.
+    return requireLogo('receipt', () => {
+      if (money && money.overBy > 0) {
+        setAskOverpay(true);
+        return;
+      }
+      return save(values, false);
+    });
   });
 
   const confirmOverpay = handleSubmit((values) => save(values, true));

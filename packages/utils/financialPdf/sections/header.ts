@@ -3,9 +3,13 @@ import { vendorContactLines, type VendorSnapshot } from '@sinnapi/ui/documents/c
 import { CONTENT_WIDTH, INK, PAGE, SIZE, type Rgb } from '../theme';
 import { pdfText } from '../text';
 import { pill, textRight } from '../draw';
-import type { PdfLogo } from '../logo';
+import { fitLogo, type PdfLogo } from '../logo';
 
+/** The logo's box: as tall as before, wide enough for a wordmark. */
 const LOGO = 46;
+const LOGO_MAX_WIDTH = 150;
+/** Wider than this and the logo sits above the name rather than beside it. */
+const STACK_ASPECT = 1.6;
 
 export type Stamp = { label: string; fill: Rgb; ink: Rgb } | null;
 
@@ -37,8 +41,12 @@ export function drawHeader(
   const top = 52;
 
   // ---------- left: the vendor ----------
+  // The business logo in its own shape; the name starts wherever it ends.
+  let logoWidth = LOGO;
+  let logoHeight = LOGO;
   if (input.logo) {
-    pdf.addImage(input.logo.dataUrl, 'PNG', left, top, LOGO, LOGO);
+    ({ width: logoWidth, height: logoHeight } = fitLogo(input.logo, LOGO_MAX_WIDTH, LOGO));
+    pdf.addImage(input.logo.dataUrl, 'PNG', left, top, logoWidth, logoHeight);
   } else {
     pdf.setFillColor(...INK.logoTile);
     pdf.roundedRect(left, top, LOGO, LOGO, 9, 9, 'F');
@@ -51,13 +59,16 @@ export function drawHeader(
     });
   }
 
-  const textX = left + LOGO + 12;
-  const leftWidth = CONTENT_WIDTH * 0.56 - LOGO - 12;
+  // A wordmark beside the name would squeeze it into a sliver; above it, the
+  // name keeps the full column.
+  const stacked = logoWidth / logoHeight > STACK_ASPECT;
+  const textX = stacked ? left : left + logoWidth + 12;
+  const leftWidth = CONTENT_WIDTH * 0.56 - (stacked ? 0 : logoWidth + 12);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(SIZE.name);
   pdf.setTextColor(...INK.ink);
   const nameLines = pdf.splitTextToSize(pdfText(input.vendor.business_name), leftWidth) as string[];
-  let ly = top + 12;
+  let ly = stacked ? top + logoHeight + 18 : top + 12;
   nameLines.forEach((line) => {
     pdf.text(line, textX, ly);
     ly += 16;
@@ -72,7 +83,7 @@ export function drawHeader(
       ly += 11.5;
     }
   }
-  const leftBottom = Math.max(top + LOGO, ly - 4);
+  const leftBottom = stacked ? ly - 4 : Math.max(top + logoHeight, ly - 4);
 
   // ---------- right: what this is ----------
   pdf.setFont('helvetica', 'bold');

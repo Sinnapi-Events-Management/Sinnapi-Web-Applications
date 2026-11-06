@@ -1,15 +1,26 @@
 import type { jsPDF } from 'jspdf';
-import { SINNAPI_LOGO_ASPECT, SINNAPI_LOGO_PNG } from '../brand';
+import { fitLogo, type PdfLogo } from '../../financialPdf/logo';
 import { COLOR, CONTENT_WIDTH, FONT, PAGE } from '../theme';
 import { statusTone } from '../status';
 import type { QuotationPdfDocument } from '../document';
 
-const LOGO_WIDTH = 104;
-const LOGO_HEIGHT = LOGO_WIDTH / SINNAPI_LOGO_ASPECT;
+/** The logo's box — the same proportions invoices and receipts use. */
+const LOGO_HEIGHT = 48;
+const LOGO_MAX_WIDTH = 150;
+/** Wider than this and the logo sits above the name rather than beside it. */
+const STACK_ASPECT = 1.6;
 
 /** The pill's own padding; the width is measured from the label inside it. */
 const PILL_PAD_X = 8;
 const PILL_HEIGHT = 16;
+
+function initials(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter((p) => /[A-Za-z0-9]/.test(p[0] ?? ''));
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+}
 
 function drawStatusPill(pdf: jsPDF, doc: QuotationPdfDocument, rightX: number, y: number): void {
   const tone = statusTone(doc.status);
@@ -26,23 +37,64 @@ function drawStatusPill(pdf: jsPDF, doc: QuotationPdfDocument, rightX: number, y
   });
 }
 
+/** The vendor's logo (or initials) and name. Returns the y beneath it. */
+function drawVendorBrand(
+  pdf: jsPDF,
+  doc: QuotationPdfDocument,
+  logo: PdfLogo | null,
+  left: number,
+  top: number,
+): number {
+  const name = doc.vendor_name?.trim() || 'Vendor';
+  let logoWidth = LOGO_HEIGHT;
+  let logoHeight = LOGO_HEIGHT;
+
+  if (logo) {
+    ({ width: logoWidth, height: logoHeight } = fitLogo(logo, LOGO_MAX_WIDTH, LOGO_HEIGHT));
+    pdf.addImage(logo.dataUrl, 'PNG', left, top, logoWidth, logoHeight);
+  } else {
+    pdf.setFillColor(...COLOR.surface);
+    pdf.roundedRect(left, top, LOGO_HEIGHT, LOGO_HEIGHT, 9, 9, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(...COLOR.muted);
+    pdf.text(initials(name), left + LOGO_HEIGHT / 2, top + LOGO_HEIGHT / 2, {
+      align: 'center',
+      baseline: 'middle',
+    });
+  }
+
+  const stacked = logoWidth / logoHeight > STACK_ASPECT;
+  const textX = stacked ? left : left + logoWidth + 12;
+  const maxWidth = CONTENT_WIDTH * 0.56 - (stacked ? 0 : logoWidth + 12);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(FONT.name);
+  pdf.setTextColor(...COLOR.text);
+  const lines = pdf.splitTextToSize(name, maxWidth) as string[];
+  let y = stacked ? top + logoHeight + 18 : top + 18;
+  for (const line of lines.slice(0, 2)) {
+    pdf.text(line, textX, y);
+    y += 16;
+  }
+  return stacked ? y - 4 : Math.max(top + logoHeight, y - 4);
+}
+
 /**
- * The masthead: the Sinnapi wordmark, what the document is, which one it is,
- * and where it stands — then a gold rule closing the block.
+ * The masthead: the vendor's business logo and name on the left, what the
+ * document is, which one and where it stands on the right — then a gold rule.
  *
- * The mark is the real asset rather than the word "Sinnapi" set in Helvetica.
- * This document leaves the platform the moment it is generated: it is forwarded
- * to accountants, printed for signature and attached to disputes, and in every
- * one of those places it is the only Sinnapi surface in the room.
+ * The vendor's brand leads, as on their invoices and receipts: this is their
+ * offer to their client. Sinnapi is credited in the footer.
  *
  * Returns the y the next section starts at.
  */
-export function drawHeader(pdf: jsPDF, doc: QuotationPdfDocument): number {
+export function drawHeader(pdf: jsPDF, doc: QuotationPdfDocument, logo: PdfLogo | null): number {
   const left = PAGE.margin;
   const right = PAGE.margin + CONTENT_WIDTH;
   const top = PAGE.margin;
 
-  pdf.addImage(SINNAPI_LOGO_PNG, 'PNG', left, top, LOGO_WIDTH, LOGO_HEIGHT);
+  const leftBottom = drawVendorBrand(pdf, doc, logo, left, top);
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(FONT.title);
@@ -60,7 +112,7 @@ export function drawHeader(pdf: jsPDF, doc: QuotationPdfDocument): number {
 
   drawStatusPill(pdf, doc, right, top + 38);
 
-  const ruleY = top + Math.max(LOGO_HEIGHT, 62) + 10;
+  const ruleY = Math.max(leftBottom, top + 62) + 10;
   pdf.setFillColor(...COLOR.accent);
   pdf.rect(left, ruleY, CONTENT_WIDTH, 2.5, 'F');
 
