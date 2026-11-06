@@ -19,12 +19,19 @@ export type PeriodOption = {
 // 90d collapses to 13 weekly buckets and 12m to 12 monthly ones so the x-axis
 // stays legible instead of cramming 90/365 daily ticks.
 export const PERIOD_OPTIONS: PeriodOption[] = [
-  { value: '7d', label: '7D', longLabel: 'Last 7 days', buckets: 7, unit: 'day', days: 7 },
-  { value: '30d', label: '30D', longLabel: 'Last 30 days', buckets: 30, unit: 'day', days: 30 },
-  { value: '90d', label: '90D', longLabel: 'Last 90 days', buckets: 13, unit: 'week', days: 90 },
+  { value: '7d', label: '7 days', longLabel: 'Last 7 days', buckets: 7, unit: 'day', days: 7 },
+  { value: '30d', label: '30 days', longLabel: 'Last 30 days', buckets: 30, unit: 'day', days: 30 },
+  {
+    value: '90d',
+    label: '3 months',
+    longLabel: 'Last 3 months',
+    buckets: 13,
+    unit: 'week',
+    days: 90,
+  },
   {
     value: '12m',
-    label: '12M',
+    label: '1 year',
     longLabel: 'Last 12 months',
     buckets: 12,
     unit: 'month',

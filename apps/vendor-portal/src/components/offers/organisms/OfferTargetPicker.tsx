@@ -159,7 +159,7 @@ export default function OfferTargetPicker({
                     meta={`${tiers.length} ${tiers.length === 1 ? 'tier' : 'tiers'}`}
                     disabled={!published}
                     disabledReason={
-                      published ? undefined : 'Not published — clients cannot see this package'
+                      published ? undefined : 'Hidden — clients cannot see this package'
                     }
                   />
 

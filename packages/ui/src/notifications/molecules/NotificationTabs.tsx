@@ -1,4 +1,5 @@
 'use client';
+import { wrapTabsOnPhoneSx } from '../../molecules/wrapTabsOnPhone';
 import { Box, Chip, Tab, Tabs, Skeleton } from '@mui/material';
 import type { NotificationTabOption } from '../schema/tabs';
 import type { NotificationTab } from '../types';
@@ -54,6 +55,7 @@ export function NotificationTabs({
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
+        sx={wrapTabsOnPhoneSx}
       >
         {options.map((option) => (
           <Tab

@@ -2,6 +2,7 @@ import { Alert, DataTable } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { usePayouts } from '../../hooks/usePayouts';
 import { payoutColumns } from '../../schema';
+import PayoutCard from '../molecules/PayoutCard';
 
 /** The payout list for one vendor, mounted by <VendorGate />. */
 export default function PayoutsTable({ vendorId }: { vendorId: string }) {
@@ -21,11 +22,12 @@ export default function PayoutsTable({ vendorId }: { vendorId: string }) {
         getRowId={(p) => p.id}
         rowCount={total}
         loading={isLoading || isFetching}
+        renderCard={(p) => <PayoutCard payout={p} />}
         emptyMessage={
           <EmptyState
             embedded
-            title="No payouts yet"
-            description="Once escrow is released and approved, your payouts appear here."
+            title="Nothing paid to you yet"
+            description="When a client’s payment is released from escrow, the money sent to you shows here."
           />
         }
         {...table.controls}

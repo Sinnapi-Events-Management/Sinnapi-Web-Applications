@@ -17,6 +17,8 @@ export function formatMoney(amount: number | null | undefined, currency: string 
     return new Intl.NumberFormat('en-UG', {
       style: 'currency',
       currency: cur,
+      // Same "UGX 1,000" notation as the invoice and receipt documents.
+      currencyDisplay: 'code',
       maximumFractionDigits: 0,
     }).format(amount);
   } catch {

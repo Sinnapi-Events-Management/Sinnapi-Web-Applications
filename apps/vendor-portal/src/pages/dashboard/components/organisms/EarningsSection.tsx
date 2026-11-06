@@ -25,7 +25,7 @@ type Props = {
 // as a third series here implied a slice coming out of their money.
 const CASH_SERIES: SeriesDef[] = [
   { key: 'earned', label: 'Booked', color: 'primary' },
-  { key: 'released', label: 'Paid out', color: 'success' },
+  { key: 'released', label: 'Paid to you', color: 'success' },
 ];
 
 /**

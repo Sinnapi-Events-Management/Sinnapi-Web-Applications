@@ -47,7 +47,7 @@ export default function EscrowStateSummary({
             label: advanceReleased ? 'Advance released to you' : 'Advance due to you',
             amount: escrow.advance_amount,
             hint: advanceReleased
-              ? 'Already on its way to your payout account.'
+              ? 'Already on its way to your bank account.'
               : 'Released on the schedule the client accepted, before the event.',
           },
           {

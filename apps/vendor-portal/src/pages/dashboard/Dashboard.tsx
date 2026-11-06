@@ -1,4 +1,4 @@
-import { Alert, PageTitle, QueryState, StatusChip } from '@sinnapi/ui';
+import { Alert, Box, PageTitle, QueryState, StatusChip } from '@sinnapi/ui';
 import { formatDate } from '@/lib/config';
 import { useDashboard } from './hooks/useDashboard';
 import DashboardWorkspace from './components/organisms/DashboardWorkspace';
@@ -59,7 +59,15 @@ export default function Dashboard() {
       <PageTitle
         title={title}
         subtitle={`Here's how ${vendor.business_name} is tracking.`}
-        action={subscription && <StatusChip status={subscription.status} size="medium" />}
+        action={
+          // Wrapped so the page header's column layout on phones does not
+          // stretch the chip into a full-width bar.
+          subscription && (
+            <Box sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+              <StatusChip status={subscription.status} size="medium" />
+            </Box>
+          )
+        }
       />
 
       {subscription?.status === 'trialing' && vendor.trial_ends_at && (

@@ -57,7 +57,7 @@ export const QUEUES: QueueDef[] = [
   },
   {
     key: 'payouts',
-    label: 'Payouts in flight',
+    label: 'On its way to you',
     to: '/payouts',
     accent: 'success',
     Icon: PaymentsIcon,

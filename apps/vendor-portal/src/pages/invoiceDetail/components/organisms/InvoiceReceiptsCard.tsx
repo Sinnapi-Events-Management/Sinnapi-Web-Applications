@@ -77,7 +77,7 @@ export default function InvoiceReceiptsCard({ d }: { d: InvoiceDetailApi }) {
 
           {list.voidCount > 0 && (
             <Typography variant="caption" color="text.secondary">
-              Void receipts are kept for your records and do not count toward what was paid.
+              Cancelled receipts are kept for your records and do not count toward what was paid.
             </Typography>
           )}
         </Stack>

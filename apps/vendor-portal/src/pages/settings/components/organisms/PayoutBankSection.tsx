@@ -10,7 +10,7 @@ import BankAccountForm from '@/components/bank/BankAccountForm';
  */
 export default function PayoutBankSection() {
   return (
-    <SectionCard title="Payout bank account" icon={<AccountBalanceIcon />} accent="secondary">
+    <SectionCard title="Your bank account" icon={<AccountBalanceIcon />} accent="secondary">
       <VendorGate>{(vendorId) => <BankAccountForm vendorId={vendorId} />}</VendorGate>
     </SectionCard>
   );

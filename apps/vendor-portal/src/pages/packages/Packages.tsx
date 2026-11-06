@@ -72,7 +72,7 @@ export default function Packages() {
     <>
       <PageTitle
         title="Packages"
-        subtitle="Priced offers you can publish to your profile and quote from in one click."
+        subtitle="Priced offers you can show on your profile and quote from in one click."
       />
       <VendorGate>{(vendorId) => <PackagesCatalogue vendorId={vendorId} />}</VendorGate>
     </>

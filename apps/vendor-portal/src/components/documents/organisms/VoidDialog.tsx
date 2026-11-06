@@ -24,7 +24,8 @@ type Props = {
 };
 
 /**
- * Voiding asks for a reason: it is printed on the voided document and kept
+ * Cancelling ("void" in the database) asks for a reason: it is printed on the
+ * cancelled document and kept
  * in its history, and the database refuses a void without one.
  */
 export default function VoidDialog({
@@ -43,7 +44,7 @@ export default function VoidDialog({
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth="sm">
       <DialogTitle>
-        Void {noun} {documentNo}?
+        Cancel {noun} {documentNo}?
       </DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 2 }}>{consequence}</DialogContentText>
@@ -56,7 +57,7 @@ export default function VoidDialog({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           inputProps={{ maxLength: 500 }}
-          helperText="Printed on the voided document."
+          helperText="Printed on the cancelled document so your client knows why."
         />
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
@@ -74,7 +75,7 @@ export default function VoidDialog({
           disabled={busy || !trimmed}
           onClick={() => onConfirm(trimmed)}
         >
-          {busy ? 'Voiding…' : `Void ${noun}`}
+          {busy ? 'Cancelling…' : `Yes, cancel ${noun}`}
         </Button>
       </DialogActions>
     </Dialog>

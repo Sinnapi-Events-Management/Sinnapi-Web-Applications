@@ -21,14 +21,14 @@ export const INVOICE_STATUS_META: Readonly<
   paid: { label: 'Paid', color: 'success' },
   overpaid: { label: 'Overpaid', color: 'secondary' },
   overdue: { label: 'Overdue', color: 'error' },
-  void: { label: 'Void', color: 'default' },
+  void: { label: 'Cancelled', color: 'default' },
 };
 
 export const RECEIPT_STATUS_META: Readonly<
   Record<ReceiptStatus, { label: string; color: StatusChipColor }>
 > = {
   issued: { label: 'Received', color: 'success' },
-  void: { label: 'Void', color: 'default' },
+  void: { label: 'Cancelled', color: 'default' },
 };
 
 export function invoiceDisplayStatus(
@@ -53,7 +53,7 @@ export const INVOICE_FILTERS = [
   { value: 'overdue', label: 'Overdue' },
   { value: 'paid', label: 'Paid' },
   { value: 'draft', label: 'Drafts' },
-  { value: 'void', label: 'Void' },
+  { value: 'void', label: 'Cancelled' },
 ] as const;
 
 export type InvoiceFilter = (typeof INVOICE_FILTERS)[number]['value'];

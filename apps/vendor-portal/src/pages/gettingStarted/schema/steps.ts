@@ -38,7 +38,7 @@ export const STEPS: StepMeta[] = [
   },
   {
     key: 'coverage',
-    label: 'Coverage',
+    label: 'Where you work',
     title: 'Where do you work?',
     caption: 'You will not appear in any location search until you pick at least one region.',
   },

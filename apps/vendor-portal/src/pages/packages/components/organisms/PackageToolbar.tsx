@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { Button, Stack, Tab, Tabs } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import { PACKAGE_FILTERS, type PackageFilter } from '../../hooks/usePackages';
@@ -34,7 +35,7 @@ export default function PackageToolbar({ filter, counts, onFilter, onCreate }: P
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        sx={{ flex: 1, minHeight: 40, '& .MuiTab-root': { minHeight: 40 } }}
+        sx={[wrapTabsOnPhoneSx, { flex: 1, minHeight: 40, '& .MuiTab-root': { minHeight: 40 } }]}
       >
         {PACKAGE_FILTERS.map((option) => (
           <Tab

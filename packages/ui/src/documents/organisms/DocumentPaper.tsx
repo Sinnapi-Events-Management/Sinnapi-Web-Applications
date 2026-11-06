@@ -7,7 +7,7 @@ type Props = {
   children: ReactNode;
   /** Printed bottom-right of the footer next to the page count. */
   documentNo: string | null;
-  /** Draws the diagonal VOID mark across the page. */
+  /** Draws the diagonal CANCELLED mark across the page. */
   isVoid?: boolean;
   /** Accessible name for the whole sheet. */
   label: string;
@@ -59,16 +59,18 @@ export function DocumentPaper({ children, documentNo, isVoid, label }: Props) {
           <Box
             sx={{
               transform: 'rotate(-28deg)',
-              fontSize: { xs: 72, sm: 120 },
+              // Sized for "CANCELLED" (nine letters) to stay inside a phone-width page.
+              fontSize: { xs: 36, sm: 72 },
               fontWeight: 700,
-              letterSpacing: '12px',
+              letterSpacing: { xs: '4px', sm: '8px' },
+              whiteSpace: 'nowrap',
               color: 'rgba(154,27,27,0.12)',
               border: '6px solid rgba(154,27,27,0.12)',
               px: 4,
               borderRadius: 3,
             }}
           >
-            VOID
+            CANCELLED
           </Box>
         </Box>
       )}

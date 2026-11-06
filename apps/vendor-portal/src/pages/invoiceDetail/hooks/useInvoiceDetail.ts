@@ -88,7 +88,7 @@ export function useInvoiceDetail(invoiceId: string) {
     try {
       await voidMutation.mutateAsync({ id: row.id, reason });
       setVoidOpen(false);
-      toast.success(`Invoice ${row.document_no} voided`);
+      toast.success(`Invoice ${row.document_no} cancelled`);
     } catch (e) {
       setVoidError(documentErrorMessage(e, 'This invoice could not be voided.'));
     }
@@ -130,7 +130,7 @@ export function useInvoiceDetail(invoiceId: string) {
       !(isBooking && row.status === 'paid'),
     voidBlockedReason:
       row && !isVoid && receipts.hasLiveReceipts
-        ? 'To void this invoice, void its receipts first.'
+        ? 'To cancel this invoice, cancel its receipts first.'
         : null,
     canDuplicate: !!row && !isBooking,
     linked: row

@@ -3,14 +3,24 @@ import { Alert, DataTable } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useBookings } from '../../hooks/useBookings';
 import { bookingColumns } from '../../schema';
+import BookingCard from '../molecules/BookingCard';
 
 /**
  * The bookings list for one vendor. Mounted by <VendorGate /> once the vendor
  * is resolved, which is why it can take `vendorId` as a plain string.
  */
 export default function BookingsTable({ vendorId }: { vendorId: string }) {
-  const { rows, total, isLoading, isFetching, error, table, openBooking, clientName } =
-    useBookings(vendorId);
+  const {
+    rows,
+    total,
+    isLoading,
+    isFetching,
+    error,
+    table,
+    openBooking,
+    clientName,
+    namesLoading,
+  } = useBookings(vendorId);
   const columns = useMemo(() => bookingColumns(clientName), [clientName]);
 
   return (
@@ -28,6 +38,13 @@ export default function BookingsTable({ vendorId }: { vendorId: string }) {
         rowCount={total}
         loading={isLoading || isFetching}
         onRowClick={(b) => openBooking(b.id)}
+        renderCard={(b) => (
+          <BookingCard
+            booking={b}
+            clientName={namesLoading ? null : clientName(b.client_id)}
+            onOpen={() => openBooking(b.id)}
+          />
+        )}
         emptyMessage={
           <EmptyState
             embedded

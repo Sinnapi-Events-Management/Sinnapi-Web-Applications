@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { Button, Stack, Tab, Tabs } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import { PROMOTION_FILTERS, type PromotionFilter } from '../../schema';
@@ -36,7 +37,7 @@ export default function PromotionsToolbar({ filter, counts, onFilter, onCreate }
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        sx={{ flex: 1, minHeight: 40, '& .MuiTab-root': { minHeight: 40 } }}
+        sx={[wrapTabsOnPhoneSx, { flex: 1, minHeight: 40, '& .MuiTab-root': { minHeight: 40 } }]}
       >
         {PROMOTION_FILTERS.map((option) => (
           <Tab

@@ -41,7 +41,7 @@ export default function InvoiceActionsCard({ d }: { d: InvoiceDetailApi }) {
             </Alert>
           )}
           {row.status === 'void' && row.void_reason && (
-            <Alert severity="warning">Voided: {row.void_reason}</Alert>
+            <Alert severity="warning">Cancelled: {row.void_reason}</Alert>
           )}
           {d.downloadError && <Alert severity="error">{d.downloadError}</Alert>}
 
@@ -57,7 +57,7 @@ export default function InvoiceActionsCard({ d }: { d: InvoiceDetailApi }) {
                   sx={{ alignSelf: 'flex-start' }}
                   size="small"
                 >
-                  Void invoice
+                  Cancel invoice
                 </Button>
               ) : (
                 <Typography variant="body2" color="text.secondary">

@@ -23,7 +23,9 @@ export * from './ImageList';
 export * from './ThemeToggle';
 // Portal primitives — shared by admin, client and vendor. (`StatCard` and
 // `EmptyState` are their router-dependent siblings, in `@sinnapi/ui/router`.)
+export * from './InfoTip';
 export * from './PageTitle';
+export * from './RecordCard';
 export * from './QueryState';
 export * from './StatusChip';
 export * from './statusColor';
@@ -106,6 +108,7 @@ export * from './FilterDisclosure';
 // Status filter tabs for a list view — the same bar every portal's queues,
 // inbox and dashboard navigate with.
 export * from './StatusTabs';
+export * from './wrapTabsOnPhone';
 // Section tabs for a *detail* page — the sibling of `StatusTabs`, splitting one
 // long stack of cards into sections instead of filtering a list.
 export * from './DetailTabs';

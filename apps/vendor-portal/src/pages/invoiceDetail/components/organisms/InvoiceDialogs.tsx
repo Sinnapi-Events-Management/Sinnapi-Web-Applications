@@ -25,7 +25,7 @@ export default function InvoiceDialogs({ d }: { d: InvoiceDetailApi }) {
         open={d.voidOpen}
         noun="invoice"
         documentNo={row.document_no ?? ''}
-        consequence="The invoice stays in your records, stamped VOID, and nothing more can be paid against it. Your client will still see it, marked void."
+        consequence="The invoice stays in your records, marked CANCELLED, and nothing more can be paid against it. Your client will still see it, marked cancelled."
         busy={d.voidBusy}
         error={d.voidError}
         onConfirm={d.confirmVoid}

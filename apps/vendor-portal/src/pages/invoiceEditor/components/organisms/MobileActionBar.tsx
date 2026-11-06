@@ -1,5 +1,6 @@
 import { Button, Paper, Stack, Typography } from '@sinnapi/ui';
 import { formatDocumentMoney } from '@sinnapi/ui/documents';
+import { aboveBottomNav } from '@sinnapi/ui/router';
 import type { InvoiceFormApi } from '../../hooks/useInvoiceForm';
 
 /** Phones only: the total and "Issue" stay in reach while the vendor scrolls the form. */
@@ -10,7 +11,7 @@ export default function MobileActionBar({ f }: { f: InvoiceFormApi }) {
       sx={{
         display: { xs: 'flex', md: 'none' },
         position: 'sticky',
-        bottom: 12,
+        bottom: aboveBottomNav(12),
         zIndex: (t) => t.zIndex.appBar - 1,
         px: 2,
         py: 1.25,

@@ -3,6 +3,7 @@ import { Alert, DataTable } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useQuotations } from '../../hooks/useQuotations';
 import { quotationColumns } from '../../schema';
+import QuotationCard from '../molecules/QuotationCard';
 
 /** The quote-request list for one vendor, mounted by <VendorGate />. */
 export default function QuotationsTable({ vendorId }: { vendorId: string }) {
@@ -15,6 +16,7 @@ export default function QuotationsTable({ vendorId }: { vendorId: string }) {
     table,
     openQuotation,
     clientName,
+    namesLoading,
     bookingFor,
   } = useQuotations(vendorId);
   const columns = useMemo(
@@ -37,6 +39,14 @@ export default function QuotationsTable({ vendorId }: { vendorId: string }) {
         rowCount={total}
         loading={isLoading || isFetching}
         onRowClick={(q) => openQuotation(q.id)}
+        renderCard={(q) => (
+          <QuotationCard
+            quotation={q}
+            clientName={namesLoading ? null : clientName(q.client_id)}
+            booking={bookingFor(q.id)}
+            onOpen={() => openQuotation(q.id)}
+          />
+        )}
         emptyMessage={
           <EmptyState
             embedded

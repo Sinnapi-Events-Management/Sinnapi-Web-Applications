@@ -25,7 +25,7 @@ const STAMPS: Partial<Record<InvoiceDisplayStatus, { label: string; tone: Docume
   overdue: { label: 'OVERDUE', tone: 'warning' },
   paid: { label: 'PAID', tone: 'success' },
   overpaid: { label: 'OVERPAID', tone: 'success' },
-  void: { label: 'VOID', tone: 'void' },
+  void: { label: 'CANCELLED', tone: 'void' },
 };
 
 const ESCROW_PAY_NOTE =
@@ -183,7 +183,7 @@ export function InvoicePreview({
           {payText && <PaperField label="How to pay" value={payText} preLine />}
           {notes && <PaperField label="Notes & terms" value={notes} preLine />}
           {invoice.status === 'void' && invoice.voidReason && (
-            <PaperField label="Voided" value={invoice.voidReason} />
+            <PaperField label="Cancelled" value={invoice.voidReason} />
           )}
         </Box>
         <MoneyRows

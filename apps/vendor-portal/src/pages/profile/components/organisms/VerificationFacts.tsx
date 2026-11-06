@@ -58,7 +58,7 @@ export default function VerificationFacts({ vendorId, vendor }: Props) {
           icon={<SchoolIcon />}
         />
         <InfoRow
-          label="Payout account"
+          label="Bank account"
           value={bank ? `${bank.bank_name} ····${bank.account_number_last4 ?? ''}` : undefined}
           icon={<AccountBalanceIcon />}
         />

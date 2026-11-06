@@ -2,6 +2,7 @@ import { Alert, DataTable } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useEscrow } from '../../hooks/useEscrow';
 import { escrowColumns } from '../../schema';
+import EscrowCard from '../molecules/EscrowCard';
 
 /** The escrow list for one vendor, mounted by <VendorGate />. */
 export default function EscrowTable({ vendorId }: { vendorId: string }) {
@@ -21,6 +22,7 @@ export default function EscrowTable({ vendorId }: { vendorId: string }) {
         getRowId={(e) => e.id}
         rowCount={total}
         loading={isLoading || isFetching}
+        renderCard={(e) => <EscrowCard escrow={e} />}
         emptyMessage={
           <EmptyState
             embedded

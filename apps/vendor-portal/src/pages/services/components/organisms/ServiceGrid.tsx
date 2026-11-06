@@ -69,7 +69,7 @@ export default function ServiceGrid({
     if (filter === 'archived') {
       return (
         <EmptyState
-          title="Nothing archived"
+          title="Nothing here"
           description="Services you take out of your catalogue land here, and you can put them back at any time."
         />
       );
@@ -80,7 +80,7 @@ export default function ServiceGrid({
       return (
         <EmptyState
           title="Your catalogue is empty"
-          description={`${n === 1 ? 'Your only service is archived' : `All ${n} of your services are archived`}. Open the Archived tab to put one back, or add a new service.`}
+          description={`${n === 1 ? 'Your only service is no longer offered' : `None of your ${n} services are offered right now`}. Open the “No longer offered” tab to offer one again, or add a new service.`}
           ctaLabel="Add a service"
           onCta={onAdd}
         />

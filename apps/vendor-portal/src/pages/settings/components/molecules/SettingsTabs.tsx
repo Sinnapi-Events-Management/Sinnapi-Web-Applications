@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { alpha, Box, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@sinnapi/ui';
 import { panelId, tabId, type SettingsTab, type SettingsTabMeta } from '../../schema';
 
@@ -45,7 +46,7 @@ export default function SettingsTabs({ items, value, onChange }: Props) {
         allowScrollButtonsMobile
         aria-label="Settings sections"
         TabIndicatorProps={{ sx: { display: { md: 'none' } } }}
-        sx={{ '& .MuiTabs-flexContainer': { gap: { md: 0.5 } } }}
+        sx={[wrapTabsOnPhoneSx, { '& .MuiTabs-flexContainer': { gap: { md: 0.5 } } }]}
       >
         {items.map(({ value: v, meta }) => {
           const Icon = meta.icon;

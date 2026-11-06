@@ -157,7 +157,21 @@ export function statusColor(status: string): StatusChipColor {
   return MAP[status] ?? 'default';
 }
 
+/**
+ * Statuses whose database word is not the word people use. "Voided" is
+ * accounting language; the record is kept, so "Cancelled" (not "Deleted") is
+ * the plain word that is also true. Payout statuses say whose money it is.
+ */
+const STATUS_LABELS: Readonly<Record<string, string>> = {
+  voided: 'Cancelled',
+  void: 'Cancelled',
+  payout_approved: 'Approved for payment',
+  paid_out: 'Paid to you',
+};
+
 /** `in_progress` → `In Progress`. Shared so status labels read alike everywhere. */
 export function titleizeStatus(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return (
+    STATUS_LABELS[status] ?? status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }

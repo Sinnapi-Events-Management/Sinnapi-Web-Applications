@@ -51,7 +51,7 @@ export default function InvoiceEditorForm(props: Props) {
       <ConfirmDialog
         open={f.confirmIssue}
         title="Issue this invoice?"
-        description={`It will be numbered for ${formatDocumentMoney(f.preview.total, f.preview.currency)} and can no longer be edited. To change it later, you void it and issue a new one.`}
+        description={`It will be numbered for ${formatDocumentMoney(f.preview.total, f.preview.currency)} and can no longer be edited. To change it later, you cancel it and create a new one.`}
         confirmLabel="Issue invoice"
         loading={f.busy}
         onConfirm={f.doIssue}

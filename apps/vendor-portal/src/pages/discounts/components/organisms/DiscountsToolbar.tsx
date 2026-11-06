@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { Box, Button, SearchField, Stack, Tab, Tabs } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import { DISCOUNT_FILTERS, type DiscountFilter } from '../../schema';
@@ -77,12 +78,15 @@ export default function DiscountsToolbar({
         scrollButtons="auto"
         allowScrollButtonsMobile
         aria-label="Filter discount codes by status"
-        sx={{
-          minHeight: 40,
-          borderBottom: 1,
-          borderColor: 'divider',
-          '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontWeight: 600 },
-        }}
+        sx={[
+          wrapTabsOnPhoneSx,
+          {
+            minHeight: 40,
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontWeight: 600 },
+          },
+        ]}
       >
         {DISCOUNT_FILTERS.map((option) => (
           <Tab

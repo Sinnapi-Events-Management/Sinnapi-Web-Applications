@@ -48,7 +48,7 @@ export function useReceiptDetail(receiptId: string) {
     try {
       await voidMutation.mutateAsync({ id: row.id, reason, invoiceId: row.invoice_id });
       setVoidOpen(false);
-      toast.success(`Receipt ${row.document_no} voided`);
+      toast.success(`Receipt ${row.document_no} cancelled`);
     } catch (e) {
       setVoidError(documentErrorMessage(e, 'This receipt could not be voided.'));
     }

@@ -69,7 +69,10 @@ export default function AddMediaFab() {
           // Clear of the home-indicator strip on a notched phone, where a
           // control flush to the bottom edge is a control that swipes the app
           // away instead of opening the uploader.
-          bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+          // The phone bottom bar's height already includes that inset; with no
+          // bar, the inset alone keeps it clear.
+          bottom:
+            'calc(16px + max(var(--portal-bottom-nav-height, 0px), env(safe-area-inset-bottom, 0px)))',
           zIndex: (t) => t.zIndex.fab,
           textTransform: 'none',
           fontWeight: 600,

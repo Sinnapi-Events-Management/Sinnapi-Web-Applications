@@ -60,7 +60,7 @@ export function ReceiptPreview({ receipt }: { receipt: ReceiptView }) {
         <DocumentHeading
           title="PAYMENT RECEIPT"
           documentNo={receipt.documentNo}
-          stamp={isVoid ? { label: 'VOID', tone: 'void' } : null}
+          stamp={isVoid ? { label: 'CANCELLED', tone: 'void' } : null}
         />
       </Box>
 
@@ -159,7 +159,7 @@ export function ReceiptPreview({ receipt }: { receipt: ReceiptView }) {
       )}
 
       {receipt.notes && <PaperField label="Notes" value={receipt.notes} preLine />}
-      {isVoid && receipt.voidReason && <PaperField label="Voided" value={receipt.voidReason} />}
+      {isVoid && receipt.voidReason && <PaperField label="Cancelled" value={receipt.voidReason} />}
 
       <Box sx={{ mt: 'auto', fontSize: 12, color: PAPER.muted }}>
         Received and confirmed by {receipt.vendor.business_name} on{' '}

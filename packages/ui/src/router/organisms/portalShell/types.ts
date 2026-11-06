@@ -32,7 +32,22 @@ export interface PortalNavItem {
 export interface PortalNavSection {
   title: string;
   items: PortalNavItem[];
+  /**
+   * Always expanded, with no collapse toggle. For the handful of destinations
+   * people use every day: a group that can be closed is a group whose links
+   * someone will one day close by accident and then never find again.
+   */
+  pinned?: boolean;
 }
+
+/**
+ * One tab in the phone-only bottom bar. `label` should be one short word —
+ * five tabs share a 360px screen.
+ */
+export type PortalBottomNavItem = Pick<
+  PortalNavItem,
+  'label' | 'to' | 'icon' | 'badgeKey' | 'matches'
+>;
 
 export interface PortalBrand {
   /** Product name, used as the logo's alt text. */
@@ -153,4 +168,11 @@ export interface PortalShellProps {
   banner?: ReactNode;
   /** Extra controls injected into the top bar, left of the theme toggle. */
   topBarActions?: ReactNode;
+  /**
+   * Phone-only bottom tab bar (below `md`). A trailing "More" tab that opens
+   * the full menu is added by the shell. Omit to keep the menu button alone.
+   */
+  bottomNav?: PortalBottomNavItem[];
+  /** Label for the trailing tab that opens the full menu. Defaults to "More". */
+  bottomNavMoreLabel?: string;
 }

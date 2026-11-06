@@ -41,19 +41,24 @@ function SubscriptionBody({ vendorId }: { vendorId: string }) {
       />
 
       <QueryState isLoading={s.plans.isLoading} error={s.plans.error}>
-        <Grid container spacing={3} alignItems="stretch">
-          {plans.map((p) => (
-            <Grid item xs={12} md={4} key={p.id}>
-              <PlanCard
-                plan={p}
-                isCurrent={p.id === currentPlanId && s.subscription?.status === 'active'}
-                highlight={p.key === 'professional'}
-                actionLabel={s.actionLabel(p.id)}
-                onAction={() => s.openCheckout(p.id)}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        {/* The Box matters: the page's Stack zeroes its children's margins,
+            which cancels the Grid's negative left margin and pushes every plan
+            card off the right edge of a phone. */}
+        <Box>
+          <Grid container spacing={{ xs: 2, md: 3 }} alignItems="stretch">
+            {plans.map((p) => (
+              <Grid item xs={12} md={4} key={p.id}>
+                <PlanCard
+                  plan={p}
+                  isCurrent={p.id === currentPlanId && s.subscription?.status === 'active'}
+                  highlight={p.key === 'professional'}
+                  actionLabel={s.actionLabel(p.id)}
+                  onAction={() => s.openCheckout(p.id)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
       </QueryState>
 
       <Box sx={{ maxWidth: 760 }}>

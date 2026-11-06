@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * Segmented control for the reporting window (7D / 30D / 90D / 12M). Owned by
+ * Segmented control for the reporting window (7 days … 1 year). Owned by
  * the toolbar; every time-series report reads the selected value so one control
  * drives the whole page.
  */
@@ -20,13 +20,23 @@ export default function PeriodSelector({ value, onChange }: Props) {
       size="small"
       onChange={(_, next: AnalyticsPeriod | null) => next && onChange(next)}
       aria-label="Reporting period"
+      // On a phone the four words share the row evenly, each on one line,
+      // rather than stacking "7" over "days".
+      sx={{ flex: { xs: 1, sm: 'none' }, minWidth: 0 }}
     >
       {PERIOD_OPTIONS.map((p) => (
         <ToggleButton
           key={p.value}
           value={p.value}
           aria-label={p.longLabel}
-          sx={{ textTransform: 'none', fontWeight: 600, px: 1.75 }}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            flex: { xs: 1, sm: 'none' },
+            px: { xs: 0.5, sm: 1.75 },
+            fontSize: { xs: '0.8125rem', sm: undefined },
+          }}
         >
           {p.label}
         </ToggleButton>

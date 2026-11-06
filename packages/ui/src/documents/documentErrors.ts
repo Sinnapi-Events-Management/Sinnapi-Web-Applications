@@ -9,8 +9,8 @@
 import { rpcErrorMessage } from '../molecules/rpcError';
 
 export const DOCUMENT_ERROR_COPY: Readonly<Record<string, string>> = {
-  invoice_locked: 'An issued invoice cannot be edited. Void it and issue a new one.',
-  receipt_locked: 'A receipt cannot be edited. Void it and record the payment again.',
+  invoice_locked: 'A sent invoice cannot be edited. Cancel it and create a new one.',
+  receipt_locked: 'A receipt cannot be edited. Cancel it and record the payment again.',
   issue_date_in_future: 'The issue date cannot be later than today.',
   due_before_issue: 'The due date cannot be before the issue date.',
   recipient_ambiguous: 'Choose a Sinnapi client or a saved client, not both.',
@@ -30,7 +30,7 @@ export const DOCUMENT_ERROR_COPY: Readonly<Record<string, string>> = {
   booking_unpriced: 'This booking has no agreed amount yet.',
   booking_amount_mismatch:
     'The quotation total does not match the booking amount. Contact support so we can correct it.',
-  invoice_has_receipts: 'This invoice has payments recorded. Void its receipts first.',
+  invoice_has_receipts: 'This invoice has payments recorded. Cancel its receipts first.',
   invoice_paid_through_sinnapi: 'This booking has been paid through Sinnapi, so its invoice stays.',
   cannot_duplicate_booking_invoice: 'A booking has one invoice. Create a new invoice instead.',
   receipt_blocked_escrow:

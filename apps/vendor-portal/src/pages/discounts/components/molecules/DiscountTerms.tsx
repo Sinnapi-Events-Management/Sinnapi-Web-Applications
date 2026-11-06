@@ -37,7 +37,7 @@ export default function DiscountTerms({ discount }: { discount: DiscountRow }) {
         </Tooltip>
       )}
       {discount.promotionTitle && (
-        <Tooltip title="This code's redemptions roll up into this campaign">
+        <Tooltip title="Every use of this code counts towards this campaign">
           <Chip
             size="small"
             variant="outlined"

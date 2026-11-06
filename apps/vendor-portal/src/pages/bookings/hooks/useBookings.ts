@@ -19,7 +19,7 @@ export function useBookings(vendorId: string) {
   // profiles out of an embed, so the names arrive a moment after the rows and
   // the table renders "Client" in the gap — the same placeholder it used to
   // show permanently.
-  const { profiles } = useProfileDirectory(rows.map((b) => b.client_id));
+  const { profiles, isLoading: namesLoading } = useProfileDirectory(rows.map((b) => b.client_id));
 
   // Stable while the directory is, so the column set it feeds is built once per
   // batch of names rather than on every render of the table.
@@ -35,6 +35,8 @@ export function useBookings(vendorId: string) {
   return {
     rows,
     clientName,
+    /** Names still on their way — cards show a placeholder bar, not "Client". */
+    namesLoading,
     total: data?.total ?? 0,
     isLoading,
     isFetching,

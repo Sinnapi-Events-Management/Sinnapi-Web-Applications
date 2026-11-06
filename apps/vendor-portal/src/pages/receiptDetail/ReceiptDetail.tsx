@@ -111,7 +111,7 @@ function Workspace({ receiptId }: { receiptId: string }) {
                   </Button>
                 )}
                 {row.status === 'void' && row.void_reason && (
-                  <Alert severity="warning">Voided: {row.void_reason}</Alert>
+                  <Alert severity="warning">Cancelled: {row.void_reason}</Alert>
                 )}
                 {row.status === 'issued' && (
                   <>
@@ -122,7 +122,7 @@ function Workspace({ receiptId }: { receiptId: string }) {
                       onClick={d.openVoid}
                       sx={{ alignSelf: 'flex-start' }}
                     >
-                      Void receipt
+                      Cancel receipt
                     </Button>
                   </>
                 )}
@@ -139,8 +139,8 @@ function Workspace({ receiptId }: { receiptId: string }) {
         documentNo={row.document_no}
         consequence={
           row.invoice_id
-            ? 'The payment is taken off the invoice, which goes back to owing this amount. The receipt stays in your records, stamped VOID.'
-            : 'The receipt stays in your records, stamped VOID.'
+            ? 'The payment is taken off the invoice, which goes back to owing this amount. The receipt stays in your records, marked CANCELLED.'
+            : 'The receipt stays in your records, marked CANCELLED.'
         }
         busy={d.voidBusy}
         error={d.voidError}
