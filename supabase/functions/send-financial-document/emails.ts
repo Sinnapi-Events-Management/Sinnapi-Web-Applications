@@ -30,10 +30,15 @@ export type DocumentEmailInput = {
   documentNo: string;
   /** Pre-formatted, e.g. "UGX 1,500,000". Amount due for an invoice, amount received for a receipt. */
   amount: string;
+  /**
+   * Invoices only: set once nothing is owed — "Paid in full" or "Overpaid by"
+   * (1106b) — so the email never asks for a zero or negative amount.
+   */
+  settled: { label: string; value: string } | null;
   /** Pre-formatted. Due date for an invoice, payment date for a receipt. */
   date: string;
-  /** Receipts linked to an invoice, or with a typed balance: what is still owed. */
-  balance: string | null;
+  /** Receipts linked to an invoice, or with a typed balance: what is still owed, or the overpayment. */
+  balance: { label: string; value: string } | null;
   /** The invoice's "For" line, or the receipt's description. */
   title: string | null;
   vendorMessage: string | null;
@@ -43,13 +48,20 @@ export type DocumentEmailInput = {
   payThroughSinnapiUrl: string | null;
   /** True when this is the vendor's own copy. */
   isVendorCopy: boolean;
+  /** True when the vendor sent it ONLY to themselves (no client received anything). */
+  isSelfSend?: boolean;
 };
 
 export function documentEmail(d: DocumentEmailInput): Omit<EmailMessage, 'to'> {
   const isInvoice = d.kind === 'invoice';
   const noun = isInvoice ? 'Invoice' : 'Receipt';
+  const invoiceTail = d.settled
+    ? d.settled.label === 'Paid in full'
+      ? 'paid in full'
+      : `${d.settled.label.toLowerCase()} ${d.settled.value}`
+    : `${d.amount} due ${d.date}`;
   const subjectCore = isInvoice
-    ? `Invoice ${d.documentNo} from ${d.businessName} — ${d.amount} due ${d.date}`
+    ? `Invoice ${d.documentNo} from ${d.businessName} — ${invoiceTail}`
     : `Receipt ${d.documentNo} from ${d.businessName} — ${d.amount} received`;
   // No line breaks in a header, whatever a business name contains.
   const subjectLine = subjectCore.replace(/[\r\n]+/g, ' ');
@@ -63,17 +75,19 @@ export function documentEmail(d: DocumentEmailInput): Omit<EmailMessage, 'to'> {
   const rows = [
     { label: `${noun} number`, value: d.documentNo },
     ...(d.title ? [{ label: 'For', value: d.title }] : []),
-    { label: isInvoice ? 'Amount due' : 'Amount received', value: d.amount },
+    isInvoice
+      ? d.settled
+        ? { label: d.settled.label, value: d.settled.value }
+        : { label: 'Amount due', value: d.amount }
+      : { label: 'Amount received', value: d.amount },
     { label: isInvoice ? 'Due date' : 'Payment date', value: d.date },
-    ...(d.balance ? [{ label: 'Outstanding balance', value: d.balance }] : []),
+    ...(d.balance ? [{ label: d.balance.label, value: d.balance.value }] : []),
   ];
 
-  const copyNote = d.isVendorCopy
-    ? emailPanel({
-        tone: 'info',
-        body: escapeHtml('This is your copy of what your client received.'),
-      })
-    : '';
+  const copyText = d.isSelfSend
+    ? 'A copy for your records. Your client has not been sent anything.'
+    : 'This is your copy of what your client received.';
+  const copyNote = d.isVendorCopy ? emailPanel({ tone: 'info', body: escapeHtml(copyText) }) : '';
 
   const vendorMessage = d.vendorMessage
     ? emailPanel({
@@ -112,7 +126,7 @@ export function documentEmail(d: DocumentEmailInput): Omit<EmailMessage, 'to'> {
   });
 
   const text = emailText([
-    ...(d.isVendorCopy ? ['This is your copy of what your client received.', ''] : []),
+    ...(d.isVendorCopy ? [copyText, ''] : []),
     `Hello ${firstName},`,
     '',
     `${lead} The PDF is attached to this email.`,

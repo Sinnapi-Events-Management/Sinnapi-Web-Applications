@@ -3,6 +3,7 @@ import {
   DocumentStatusChip,
   formatDocumentDate,
   formatDocumentMoney,
+  formatOwed,
   invoiceDisplayStatus,
 } from '@sinnapi/ui/documents';
 import type { ClientInvoiceListRow, ClientReceiptListRow } from '@/hooks/documentQueries';
@@ -32,7 +33,7 @@ export function clientInvoiceColumns(today: string): DataTableColumn<ClientInvoi
       headerName: 'You owe',
       align: 'right',
       sortable: true,
-      render: (r) => (r.status === 'void' ? '—' : formatDocumentMoney(r.balance_due, r.currency)),
+      render: (r) => (r.status === 'void' ? '—' : formatOwed(r.balance_due, r.currency)),
     },
     {
       field: 'status',

@@ -4,6 +4,7 @@ import {
   RECEIPT_METHOD_LABELS,
   formatDocumentDate,
   formatDocumentMoney,
+  formatOwed,
   invoiceDisplayStatus,
   toAmount,
 } from '@sinnapi/ui/documents';
@@ -52,9 +53,7 @@ export function invoiceColumns(today: string): DataTableColumn<InvoiceListRow>[]
       align: 'right',
       sortable: true,
       render: (r) =>
-        r.status === 'draft' || r.status === 'void'
-          ? '—'
-          : formatDocumentMoney(r.balance_due, r.currency),
+        r.status === 'draft' || r.status === 'void' ? '—' : formatOwed(r.balance_due, r.currency),
     },
     {
       field: 'status',

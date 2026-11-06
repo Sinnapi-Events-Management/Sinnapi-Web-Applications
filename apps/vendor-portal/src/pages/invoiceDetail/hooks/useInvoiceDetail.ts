@@ -5,24 +5,33 @@ import {
   documentErrorMessage,
   invoiceDisplayStatus,
   kampalaToday,
+  paymentCoverage,
   toAmount,
   toInvoiceView,
 } from '@sinnapi/ui/documents';
 import {
   useDocumentDeliveries,
   useDuplicateInvoice,
-  useInvoiceReceipts,
   useVendorInvoice,
   useVoidInvoice,
 } from '@/hooks/documentQueries';
 import { useLocationNotice } from '@/components/documents/hooks/useLocationNotice';
 import { useDocumentDownload } from '@/components/documents/hooks/useDocumentDownload';
-import type { SendTarget } from '@/components/documents/hooks/useSendDocument';
+import { useSendToSelf } from '@/components/documents/hooks/useSendToSelf';
+import type { SendTarget } from '@/components/documents/hooks/sendFinancialDocument';
+import { useInvoiceReceiptList } from './useInvoiceReceiptList';
+
+/** Statuses an invoice can take a (further) payment in. Paid/overpaid ask "record anyway?" first. */
+const PAYABLE = new Set(['issued', 'partially_paid', 'paid', 'overpaid']);
 
 /**
- * One issued invoice: the document, the payments recorded against it, its
- * email history, and what the vendor can do next — record a payment, void
- * it, or copy it into a new draft.
+ * One issued invoice: the document, how its receipts compare with its
+ * total, its email history, and what the vendor can do next — record a
+ * payment, email it (to the client or only to themselves), download it,
+ * void it, or copy it into a new draft.
+ *
+ * The receipt list's own state lives in `useInvoiceReceiptList`. One email
+ * dialog serves the invoice and its receipts: `openSend` takes whichever.
  *
  * A draft has nothing to show here yet, so its URL forwards to the editor.
  */
@@ -32,18 +41,22 @@ export function useInvoiceDetail(invoiceId: string) {
   useLocationNotice(toast.success);
 
   const invoice = useVendorInvoice(invoiceId);
-  const receipts = useInvoiceReceipts(invoiceId);
   const deliveries = useDocumentDeliveries('invoice', invoiceId);
   const voidMutation = useVoidInvoice();
   const duplicate = useDuplicateInvoice();
-
   const download = useDocumentDownload();
-  const [sendOpen, setSendOpen] = useState(false);
+
+  const row = invoice.data ?? null;
+  const receipts = useInvoiceReceiptList(row, toast);
+  const selfSend = useSendToSelf({
+    onSent: (to) => toast.success(`Copy sent to ${to}`),
+    onError: toast.error,
+  });
+
+  const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
-
-  const row = invoice.data ?? null;
 
   useEffect(() => {
     if (row?.status === 'draft') navigate(`/invoices/${row.id}/edit`, { replace: true });
@@ -51,9 +64,23 @@ export function useInvoiceDetail(invoiceId: string) {
 
   const view = useMemo(() => (row ? toInvoiceView(row) : null), [row]);
   const display = row ? invoiceDisplayStatus(row.status, row.due_date, kampalaToday()) : null;
+  const coverage = row
+    ? paymentCoverage(toAmount(row.total), toAmount(row.amount_paid), row.currency)
+    : null;
 
   const isBooking = row?.payment_channel === 'sinnapi_escrow';
-  const activeReceipts = (receipts.data ?? []).filter((r) => r.status === 'issued');
+  const isVoid = row?.status === 'void';
+  const invoiceTarget: SendTarget | null =
+    row && view && !isVoid
+      ? {
+          kind: 'invoice',
+          id: row.id,
+          vendorId: row.vendor_id,
+          hasClientAccount: !!row.client_id,
+          savedEmail: row.recipient_email,
+          view,
+        }
+      : null;
 
   async function confirmVoid(reason: string) {
     if (!row) return;
@@ -81,24 +108,28 @@ export function useInvoiceDetail(invoiceId: string) {
     row,
     view,
     display,
+    coverage,
     isLoading: invoice.isLoading,
     error: invoice.error,
-    receipts: receipts.data ?? [],
-    receiptsLoading: receipts.isLoading,
+    receipts,
     deliveries: deliveries.data ?? [],
     deliveriesLoading: deliveries.isLoading,
     isBooking,
-    canRecordPayment:
-      !!row && !isBooking && (row.status === 'issued' || row.status === 'partially_paid'),
+    canRecordPayment: !!row && !isBooking && PAYABLE.has(row.status),
+    // Settled already: the button says so, and the form asks before recording.
+    recordPaymentLabel:
+      row?.status === 'paid' || row?.status === 'overpaid'
+        ? 'Record an extra payment'
+        : 'Record payment',
     // The database refuses these too; hiding them saves a refusal.
     canVoid:
       !!row &&
-      row.status !== 'void' &&
+      !isVoid &&
       row.status !== 'draft' &&
-      activeReceipts.length === 0 &&
+      !receipts.hasLiveReceipts &&
       !(isBooking && row.status === 'paid'),
     voidBlockedReason:
-      row && row.status !== 'void' && activeReceipts.length > 0
+      row && !isVoid && receipts.hasLiveReceipts
         ? 'To void this invoice, void its receipts first.'
         : null,
     canDuplicate: !!row && !isBooking,
@@ -131,22 +162,15 @@ export function useInvoiceDetail(invoiceId: string) {
     downloading: download.busy,
     downloadError: download.error,
     download: () => view && download.downloadInvoice(view),
-    canSend: !!row && row.status !== 'void' && row.status !== 'draft',
-    sendTarget: (row && view
-      ? {
-          kind: 'invoice',
-          id: row.id,
-          vendorId: row.vendor_id,
-          hasClientAccount: !!row.client_id,
-          savedEmail: row.recipient_email,
-          view,
-        }
-      : null) as SendTarget | null,
-    sendOpen,
-    openSend: () => setSendOpen(true),
-    closeSend: () => setSendOpen(false),
+    canSend: !!invoiceTarget,
+    emailInvoice: () => setSendTarget(invoiceTarget),
+    emailInvoiceToSelf: () => selfSend.send(invoiceTarget),
+    emailingSelf: selfSend.sendingId === row?.id,
+    sendTarget,
+    openSend: setSendTarget,
+    closeSend: () => setSendTarget(null),
     sent: (recipient: string) => {
-      setSendOpen(false);
+      setSendTarget(null);
       toast.success(`Sent to ${recipient}`);
     },
     openReceipt: (id: string) => navigate(`/receipts/${id}`),

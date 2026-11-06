@@ -4,9 +4,25 @@ import { documentErrorMessage, toReceiptView } from '@sinnapi/ui/documents';
 import { useDocumentDeliveries, useVendorReceipt, useVoidReceipt } from '@/hooks/documentQueries';
 import { useLocationNotice } from '@/components/documents/hooks/useLocationNotice';
 import { useDocumentDownload } from '@/components/documents/hooks/useDocumentDownload';
+import { useSendToSelf } from '@/components/documents/hooks/useSendToSelf';
 import type { SendTarget } from '@/components/documents/hooks/useSendDocument';
 
-/** One receipt, its email history, and voiding it. */
+function sendTargetFor(
+  row: ReturnType<typeof useVendorReceipt>['data'] | null,
+  view: ReturnType<typeof toReceiptView> | null,
+): SendTarget | null {
+  if (!row || !view) return null;
+  return {
+    kind: 'receipt',
+    id: row.id,
+    vendorId: row.vendor_id,
+    hasClientAccount: !!row.client_id,
+    savedEmail: row.recipient_email,
+    view,
+  };
+}
+
+/** One receipt, its email history, emailing it, and voiding it. */
 export function useReceiptDetail(receiptId: string) {
   const toast = useToast();
   useLocationNotice(toast.success);
@@ -15,6 +31,10 @@ export function useReceiptDetail(receiptId: string) {
   const deliveries = useDocumentDeliveries('receipt', receiptId);
   const voidMutation = useVoidReceipt();
   const download = useDocumentDownload();
+  const selfSend = useSendToSelf({
+    onSent: (to) => toast.success(`Copy sent to ${to}`),
+    onError: toast.error,
+  });
   const [sendOpen, setSendOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
@@ -53,18 +73,11 @@ export function useReceiptDetail(receiptId: string) {
     downloading: download.busy,
     downloadError: download.error,
     download: () => view && download.downloadReceipt(view),
-    sendTarget: (row && view
-      ? {
-          kind: 'receipt',
-          id: row.id,
-          vendorId: row.vendor_id,
-          hasClientAccount: !!row.client_id,
-          savedEmail: row.recipient_email,
-          view,
-        }
-      : null) as SendTarget | null,
+    sendTarget: sendTargetFor(row, view),
     sendOpen,
     openSend: () => setSendOpen(true),
+    emailSelf: () => selfSend.send(sendTargetFor(row, view)),
+    emailingSelf: !!selfSend.sendingId,
     closeSend: () => setSendOpen(false),
     sent: (recipient: string) => {
       setSendOpen(false);

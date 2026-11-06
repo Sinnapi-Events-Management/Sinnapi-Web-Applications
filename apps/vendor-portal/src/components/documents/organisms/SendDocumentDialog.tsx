@@ -15,7 +15,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@sinnapi/ui';
-import { useSendDocument, type SendTarget } from '../hooks/useSendDocument';
+import { useSendDocument, type SendMode, type SendTarget } from '../hooks/useSendDocument';
 
 type Props = {
   open: boolean;
@@ -42,23 +42,29 @@ function SendForm({
             {documentNo} goes as a PDF attachment, with a short email from your business.
           </Typography>
 
-          {target.hasClientAccount ? (
-            <RadioGroup
-              value={s.mode}
-              onChange={(e) => s.setMode(e.target.value as 'account' | 'address')}
-            >
+          <RadioGroup
+            value={s.mode}
+            onChange={(e) => s.setMode(e.target.value as SendMode)}
+            aria-label="Who to send it to"
+          >
+            {target.hasClientAccount && (
               <FormControlLabel
                 value="account"
                 control={<Radio />}
                 label="To their Sinnapi email — kept private, Sinnapi delivers it"
               />
-              <FormControlLabel
-                value="address"
-                control={<Radio />}
-                label="To another email address"
-              />
-            </RadioGroup>
-          ) : null}
+            )}
+            <FormControlLabel
+              value="address"
+              control={<Radio />}
+              label={target.hasClientAccount ? 'To another email address' : 'To my client'}
+            />
+            <FormControlLabel
+              value="self"
+              control={<Radio />}
+              label="Only to me — your client gets nothing"
+            />
+          </RadioGroup>
 
           {s.mode === 'address' && (
             <TextField
@@ -76,7 +82,7 @@ function SendForm({
           )}
 
           <TextField
-            label="Message (optional)"
+            label={s.mode === 'self' ? 'Note to yourself (optional)' : 'Message (optional)'}
             value={s.message}
             onChange={(e) => s.setMessage(e.target.value)}
             multiline
@@ -86,12 +92,14 @@ function SendForm({
             placeholder={`Hello, please find your ${noun} attached.`}
           />
 
-          <FormControlLabel
-            control={
-              <Checkbox checked={s.ccSelf} onChange={(e) => s.setCcSelf(e.target.checked)} />
-            }
-            label="Send me a copy"
-          />
+          {s.mode !== 'self' && (
+            <FormControlLabel
+              control={
+                <Checkbox checked={s.ccSelf} onChange={(e) => s.setCcSelf(e.target.checked)} />
+              }
+              label="Send me a copy"
+            />
+          )}
 
           {s.error && <Alert severity="error">{s.error}</Alert>}
         </Stack>

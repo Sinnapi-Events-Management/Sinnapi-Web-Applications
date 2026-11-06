@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import {
   RECEIPT_METHOD_LABELS,
   amountInWords,
+  balanceLine,
   formatDocumentDate,
   formatDocumentMoney,
   partyLines,
@@ -111,11 +112,8 @@ function drawBalance(pdf: jsPDF, receipt: ReceiptView, y: number): number {
     );
   }
   if (receipt.balanceAfter !== null) {
-    rows.push({
-      name: 'Outstanding balance',
-      value: formatDocumentMoney(receipt.balanceAfter, cur),
-      strong: true,
-    });
+    const after = balanceLine(receipt.balanceAfter, cur, 'Outstanding balance');
+    rows.push({ name: after.label, value: after.value, strong: true });
   }
   if (!rows.length) return y;
 

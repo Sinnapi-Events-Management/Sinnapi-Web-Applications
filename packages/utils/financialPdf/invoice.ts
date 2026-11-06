@@ -4,6 +4,7 @@ import {
   formatDocumentAmount,
   formatDocumentDate,
   formatDocumentMoney,
+  balanceLine,
   invoiceDisplayStatus,
   kampalaToday,
   partyLines,
@@ -24,6 +25,8 @@ function stampFor(invoice: InvoiceView, today: string): Stamp {
   switch (display) {
     case 'paid':
       return { label: 'PAID', fill: INK.successTint, ink: INK.successInk };
+    case 'overpaid':
+      return { label: 'OVERPAID', fill: INK.successTint, ink: INK.successInk };
     case 'partially_paid':
       return { label: 'PARTLY PAID', fill: INK.warningTint, ink: INK.warningInk };
     case 'overdue':
@@ -42,11 +45,12 @@ function drawMetaStrip(pdf: jsPDF, invoice: InvoiceView, y: number): number {
   const h = 42;
   const cell = CONTENT_WIDTH / 4;
   const x0 = PAGE.margin;
+  const balance = balanceLine(invoice.balanceDue, invoice.currency);
   const cells: [string, string][] = [
     ['Issued', formatDocumentDate(invoice.issueDate)],
     ['Due', formatDocumentDate(invoice.dueDate)],
     ['Currency', invoice.currency],
-    ['Balance due', formatDocumentMoney(invoice.balanceDue, invoice.currency)],
+    [balance.label, balance.value],
   ];
 
   // The last cell's fill follows the strip's rounded right corners, and is
@@ -216,17 +220,16 @@ function drawTail(pdf: jsPDF, invoice: InvoiceView, y: number): void {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(SIZE.label);
   pdf.setTextColor(...INK.ink);
-  pdf.text('BALANCE DUE', sx + 12, sy + BAND_H / 2, { baseline: 'middle', charSpace: 0.6 });
+  const balance = balanceLine(invoice.balanceDue, invoice.currency);
+  pdf.text(balance.label.toUpperCase(), sx + 12, sy + BAND_H / 2, {
+    baseline: 'middle',
+    charSpace: 0.6,
+  });
   pdf.setFontSize(13);
-  pdf.text(
-    pdfText(formatDocumentMoney(invoice.balanceDue, invoice.currency)),
-    right - 12,
-    sy + BAND_H / 2,
-    {
-      align: 'right',
-      baseline: 'middle',
-    },
-  );
+  pdf.text(pdfText(balance.value), right - 12, sy + BAND_H / 2, {
+    align: 'right',
+    baseline: 'middle',
+  });
 
   // ---------- left column: how to pay, notes ----------
   const leftW = CONTENT_WIDTH - SUMMARY_W - 30;

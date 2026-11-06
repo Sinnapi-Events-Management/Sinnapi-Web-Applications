@@ -8,6 +8,7 @@ import {
   kampalaToday,
 } from '../money';
 import { invoiceDisplayStatus, type InvoiceDisplayStatus } from '../documentStatus';
+import { balanceLine } from '../paymentCoverage';
 import { partyLines } from '../views';
 import type { InvoiceView } from '../types';
 import { PaperLabel } from '../atoms/PaperLabel';
@@ -23,6 +24,7 @@ const STAMPS: Partial<Record<InvoiceDisplayStatus, { label: string; tone: Docume
   partially_paid: { label: 'PARTLY PAID', tone: 'warning' },
   overdue: { label: 'OVERDUE', tone: 'warning' },
   paid: { label: 'PAID', tone: 'success' },
+  overpaid: { label: 'OVERPAID', tone: 'success' },
   void: { label: 'VOID', tone: 'void' },
 };
 
@@ -81,6 +83,8 @@ export function InvoicePreview({
   const display = invoiceDisplayStatus(invoice.status, invoice.dueDate, today);
   const cur = invoice.currency;
   const isEscrow = invoice.paymentChannel === 'sinnapi_escrow';
+  // A negative balance prints as "Overpaid by", never as a minus figure.
+  const balance = balanceLine(invoice.balanceDue, cur);
 
   const rows: MoneyRow[] = [
     { label: 'Subtotal', value: formatDocumentAmount(invoice.subtotal, cur) },
@@ -143,11 +147,7 @@ export function InvoicePreview({
         <MetaCell label="Issued" value={formatDocumentDate(invoice.issueDate)} />
         <MetaCell label="Due" value={formatDocumentDate(invoice.dueDate)} />
         <MetaCell label="Currency" value={cur} />
-        <MetaCell
-          label="Balance due"
-          value={formatDocumentMoney(invoice.balanceDue, cur)}
-          highlight
-        />
+        <MetaCell label={balance.label} value={balance.value} highlight />
       </Box>
 
       <Box
@@ -188,7 +188,7 @@ export function InvoicePreview({
         </Box>
         <MoneyRows
           rows={rows}
-          band={{ label: 'BALANCE DUE', value: formatDocumentMoney(invoice.balanceDue, cur) }}
+          band={{ label: balance.label.toUpperCase(), value: balance.value }}
         />
       </Box>
     </DocumentPaper>

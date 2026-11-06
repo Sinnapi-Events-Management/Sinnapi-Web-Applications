@@ -7,6 +7,7 @@ import { assert, assertEquals, assertThrows } from 'jsr:@std/assert@1';
 import {
   attachmentName,
   formatDate,
+  balanceLine,
   formatMoney,
   isPdf,
   maskEmail,
@@ -117,6 +118,7 @@ Deno.test('documentEmail: registered invoice links to Sinnapi, escapes the vendo
     documentNo: 'SNP-INV-48203917',
     amount: 'UGX 2,235,000',
     date: '19 Nov 2026',
+    settled: null,
     balance: null,
     title: 'Wedding décor',
     vendorMessage: 'Thanks <b>Sarah</b>',
@@ -144,7 +146,8 @@ Deno.test('documentEmail: external receipt and the vendor copy', () => {
     documentNo: 'SNP-RCT-70415586',
     amount: 'UGX 2,000,000',
     date: '6 Nov 2026',
-    balance: 'UGX 2,235,000',
+    settled: null,
+    balance: { label: 'Outstanding balance', value: 'UGX 2,235,000' },
     title: 'Deposit',
     vendorMessage: null,
     portal: null,
@@ -155,4 +158,55 @@ Deno.test('documentEmail: external receipt and the vendor copy', () => {
   assert(m.text!.includes('Reply to this email'));
   assert(m.text!.includes('Outstanding balance: UGX 2,235,000'));
   assert(documentEmail({ ...base, isVendorCopy: true }).subject.startsWith('Copy: '));
+});
+
+Deno.test('parseSendRequest accepts self and drops ccSelf with it', () => {
+  const r = parseSendRequest({
+    kind: 'invoice',
+    id: ID,
+    requestKey: KEY,
+    to: 'self',
+    ccSelf: true,
+  });
+  assertEquals(r.to, 'self');
+  assertEquals(r.ccSelf, false);
+});
+
+Deno.test('balanceLine: owed, settled and overpaid', () => {
+  assertEquals(balanceLine(135500, 'UGX', 0), {
+    label: 'Outstanding balance',
+    value: 'UGX 135,500',
+    overpaid: false,
+  });
+  assertEquals(balanceLine('-50000.00', 'UGX', 0), {
+    label: 'Overpaid by',
+    value: 'UGX 50,000',
+    overpaid: true,
+  });
+});
+
+Deno.test('documentEmail: an overpaid invoice sent only to the vendor', () => {
+  const m = documentEmail({
+    kind: 'invoice',
+    businessName: 'Amani Events',
+    recipientName: 'Kato',
+    documentNo: 'SNP-INV-48203917',
+    amount: 'UGX -50,000',
+    date: '19 Nov 2026',
+    settled: { label: 'Overpaid by', value: 'UGX 50,000' },
+    balance: null,
+    title: null,
+    vendorMessage: null,
+    portal: null,
+    payThroughSinnapiUrl: null,
+    isVendorCopy: true,
+    isSelfSend: true,
+  });
+  assertEquals(
+    m.subject,
+    'Copy: Invoice SNP-INV-48203917 from Amani Events — overpaid by UGX 50,000',
+  );
+  assert(m.text!.includes('Overpaid by: UGX 50,000'));
+  assert(!m.text!.includes('-50,000'));
+  assert(m.text!.includes('Your client has not been sent anything'));
 });

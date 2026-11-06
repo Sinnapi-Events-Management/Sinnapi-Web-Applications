@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import type { InvoiceView, ReceiptView } from '@sinnapi/ui/documents/core';
 import {
@@ -14,6 +15,25 @@ import {
 const OUT = process.env.PDF_OUT;
 function keep(name: string, pdf: { output: (type: 'arraybuffer') => ArrayBuffer }) {
   if (OUT) writeFileSync(join(OUT, name), Buffer.from(pdf.output('arraybuffer')));
+}
+
+/** Every text string the PDF draws, with its compressed page streams inflated. */
+function pdfStrings(pdf: { output: (type: 'arraybuffer') => ArrayBuffer }): string {
+  const raw = Buffer.from(pdf.output('arraybuffer'));
+  const out: string[] = [];
+  let from = 0;
+  for (;;) {
+    const start = raw.indexOf('stream\n', from);
+    if (start < 0) break;
+    const end = raw.indexOf('\nendstream', start);
+    try {
+      out.push(inflateSync(raw.subarray(start + 7, end)).toString('latin1'));
+    } catch {
+      // not a deflated stream (fonts, images)
+    }
+    from = end + 10;
+  }
+  return out.join('\n');
 }
 
 const vendor = {
@@ -130,6 +150,28 @@ describe('financialPdf', () => {
     });
     expect(standalone.getNumberOfPages()).toBe(1);
     keep('receipt-standalone.pdf', standalone);
+  });
+
+  it('prints an overpaid invoice and receipt as "Overpaid by", never a minus balance', () => {
+    const inv = buildInvoicePdf(
+      invoice(1, { status: 'overpaid', total: 235500, amountPaid: 285500, balanceDue: -50000 }),
+      { today: '2026-11-06' },
+    );
+    const invText = pdfStrings(inv);
+    expect(invText).toContain('OVERPAID BY');
+    expect(invText).toContain('OVERPAID');
+    expect(invText).not.toContain('UGX -50,000');
+    keep('invoice-overpaid.pdf', inv);
+
+    const rct = buildReceiptPdf({
+      ...receipt,
+      amount: 2285000,
+      balanceAfter: -50000,
+    });
+    const rctText = pdfStrings(rct);
+    expect(rctText).toContain('Overpaid by');
+    expect(rctText).not.toContain('UGX -50,000');
+    keep('receipt-overpaid.pdf', rct);
   });
 
   it('names files after the document number', () => {

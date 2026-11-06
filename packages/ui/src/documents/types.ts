@@ -7,7 +7,7 @@
  * Pure types — no React, no MUI — so `@sinnapi/utils` can import them.
  */
 
-export type InvoiceStatus = 'draft' | 'issued' | 'partially_paid' | 'paid' | 'void';
+export type InvoiceStatus = 'draft' | 'issued' | 'partially_paid' | 'paid' | 'overpaid' | 'void';
 export type ReceiptStatus = 'issued' | 'void';
 export type InvoicePaymentChannel = 'vendor_collected' | 'sinnapi_escrow';
 export type InvoiceItemKind = 'item' | 'charge';
@@ -130,7 +130,7 @@ export type DeliveryRow = {
   id: string;
   invoice_id: string | null;
   receipt_id: string | null;
-  recipient_kind: 'client_account' | 'address';
+  recipient_kind: 'client_account' | 'address' | 'self';
   recipient_display: string;
   subject: string;
   status: 'sending' | 'sent' | 'failed';

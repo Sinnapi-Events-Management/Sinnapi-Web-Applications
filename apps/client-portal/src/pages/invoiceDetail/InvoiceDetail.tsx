@@ -17,8 +17,9 @@ import {
   InvoicePreview,
   documentErrorMessage,
   formatDocumentDate,
-  formatDocumentMoney,
+  balanceLine,
   invoiceDisplayStatus,
+  toAmount,
   toInvoiceView,
 } from '@sinnapi/ui/documents';
 import { useClientInvoice } from '@/hooks/documentQueries';
@@ -36,6 +37,9 @@ export default function InvoiceDetail() {
   const { data: row, isLoading, error } = useClientInvoice(id);
   const view = useMemo(() => (row ? toInvoiceView(row) : null), [row]);
   const download = useDocumentDownload();
+  const owed = balanceLine(toAmount(row?.balance_due), row?.currency ?? 'UGX');
+  // Paid or overpaid: nothing left to pay.
+  const settled = row?.status === 'paid' || row?.status === 'overpaid';
 
   return (
     <>
@@ -91,15 +95,23 @@ export default function InvoiceDetail() {
                 </Typography>
                 {row.status !== 'void' && (
                   <Stack direction="row" justifyContent="space-between" alignItems="baseline">
-                    <Typography fontWeight={700}>You owe</Typography>
+                    <Typography fontWeight={700}>
+                      {owed.overpaid ? 'You overpaid by' : 'You owe'}
+                    </Typography>
                     <Typography
                       variant="h6"
                       fontWeight={700}
                       sx={{ fontVariantNumeric: 'tabular-nums' }}
                     >
-                      {formatDocumentMoney(row.balance_due, row.currency)}
+                      {owed.value}
                     </Typography>
                   </Stack>
+                )}
+                {owed.overpaid && row.status !== 'void' && (
+                  <Alert severity="info">
+                    You have paid more than this invoice. Message {view.vendor.business_name} to
+                    arrange a refund or credit.
+                  </Alert>
                 )}
                 {row.status === 'void' && (
                   <Alert severity="warning">This invoice was cancelled by the vendor.</Alert>
@@ -107,7 +119,7 @@ export default function InvoiceDetail() {
                 {row.payment_channel === 'sinnapi_escrow' &&
                   row.booking_id &&
                   row.status !== 'void' &&
-                  (row.status === 'paid' ? (
+                  (settled ? (
                     <Alert severity="success">Paid through Sinnapi.</Alert>
                   ) : (
                     <Button
@@ -120,7 +132,7 @@ export default function InvoiceDetail() {
                   ))}
                 {row.payment_channel === 'vendor_collected' &&
                   row.status !== 'void' &&
-                  row.status !== 'paid' && (
+                  !settled && (
                     <Typography variant="body2" color="text.secondary">
                       Pay {view.vendor.business_name} directly using the instructions on the
                       invoice. They confirm your payment with a receipt, which appears in Receipts.

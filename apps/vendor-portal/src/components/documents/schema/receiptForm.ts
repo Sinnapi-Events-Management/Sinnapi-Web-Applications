@@ -105,7 +105,8 @@ export function emptyReceiptValues(
     ...emptyRecipient,
     linked: !!linked,
     currency: linked?.currency ?? 'UGX',
-    amount: linked ? String(linked.balanceDue) : '',
+    // Nothing owed (paid or overpaid): the vendor types the extra themselves.
+    amount: linked && linked.balanceDue > 0 ? String(linked.balanceDue) : '',
     payment_date: kampalaToday(),
     payment_method: '',
     payment_reference: '',

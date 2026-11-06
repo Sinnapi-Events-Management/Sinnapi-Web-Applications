@@ -15,8 +15,11 @@ export type DocumentKind = 'invoice' | 'receipt';
 export type SendRequest = {
   kind: DocumentKind;
   id: string;
-  /** `client_account` (the registered client's hidden email), an address, or omitted for the default. */
-  to: 'client_account' | string | null;
+  /**
+   * `client_account` (the registered client's hidden email), `self` (only the
+   * vendor's own account email), an address, or omitted for the default.
+   */
+  to: 'client_account' | 'self' | string | null;
   ccSelf: boolean;
   message: string | null;
   requestKey: string;
@@ -45,8 +48,8 @@ export function parseSendRequest(raw: unknown): SendRequest {
 
   let to: SendRequest['to'] = null;
   if (b.to !== undefined && b.to !== null && b.to !== '') {
-    if (b.to === 'client_account') {
-      to = 'client_account';
+    if (b.to === 'client_account' || b.to === 'self') {
+      to = b.to;
     } else if (isEmail(typeof b.to === 'string' ? b.to.trim() : b.to)) {
       to = (b.to as string).trim().toLowerCase();
     } else {
@@ -69,7 +72,8 @@ export function parseSendRequest(raw: unknown): SendRequest {
     kind: b.kind,
     id: b.id,
     to,
-    ccSelf: b.ccSelf === true,
+    // A send to yourself is already your copy.
+    ccSelf: to !== 'self' && b.ccSelf === true,
     message,
     requestKey: b.requestKey,
   };
@@ -91,6 +95,26 @@ export function formatMoney(amount: number | string, currency: string, minorUnit
     maximumFractionDigits: digits,
   }).format(value);
   return `${currency} ${formatted}`;
+}
+
+/**
+ * How a balance reads: what is still owed, or — once receipts exceed the
+ * total (1106b) — how much was overpaid. Never a negative "balance due".
+ */
+export function balanceLine(
+  balance: number | string,
+  currency: string,
+  minorUnit: number,
+): { label: string; value: string; overpaid: boolean } {
+  const n = typeof balance === 'string' ? Number(balance) : balance;
+  if (n < 0) {
+    return { label: 'Overpaid by', value: formatMoney(-n, currency, minorUnit), overpaid: true };
+  }
+  return {
+    label: 'Outstanding balance',
+    value: formatMoney(n, currency, minorUnit),
+    overpaid: false,
+  };
 }
 
 /** `2026-11-19` → `19 Nov 2026`. Dates are calendar dates, so no timezone shift. */

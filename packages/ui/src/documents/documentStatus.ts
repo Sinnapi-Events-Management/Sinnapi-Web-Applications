@@ -19,6 +19,7 @@ export const INVOICE_STATUS_META: Readonly<
   issued: { label: 'Issued', color: 'info' },
   partially_paid: { label: 'Partly paid', color: 'warning' },
   paid: { label: 'Paid', color: 'success' },
+  overpaid: { label: 'Overpaid', color: 'secondary' },
   overdue: { label: 'Overdue', color: 'error' },
   void: { label: 'Void', color: 'default' },
 };

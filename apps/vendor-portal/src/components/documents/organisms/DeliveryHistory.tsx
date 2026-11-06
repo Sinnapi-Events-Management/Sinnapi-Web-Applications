@@ -38,7 +38,9 @@ export default function DeliveryHistory({ deliveries, loading }: Props) {
                 <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
                   {d.recipient_kind === 'client_account'
                     ? `Sinnapi account (${d.recipient_display})`
-                    : d.recipient_display}
+                    : d.recipient_kind === 'self'
+                      ? `You (${d.recipient_display})`
+                      : d.recipient_display}
                 </Typography>
                 <Chip
                   size="small"

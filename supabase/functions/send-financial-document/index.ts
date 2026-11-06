@@ -29,6 +29,7 @@ import { documentEmail } from './emails.ts';
 import {
   MAX_PDF_BYTES,
   attachmentName,
+  balanceLine,
   formatDate,
   formatMoney,
   isPdf,
@@ -110,12 +111,21 @@ Deno.serve(
 
     // ---------- 3. the recipient ----------
     let toAddress: string;
-    let recipientKind: 'client_account' | 'address';
+    let recipientKind: 'client_account' | 'address' | 'self';
     let recipientDisplay: string;
+    const isSelfSend = body.to === 'self';
 
     const wantsAccount =
       body.to === 'client_account' || (body.to === null && doc.client_id !== null);
-    if (wantsAccount) {
+    if (isSelfSend) {
+      // Only the vendor's own account address; the client receives nothing.
+      if (!vendorEmail) {
+        throw new HttpError(422, 'recipient_unreachable: your account has no email address');
+      }
+      toAddress = vendorEmail;
+      recipientKind = 'self';
+      recipientDisplay = vendorEmail;
+    } else if (wantsAccount) {
       if (!doc.client_id) {
         throw new HttpError(400, 'invalid_recipient: this document is not for a Sinnapi client');
       }
@@ -167,8 +177,19 @@ Deno.serve(
       isInvoice &&
       doc.payment_channel === 'sinnapi_escrow' &&
       doc.booking_id &&
-      doc.status !== 'paid'
+      doc.status !== 'paid' &&
+      doc.status !== 'overpaid'
         ? `${CLIENT_PORTAL_URL}/bookings/${doc.booking_id}`
+        : null;
+
+    // Nothing left to pay: say "Paid in full" / "Overpaid by", never a zero
+    // or negative amount due (1106b).
+    const invoiceBalance = isInvoice ? Number(doc.balance_due) : 0;
+    const settled =
+      isInvoice && invoiceBalance <= 0
+        ? invoiceBalance < 0
+          ? balanceLine(invoiceBalance, doc.currency, minor)
+          : { label: 'Paid in full', value: formatMoney(0, doc.currency, minor) }
         : null;
 
     const content = (isVendorCopy: boolean) =>
@@ -179,9 +200,10 @@ Deno.serve(
         documentNo: doc.document_no!,
         amount: formatMoney(isInvoice ? doc.balance_due! : doc.amount!, doc.currency, minor),
         date: formatDate(isInvoice ? doc.due_date! : doc.payment_date!),
+        settled: settled ? { label: settled.label, value: settled.value } : null,
         balance:
           !isInvoice && doc.balance_after !== null && doc.balance_after !== undefined
-            ? formatMoney(doc.balance_after, doc.currency, minor)
+            ? balanceLine(doc.balance_after, doc.currency, minor)
             : null,
         title: isInvoice ? (doc.title ?? null) : (doc.description ?? null),
         vendorMessage: body.message,
@@ -193,9 +215,10 @@ Deno.serve(
           : null,
         payThroughSinnapiUrl,
         isVendorCopy,
+        isSelfSend,
       });
 
-    const message = content(false);
+    const message = content(isSelfSend);
 
     // ---------- 5. claim the send ----------
     const { data: claimRows, error: claimError } = await admin.rpc('begin_document_delivery', {
@@ -243,7 +266,7 @@ Deno.serve(
         to: toAddress,
         ...message,
         // External clients reply straight to the vendor; registered clients use Sinnapi messages.
-        ...(!isRegistered && vendorEmail ? { replyTo: vendorEmail } : {}),
+        ...(!isRegistered && !isSelfSend && vendorEmail ? { replyTo: vendorEmail } : {}),
         attachments: [attachment],
       });
 

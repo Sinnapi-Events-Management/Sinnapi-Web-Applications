@@ -7,6 +7,7 @@ import {
   documentErrorMessage,
   formatDocumentDate,
   formatDocumentMoney,
+  formatOwed,
   invoiceDisplayStatus,
 } from '@sinnapi/ui/documents';
 import { useClientDocuments, type ClientDocumentsTab } from './hooks/useClientDocuments';
@@ -81,9 +82,7 @@ export default function Documents() {
                 <DocumentListCard
                   key={r.id}
                   title={r.vendor_snapshot?.business_name ?? 'Vendor'}
-                  amount={
-                    r.status === 'void' ? '—' : formatDocumentMoney(r.balance_due, r.currency)
-                  }
+                  amount={r.status === 'void' ? '—' : formatOwed(r.balance_due, r.currency)}
                   meta={`${r.document_no} · due ${formatDocumentDate(r.due_date)}`}
                   chip={
                     <DocumentStatusChip

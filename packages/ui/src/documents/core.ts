@@ -4,6 +4,7 @@
 // never pulls MUI into its module graph.
 export * from './types';
 export * from './money';
+export * from './paymentCoverage';
 export * from './invoicePricing';
 export * from './amountInWords';
 export * from './documentStatus';

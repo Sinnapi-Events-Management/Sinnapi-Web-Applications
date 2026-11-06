@@ -102,7 +102,9 @@ export function useVendorInvoices(
       if (filter === 'unpaid') q = q.in('status', ['issued', 'partially_paid']);
       if (filter === 'overdue')
         q = q.in('status', ['issued', 'partially_paid']).lt('due_date', kampalaToday());
-      if (filter === 'paid' || filter === 'draft' || filter === 'void') q = q.eq('status', filter);
+      // "Paid" includes overpaid: both are settled; the chip tells them apart.
+      if (filter === 'paid') q = q.in('status', ['paid', 'overpaid']);
+      if (filter === 'draft' || filter === 'void') q = q.eq('status', filter);
 
       const term = searchTerm(search);
       if (term)
@@ -195,7 +197,11 @@ export function useVendorInvoice(id: string | undefined) {
   });
 }
 
-/** The receipts recorded against one invoice, newest first. */
+/**
+ * The receipts recorded against one invoice, newest first — whole rows, so
+ * the invoice page can preview, print and email each one without opening it.
+ * An invoice has a handful of receipts, so the extra columns cost nothing.
+ */
 export function useInvoiceReceipts(invoiceId: string | undefined) {
   return useQuery({
     queryKey: ['v-invoice-receipts', invoiceId],
@@ -203,12 +209,12 @@ export function useInvoiceReceipts(invoiceId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('vendor_receipts')
-        .select(RECEIPT_LIST_COLUMNS)
+        .select('*,vendor_invoices(document_no,total)')
         .eq('invoice_id', invoiceId!)
         .order('payment_date', { ascending: false })
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as ReceiptListRow[];
+      return (data ?? []) as unknown as ReceiptRow[];
     },
   });
 }

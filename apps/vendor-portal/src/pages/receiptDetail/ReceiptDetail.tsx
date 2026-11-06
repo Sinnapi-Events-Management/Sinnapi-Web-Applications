@@ -93,6 +93,11 @@ function Workspace({ receiptId }: { receiptId: string }) {
                     Email to client
                   </Button>
                 )}
+                {row.status === 'issued' && (
+                  <Button variant="outlined" onClick={d.emailSelf} disabled={d.emailingSelf}>
+                    {d.emailingSelf ? 'Sending…' : 'Email to myself'}
+                  </Button>
+                )}
                 <Button variant="outlined" onClick={d.download} disabled={d.downloading}>
                   {d.downloading ? 'Preparing PDF…' : 'Download PDF'}
                 </Button>

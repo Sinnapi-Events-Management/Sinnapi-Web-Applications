@@ -7,7 +7,7 @@ import {
   INVOICE_FILTERS,
   documentErrorMessage,
   formatDocumentDate,
-  formatDocumentMoney,
+  formatOwed,
   invoiceDisplayStatus,
   type InvoiceFilter,
 } from '@sinnapi/ui/documents';
@@ -71,7 +71,7 @@ export default function InvoicesPanel({ vendorId }: { vendorId: string }) {
             <DocumentListCard
               key={r.id}
               title={r.recipient_name || 'Untitled client'}
-              amount={r.status === 'draft' ? '—' : formatDocumentMoney(r.balance_due, r.currency)}
+              amount={r.status === 'draft' ? '—' : formatOwed(r.balance_due, r.currency)}
               meta={`${r.document_no ?? 'Draft'} · due ${formatDocumentDate(r.due_date)}`}
               chip={
                 <DocumentStatusChip

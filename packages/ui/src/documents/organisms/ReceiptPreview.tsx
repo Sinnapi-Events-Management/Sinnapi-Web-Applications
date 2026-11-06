@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import { PAPER } from '../paper';
 import { formatDocumentDate, formatDocumentMoney } from '../money';
 import { amountInWords } from '../amountInWords';
+import { balanceLine } from '../paymentCoverage';
 import { RECEIPT_METHOD_LABELS } from '../documentStatus';
 import { partyLines } from '../views';
 import type { ReceiptView } from '../types';
@@ -36,11 +37,8 @@ export function ReceiptPreview({ receipt }: { receipt: ReceiptView }) {
     );
   }
   if (receipt.balanceAfter !== null) {
-    balanceRows.push({
-      label: 'Outstanding balance',
-      value: formatDocumentMoney(receipt.balanceAfter, cur),
-      emphasis: true,
-    });
+    const after = balanceLine(receipt.balanceAfter, cur, 'Outstanding balance');
+    balanceRows.push({ label: after.label, value: after.value, emphasis: true });
   }
 
   return (

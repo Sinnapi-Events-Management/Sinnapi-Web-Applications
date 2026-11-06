@@ -7,6 +7,7 @@ import { useReceiptForm, type LinkedInvoice } from '../hooks/useReceiptForm';
 import { CURRENCY_OPTIONS } from '../schema/invoiceForm';
 import type { RecipientValues } from '../schema/recipient';
 import RecipientFields from './RecipientFields';
+import OverpaymentConfirm from '../molecules/OverpaymentConfirm';
 
 type Props = {
   linked: LinkedInvoice | null;
@@ -96,7 +97,11 @@ export default function ReceiptForm({
         </Box>
 
         {f.balanceText && (
-          <Typography variant="body2" color={f.overpaid ? 'error' : 'text.secondary'}>
+          <Typography
+            variant="body2"
+            color={f.overpaid ? 'warning.main' : 'text.secondary'}
+            aria-live="polite"
+          >
             {f.balanceText}
           </Typography>
         )}
@@ -140,14 +145,24 @@ export default function ReceiptForm({
 
         {f.error && <Alert severity="error">{f.error}</Alert>}
 
-        <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-          <Button onClick={onCancel} disabled={f.busy} color="inherit">
-            Cancel
-          </Button>
-          <Button type="submit" variant="contained" disabled={f.busy || f.overpaid}>
-            {f.busy ? 'Recording…' : 'Record payment'}
-          </Button>
-        </Stack>
+        {f.overpay ? (
+          <OverpaymentConfirm
+            owed={f.overpay.owed}
+            overBy={f.overpay.overBy}
+            busy={f.busy}
+            onConfirm={f.overpay.confirm}
+            onCancel={f.overpay.cancel}
+          />
+        ) : (
+          <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+            <Button onClick={onCancel} disabled={f.busy} color="inherit">
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={f.busy}>
+              {f.busy ? 'Recording…' : 'Record payment'}
+            </Button>
+          </Stack>
+        )}
       </Stack>
     </Box>
   );
