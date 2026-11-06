@@ -5,6 +5,7 @@ import { useZodForm } from '@sinnapi/ui/forms';
 import { defaultPackageTier, packageAddOns, packageTiers, type PackageTierLike } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
 import { useQuotablePackages } from '@/hooks/queries';
+import { useLogoGate } from '@/components/businessLogo';
 import type { PackageModel } from '@/lib/types';
 import {
   addOnToQuotationItem,
@@ -50,6 +51,7 @@ export type QuotationFormOptions = {
 export function useQuotationForm(quotationId: string, options: QuotationFormOptions = {}) {
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const { requireLogo } = useLogoGate();
 
   const { data: packages, isLoading: isPackagesLoading } = useQuotablePackages(options.vendorId);
 
@@ -127,18 +129,31 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
     setValue('template_tier_id', '');
   }, [setValue]);
 
-  const submit = handleSubmit(async (values) => {
+  const send = useCallback(
+    async (values: Parameters<typeof toSendQuotationArgs>[0]) => {
+      const { error: rpcError } = await supabase.rpc(
+        'send_quotation',
+        toSendQuotationArgs(values, quotationId),
+      );
+      if (rpcError) {
+        setError(
+          rpcError.message.includes('logo_required')
+            ? 'Add your business logo before sending quotations.'
+            : rpcError.message,
+        );
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ['v-quotation', quotationId] });
+      qc.invalidateQueries({ queryKey: ['v-quotations'] });
+    },
+    [qc, quotationId],
+  );
+
+  // Validated first, then the logo is asked for (it heads the quotation the
+  // client opens), then sent — without the vendor retyping anything.
+  const submit = handleSubmit((values) => {
     setError(null);
-    const { error: rpcError } = await supabase.rpc(
-      'send_quotation',
-      toSendQuotationArgs(values, quotationId),
-    );
-    if (rpcError) {
-      setError(rpcError.message);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ['v-quotation', quotationId] });
-    qc.invalidateQueries({ queryKey: ['v-quotations'] });
+    return requireLogo('quotation', () => send(values));
   });
 
   return {

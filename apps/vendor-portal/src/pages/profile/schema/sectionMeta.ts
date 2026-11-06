@@ -52,8 +52,8 @@ export const BUSINESS_SECTION_META: Record<BusinessSectionKey, SectionMeta> = {
     icon: createElement(LanguageIcon),
   },
   coverage: {
-    label: 'Coverage',
-    title: 'Service coverage',
+    label: 'Where you work',
+    title: 'Where you work',
     subtitle: 'The regions clients can find you in when they filter by location',
     icon: createElement(MapIcon),
     accent: 'primary',
@@ -61,12 +61,13 @@ export const BUSINESS_SECTION_META: Record<BusinessSectionKey, SectionMeta> = {
   logo: {
     label: 'Logo',
     title: 'Business logo',
-    subtitle: 'Shown on your listing and in search results. Saves as soon as you pick it.',
+    subtitle:
+      'On your quotations, invoices and receipts, and on your listing. Saves as soon as you pick it.',
     icon: createElement(ImageIcon),
   },
   verification: {
     label: 'Verification',
-    title: 'Verification & payout',
+    title: 'Verification & bank account',
     subtitle: 'Visible only to you and our review team',
     icon: createElement(VerifiedUserIcon),
     accent: 'info',
@@ -89,7 +90,7 @@ export const PERSONAL_SECTION_META: Record<PersonalSectionKey, SectionMeta> = {
   account: {
     label: 'Account',
     title: 'Account',
-    subtitle: 'Set by the platform — password and payout banking live under Settings',
+    subtitle: 'Set by the platform — password and bank account live under Settings',
     icon: createElement(ShieldIcon),
     accent: 'primary',
   },

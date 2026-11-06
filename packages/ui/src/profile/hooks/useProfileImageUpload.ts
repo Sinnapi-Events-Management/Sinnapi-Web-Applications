@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   PROFILE_IMAGE_MAX_MB,
   pathFromPublicUrl,
+  prepareImage,
   profileImagePath,
-  toSquareImage,
   validateImageFile,
 } from '../schema';
+import type { ImageFit } from '../schema';
 import type { ObjectStoragePort, ProfileImageMessages, ProfileImageTarget } from '../types';
 
 export type UseProfileImageUploadOptions = {
@@ -22,6 +23,17 @@ export type UseProfileImageUploadOptions = {
   messages: ProfileImageMessages;
   /** Largest file the picker accepts, before downscaling. */
   maxSizeMb?: number;
+  /**
+   * `square` (default) centre-crops, for avatars. `contain` keeps the image's
+   * own shape, for logos — a wide wordmark must not lose its ends.
+   */
+  fit?: ImageFit;
+  /**
+   * Public URLs another record still points at. The outgoing image is never
+   * deleted when it is one of these — e.g. a logo adopted from the onboarding
+   * photo must not take that photo with it when it is later replaced.
+   */
+  keepUrls?: ReadonlyArray<string | null | undefined>;
 };
 
 /** What the session-expired case says, in both directions. */
@@ -69,6 +81,8 @@ export function useProfileImageUpload({
   onDone,
   messages,
   maxSizeMb = PROFILE_IMAGE_MAX_MB,
+  fit = 'square',
+  keepUrls,
 }: UseProfileImageUploadOptions) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +105,13 @@ export function useProfileImageUpload({
 
   const { bucket, ownerId, slug, currentUrl } = target;
 
+  // The object behind `currentUrl`, unless another record still shares it.
+  const keepKey = (keepUrls ?? []).filter(Boolean).join('|');
+  const outgoingPath = useCallback((): string | null => {
+    if (!currentUrl || keepKey.split('|').includes(currentUrl)) return null;
+    return pathFromPublicUrl(currentUrl, bucket);
+  }, [bucket, currentUrl, keepKey]);
+
   const upload = useCallback(
     async (file: File) => {
       setError(null);
@@ -108,18 +129,18 @@ export function useProfileImageUpload({
       setBusy(true);
       let uploadedPath: string | null = null;
       try {
-        const squared = await toSquareImage(file);
-        setPreviewUrl(URL.createObjectURL(squared));
+        const prepared = await prepareImage(file, fit);
+        setPreviewUrl(URL.createObjectURL(prepared));
 
         const path = profileImagePath(ownerId, slug);
-        await storage.upload(path, squared);
+        await storage.upload(path, prepared);
         uploadedPath = path;
 
         await commit(storage.publicUrl(path));
 
         // Best-effort: a failed cleanup leaves a stray object, which is strictly
         // better than failing a save the user has already seen succeed.
-        const previousPath = pathFromPublicUrl(currentUrl, bucket);
+        const previousPath = outgoingPath();
         if (previousPath && previousPath !== path) await storage.remove([previousPath]);
 
         setPreviewUrl(null);
@@ -135,12 +156,12 @@ export function useProfileImageUpload({
       }
     },
     [
-      bucket,
       commit,
-      currentUrl,
+      fit,
       maxSizeMb,
       messages.updated,
       onDone,
+      outgoingPath,
       ownerId,
       setPreviewUrl,
       slug,
@@ -159,7 +180,7 @@ export function useProfileImageUpload({
     try {
       await commit(null);
 
-      const previousPath = pathFromPublicUrl(currentUrl, bucket);
+      const previousPath = outgoingPath();
       if (previousPath) await storage.remove([previousPath]);
 
       setPreviewUrl(null);
@@ -169,7 +190,29 @@ export function useProfileImageUpload({
     } finally {
       setBusy(false);
     }
-  }, [bucket, commit, currentUrl, messages.removed, onDone, ownerId, setPreviewUrl, storage]);
+  }, [commit, messages.removed, onDone, outgoingPath, ownerId, setPreviewUrl, storage]);
+
+  /**
+   * Re-upload an image that already lives at a public URL — e.g. "use my
+   * onboarding photo as my logo". Copied rather than pointed at, so each
+   * record owns its own object and replacing one never deletes the other.
+   */
+  const adoptFromUrl = useCallback(
+    async (url: string) => {
+      setError(null);
+      try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) throw new Error('We could not load that image. Upload a file instead.');
+        const blob = await res.blob();
+        await upload(
+          new File([blob], `${slug}.${blob.type.split('/')[1] ?? 'png'}`, { type: blob.type }),
+        );
+      } catch (e) {
+        setError(readableError(e, 'We could not load that image. Upload a file instead.'));
+      }
+    },
+    [slug, upload],
+  );
 
   return {
     busy,
@@ -180,6 +223,7 @@ export function useProfileImageUpload({
     /** What the card should render: the in-flight preview, else the stored image. */
     displayUrl: preview ?? currentUrl,
     upload,
+    adoptFromUrl,
     remove,
     maxSizeMb,
   };

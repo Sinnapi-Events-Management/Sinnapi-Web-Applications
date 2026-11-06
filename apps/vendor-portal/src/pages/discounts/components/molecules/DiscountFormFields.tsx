@@ -113,7 +113,7 @@ export default function DiscountFormFields({
         placeholder="EARLY-BIRD"
         helperText={
           codeLocked
-            ? 'Clients have already redeemed this code, so it can no longer be changed. Everything else here can.'
+            ? 'Clients have already used this code, so it can no longer be changed. Everything else here can.'
             : isAutomatic
               ? 'Optional while the offer applies automatically — add one if you also want it on a poster.'
               : 'What a client types to claim this offer.'
@@ -190,7 +190,7 @@ export default function DiscountFormFields({
         control={control}
         label="Campaign"
         options={promotionOptions}
-        helperText="Attach the code to a campaign and its redemptions count towards that campaign's return. Leave the scope below empty and the code covers whatever the campaign does."
+        helperText="Attach the code to a campaign and every time it is used counts towards that campaign's results. Leave the scope below empty and the code covers whatever the campaign does."
       />
 
       {/* One control for what is one decision: the window the code is live.
@@ -203,7 +203,7 @@ export default function DiscountFormFields({
         control={control}
         label="Valid between"
         placeholder="Select the discount window"
-        helperText="The dates this code can be redeemed, inclusive."
+        helperText="The first and last day clients can use this code."
       />
 
       <Divider />

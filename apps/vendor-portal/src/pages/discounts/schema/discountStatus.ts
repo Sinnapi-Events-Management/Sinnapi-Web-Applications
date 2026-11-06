@@ -96,7 +96,7 @@ export function discountCountdown(discount: DiscountModel, now: number): string 
   const status = discountStatus(discount, now);
   const today = dayStart(now);
 
-  if (status === 'paused') return 'Paused — cannot be redeemed';
+  if (status === 'paused') return 'Paused — clients cannot use it';
   if (status === 'exhausted') return 'Cap reached';
 
   if (status === 'scheduled' && discount.starts_at) {
@@ -127,7 +127,7 @@ export const DISCOUNT_STATUS_META: Record<
   scheduled: { label: 'Scheduled', color: 'info' },
   // Not an error state: the code did its job. Coloured as the one that wants a
   // decision — raise the cap, or let it stand.
-  exhausted: { label: 'Fully redeemed', color: 'warning' },
+  exhausted: { label: 'All used up', color: 'warning' },
   paused: { label: 'Paused', color: 'warning' },
   ended: { label: 'Ended', color: 'default' },
 };
@@ -139,7 +139,7 @@ export const DISCOUNT_FILTERS: { value: DiscountFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'live', label: 'Live' },
   { value: 'scheduled', label: 'Scheduled' },
-  { value: 'exhausted', label: 'Fully redeemed' },
+  { value: 'exhausted', label: 'All used up' },
   { value: 'paused', label: 'Paused' },
   { value: 'ended', label: 'Ended' },
 ];

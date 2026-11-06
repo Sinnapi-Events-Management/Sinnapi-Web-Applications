@@ -155,7 +155,7 @@ export default function PackageCard({
               disabled={blocked || pkg.is_active === false}
               onClick={() => onSetVisibility(!published)}
             >
-              {published ? 'Unpublish' : 'Publish'}
+              {published ? 'Hide from clients' : 'Show to clients'}
             </Button>
           )}
         </Stack>

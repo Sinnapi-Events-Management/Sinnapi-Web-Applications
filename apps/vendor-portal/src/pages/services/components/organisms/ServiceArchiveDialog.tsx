@@ -52,7 +52,7 @@ export default function ServiceArchiveDialog({
       <ConfirmDialog
         open
         title={`“${service.title}” still has ${n} published ${n === 1 ? 'package' : 'packages'}`}
-        description={`Clients can buy ${n === 1 ? 'it' : 'them'} right now, so this service cannot leave your catalogue yet. Unpublish ${n === 1 ? 'that package' : 'those packages'} — or move ${n === 1 ? 'it' : 'them'} to another service — and archive this again.`}
+        description={`Clients can buy ${n === 1 ? 'it' : 'them'} right now, so this service cannot leave your catalogue yet. Hide ${n === 1 ? 'that package' : 'those packages'} from clients — or move ${n === 1 ? 'it' : 'them'} to another service — and try again.`}
         confirmLabel="Go to packages"
         cancelLabel="Not now"
         onConfirm={() => navigate('/packages')}
@@ -64,13 +64,13 @@ export default function ServiceArchiveDialog({
   return (
     <ConfirmDialog
       open={service !== null}
-      title={`Archive ${service ? `“${service.title}”` : 'this service'}?`}
+      title={`Stop offering ${service ? `“${service.title}”` : 'this service'}?`}
       description={
         pricingLoading
           ? 'Checking what is attached to this service…'
-          : 'It leaves your catalogue and your public profile. Its draft packages, its past bookings and everything quoted from it are untouched, and you can restore it from the Archived tab whenever you like.'
+          : 'It leaves your catalogue and your public profile. Its draft packages, its past bookings and everything quoted from it are untouched, and you can offer it again from the “No longer offered” tab whenever you like.'
       }
-      confirmLabel="Archive service"
+      confirmLabel="Stop offering"
       destructive
       loading={busy || pricingLoading}
       onConfirm={onConfirm}

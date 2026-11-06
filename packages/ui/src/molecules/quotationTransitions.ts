@@ -154,13 +154,13 @@ const SPECS: Record<QuotationAction, QuotationActionSpec> = {
   },
   void: {
     action: 'void',
-    label: 'Void quotation',
-    title: 'Void quotation {ref}?',
+    label: 'Cancel quotation',
+    title: 'Cancel quotation {ref}?',
     description:
       'This ends the quote for both sides. The vendor is told you no longer need it and cannot ' +
       'reply to it again. Nothing is charged and no booking is affected — but if you change your ' +
       'mind you will have to request a fresh quote.',
-    confirmLabel: 'Void quotation',
+    confirmLabel: 'Cancel quotation',
     tone: 'error',
     from: ['requested', 'sent', 'revised'],
     actors: ['client'],

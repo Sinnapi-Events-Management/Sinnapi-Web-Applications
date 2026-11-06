@@ -29,7 +29,7 @@ export type SettingsTabMeta = {
  * that renders blank.
  */
 export const SETTINGS_TAB_META: Record<SettingsTab, SettingsTabMeta> = {
-  payouts: { label: 'Payouts', hint: 'Where your money lands', icon: AccountBalanceIcon },
+  payouts: { label: 'Bank account', hint: 'Where your money is sent', icon: AccountBalanceIcon },
   security: { label: 'Security', hint: 'Sign-in and password', icon: SecurityIcon },
   privacy: { label: 'Privacy & data', hint: 'Export and erasure', icon: PrivacyTipIcon },
 };

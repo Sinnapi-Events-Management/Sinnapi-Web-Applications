@@ -14,7 +14,7 @@ export const AUTH_SLIDES: AuthShowcaseSlide[] = [
   },
   {
     title: 'Get Paid, Guaranteed',
-    body: 'Client payments are held in escrow before the event and released to your payout account once the service is delivered.',
+    body: 'Client payments are held in escrow before the event and sent to your bank account once the service is delivered.',
   },
   {
     title: 'Grow Your Business',

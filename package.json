@@ -23,6 +23,7 @@
     "build:all": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
     "verify": "yarn typecheck && yarn lint && yarn format:check",
     "prepare": "husky",
     "format": "turbo run format",

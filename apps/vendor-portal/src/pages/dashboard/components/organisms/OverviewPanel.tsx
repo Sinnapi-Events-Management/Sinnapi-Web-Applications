@@ -37,7 +37,7 @@ export default function OverviewPanel({ data, media, loading, periodLabel }: Pro
             <Skeleton variant="rounded" height={240} sx={{ borderRadius: 3 }} />
           ) : (
             <HeroStat
-              label={`Paid out · ${periodLabel}`}
+              label={`Paid to you · ${periodLabel}`}
               value={earnings.released}
               format="money"
               delta={halfPeriodDelta(earnings.trend, 'released')}

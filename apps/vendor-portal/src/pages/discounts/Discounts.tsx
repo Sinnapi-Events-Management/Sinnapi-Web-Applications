@@ -27,7 +27,7 @@ export default function Discounts() {
     <>
       <PageTitle
         title="Discounts"
-        subtitle="Price your offers with codes clients redeem, and see how far each one went."
+        subtitle="Give clients codes for money off, and see how often each one is used."
       />
       <VendorGate>{(vendorId) => <DiscountsWorkspace vendorId={vendorId} />}</VendorGate>
     </>

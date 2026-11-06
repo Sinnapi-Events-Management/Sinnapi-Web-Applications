@@ -33,7 +33,7 @@ export function usePackageServiceOptions(vendorId: string, control: Control<Pack
         .filter((service) => !service.deleted_at || service.id === linkedId)
         .map((service) => ({
           value: service.id,
-          label: service.deleted_at ? `${service.title} (archived)` : service.title,
+          label: service.deleted_at ? `${service.title} (no longer offered)` : service.title,
         })),
     ],
     [services, linkedId],

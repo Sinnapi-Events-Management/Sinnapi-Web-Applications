@@ -4,6 +4,7 @@ import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { VendorProvider } from '@/vendor/VendorProvider';
 import OnboardingGate from '@/vendor/OnboardingGate';
 import AppShell from '@/components/shell/AppShell';
+import { LogoGateProvider } from '@/components/businessLogo';
 
 import SignIn from '@/pages/auth/signIn';
 import ForgotPassword from '@/pages/auth/forgotPassword';
@@ -33,6 +34,11 @@ import PublicEvents from '@/pages/publicEvents';
 import PublicEventDetail from '@/pages/publicEventDetail';
 import Escrow from '@/pages/escrow';
 import Payouts from '@/pages/payouts';
+import Documents from '@/pages/documents';
+import InvoiceEditor from '@/pages/invoiceEditor';
+import InvoiceDetail from '@/pages/invoiceDetail';
+import ReceiptEditor from '@/pages/receiptEditor';
+import ReceiptDetail from '@/pages/receiptDetail';
 import Promotions from '@/pages/promotions';
 import Discounts from '@/pages/discounts';
 import Reviews from '@/pages/reviews';
@@ -90,7 +96,11 @@ export default function App() {
                     or photo. This holds them on the setup wizard until their
                     listing is something a client could actually find. */}
                 <OnboardingGate>
-                  <AppShell />
+                  {/* Asks for the business logo the moment a document is sent
+                      without one — see `useLogoGate`. */}
+                  <LogoGateProvider>
+                    <AppShell />
+                  </LogoGateProvider>
                 </OnboardingGate>
               </VendorProvider>
             </ProtectedRoute>
@@ -126,6 +136,16 @@ export default function App() {
           <Route path="/public-events/:id" element={<PublicEventDetail />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/payouts" element={<Payouts />} />
+          {/* Invoices & receipts. `/invoices` holds all three tabs (invoices,
+              receipts, saved clients); `new` routes sit above `:id` so the
+              literal segment wins. */}
+          <Route path="/invoices" element={<Documents />} />
+          <Route path="/invoices/new" element={<InvoiceEditor />} />
+          <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/invoices/:id/edit" element={<InvoiceEditor />} />
+          <Route path="/receipts" element={<Navigate to="/invoices?tab=receipts" replace />} />
+          <Route path="/receipts/new" element={<ReceiptEditor />} />
+          <Route path="/receipts/:id" element={<ReceiptDetail />} />
           <Route path="/promotions" element={<Promotions />} />
           <Route path="/discounts" element={<Discounts />} />
           <Route path="/reviews" element={<Reviews />} />

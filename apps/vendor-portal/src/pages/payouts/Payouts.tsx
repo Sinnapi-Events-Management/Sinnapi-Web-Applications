@@ -5,7 +5,10 @@ import PayoutsTable from './components/organisms/PayoutsTable';
 export default function Payouts() {
   return (
     <>
-      <PageTitle title="Payouts" subtitle="Your payout history and status." />
+      <PageTitle
+        title="Money paid to you"
+        subtitle="Money Sinnapi has sent, or is sending, to your bank account."
+      />
       <VendorGate>{(vendorId) => <PayoutsTable vendorId={vendorId} />}</VendorGate>
     </>
   );

@@ -57,7 +57,7 @@ export default function DiscountUsage({ discount }: { discount: DiscountRow }) {
         variant="determinate"
         value={usage.percent}
         color={tight ? 'warning' : 'success'}
-        aria-label={`${usage.used} of ${usage.max} redemptions used`}
+        aria-label={`Used ${usage.used} of ${usage.max} times`}
         sx={{
           mt: 0.75,
           height: 6,

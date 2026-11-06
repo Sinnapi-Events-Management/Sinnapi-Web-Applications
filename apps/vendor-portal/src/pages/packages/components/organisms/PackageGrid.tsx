@@ -43,7 +43,7 @@ export default function PackageGrid({
     ) : (
       <EmptyState
         title="No packages yet"
-        description="A package is a priced offer you can publish to your profile and quote from in one click — tiers, line items, what's included and what isn't."
+        description="A package is a priced offer you can show on your profile and quote from in one click — tiers, line items, what's included and what isn't."
       />
     );
   }

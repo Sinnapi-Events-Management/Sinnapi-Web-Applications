@@ -253,7 +253,7 @@ export function quotationFeedbackCopy(
     title: mine
       ? 'You ended this quotation'
       : feedback.author === 'client'
-        ? 'The client voided this quotation'
+        ? 'The client cancelled this quotation'
         : 'The vendor withdrew this quote',
     hint: null,
     severity: 'error',

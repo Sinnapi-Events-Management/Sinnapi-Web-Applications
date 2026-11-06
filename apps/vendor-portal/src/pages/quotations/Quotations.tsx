@@ -1,5 +1,6 @@
-import { PageTitle } from '@sinnapi/ui';
+import { PageTitle, Stack } from '@sinnapi/ui';
 import VendorGate from '@/vendor/VendorGate';
+import { LogoMissingBanner } from '@/components/businessLogo';
 import QuotationsTable from './components/organisms/QuotationsTable';
 
 export default function Quotations() {
@@ -9,7 +10,14 @@ export default function Quotations() {
         title="Quotations"
         subtitle="Build and send quotes in response to client requests."
       />
-      <VendorGate>{(vendorId) => <QuotationsTable vendorId={vendorId} />}</VendorGate>
+      <VendorGate>
+        {(vendorId) => (
+          <Stack spacing={2.5}>
+            <LogoMissingBanner />
+            <QuotationsTable vendorId={vendorId} />
+          </Stack>
+        )}
+      </VendorGate>
     </>
   );
 }

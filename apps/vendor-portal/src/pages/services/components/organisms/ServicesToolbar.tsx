@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { Button, Stack, Tab, Tabs } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import { SERVICE_FILTERS, type ServiceFilter } from '../../schema';
@@ -38,7 +39,7 @@ export default function ServicesToolbar({ filter, counts, onFilter, onAdd }: Pro
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        sx={{ flex: 1, minHeight: 40, '& .MuiTab-root': { minHeight: 40 } }}
+        sx={[wrapTabsOnPhoneSx, { flex: 1, minHeight: 40, '& .MuiTab-root': { minHeight: 40 } }]}
       >
         {SERVICE_FILTERS.map((option) => (
           <Tab

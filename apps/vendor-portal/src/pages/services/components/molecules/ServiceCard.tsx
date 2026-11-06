@@ -99,8 +99,8 @@ export default function ServiceCard({
           // and for an archived service the answer is nothing. Showing a price
           // here would be the card quoting an offer that is not on sale.
           <Typography variant="body2" color="text.secondary">
-            Out of your catalogue. Restore it to list it again — its packages and past bookings are
-            untouched.
+            Not offered right now. Choose “Offer again” to list it — its packages and past bookings
+            are untouched.
           </Typography>
         ) : (
           <ServicePriceSummary pricing={service.pricing} loading={pricingLoading} />

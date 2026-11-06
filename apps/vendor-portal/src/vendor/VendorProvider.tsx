@@ -15,7 +15,10 @@ export type VendorRecord = {
    * one answer is the whole point of carrying it.
    */
   primary_category_id: string | null;
+  /** The business logo — printed on every quotation, invoice and receipt. */
   primary_image_url: string | null;
+  /** The onboarding photo, offered as a one-click logo to vendors without one. */
+  profile_image_url: string | null;
   trial_ends_at: string | null;
 } | null;
 
@@ -51,7 +54,7 @@ export function VendorProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase
         .from('vendors')
         .select(
-          'id,slug,business_name,status,visibility,primary_category_id,primary_image_url,trial_ends_at',
+          'id,slug,business_name,status,visibility,primary_category_id,primary_image_url,profile_image_url,trial_ends_at',
         )
         .eq('owner_id', user.id)
         .is('deleted_at', null)

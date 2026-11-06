@@ -33,7 +33,7 @@ export default function BankAccountForm({ vendorId }: { vendorId: string }) {
       <Stack component="form" spacing={2.5} onSubmit={submit} noValidate sx={{ maxWidth: 640 }}>
         <Typography variant="body2" color="text.secondary">
           {current
-            ? 'Re-enter your details to change where payouts land. Your account number is encrypted and never displayed again, so it cannot be pre-filled.'
+            ? 'Re-enter your details to change where your money is sent. Your account number is encrypted and never displayed again, so it cannot be pre-filled.'
             : 'Used for payouts. Your account number is encrypted and never displayed again — re-enter it to change it.'}
         </Typography>
 

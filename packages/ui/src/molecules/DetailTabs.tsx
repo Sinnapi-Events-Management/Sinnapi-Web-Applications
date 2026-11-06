@@ -1,4 +1,5 @@
 'use client';
+import { wrapTabsOnPhoneSx } from './wrapTabsOnPhone';
 import type { ReactElement, ReactNode } from 'react';
 import { Badge, Box, Tab, Tabs } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
@@ -135,6 +136,7 @@ export function DetailTabs<T extends string>({
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
+        sx={wrapTabsOnPhoneSx}
       >
         {items.map((item) => (
           <Tab

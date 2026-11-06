@@ -5,6 +5,7 @@ import { QUOTATION_TABS } from '../schema';
 import { useQuotationDetail } from './useQuotationDetail';
 import { useQuotationFeedback } from './useQuotationFeedback';
 import { useQuotationConversation } from './useQuotationConversation';
+import { useQuotationPdf } from './useQuotationPdf';
 
 /**
  * The page's own state, which is only ever "which section is open" — kept in
@@ -29,6 +30,7 @@ export function useQuotationDetailPage() {
   }, [tab, setTab]);
 
   const feedback = useQuotationFeedback(detail.quotation);
+  const pdf = useQuotationPdf(detail);
   const conversation = useQuotationConversation(detail.quotation?.client_id, {
     isActive: tab === 'messages',
   });
@@ -47,5 +49,5 @@ export function useQuotationDetailPage() {
     setTab('messages');
   }, [conversation, setTab]);
 
-  return { ...detail, tab, setTab, feedback, conversation, messageClient };
+  return { ...detail, tab, setTab, feedback, conversation, messageClient, pdf };
 }

@@ -73,7 +73,7 @@ export default function StartConversationMenu({
           <ListItemIcon>
             <SupportAgentIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Contact Sinnapi" secondary="Payouts, listings or account help" />
+          <ListItemText primary="Contact Sinnapi" secondary="Payments, listings or account help" />
         </MenuItem>
       </Menu>
     </>

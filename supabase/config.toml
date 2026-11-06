@@ -124,3 +124,9 @@ verify_jwt = true
 # remembered to write — is what scopes the document to one person.
 [functions.data-export]
 verify_jwt = true
+
+# A vendor emails one of their issued invoices or receipts, PDF attached. The
+# gateway demands a JWT; the handler then reads the document through the
+# caller's own RLS and refuses anyone but the issuing vendor's owner.
+[functions.send-financial-document]
+verify_jwt = true

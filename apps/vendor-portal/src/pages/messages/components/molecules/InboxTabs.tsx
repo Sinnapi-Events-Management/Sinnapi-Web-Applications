@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { Tabs, Tab, Badge } from '@sinnapi/ui';
 import type { InboxCounts, InboxTab } from '@sinnapi/ui/messaging';
 
@@ -29,7 +30,10 @@ export default function InboxTabs({ counts, value, onChange }: Props) {
       variant="scrollable"
       scrollButtons="auto"
       aria-label="Filter conversations by status"
-      sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, textTransform: 'none' } }}
+      sx={[
+        wrapTabsOnPhoneSx,
+        { minHeight: 40, '& .MuiTab-root': { minHeight: 40, textTransform: 'none' } },
+      ]}
     >
       {TABS.map((t) => (
         <Tab

@@ -17,7 +17,7 @@ export function useQuotations(vendorId: string) {
 
   // One directory call for the whole page rather than a join — see useBookings
   // for why the client cannot come back on the row itself.
-  const { profiles } = useProfileDirectory(rows.map((q) => q.client_id));
+  const { profiles, isLoading: namesLoading } = useProfileDirectory(rows.map((q) => q.client_id));
 
   const clientName = useCallback(
     (id: string | null) => (id && profiles[id]?.full_name) || 'Client',
@@ -37,6 +37,8 @@ export function useQuotations(vendorId: string) {
   return {
     rows,
     clientName,
+    /** Names still on their way — cards show a placeholder bar, not "Client". */
+    namesLoading,
     bookingFor,
     total: data?.total ?? 0,
     isLoading,

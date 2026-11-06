@@ -16,7 +16,7 @@ import SettingsTabs from './components/molecules/SettingsTabs';
  * appear in.
  */
 const RETENTION_NOTE =
-  'Ask us to erase your personal data. Records tied to completed bookings, payouts and tax reporting are kept for the period the law requires before they can be removed.';
+  'Ask us to erase your personal data. Records tied to completed bookings, payments to you and tax reporting are kept for the period the law requires before they can be removed.';
 
 const TAB_ITEMS = SETTINGS_TABS.map((value) => ({ value, meta: SETTINGS_TAB_META[value] }));
 
@@ -63,7 +63,7 @@ export default function Settings() {
 
   return (
     <>
-      <PageTitle title="Settings" subtitle="Payout banking, security and privacy." />
+      <PageTitle title="Settings" subtitle="Your bank account, security and privacy." />
 
       <QueryState isLoading={isLoading} error={error}>
         <Grid container spacing={3} alignItems="flex-start">

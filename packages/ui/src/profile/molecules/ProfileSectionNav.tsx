@@ -1,4 +1,5 @@
 'use client';
+import { wrapTabsOnPhoneSx } from '../../molecules/wrapTabsOnPhone';
 import { Box, Paper, Stack, Tab, Tabs, useMediaQuery } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { SectionStateDot } from '../atoms/SectionStateDot';
@@ -62,7 +63,7 @@ export function ProfileSectionNav<T extends string>({
         allowScrollButtonsMobile
         aria-label={ariaLabel}
         TabIndicatorProps={{ sx: { display: 'none' } }}
-        sx={{ minHeight: 40 }}
+        sx={[wrapTabsOnPhoneSx, { minHeight: 40 }]}
       >
         {items.map((item) => {
           const ids = profileSectionIds(idPrefix, item.value);

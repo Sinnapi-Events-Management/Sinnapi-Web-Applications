@@ -12,6 +12,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { FEATURES } from '@sinnapi/utils/constants';
 import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
@@ -65,6 +66,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Finance',
     items: [
       { label: 'Payments', to: '/payments', icon: PaymentsIcon },
+      { label: 'Invoices & Receipts', to: '/invoices', icon: ReceiptLongIcon },
       { label: 'Escrow', to: '/escrow', icon: AccountBalanceIcon },
     ],
   },

@@ -119,7 +119,12 @@ export function PortalTopBar({
             '& .MuiIconButton-root': { p: { xs: 0.75, sm: 1 } },
           }}
         >
-          <PortalViewMenu view={view} />
+          {/* Focus, fullscreen and content width are desktop controls — a phone
+              is already full-screen and single-column — so below `md` they are
+              one more icon competing for a thumb with nothing to give back. */}
+          <Box sx={{ display: { xs: 'none', md: 'contents' } }}>
+            <PortalViewMenu view={view} />
+          </Box>
           <ThemeToggle />
 
           {/* Messages before notifications: a message is addressed to you by a

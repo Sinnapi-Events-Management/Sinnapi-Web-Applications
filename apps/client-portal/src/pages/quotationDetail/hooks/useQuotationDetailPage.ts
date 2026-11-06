@@ -6,6 +6,7 @@ import { useQuotationBooking } from './useQuotationBooking';
 import { useQuotationDetail } from './useQuotationDetail';
 import { useQuotationFeedback } from './useQuotationFeedback';
 import { useQuotationConversation } from './useQuotationConversation';
+import { useQuotationPdf } from './useQuotationPdf';
 
 /**
  * The page's own state, which is only ever "which section is open" — kept in
@@ -39,6 +40,7 @@ export function useQuotationDetailPage() {
 
   const feedback = useQuotationFeedback(detail.quotation);
   const booking = useQuotationBooking(detail.quotation, detail.pricing);
+  const pdf = useQuotationPdf(detail);
   const conversation = useQuotationConversation(detail.quotation?.vendor_id, {
     isActive: tab === 'messages',
   });
@@ -57,5 +59,5 @@ export function useQuotationDetailPage() {
     setTab('messages');
   }, [conversation, setTab]);
 
-  return { ...detail, tab, setTab, feedback, booking, conversation, messageVendor };
+  return { ...detail, tab, setTab, feedback, booking, conversation, messageVendor, pdf };
 }

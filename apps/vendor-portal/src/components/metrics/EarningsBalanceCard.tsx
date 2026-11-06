@@ -1,7 +1,16 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Divider, Skeleton, Stack, Typography, SectionCard } from '@sinnapi/ui';
+import {
+  Box,
+  Button,
+  Divider,
+  InfoTip,
+  Skeleton,
+  Stack,
+  Typography,
+  SectionCard,
+} from '@sinnapi/ui';
 import SavingsIcon from '@mui/icons-material/Savings';
-import { formatMoney } from '@/lib/config';
+import { ESCROW_EXPLAINER, formatMoney } from '@/lib/config';
 import type { EarningsModel } from '@/data/overview';
 
 type Props = {
@@ -21,17 +30,20 @@ export default function EarningsBalanceCard({ earnings, loading }: Props) {
   const rows = [
     {
       label: 'Held in escrow',
-      hint: earnings ? `${earnings.escrowCount.toLocaleString()} funded bookings` : '',
+      hint: earnings ? `${earnings.escrowCount.toLocaleString()} paid bookings` : '',
       value: earnings?.inEscrow ?? 0,
+      explainer: ESCROW_EXPLAINER,
     },
     {
-      label: 'Payouts in flight',
-      hint: 'Raised, awaiting settlement',
+      label: 'On its way to you',
+      hint: 'Approved, being sent to your bank',
+      explainer: undefined,
       value: earnings?.pendingPayout ?? 0,
     },
     {
-      label: 'Paid out all time',
-      hint: 'Every settled payout',
+      label: 'Paid to you (all time)',
+      hint: 'Everything sent to your bank',
+      explainer: undefined,
       value: earnings?.lifetimeReleased ?? 0,
     },
   ];
@@ -62,9 +74,12 @@ export default function EarningsBalanceCard({ earnings, loading }: Props) {
             }}
           >
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {row.label}
-              </Typography>
+              <Stack direction="row" alignItems="center" spacing={0.25}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {row.label}
+                </Typography>
+                {row.explainer && <InfoTip title={row.explainer} label="What is escrow?" />}
+              </Stack>
               <Typography variant="caption" color="text.secondary">
                 {row.hint}
               </Typography>

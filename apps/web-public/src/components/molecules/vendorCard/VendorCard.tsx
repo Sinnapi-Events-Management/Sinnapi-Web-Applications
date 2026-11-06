@@ -1,5 +1,5 @@
 import NextLink from 'next/link';
-import { Box, Typography, Chip, Rating, Stack } from '@sinnapi/ui/atoms';
+import { Box, Typography, Chip, Rating, Stack, LogoMedia } from '@sinnapi/ui/atoms';
 import { Card, CardActionArea, CardContent, CardMedia } from '@sinnapi/ui/molecules';
 import { Verified as VerifiedIcon, Place as PlaceIcon } from '@mui/icons-material';
 import { common, withAlpha } from '@sinnapi/ui/tokens';
@@ -23,7 +23,7 @@ export default function VendorCard({
   vendor: VendorCardModel;
   categories?: string[];
 }) {
-  const { price, image } = useVendorCard(vendor);
+  const { price, image, isLogo } = useVendorCard(vendor);
 
   return (
     <Card
@@ -46,23 +46,34 @@ export default function VendorCard({
         sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
       >
         <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-          <CardMedia
-            component="img"
-            height="180"
-            image={image}
-            alt={vendor.business_name}
-            className="vendor-card-media"
-            sx={{ bgcolor: 'grey.100', transition: 'transform .4s ease' }}
-          />
-          {/* Bottom scrim so the badge stays legible over bright photos. */}
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              background: `linear-gradient(to top, ${withAlpha(common.black, 0.28)} 0%, transparent 42%)`,
-            }}
-          />
+          {isLogo ? (
+            <LogoMedia
+              src={image}
+              alt={`${vendor.business_name} logo`}
+              height={180}
+              className="vendor-card-media"
+            />
+          ) : (
+            <>
+              <CardMedia
+                component="img"
+                height="180"
+                image={image}
+                alt={vendor.business_name}
+                className="vendor-card-media"
+                sx={{ bgcolor: 'grey.100', transition: 'transform .4s ease' }}
+              />
+              {/* Bottom scrim so the badge stays legible over bright photos. */}
+              <Box
+                aria-hidden
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(to top, ${withAlpha(common.black, 0.28)} 0%, transparent 42%)`,
+                }}
+              />
+            </>
+          )}
           {vendor.is_featured && (
             <Chip
               size="small"

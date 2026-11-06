@@ -49,7 +49,7 @@ export function useBookingQuotation(
 
   const download = useCallback(() => {
     if (!quotation) return;
-    downloadQuotationPdf({
+    void downloadQuotationPdf({
       id: quotation.id,
       reference_no: quotation.reference_no,
       status: quotation.status,
@@ -62,6 +62,7 @@ export function useBookingQuotation(
       sent_at: quotation.sent_at,
       created_at: quotation.created_at,
       vendor_name: vendor?.business_name ?? null,
+      vendor_logo_url: vendor?.primary_image_url ?? null,
       client_name: client?.full_name ?? null,
       event_title: one(booking.events)?.title ?? null,
       items,

@@ -2,7 +2,7 @@ import { Alert, Box } from '@sinnapi/ui';
 import { ImagePicker } from '@sinnapi/ui/profile';
 
 type Props = {
-  /** Straight from `useProfileImageUpload` (via `useVendorLogo` / `useVendorAvatar`). */
+  /** Straight from `useProfileImageUpload` (via `useVendorAvatar`). */
   upload: {
     busy: boolean;
     error: string | null;

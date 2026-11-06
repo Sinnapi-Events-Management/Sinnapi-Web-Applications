@@ -5,7 +5,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { APP, NAV_SECTIONS } from '@/lib/config';
+import { APP, BOTTOM_NAV, NAV_SECTIONS } from '@/lib/config';
 import { useAuth } from '@/auth/AuthProvider';
 import { useProfile } from '@/hooks/queries';
 import { useVendorContext } from '@/vendor/VendorProvider';
@@ -74,5 +74,13 @@ export function useAppShell() {
     [notifications.unread, messages.unread],
   );
 
-  return { brand: BRAND, sections: NAV_SECTIONS, account, badges, messages, notifications };
+  return {
+    brand: BRAND,
+    sections: NAV_SECTIONS,
+    bottomNav: BOTTOM_NAV,
+    account,
+    badges,
+    messages,
+    notifications,
+  };
 }
