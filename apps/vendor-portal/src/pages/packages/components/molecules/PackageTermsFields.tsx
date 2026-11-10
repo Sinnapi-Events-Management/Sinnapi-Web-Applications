@@ -1,7 +1,7 @@
 import type { Control } from 'react-hook-form';
 import { Box, Stack, Typography } from '@sinnapi/ui';
 import { ControlledField, ControlledCheckbox } from '@sinnapi/ui/forms';
-import { ADVANCE_DAYS_MAX, ADVANCE_RATE_MAX } from '@/components/quotation/schema';
+import { ADVANCE_DAYS_MAX } from '@/components/quotation/schema';
 import type { PackageFormValues } from '../../schema';
 
 /**
@@ -15,7 +15,14 @@ import type { PackageFormValues } from '../../schema';
  * one question — "is this rate already in my prices?" — and a select forces a
  * vendor to read two labels to answer it.
  */
-export default function PackageTermsFields({ control }: { control: Control<PackageFormValues> }) {
+export default function PackageTermsFields({
+  control,
+  advanceRateMax,
+}: {
+  control: Control<PackageFormValues>;
+  /** The vendor's live ceiling (`advance_rate_default`). */
+  advanceRateMax: number;
+}) {
   return (
     <Stack spacing={2.5}>
       <Box>
@@ -92,7 +99,7 @@ export default function PackageTermsFields({ control }: { control: Control<Packa
             label="Advance (%)"
             type="number"
             sx={{ flex: 1 }}
-            inputProps={{ min: 0, max: ADVANCE_RATE_MAX, step: 5 }}
+            inputProps={{ min: 0, max: advanceRateMax, step: 5 }}
           />
           <ControlledField
             name="advance_release_days_before"

@@ -79,6 +79,10 @@ export function resolveTarget(notification: NotificationView): NotificationTarge
     case 'reviews':
       return { path: '/reviews', label: 'View reviews' };
 
+    // A sign-in from a new device: the device list is where it can be signed out.
+    case 'account':
+      return { path: '/settings?tab=security', label: 'Review your devices' };
+
     case 'events':
       return { path: '/my-events', label: 'View events' };
 

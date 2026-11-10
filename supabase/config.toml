@@ -125,6 +125,12 @@ verify_jwt = true
 [functions.data-export]
 verify_jwt = true
 
+# Step-up re-authentication for a session that is already signed in (payout
+# bank details, password change). The caller must hold a valid session; the
+# confirmation it records is bound to that session id.
+[functions.confirm-password]
+verify_jwt = true
+
 # A vendor emails one of their issued invoices or receipts, PDF attached. The
 # gateway demands a JWT; the handler then reads the document through the
 # caller's own RLS and refuses anyone but the issuing vendor's owner.

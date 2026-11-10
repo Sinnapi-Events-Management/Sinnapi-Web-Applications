@@ -2,7 +2,6 @@
 import { Grid, TextField, MenuItem } from '@sinnapi/ui/atoms';
 import type { VendorFacetCounts } from '@/lib/types';
 import {
-  CATEGORY_OPTIONS,
   REGION_OPTIONS,
   PRICE_OPTIONS,
   RATING_OPTIONS,
@@ -20,10 +19,11 @@ type ToolbarFacetsProps = {
 };
 
 /**
- * The control row: four narrowing facets plus the sort order.
+ * The control row: three narrowing facets plus the sort order. Category is not
+ * here — it lives in the icon row above the toolbar (`VendorsCategoryRail`).
  *
- * Only category and region carry counts — they map to discrete reference tables
- * the RPC can group by. Price and rating are continuous bands, where counting
+ * Only region carries counts — it maps to a discrete reference table the RPC
+ * can group by. Price and rating are continuous bands, where counting
  * every option costs a scan per band for a number that changes as vendors
  * re-price; they're left uncounted rather than shown stale.
  *
@@ -40,16 +40,6 @@ export default function ToolbarFacets({
     <Grid container spacing={2} alignItems="center">
       <Grid item xs={6} md={3}>
         <FacetSelect
-          label="Category"
-          allLabel="All categories"
-          options={CATEGORY_OPTIONS}
-          value={params.category}
-          counts={facetCounts?.category}
-          onChange={(value) => onFacetChange('category', value)}
-        />
-      </Grid>
-      <Grid item xs={6} md={3}>
-        <FacetSelect
           label="Region"
           allLabel="All regions"
           options={REGION_OPTIONS}
@@ -58,7 +48,7 @@ export default function ToolbarFacets({
           onChange={(value) => onFacetChange('region', value)}
         />
       </Grid>
-      <Grid item xs={6} md={2}>
+      <Grid item xs={6} md={2.5}>
         <FacetSelect
           label="Price"
           allLabel="Any price"
@@ -67,7 +57,7 @@ export default function ToolbarFacets({
           onChange={(value) => onFacetChange('price', value)}
         />
       </Grid>
-      <Grid item xs={6} md={2}>
+      <Grid item xs={6} md={2.5}>
         <FacetSelect
           label="Rating"
           allLabel="Any rating"
@@ -76,7 +66,7 @@ export default function ToolbarFacets({
           onChange={(value) => onFacetChange('rating', value)}
         />
       </Grid>
-      <Grid item xs={12} md={2}>
+      <Grid item xs={12} md={4}>
         <TextField
           label="Sort by"
           select

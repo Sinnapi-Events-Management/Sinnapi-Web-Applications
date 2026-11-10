@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { supabase } from '@/lib/supabase';
+import { REAUTH_REQUIRED_MESSAGE, updateOwnPassword } from '@sinnapi/utils/passwordWrite';
 import { useAuth } from '@/auth/AuthProvider';
 import { safeReturnTo } from '@/auth/returnTo';
 import { changePasswordSchema, emptyChangePasswordValues } from '../schema';
@@ -44,12 +45,14 @@ export function useChangePassword() {
 
   const submit = handleSubmit(async ({ password }) => {
     setError(null);
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-      data: { must_change_password: false },
-    });
-    if (updateError) {
-      setError(updateError.message);
+    // Ticketed write — see `updateOwnPassword`.
+    const failure = await updateOwnPassword(
+      supabase,
+      { password, data: { must_change_password: false } },
+      REAUTH_REQUIRED_MESSAGE,
+    );
+    if (failure) {
+      setError(failure);
       return;
     }
     setPasswordChanged(true);

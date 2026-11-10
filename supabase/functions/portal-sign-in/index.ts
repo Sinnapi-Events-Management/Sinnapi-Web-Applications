@@ -31,6 +31,9 @@
 //      if the password were wrong.
 //   6. log the outcome either way — including step 3 failures, which never
 //      reach an auth.uid()-scoped RPC and so would otherwise be invisible.
+//   7. on success, record the session against the browser's device id
+//      (`register_portal_session`): the device list, the "Keep me signed in"
+//      choice, and the new-device alert.
 //
 // EVERY *VERDICT* LOOKS THE SAME — AN OUTAGE DOES NOT
 // Unknown email, wrong password, suspended account, staff credential in the
@@ -107,7 +110,35 @@ const GATE: Record<Portal, string> = {
   admin: 'portal_access_admin',
 };
 
-type Body = { email?: string; password?: string; portal?: string; captchaToken?: string };
+type Body = {
+  email?: string;
+  password?: string;
+  portal?: string;
+  captchaToken?: string;
+  /** "Keep me signed in on this device". Absent (older clients) means yes. */
+  remember?: unknown;
+  /** The browser's random device id, for the new-device alert. */
+  deviceId?: unknown;
+};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The `session_id` claim of a token GoTrue has just minted for us. */
+function sessionIdOf(accessToken: string): string | null {
+  try {
+    const part = accessToken.split('.')[1] ?? '';
+    const padded = part
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(part.length / 4) * 4, '=');
+    const claims = JSON.parse(atob(padded)) as { session_id?: unknown };
+    return typeof claims.session_id === 'string' && UUID_RE.test(claims.session_id)
+      ? claims.session_id
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 type GateRow = {
   allowed: boolean;
@@ -406,7 +437,27 @@ Deno.serve(
     const anon = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: auth, error: authErr } = await anon.auth.signInWithPassword({ email, password });
+    // Announce the grant first. The project's Custom Access Token hook refuses a
+    // password grant nobody announced (20261110000003), which is what stops a
+    // caller from skipping this endpoint — and with it Turnstile, the lockout,
+    // the audit trail and the new-device alert — by calling GoTrue directly.
+    // Closed straight after, success or not: the window is one GoTrue call.
+    const { data: intentId, error: intentErr } = await admin.rpc('open_password_grant_intent', {
+      p_email: email,
+    });
+    if (intentErr) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          message: 'grant_intent_failed',
+          detail: intentErr.message,
+        }),
+      );
+      return await unavailable('grant_intent_failed');
+    }
+    const { data: auth, error: authErr } = await anon.auth
+      .signInWithPassword({ email, password })
+      .finally(() => admin.rpc('close_password_grant_intent', { p_id: intentId }));
 
     if (authErr || !auth?.session || !auth?.user) {
       const failure = classifyAuthFailure(authErr as AuthErrorLike, Boolean(auth?.session));
@@ -510,6 +561,31 @@ Deno.serve(
 
     // --- 6. Granted. `log_portal_attempt` also stamps profiles.last_login_at.
     await record('granted', null, userId);
+
+    // --- 7. Remember the session against this device: what the device list
+    // shows, whether "Keep me signed in" was ticked (the gate enforces the
+    // 12-hour life of an unticked one), and the new-device alert. Best-effort,
+    // like the audit row — a sign-in that succeeded must not fail here.
+    try {
+      const deviceId =
+        typeof b?.deviceId === 'string' && UUID_RE.test(b.deviceId) ? b.deviceId : null;
+      const { error: regErr } = await admin.rpc('register_portal_session', {
+        p_session_id: sessionIdOf(session.access_token),
+        p_user_id: userId,
+        p_portal: portal,
+        p_device_id: deviceId,
+        p_remember: b?.remember !== false,
+        p_device: ua.device,
+        p_os: ua.os,
+        p_browser: ua.browser,
+        p_country: country,
+        p_ip: ip,
+      });
+      if (regErr) throw new Error(regErr.message);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : 'unknown';
+      console.error(JSON.stringify({ level: 'error', message: 'session_register_failed', detail }));
+    }
 
     // The browser sets this with `supabase.auth.setSession()`. Only the two
     // tokens are needed for that; the extras let the SPA render immediately

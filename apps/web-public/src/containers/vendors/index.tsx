@@ -1,4 +1,5 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+import { getServiceCategoryOptions } from '@/lib/queries';
 import MarketplaceCta from '@/components/organisms/marketplaceCta';
 import VendorsCompactHeader from './organisms/vendorsCompactHeader';
 import VendorsFeatured from './organisms/vendorsFeatured';
@@ -35,7 +36,10 @@ export default async function VendorsContainer({
   // reach the prefetch, or the server and the client would resolve different
   // query keys and the hydrated page would silently refetch everything.
   const params = parseVendorsSearchParams(searchParams);
-  const { queryClient, featured } = await prefetchVendorsData(params);
+  const [{ queryClient, featured }, categories] = await Promise.all([
+    prefetchVendorsData(params),
+    getServiceCategoryOptions(),
+  ]);
 
   return (
     <>
@@ -43,6 +47,7 @@ export default async function VendorsContainer({
       <HydrationBoundary state={dehydrate(queryClient)}>
         <VendorsBrowser
           featuredCount={featured.length}
+          categories={categories}
           featuredSlot={featured.length > 0 ? <VendorsFeatured vendors={featured} /> : null}
         />
       </HydrationBoundary>

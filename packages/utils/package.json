@@ -13,7 +13,9 @@
     "./quotationPdf/access": "./quotationPdf/access.ts",
     "./financialPdf": "./financialPdf/index.ts",
     "./publicId": "./publicId.ts",
-    "./portalSignIn": "./portalSignIn.ts"
+    "./portalSignIn": "./portalSignIn.ts",
+    "./sessionPersistence": "./sessionPersistence.ts",
+    "./passwordWrite": "./passwordWrite.ts"
   },
   "scripts": {
     "lint": "eslint . --ext ts,tsx",

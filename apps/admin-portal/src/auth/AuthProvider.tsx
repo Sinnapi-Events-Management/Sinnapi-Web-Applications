@@ -86,8 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // localStorage would let the next tab pick it straight back up. Logged
       // first, and as an ejection rather than a sign-out: a session this portal
       // turned away is worth telling apart from one its owner ended.
+      //
+      // 'local' scope: this includes the gate's 24-hour absolute limit
+      // (20261110000002), and one expired session must not take a freshly
+      // signed-in one on another machine down with it.
       await logSignOut('portal_refused');
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
     }
 
     void supabase.auth.getSession().then(({ data }) => admit(data.session));

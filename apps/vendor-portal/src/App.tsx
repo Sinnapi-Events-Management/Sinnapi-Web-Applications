@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
-import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { VendorProvider } from '@/vendor/VendorProvider';
 import OnboardingGate from '@/vendor/OnboardingGate';
 import AppShell from '@/components/shell/AppShell';
@@ -51,10 +50,6 @@ import NotFound from '@/pages/notFound';
 export default function App() {
   return (
     <>
-      {/* Above the routes on purpose: the idle guard then covers every
-          authenticated page, including the forced password change below,
-          which sits outside the app shell. */}
-      <SessionTimeoutGuard />
       <Routes>
         {/* No /sign-up: the `vendor` role is granted only when an application is
           approved (`approve_vendor`), so a self-registered account could never

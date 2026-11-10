@@ -3,12 +3,7 @@ import { Box, Stack, Typography } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
 import { alpha } from '@mui/material/styles';
 import { formatMoney } from '@/lib/config';
-import {
-  ADVANCE_DAYS_MAX,
-  ADVANCE_RATE_MAX,
-  advanceAmount,
-  type QuotationFormValues,
-} from '../../schema';
+import { ADVANCE_DAYS_MAX, advanceAmount, type QuotationFormValues } from '../../schema';
 
 type Props = {
   control: Control<QuotationFormValues>;
@@ -17,6 +12,8 @@ type Props = {
   currency: string;
   rate: string;
   daysBefore: string;
+  /** The vendor's live ceiling (`advance_rate_default`). */
+  advanceRateMax: number;
 };
 
 /**
@@ -26,7 +23,14 @@ type Props = {
  * seven days before the event" are different amounts of information — and the
  * second is what the client will be asked to agree to.
  */
-export default function AdvanceTermsFields({ control, total, currency, rate, daysBefore }: Props) {
+export default function AdvanceTermsFields({
+  control,
+  total,
+  currency,
+  rate,
+  daysBefore,
+  advanceRateMax,
+}: Props) {
   const advance = advanceAmount(total, rate);
   const balance = total - advance;
   const days = Number(daysBefore);
@@ -58,7 +62,7 @@ export default function AdvanceTermsFields({ control, total, currency, rate, day
             label="Advance (%)"
             type="number"
             sx={{ width: { sm: 150 } }}
-            inputProps={{ min: 0, max: ADVANCE_RATE_MAX, step: 5 }}
+            inputProps={{ min: 0, max: advanceRateMax, step: 5 }}
           />
           <ControlledField
             name="advance_release_days_before"

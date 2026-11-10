@@ -7,7 +7,7 @@ import {
   FilterDisclosure,
   FilterToggleButton,
 } from '@sinnapi/ui';
-import type { SearchTerm } from '@/hooks/useSearchTerm';
+import type { SearchTerm } from '@sinnapi/ui';
 import type { EventFacetCounts } from '@/lib/types';
 import type { EventFilters } from '../../hooks/useEventFilters';
 import type { FilterPanel } from '../../hooks/useFilterPanel';

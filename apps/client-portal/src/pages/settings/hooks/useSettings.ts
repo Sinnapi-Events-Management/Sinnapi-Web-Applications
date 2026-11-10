@@ -1,7 +1,14 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DELETION_REQUEST_KEY, useLatestDeletionRequest, useProfile } from '@/hooks/queries';
-import { changePassword, exportMyData, requestDataDeletion } from '@/lib/accountApi';
+import {
+  changePassword,
+  exportMyData,
+  listMySessions,
+  requestDataDeletion,
+  revokeMyOtherSessions,
+  revokeMySession,
+} from '@/lib/accountApi';
 
 /**
  * Everything the settings page needs, assembled in one place: the profile it
@@ -36,5 +43,8 @@ export function useSettings() {
     changePassword,
     exportMyData,
     requestDeletion,
+    listSessions: listMySessions,
+    revokeSession: revokeMySession,
+    revokeOtherSessions: revokeMyOtherSessions,
   };
 }

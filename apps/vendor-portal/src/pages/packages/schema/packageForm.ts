@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { isPricingModel } from '@sinnapi/ui';
 import { requiredIntField, optionalUrlField } from '@/lib/schema';
-import { ADVANCE_RATE_MAX, ADVANCE_DAYS_MAX } from '@/components/quotation/schema';
+import {
+  ADVANCE_DAYS_MAX,
+  ADVANCE_RATE_START,
+  ADVANCE_RATE_HARD_MAX,
+} from '@/components/quotation/schema';
 import type { PackageModel, PackageTierModel, PackageLineModel } from '@/lib/types';
 
 /**
@@ -62,93 +66,105 @@ export const packageTierSchema = z.object({
 
 export type PackageTierValues = z.infer<typeof packageTierSchema>;
 
-export const packageFormSchema = z
-  .object({
-    id: z.string(),
-    name: z
-      .string()
-      .trim()
-      .min(3, 'Package name must be at least 3 characters.')
-      .max(120, 'Package name must be 120 characters or fewer.'),
-    summary: z.string().trim().max(300, 'Keep the summary under 300 characters.'),
-    notes: z.string().trim().max(2000, 'Notes must be 2000 characters or fewer.'),
-    cover_image_url: optionalUrlField('Enter a valid image URL.'),
-    vendor_service_id: z.string(),
-    /**
-     * Required, and validated again by `save_quote_package` against the linked
-     * service's set. Stated here so the vendor is told by the field they got
-     * wrong rather than by a banner at the top after a round trip.
-     */
-    pricing_model: z
-      .string()
-      .min(1, 'Choose how this package is charged.')
-      // The `: boolean` annotation is load-bearing — see the same note on
-      // `pricing_models` in the services schema. `isPricingModel` is a type
-      // predicate and TypeScript propagates it through the wrapping arrow, so
-      // without the annotation zod narrows this field's OUTPUT to
-      // `PricingModel` while its input stays `string`, and the two halves of
-      // `Control<PackageFormValues>` stop matching.
-      .refine((value): boolean => isPricingModel(value), 'That is not a way of charging.'),
-    inclusions: z.array(z.string().trim().min(1)),
-    exclusions: z.array(z.string().trim().min(1)),
-    lead_time_days: z
-      .string()
-      .trim()
-      .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a whole number of days.')
-      .refine((v) => v === '' || Number(v) <= 365, 'Lead time cannot exceed 365 days.'),
-    tax_rate: rateField('Tax'),
-    tax_inclusive: z.boolean(),
-    valid_days: z
-      .string()
-      .trim()
-      .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a whole number of days.')
-      .refine((v) => v === '' || (Number(v) >= 1 && Number(v) <= 365), 'Between 1 and 365 days.'),
-    advance_rate: z
-      .string()
-      .trim()
-      .refine((v) => v === '' || !Number.isNaN(Number(v)), 'Enter a number.')
-      .refine((v) => v === '' || Number(v) >= 0, 'Cannot be negative.')
-      .refine(
-        (v) => v === '' || Number(v) <= ADVANCE_RATE_MAX,
-        `Cannot exceed ${ADVANCE_RATE_MAX}%.`,
-      ),
-    advance_release_days_before: z
-      .string()
-      .trim()
-      .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a whole number of days.')
-      .refine(
-        (v) => v === '' || Number(v) <= ADVANCE_DAYS_MAX,
-        `Cannot be more than ${ADVANCE_DAYS_MAX} days before the event.`,
-      ),
-    advance_terms_note: z.string().trim().max(300, 'Keep the note under 300 characters.'),
-    is_active: z.boolean(),
-    tiers: z.array(packageTierSchema).min(1, 'A package needs at least one tier.'),
-    add_ons: z.array(packageLineSchema),
-  })
-  .superRefine((values, ctx) => {
-    // The database has a partial unique index saying the same thing. Saying it
-    // here too is what turns a 23505 the vendor cannot read into a message
-    // attached to the control they clicked.
-    const recommended = values.tiers.filter((tier) => tier.is_recommended);
-    if (recommended.length > 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['tiers'],
-        message: 'Only one tier can be marked as the recommended one.',
-      });
-    }
+/**
+ * A package's advance: optional (blank means "use the quote's"), 0 up to the
+ * vendor's live ceiling (`advance_rate_default`). See `makePackageFormSchema`.
+ */
+export const packageAdvanceRateField = (max: number) =>
+  z
+    .string()
+    .trim()
+    .refine((v) => v === '' || !Number.isNaN(Number(v)), 'Enter a number.')
+    .refine((v) => v === '' || Number(v) >= 0, 'Cannot be negative.')
+    .refine((v) => v === '' || Number(v) <= max, `Cannot exceed ${max}%.`);
 
-    // Duplicate tier names are legal in the database and useless to a client
-    // choosing between them.
-    const names = values.tiers.map((tier) => tier.name.trim().toLowerCase()).filter(Boolean);
-    if (new Set(names).size !== names.length) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['tiers'],
-        message: 'Give each tier a different name.',
-      });
-    }
-  });
+const packageFormObject = z.object({
+  id: z.string(),
+  name: z
+    .string()
+    .trim()
+    .min(3, 'Package name must be at least 3 characters.')
+    .max(120, 'Package name must be 120 characters or fewer.'),
+  summary: z.string().trim().max(300, 'Keep the summary under 300 characters.'),
+  notes: z.string().trim().max(2000, 'Notes must be 2000 characters or fewer.'),
+  cover_image_url: optionalUrlField('Enter a valid image URL.'),
+  vendor_service_id: z.string(),
+  /**
+   * Required, and validated again by `save_quote_package` against the linked
+   * service's set. Stated here so the vendor is told by the field they got
+   * wrong rather than by a banner at the top after a round trip.
+   */
+  pricing_model: z
+    .string()
+    .min(1, 'Choose how this package is charged.')
+    // The `: boolean` annotation is load-bearing — see the same note on
+    // `pricing_models` in the services schema. `isPricingModel` is a type
+    // predicate and TypeScript propagates it through the wrapping arrow, so
+    // without the annotation zod narrows this field's OUTPUT to
+    // `PricingModel` while its input stays `string`, and the two halves of
+    // `Control<PackageFormValues>` stop matching.
+    .refine((value): boolean => isPricingModel(value), 'That is not a way of charging.'),
+  inclusions: z.array(z.string().trim().min(1)),
+  exclusions: z.array(z.string().trim().min(1)),
+  lead_time_days: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a whole number of days.')
+    .refine((v) => v === '' || Number(v) <= 365, 'Lead time cannot exceed 365 days.'),
+  tax_rate: rateField('Tax'),
+  tax_inclusive: z.boolean(),
+  valid_days: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a whole number of days.')
+    .refine((v) => v === '' || (Number(v) >= 1 && Number(v) <= 365), 'Between 1 and 365 days.'),
+  advance_rate: packageAdvanceRateField(ADVANCE_RATE_HARD_MAX),
+  advance_release_days_before: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a whole number of days.')
+    .refine(
+      (v) => v === '' || Number(v) <= ADVANCE_DAYS_MAX,
+      `Cannot be more than ${ADVANCE_DAYS_MAX} days before the event.`,
+    ),
+  advance_terms_note: z.string().trim().max(300, 'Keep the note under 300 characters.'),
+  is_active: z.boolean(),
+  tiers: z.array(packageTierSchema).min(1, 'A package needs at least one tier.'),
+  add_ons: z.array(packageLineSchema),
+});
+
+function packageFormRules(values: z.infer<typeof packageFormObject>, ctx: z.RefinementCtx) {
+  // The database has a partial unique index saying the same thing. Saying it
+  // here too is what turns a 23505 the vendor cannot read into a message
+  // attached to the control they clicked.
+  const recommended = values.tiers.filter((tier) => tier.is_recommended);
+  if (recommended.length > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tiers'],
+      message: 'Only one tier can be marked as the recommended one.',
+    });
+  }
+
+  // Duplicate tier names are legal in the database and useless to a client
+  // choosing between them.
+  const names = values.tiers.map((tier) => tier.name.trim().toLowerCase()).filter(Boolean);
+  if (new Set(names).size !== names.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tiers'],
+      message: 'Give each tier a different name.',
+    });
+  }
+}
+
+/** The editor's schema with the admin's live advance ceiling applied. */
+export const makePackageFormSchema = (advanceRateMax: number) =>
+  packageFormObject
+    .extend({ advance_rate: packageAdvanceRateField(advanceRateMax) })
+    .superRefine(packageFormRules);
+
+export const packageFormSchema = makePackageFormSchema(ADVANCE_RATE_HARD_MAX);
 
 export type PackageFormValues = z.infer<typeof packageFormSchema>;
 
@@ -195,7 +211,7 @@ export const emptyPackageValues: PackageFormValues = {
   tax_rate: '',
   tax_inclusive: false,
   valid_days: '14',
-  advance_rate: '30',
+  advance_rate: String(ADVANCE_RATE_START),
   advance_release_days_before: '7',
   advance_terms_note: '',
   is_active: true,

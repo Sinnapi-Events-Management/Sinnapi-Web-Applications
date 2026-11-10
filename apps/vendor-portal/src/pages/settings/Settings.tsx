@@ -1,8 +1,8 @@
 import { Box, Grid, PageTitle, QueryState, Stack } from '@sinnapi/ui';
 import { profileSideColumnSx, useUrlTab } from '@sinnapi/ui/profile';
-import { PrivacyDataSection, SecuritySection } from '@sinnapi/ui/settings';
+import { PrivacyDataSection, SecuritySection, SignedInDevicesSection } from '@sinnapi/ui/settings';
 import { PASSWORD_MIN_LENGTH } from '@/components/auth/schema';
-import { formatDate } from '@/lib/config';
+import { formatDate, formatDateTime } from '@/lib/config';
 import { useSettings } from './hooks/useSettings';
 import { panelId, tabId, SETTINGS_TABS, SETTINGS_TAB_META, type SettingsTab } from './schema';
 import AccountGlanceCard from './components/organisms/AccountGlanceCard';
@@ -58,6 +58,9 @@ export default function Settings() {
     changePassword,
     exportMyData,
     requestDeletion,
+    listSessions,
+    revokeSession,
+    revokeOtherSessions,
   } = useSettings();
   const { tab, setTab } = useUrlTab<SettingsTab>(SETTINGS_TABS);
 
@@ -90,11 +93,19 @@ export default function Settings() {
               {tab === 'payouts' && <PayoutBankSection />}
 
               {tab === 'security' && (
-                <SecuritySection
-                  email={profile?.email}
-                  minLength={PASSWORD_MIN_LENGTH}
-                  onChangePassword={changePassword}
-                />
+                <Stack spacing={3}>
+                  <SecuritySection
+                    email={profile?.email}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    onChangePassword={changePassword}
+                  />
+                  <SignedInDevicesSection
+                    onList={listSessions}
+                    onRevoke={revokeSession}
+                    onRevokeOthers={revokeOtherSessions}
+                    formatDateTime={formatDateTime}
+                  />
+                </Stack>
               )}
 
               {tab === 'privacy' && (

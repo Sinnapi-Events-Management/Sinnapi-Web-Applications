@@ -27,7 +27,7 @@ export type SettingsTabMeta = {
  * that renders blank.
  */
 export const SETTINGS_TAB_META: Record<SettingsTab, SettingsTabMeta> = {
-  security: { label: 'Security', hint: 'Sign-in and password', icon: SecurityIcon },
+  security: { label: 'Security', hint: 'Password and your devices', icon: SecurityIcon },
   privacy: { label: 'Privacy & data', hint: 'Export and erasure', icon: PrivacyTipIcon },
 };
 

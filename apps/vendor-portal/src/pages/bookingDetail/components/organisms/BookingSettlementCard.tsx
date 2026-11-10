@@ -63,7 +63,7 @@ export default function BookingSettlementCard({ booking }: Props) {
             isNudging={settlement.isBusy}
             actions={
               settlement.mustRespond ? (
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap>
                   <Button
                     variant="contained"
                     color="success"
@@ -97,7 +97,7 @@ export default function BookingSettlementCard({ booking }: Props) {
               startIcon={<PaidIcon />}
               onClick={() => setRequestOpen(true)}
               disabled={settlement.isBusy}
-              sx={{ alignSelf: 'flex-start' }}
+              sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
             >
               Request my payment
             </Button>

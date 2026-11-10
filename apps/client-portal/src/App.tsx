@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
-import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import AppShell from '@/components/shell/AppShell';
 
 import SignIn from '@/pages/auth/signIn';
@@ -39,9 +38,6 @@ import NotFound from '@/pages/notFound';
 export default function App() {
   return (
     <>
-      {/* Above the routes on purpose: the idle guard then covers every
-          authenticated page, including any that sit outside the app shell. */}
-      <SessionTimeoutGuard />
       <Routes>
         {/* Public auth routes */}
         <Route path="/sign-in" element={<SignIn />} />

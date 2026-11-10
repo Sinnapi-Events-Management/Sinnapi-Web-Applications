@@ -4,12 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { defaultPackageTier, packageAddOns, packageTiers, type PackageTierLike } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { useQuotablePackages } from '@/hooks/queries';
+import { useVendorAdvanceRateMax, useQuotablePackages } from '@/hooks/queries';
 import { useLogoGate } from '@/components/businessLogo';
 import type { PackageModel } from '@/lib/types';
 import {
   addOnToQuotationItem,
-  quotationFormSchema,
+  ADVANCE_RATE_HARD_MAX,
+  makeQuotationFormSchema,
   emptyQuotationValues,
   emptyQuotationItem,
   quotationFormPricing,
@@ -55,6 +56,14 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
 
   const { data: packages, isLoading: isPackagesLoading } = useQuotablePackages(options.vendorId);
 
+  const { data: vendorAdvanceRateMax } = useVendorAdvanceRateMax();
+  // `advance_rate_default` is the vendor's ceiling. Until it loads, only the
+  // column's own 0–100 applies; the server re-checks against the live setting
+  // either way. react-hook-form reads the resolver on every render, so swapping
+  // the schema here takes effect at once.
+  const advanceRateMax = vendorAdvanceRateMax ?? ADVANCE_RATE_HARD_MAX;
+  const schema = useMemo(() => makeQuotationFormSchema(advanceRateMax), [advanceRateMax]);
+
   const {
     control,
     handleSubmit,
@@ -62,7 +71,7 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
     reset,
     setValue,
     formState: { isSubmitting, errors },
-  } = useZodForm(quotationFormSchema, { defaultValues: emptyQuotationValues });
+  } = useZodForm(schema, { defaultValues: emptyQuotationValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
@@ -167,6 +176,8 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
     /** Kept for callers that only want the pre-tax figure. */
     total: pricing.base,
     advanceRate: advanceRate ?? '0',
+    /** The vendor's live ceiling (`advance_rate_default`), for the input's own `max`. */
+    advanceRateMax,
     advanceDays: advanceDays ?? '0',
     addItem: () => append(emptyQuotationItem),
     removeItem: remove,

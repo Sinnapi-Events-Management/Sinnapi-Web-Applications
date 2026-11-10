@@ -4,12 +4,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { packageActionError } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
+import { useVendorAdvanceRateMax } from '@/hooks/queries';
+import { ADVANCE_RATE_HARD_MAX } from '@/components/quotation/schema';
 import type { PackageModel } from '@/lib/types';
 import {
   emptyPackageLine,
   emptyPackageTier,
   emptyPackageValues,
-  packageFormSchema,
+  makePackageFormSchema,
   packageToFormValues,
   toSavePackageArgs,
   type PackageFormValues,
@@ -54,6 +56,12 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
+  const { data: vendorAdvanceRateMax } = useVendorAdvanceRateMax();
+  // `advance_rate_default` is the vendor's ceiling; only the column's 0–100
+  // until it loads. `save_quote_package` re-checks against the same setting.
+  const advanceRateMax = vendorAdvanceRateMax ?? ADVANCE_RATE_HARD_MAX;
+  const schema = useMemo(() => makePackageFormSchema(advanceRateMax), [advanceRateMax]);
+
   const defaultValues = useMemo<PackageFormValues>(
     () => (pkg ? packageToFormValues(pkg) : emptyPackageValues),
     [pkg],
@@ -64,7 +72,7 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
     handleSubmit,
     setValue,
     formState: { isSubmitting, errors },
-  } = useZodForm(packageFormSchema, { defaultValues });
+  } = useZodForm(schema, { defaultValues });
 
   const tiers = useFieldArray({ control, name: 'tiers' });
   const addOns = useFieldArray({ control, name: 'add_ons' });
@@ -106,6 +114,8 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
     error,
     busy: isSubmitting,
     isEditing: pkg != null,
+    /** The vendor's live ceiling (`advance_rate_default`), for the advance input's own `max`. */
+    advanceRateMax,
     tiers: {
       fields: tiers.fields,
       add: addTier,

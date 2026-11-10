@@ -43,3 +43,34 @@ export type ExportDataHandler = () => Promise<void>;
 
 /** Signature of the portal-supplied erasure request. `reason` is the user's own words. */
 export type RequestDeletionHandler = (reason: string) => Promise<void>;
+
+/**
+ * Re-confirm the signed-in person's password (step-up). Resolves once the
+ * server has recorded the confirmation for THIS session; rejects with a
+ * readable message (wrong password, too many attempts, no connection).
+ */
+export type ConfirmPasswordHandler = (password: string) => Promise<void>;
+
+/** One live session of the signed-in account, as "Where you're signed in" lists it. */
+export type SignedInSession = {
+  id: string;
+  /** Which app admitted it — null for a session recorded before this existed. */
+  portal: 'client' | 'vendor' | 'admin' | null;
+  device: string | null;
+  os: string | null;
+  browser: string | null;
+  /** Two-letter country code from the network edge, when known. */
+  country: string | null;
+  /** False when "Keep me signed in" was unticked — it ends within 12 hours. */
+  remember: boolean;
+  /** ISO timestamps; formatted by the portal at render time. */
+  signedInAt: string;
+  lastActiveAt: string;
+  /** The session this page is running in. */
+  isCurrent: boolean;
+};
+
+export type ListSessionsHandler = () => Promise<SignedInSession[]>;
+export type RevokeSessionHandler = (sessionId: string) => Promise<void>;
+/** Resolves to how many other sessions were signed out. */
+export type RevokeOtherSessionsHandler = () => Promise<number>;

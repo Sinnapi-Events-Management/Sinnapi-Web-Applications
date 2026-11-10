@@ -44,13 +44,13 @@ export function useSignInForm() {
     formState: { isSubmitting },
   } = useZodForm(signInSchema, { defaultValues: emptySignInValues });
 
-  const submit = handleSubmit(async ({ email, password }) => {
+  const submit = handleSubmit(async ({ email, password, remember }) => {
     setError(null);
     // Belt-and-braces: submit is disabled without a token, but a stray Enter
     // key on a slow connection should not fire a request that cannot succeed.
     if (!captcha.token) return;
 
-    const signInError = await signInToPortal(email, password, captcha.token);
+    const signInError = await signInToPortal(email, password, captcha.token, remember);
     if (signInError) {
       setError(signInError);
       // Turnstile tokens are single-use and this one has just been spent on a

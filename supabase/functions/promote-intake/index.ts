@@ -135,6 +135,10 @@ async function resolveApplicantAccount(
   const tempPassword = generatePassword(16);
   const { data: authUser } = await admin.auth.admin.getUserById(existingProfile.id);
   const meta = { ...(authUser?.user?.user_metadata ?? {}), must_change_password: true };
+  // The auth.users guard (20261110000003) refuses a password write through
+  // GoTrue without a ticket. Non-fatal like the write itself: a failure lands
+  // in the `pwErr` branch below as a refused update.
+  await admin.rpc('issue_password_change_ticket', { p_user_id: existingProfile.id });
   const { error: pwErr } = await admin.auth.admin.updateUserById(existingProfile.id, {
     password: tempPassword,
     user_metadata: meta,

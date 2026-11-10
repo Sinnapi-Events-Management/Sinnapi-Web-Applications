@@ -1,6 +1,5 @@
 import type { VendorSearchFilters, VendorSortKey } from '@/lib/types';
 import {
-  CATEGORY_OPTIONS,
   REGION_OPTIONS,
   PRICE_OPTIONS,
   RATING_OPTIONS,
@@ -37,14 +36,26 @@ export const FACET_KEYS = ['category', 'region', 'price', 'rating'] as const;
 export type FacetKey = (typeof FACET_KEYS)[number];
 
 /** Every value each facet legitimately accepts, so unknown input can be dropped. */
-const ALLOWED: Record<FacetKey, Set<string>> = {
-  category: new Set(CATEGORY_OPTIONS.map((option) => option.value)),
+const ALLOWED: Record<Exclude<FacetKey, 'category'>, Set<string>> = {
   region: new Set(REGION_OPTIONS.map((option) => option.value)),
   price: new Set(PRICE_OPTIONS.map((option) => option.value)),
   rating: new Set(RATING_OPTIONS.map((option) => option.value)),
 };
 
 const ALLOWED_SORTS = new Set<string>(SORT_OPTIONS.map((option) => option.value));
+
+/**
+ * Categories are admin-managed rows in `service_categories`, not a fixed list
+ * this bundle can enumerate, so they are validated by *shape* (a DB key) rather
+ * than membership. An unknown but well-formed key reaches the RPC and matches
+ * nothing; the category row shows no selected tile and the active-filter chip
+ * lets the visitor clear it.
+ */
+const CATEGORY_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+
+function isAllowed(key: FacetKey, value: string): boolean {
+  return key === 'category' ? CATEGORY_KEY.test(value) : ALLOWED[key].has(value);
+}
 
 /**
  * Normalises raw query-string input into the params the page trusts. Anything
@@ -58,7 +69,7 @@ export function parseVendorsSearchParams(raw: VendorsSearchParams = {}): Vendors
   if (q) params.q = q;
   for (const key of FACET_KEYS) {
     const value = raw[key]?.trim();
-    if (value && ALLOWED[key].has(value)) params[key] = value;
+    if (value && isAllowed(key, value)) params[key] = value;
   }
   const sort = raw.sort?.trim();
   if (sort && sort !== DEFAULT_SORT && ALLOWED_SORTS.has(sort)) params.sort = sort;

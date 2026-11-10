@@ -1,5 +1,10 @@
-import { Stack, Button, Alert } from '@sinnapi/ui';
-import { ControlledField, ControlledPasswordField, CaptchaField } from '@sinnapi/ui/forms';
+import { Stack, Button, Alert, Typography } from '@sinnapi/ui';
+import {
+  ControlledCheckbox,
+  ControlledField,
+  ControlledPasswordField,
+  CaptchaField,
+} from '@sinnapi/ui/forms';
 import { AppLink, AuthSwitchPrompt } from '@sinnapi/ui/router';
 import { TURNSTILE_SITE_KEY } from '@/lib/captcha';
 import { useSignInForm } from './hooks/useSignInForm';
@@ -32,6 +37,20 @@ export default function SignInForm() {
           Forgot password?
         </AppLink>
       </Stack>
+      <ControlledCheckbox
+        name="remember"
+        control={control}
+        label={
+          <Stack spacing={0.25}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Keep me signed in on this device
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Untick on a shared phone or computer.
+            </Typography>
+          </Stack>
+        }
+      />
       <CaptchaField {...captcha.fieldProps} siteKey={TURNSTILE_SITE_KEY} action="client-sign-in" />
       <Button
         type="submit"
