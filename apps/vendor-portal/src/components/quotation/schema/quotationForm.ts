@@ -37,12 +37,34 @@ export const quotationItemSchema = z.object({
 export type QuotationItemValues = z.infer<typeof quotationItemSchema>;
 
 /**
- * Platform ceilings on the advance. Mirrored from `platform_settings` so the
- * form can say no immediately; the RPC re-checks against the live values,
- * which are the ones that actually bind.
+ * The vendor's advance ceiling is NOT a constant. It is
+ * `platform_settings.advance_rate_default`, which an admin can change at any
+ * time, so the form reads it live (`useVendorAdvanceRateMax`) and builds its
+ * schema from it (`makeQuotationFormSchema`). `send_quotation` and
+ * `save_quote_package` check the same setting and are what actually bind.
+ * (`advance_rate_max` is the CLIENT's ceiling at checkout — not used here.)
+ *
+ * `ADVANCE_RATE_HARD_MAX` is the column's own CHECK (0–100): the only limit the
+ * form applies before the setting has loaded.
+ * `VENDOR_ADVANCE_RATE_MAX_FALLBACK` mirrors the server's fallback when the
+ * setting row is missing.
+ * `ADVANCE_RATE_START` is what a new quote or package opens on — a fixed
+ * starting figure, deliberately not read from any setting.
  */
-export const ADVANCE_RATE_MAX = 50;
+export const ADVANCE_RATE_HARD_MAX = 100;
+export const VENDOR_ADVANCE_RATE_MAX_FALLBACK = 30;
+export const ADVANCE_RATE_START = 30;
 export const ADVANCE_DAYS_MAX = 30;
+
+/** The advance a vendor types: required, 0 up to the admin's ceiling. */
+export const advanceRateField = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1, 'Required.')
+    .refine((v) => !Number.isNaN(Number(v)), 'Enter a number.')
+    .refine((v) => Number(v) >= 0, 'Cannot be negative.')
+    .refine((v) => Number(v) <= max, `Cannot exceed ${max}%.`);
 
 export const quotationFormSchema = z.object({
   /**
@@ -71,13 +93,7 @@ export const quotationFormSchema = z.object({
    * it binds the deal whether or not the client pays through escrow, and the
    * client must accept it explicitly before any money is taken.
    */
-  advance_rate: z
-    .string()
-    .trim()
-    .min(1, 'Required.')
-    .refine((v) => !Number.isNaN(Number(v)), 'Enter a number.')
-    .refine((v) => Number(v) >= 0, 'Cannot be negative.')
-    .refine((v) => Number(v) <= ADVANCE_RATE_MAX, `Cannot exceed ${ADVANCE_RATE_MAX}%.`),
+  advance_rate: advanceRateField(ADVANCE_RATE_HARD_MAX),
   advance_release_days_before: requiredIntField('Advance timing', 0).refine(
     (v) => Number(v) <= ADVANCE_DAYS_MAX,
     `Cannot be more than ${ADVANCE_DAYS_MAX} days before the event.`,
@@ -91,6 +107,10 @@ export const quotationFormSchema = z.object({
 });
 
 export type QuotationFormValues = z.infer<typeof quotationFormSchema>;
+
+/** The form's schema with the admin's live advance ceiling applied. */
+export const makeQuotationFormSchema = (advanceRateMax: number) =>
+  quotationFormSchema.extend({ advance_rate: advanceRateField(advanceRateMax) });
 
 /** A blank line item — the row "Add line item" appends. */
 export const emptyQuotationItem: QuotationItemValues = {
@@ -108,7 +128,7 @@ export const emptyQuotationValues: QuotationFormValues = {
   tax_rate: '',
   tax_inclusive: false,
   valid_days: '14',
-  advance_rate: '30',
+  advance_rate: String(ADVANCE_RATE_START),
   advance_release_days_before: '7',
   advance_terms_note: '',
 };

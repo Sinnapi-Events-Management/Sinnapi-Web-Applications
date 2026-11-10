@@ -66,7 +66,7 @@ export default function PackageEditorForm({ vendorId, pkg, onCancel, onSaved }: 
               <PackageTiersSection control={control} tiers={editor.tiers} />
               <PackageAddOnsSection control={control} addOns={editor.addOns} />
               <PackageScopeSection control={control} />
-              <PackageTermsFields control={control} />
+              <PackageTermsFields control={control} advanceRateMax={editor.advanceRateMax} />
               <PackagePublishFields control={control} />
             </Stack>
           </Grid>

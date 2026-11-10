@@ -1,6 +1,6 @@
 import { Paper, Box, Stack, Button, SearchField, FacetSelect } from '@sinnapi/ui';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import type { SearchTerm } from '@/hooks/useSearchTerm';
+import type { SearchTerm } from '@sinnapi/ui';
 import type { VendorFilters } from '../../hooks/useVendorFilters';
 import {
   PRICE_OPTIONS,

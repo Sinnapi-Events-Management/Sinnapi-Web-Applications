@@ -31,7 +31,7 @@ export default function PaymentChaseActions({ actions, onSelect, disabled }: Pro
   if (!actions.length) return null;
 
   return (
-    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flexWrap="wrap" useFlexGap>
       {actions.map((spec) => (
         <Button
           key={spec.action}

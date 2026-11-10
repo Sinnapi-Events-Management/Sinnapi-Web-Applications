@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { updateOwnPassword } from '@sinnapi/utils/passwordWrite';
 import { safeReturnTo } from '@/auth/returnTo';
 
 /**
@@ -41,13 +42,14 @@ export function useChangePassword() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({
+    // Ticketed write — see `updateOwnPassword`.
+    const failure = await updateOwnPassword(supabase, {
       password,
       data: { must_change_password: false },
     });
     setSubmitting(false);
-    if (error) {
-      setError(error.message);
+    if (failure) {
+      setError(failure);
       return;
     }
     navigate(safeReturnTo(params.get('returnTo'), DEFAULT_DESTINATION), { replace: true });

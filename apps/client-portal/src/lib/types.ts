@@ -364,6 +364,13 @@ export type QuotationListModel = {
   vendors: VendorNameSlugRefModel | VendorNameSlugRefModel[] | null;
 };
 
+/** A row of the Quotations list, which also shows the event's date. */
+export type QuotationListRowModel = QuotationListModel & {
+  /** The quote's own event date (package orders) or the linked event's.
+   *  Resolved by `search_quotations`; `null` when the request names no date. */
+  event_on: string | null;
+};
+
 /**
  * A quote as the vendor profile lists it: the list row plus the event it was
  * written for, so two quotes with the same vendor can be told apart.

@@ -69,7 +69,7 @@ export default function BookingInvoiceCard({ booking }: { booking: VendorBooking
                   row.status === 'draft' ? `/invoices/${row.id}/edit` : `/invoices/${row.id}`,
                 )
               }
-              sx={{ alignSelf: 'flex-start' }}
+              sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
             >
               {row.status === 'draft' ? 'Finish the draft' : 'Open invoice'}
             </Button>
@@ -84,7 +84,7 @@ export default function BookingInvoiceCard({ booking }: { booking: VendorBooking
               variant="outlined"
               onClick={start}
               disabled={create.isPending || invoice.isLoading}
-              sx={{ alignSelf: 'flex-start' }}
+              sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
             >
               {create.isPending ? 'Creating…' : 'Create invoice'}
             </Button>

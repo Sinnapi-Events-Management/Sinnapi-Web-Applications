@@ -3,7 +3,7 @@ import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
 import type {
   QuotationBookingModel,
-  QuotationListModel,
+  QuotationListRowModel,
   VendorNameSlugRefModel,
 } from '@/lib/types';
 import QuotationNextStep from '../components/molecules/QuotationNextStep';
@@ -21,7 +21,7 @@ import QuotationNextStep from '../components/molecules/QuotationNextStep';
 export function quotationColumns(input: {
   bookingFor: (quotationId: string) => QuotationBookingModel | null;
   onBook: (quotationId: string) => void;
-}): DataTableColumn<QuotationListModel>[] {
+}): DataTableColumn<QuotationListRowModel>[] {
   return [
     {
       field: 'reference_no',
@@ -33,6 +33,14 @@ export function quotationColumns(input: {
       field: 'vendor',
       headerName: 'Vendor',
       render: (q) => one<VendorNameSlugRefModel>(q.vendors)?.business_name ?? '—',
+    },
+    {
+      // Resolved server-side (`search_quotations`): the quote's own date, else
+      // the linked event's. Sortable — a real column of the function's result.
+      field: 'event_on',
+      headerName: 'Event date',
+      sortable: true,
+      render: (q) => (q.event_on ? formatDate(q.event_on) : '—'),
     },
     {
       field: 'total',

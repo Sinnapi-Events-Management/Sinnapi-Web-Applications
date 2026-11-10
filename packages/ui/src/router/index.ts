@@ -14,4 +14,8 @@ export * from './hooks/useGoBack';
 // with the tab bars in the root barrel because it reads the router's search
 // params — `web-public` must never pull react-router-dom into its graph.
 export * from './hooks/useUrlTab';
+// Debounced search term + URL-backed list filters, shared by every portal list
+// that searches (Bookings, Quotations, Discover, public events).
+export * from './hooks/useSearchTerm';
+export * from './hooks/useListFilters';
 export * from './types';

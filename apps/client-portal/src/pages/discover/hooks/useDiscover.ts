@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useVendorSearch, useVendorFacetCounts, useFilterRefData } from '@/hooks/queries';
-import { useSearchTerm } from '@/hooks/useSearchTerm';
+import { useSearchTerm } from '@sinnapi/ui/router';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { VendorSearchFilters } from '@/lib/types';
 import { useVendorFilters } from './useVendorFilters';

@@ -1,17 +1,30 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTableState } from '@sinnapi/ui';
-import { useQuotationBookings, useQuotations as useQuotationsQuery } from '@/hooks/queries';
+import { QUOTATION_LIST_FILTERS, LIST_TIMING, useTableState } from '@sinnapi/ui';
+import { useListFilters } from '@sinnapi/ui/router';
+import {
+  useQuotationBookings,
+  useQuotationFacets,
+  useQuotations as useQuotationsQuery,
+} from '@/hooks/queries';
 
 /**
- * The quotations list: server-paginated page state over the client's quotes,
+ * The quotations list: URL-backed search + filters and server-paginated page
+ * state over the client's quotes, the status dropdown's counts,
  * row navigation into the quote itself, and the shortcut that takes an accepted
  * quote straight to its booking form.
  */
 export function useQuotations() {
   const navigate = useNavigate();
-  const table = useTableState({ sort: { field: 'created_at', direction: 'desc' } });
+  const list = useListFilters(QUOTATION_LIST_FILTERS);
+  const table = useTableState({
+    sort: { field: 'created_at', direction: 'desc' },
+    filters: list.query,
+    // Pager clicks: instant on screen, at most one request per window.
+    throttleMs: LIST_TIMING.pageThrottleMs,
+  });
   const { data, isLoading, isFetching, error } = useQuotationsQuery(table.params);
+  const facets = useQuotationFacets(list.countsQuery);
 
   const rows = data?.rows ?? [];
 
@@ -51,9 +64,11 @@ export function useQuotations() {
     rows,
     total: data?.total ?? 0,
     isLoading,
-    isFetching,
+    isFetching: isFetching || list.isPending,
     error,
     table,
+    list,
+    facetCounts: facets.data,
     bookingFor,
     openQuotation,
     openBookingForm,

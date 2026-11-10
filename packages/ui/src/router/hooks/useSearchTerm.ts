@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import type { SearchTerm } from '../../data/listFilters';
 
-export type SearchTerm = {
-  /** Live field value — bind to the controlled input. */
-  input: string;
-  setInput: (next: string) => void;
-  /** Debounced, trimmed term to hand to a query; `undefined` when empty. */
-  query: string | undefined;
-  /** Apply what's typed right now, skipping the rest of the debounce window. */
-  flush: () => void;
-  clear: () => void;
-  /** A debounce window is open: what's on screen is about to be replaced. */
-  isPending: boolean;
-};
+// The type lives in the router-free data layer so presentational toolbars can
+// name it without pulling react-router-dom into their graph.
+export type { SearchTerm };
 
 /**
  * A debounced, URL-mirrored free-text search term for a list view. The raw
@@ -38,8 +30,14 @@ export function useSearchTerm(opts?: {
   param?: string;
   /** Debounce window in ms. Defaults to 300. */
   delay?: number;
+  /**
+   * Shortest trimmed term that counts as a search. Anything shorter reads as
+   * "no search" — never sent, never written to the URL — and `tooShort` lets
+   * the field say why. Defaults to 1 (any text searches).
+   */
+  minLength?: number;
 }): SearchTerm {
-  const { param = 'q', delay = 300 } = opts ?? {};
+  const { param = 'q', delay = 300, minLength = 1 } = opts ?? {};
   const [searchParams, setSearchParams] = useSearchParams();
 
   // The URL seeds the initial value only; thereafter the field owns `input` and
@@ -61,7 +59,13 @@ export function useSearchTerm(opts?: {
     return () => clearTimeout(timer.current);
   }, [input, delay]);
 
-  const query = term.trim() || undefined;
+  // The term as the server sees it: trimmed, and absent below the minimum.
+  const effective = (text: string) => {
+    const trimmed = text.trim();
+    return trimmed.length >= minLength ? trimmed : undefined;
+  };
+  const query = effective(term);
+  const typed = input.trim().length;
 
   useEffect(() => {
     setSearchParams(
@@ -90,8 +94,11 @@ export function useSearchTerm(opts?: {
     query,
     flush,
     clear,
-    // Compared trimmed, so typing a trailing space doesn't pretend a request is
-    // coming when the term the query reads hasn't actually changed.
-    isPending: input.trim() !== term.trim(),
+    // Compared as the server would see them, so a trailing space — or a
+    // too-short term that will never be sent — doesn't pretend a request is
+    // coming when the term the query reads isn't going to change.
+    isPending: effective(input) !== query,
+    minLength,
+    tooShort: typed > 0 && typed < minLength,
   };
 }

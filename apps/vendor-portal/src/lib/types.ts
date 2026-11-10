@@ -301,6 +301,9 @@ export type VendorQuotationModel = {
   request_details: string | null;
   created_at: string;
   client_id: string | null;
+  /** The event's date: the quote's own (package orders) or the linked event's.
+   *  Resolved by `search_quotations`; `null` when the request names no date. */
+  event_on: string | null;
 };
 
 export type QuotationItemModel = {

@@ -1,6 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import { downloadBase64File } from '@sinnapi/utils/download';
-import type { ChangePasswordInput, DeletionRequestSummary } from '@sinnapi/ui/settings';
+import { updateOwnPassword } from '@sinnapi/utils/passwordWrite';
+import type {
+  ChangePasswordInput,
+  DeletionRequestSummary,
+  SignedInSession,
+} from '@sinnapi/ui/settings';
 import { supabase } from './supabase';
 import { invokeFunction } from './functions';
 
@@ -23,37 +27,32 @@ export const CURRENT_PASSWORD_REJECTED = 'That current password is incorrect.';
 
 const SESSION_EXPIRED = 'Your session has expired. Sign in again and retry.';
 
-/**
- * Check a password without disturbing the session the user is sitting in.
- *
- * `signInWithPassword` on the live client would work, but it replaces the
- * session — firing `SIGNED_IN`, sending `AuthProvider` back through the portal
- * gate, and re-running every subscription in the app — as a side effect of
- * typing into a dialog. A throwaway client with `persistSession: false` asks
- * GoTrue the same question and writes nothing: the session it mints exists only
- * in this function's scope and is discarded with it.
- *
- * It deliberately never calls `signOut`. supabase-js defaults that to a GLOBAL
- * scope, which would revoke every refresh token the account holds — signing the
- * user out of the portal they are currently using, mid-dialog, as the reward
- * for typing their password correctly.
- */
-async function verifyCurrentPassword(email: string, password: string): Promise<void> {
-  const verifier = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-        storageKey: 'sinnapi-vendor-verify',
-      },
-    },
-  );
+/** What `confirm-password` can answer, in words the person who typed it will understand. */
+const CONFIRM_ERRORS: Record<string, string> = {
+  wrong_password: CURRENT_PASSWORD_REJECTED,
+  too_many_attempts: 'Too many wrong attempts. Wait 15 minutes and try again.',
+  unauthorized: SESSION_EXPIRED,
+  request_timed_out: 'No connection. Check your internet and try again.',
+};
 
-  const { error } = await verifier.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(CURRENT_PASSWORD_REJECTED);
+/**
+ * Prove the signed-in person knows the password (step-up).
+ *
+ * Runs on the server (`confirm-password`), which verifies against GoTrue,
+ * throws away the verification session it had to mint, counts failures for a
+ * lockout, and records the success against THIS session. The database then
+ * lets this session make the protected change (payout bank details) for 15
+ * minutes — the unlock is enforced there, not by whatever asked.
+ *
+ * Replaces an in-browser `signInWithPassword` on a throwaway client, which
+ * left an orphaned session in `auth.sessions` every time — a phantom
+ * "device" that would now show up under "Where you're signed in".
+ */
+export async function confirmPassword(password: string): Promise<void> {
+  const { error } = await invokeFunction('confirm-password', { password });
+  if (error) {
+    throw new Error(CONFIRM_ERRORS[error] ?? 'We could not check your password. Please try again.');
+  }
 }
 
 /** Prove the current password, then set the new one. */
@@ -61,15 +60,12 @@ export async function changePassword({
   currentPassword,
   newPassword,
 }: ChangePasswordInput): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) throw new Error(SESSION_EXPIRED);
+  // Records a confirmation for this session, which is what lets
+  // `authorize_password_change` issue the ticket the auth.users guard wants.
+  await confirmPassword(currentPassword);
 
-  await verifyCurrentPassword(user.email, currentPassword);
-
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(error.message);
+  const failure = await updateOwnPassword(supabase, { password: newPassword });
+  if (failure) throw new Error(failure);
 }
 
 /** Reasons `data-export` can refuse, in words the person who clicked will understand. */
@@ -133,4 +129,56 @@ export async function fetchLatestDeletionRequest(): Promise<DeletionRequestSumma
 
   const row = data as { id: string; status: DeletionRequestSummary['status']; created_at: string };
   return { id: row.id, status: row.status, createdAt: row.created_at };
+}
+
+// ---------------------------------------------------------------------
+// "Where you're signed in"
+// ---------------------------------------------------------------------
+
+type SessionRow = {
+  session_id: string;
+  portal: SignedInSession['portal'];
+  device: string | null;
+  os: string | null;
+  browser: string | null;
+  country: string | null;
+  remember: boolean;
+  signed_in_at: string;
+  last_active_at: string;
+  is_current: boolean;
+};
+
+/** Every live session of this account, this device first. */
+export async function listMySessions(): Promise<SignedInSession[]> {
+  const { data, error } = await supabase.rpc('list_my_sessions');
+  if (error) throw new Error('We could not load your devices. Please try again.');
+  return ((data ?? []) as SessionRow[]).map((r) => ({
+    id: r.session_id,
+    portal: r.portal,
+    device: r.device,
+    os: r.os,
+    browser: r.browser,
+    country: r.country,
+    remember: r.remember,
+    signedInAt: r.signed_in_at,
+    lastActiveAt: r.last_active_at,
+    isCurrent: r.is_current,
+  }));
+}
+
+/**
+ * Sign one other device out. It can no longer refresh its session, and the
+ * portal gate refuses its current token at its next check (within the hour,
+ * immediately if it is opened).
+ */
+export async function revokeMySession(sessionId: string): Promise<void> {
+  const { error } = await supabase.rpc('revoke_my_session', { p_session_id: sessionId });
+  if (error) throw new Error('We could not sign that device out. Please try again.');
+}
+
+/** Sign every device out except this one. Resolves to how many were signed out. */
+export async function revokeMyOtherSessions(): Promise<number> {
+  const { data, error } = await supabase.rpc('revoke_my_other_sessions');
+  if (error) throw new Error('We could not sign your other devices out. Please try again.');
+  return typeof data === 'number' ? data : 0;
 }

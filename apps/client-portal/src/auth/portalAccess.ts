@@ -1,6 +1,7 @@
 import { parseUserAgent } from '@sinnapi/utils/userAgent';
-import { supabase } from '@/lib/supabase';
+import { sessionPersistence, supabase } from '@/lib/supabase';
 import { requestPortalSignIn } from '@sinnapi/utils/portalSignIn';
+import { getDeviceId } from '@sinnapi/utils/sessionPersistence';
 
 /**
  * This portal's half of the portal-access boundary.
@@ -77,6 +78,13 @@ export type PortalVerdict = 'allowed' | 'denied' | 'unknown';
 export type PortalAccess = {
   verdict: PortalVerdict;
   roles: string[];
+  /**
+   * The server's machine code on a refusal. Never shown to the user (see
+   * `GENERIC_SIGN_IN_ERROR`); used only to label the sign-out in the audit
+   * trail, so an expired or remotely revoked session is not logged as a
+   * gate refusal.
+   */
+  denyReason: string | null;
 };
 
 type GateRow = {
@@ -100,28 +108,42 @@ export async function checkPortalAccess(): Promise<PortalAccess> {
 
   // No verdict: transport, RLS, or a missing migration. The caller decides what
   // that means for the session it is holding.
-  if (error) return { verdict: 'unknown', roles: [] };
+  if (error) return { verdict: 'unknown', roles: [], denyReason: null };
 
   // `returns table (...)` arrives as a one-row array.
   const row = (Array.isArray(data) ? data[0] : data) as GateRow | undefined;
-  if (!row) return { verdict: 'denied', roles: [] };
+  if (!row) return { verdict: 'denied', roles: [], denyReason: null };
 
   return {
     verdict: row.allowed ? 'allowed' : 'denied',
     roles: row.role_keys ?? [],
+    denyReason: row.allowed ? null : row.deny_reason,
   };
 }
 
 /**
- * Why a session ended. Two of the three are involuntary: `portal_refused` is
- * the gate saying no to a session that arrived by some route other than the
- * sign-in form, and `idle_timeout` is this portal closing a session nobody was
- * using. Telling them apart matters when reading the trail — a burst of
- * refusals is somebody holding a credential this portal will not accept, and a
- * run of idle timeouts is unattended screens, neither of which is the same
- * event as somebody clicking "Sign out".
+ * Why a session ended. All but the first are involuntary:
+ *
+ *   `user_initiated`  the person tapped "Sign out".
+ *   `portal_refused`  the gate said no to a session that arrived by some route
+ *                     other than the sign-in form.
+ *   `session_expired` a "don't keep me signed in" session past its 12 hours.
+ *   `session_revoked` signed out from another device ("Where you're signed in").
+ *
+ * There is no `idle_timeout` any more: this portal no longer signs people out
+ * for inactivity (Supabase's 60-day inactivity timeout does that, server-side).
  */
-export type SignOutReason = 'user_initiated' | 'portal_refused' | 'idle_timeout';
+export type SignOutReason =
+  | 'user_initiated'
+  | 'portal_refused'
+  | 'session_expired'
+  | 'session_revoked';
+
+/** Which audit label a refused session gets, from the gate's machine code. */
+export function signOutReasonFor(denyReason: string | null): SignOutReason {
+  if (denyReason === 'session_expired' || denyReason === 'session_revoked') return denyReason;
+  return 'portal_refused';
+}
 
 /**
  * Record the end of a session, best-effort, while the token is still valid.
@@ -185,6 +207,7 @@ export async function signInToPortal(
   email: string,
   password: string,
   captchaToken: string,
+  remember: boolean,
 ): Promise<string | null> {
   const outcome = await requestPortalSignIn(supabase, {
     portal: PORTAL,
@@ -192,6 +215,8 @@ export async function signInToPortal(
     password,
     captchaToken,
     anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    remember,
+    deviceId: getDeviceId(),
   });
 
   if (outcome.kind === 'credentials') return GENERIC_SIGN_IN_ERROR;
@@ -202,6 +227,11 @@ export async function signInToPortal(
   // portal's own storage key and starts the refresh timer. This is also what
   // evicts a stale session left in storage by an earlier project or an expired
   // login — precisely the token the request above had to refuse to send.
+  //
+  // The remember choice is applied first so supabase-js writes the new session
+  // into the right store: localStorage when "Keep me signed in" is ticked,
+  // sessionStorage (gone when the browser closes) when it is not.
+  sessionPersistence.setRemember(remember);
   const { error: setErr } = await supabase.auth.setSession({
     access_token: outcome.accessToken,
     refresh_token: outcome.refreshToken,
@@ -209,4 +239,27 @@ export async function signInToPortal(
   if (setErr) return UNAVAILABLE_ERROR;
 
   return null;
+}
+
+/**
+ * Tell the server this device holds the current session, best-effort.
+ *
+ * `portal-sign-in` records every session it hands out. This covers the ones it
+ * never saw — opened from a password-reset or email-confirmation link, or held
+ * since before sessions were recorded — so they appear under "Where you're
+ * signed in", and keeps "last active" fresh. Never throws.
+ */
+export async function touchPortalSession(): Promise<void> {
+  try {
+    const ua = parseUserAgent(navigator.userAgent);
+    await supabase.rpc('touch_my_portal_session', {
+      p_portal: PORTAL,
+      p_device_id: getDeviceId(),
+      p_device: ua.device,
+      p_os: ua.os,
+      p_browser: ua.browser,
+    });
+  } catch {
+    // Telemetry for the device list; never a reason to disturb the session.
+  }
 }

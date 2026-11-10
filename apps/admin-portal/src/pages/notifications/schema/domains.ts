@@ -175,6 +175,11 @@ const DOMAIN_PREFIXES: { prefix: string; domain: NotificationDomain }[] = [
       perm: 'events.manage',
     },
   },
+  {
+    // Sign-in alerts (`account.new_sign_in`). Mirrors the shared kit's entry.
+    prefix: 'account',
+    domain: { key: 'account', label: 'Account', accent: 'warning', route: '/profile' },
+  },
 ];
 
 /** Catch-all for a trigger key no prefix claims — labelled, but never linked. */

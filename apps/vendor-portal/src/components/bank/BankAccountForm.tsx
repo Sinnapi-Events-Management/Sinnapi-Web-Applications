@@ -1,5 +1,6 @@
 import { Stack, Button, Alert, Box, Snackbar, Typography } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
+import { ConfirmPasswordDialog } from '@sinnapi/ui/settings';
 import { useBankAccountForm } from './hooks/useBankAccountForm';
 import BankAccountOnFile from './molecules/BankAccountOnFile';
 
@@ -23,7 +24,7 @@ import BankAccountOnFile from './molecules/BankAccountOnFile';
 // a text input stretched across it is harder to scan, not easier. The width the
 // page gained is spent on the column beside it, not on longer inputs.
 export default function BankAccountForm({ vendorId }: { vendorId: string }) {
-  const { control, current, loadingCurrent, error, busy, toast, dismissToast, submit } =
+  const { control, current, loadingCurrent, error, busy, toast, dismissToast, submit, confirm } =
     useBankAccountForm(vendorId);
 
   return (
@@ -81,6 +82,8 @@ export default function BankAccountForm({ vendorId }: { vendorId: string }) {
           message="Bank account saved (pending verification)"
         />
       </Stack>
+
+      <ConfirmPasswordDialog {...confirm} purpose="change where your money is sent" />
     </Stack>
   );
 }

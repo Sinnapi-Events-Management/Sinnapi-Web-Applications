@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, DataTable } from '@sinnapi/ui';
+import { Alert, DataTable, ListToolbar } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useQuotations } from '../../hooks/useQuotations';
 import { quotationColumns } from '../../schema';
@@ -18,6 +18,8 @@ export default function QuotationsTable({ vendorId }: { vendorId: string }) {
     clientName,
     namesLoading,
     bookingFor,
+    list,
+    facetCounts,
   } = useQuotations(vendorId);
   const columns = useMemo(
     () => quotationColumns({ clientName, bookingFor }),
@@ -26,6 +28,8 @@ export default function QuotationsTable({ vendorId }: { vendorId: string }) {
 
   return (
     <>
+      <ListToolbar list={list} counts={facetCounts} resultCount={total} />
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error instanceof Error ? error.message : 'Failed to load quotations.'}
@@ -48,11 +52,21 @@ export default function QuotationsTable({ vendorId }: { vendorId: string }) {
           />
         )}
         emptyMessage={
-          <EmptyState
-            embedded
-            title="No quote requests yet"
-            description="When clients request quotes, they'll appear here for you to build and send."
-          />
+          list.isFiltered ? (
+            <EmptyState
+              embedded
+              title="No quotes match"
+              description="Try a different search, or clear the filters to see every quote."
+              ctaLabel="Clear search and filters"
+              onCta={list.clearAll}
+            />
+          ) : (
+            <EmptyState
+              embedded
+              title="No quote requests yet"
+              description="When clients request quotes, they'll appear here for you to build and send."
+            />
+          )
         }
         {...table.controls}
       />

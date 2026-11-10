@@ -105,6 +105,7 @@ export * from './SettlementTrail';
 export * from './FacetSelect';
 export * from './LoadMoreResults';
 export * from './FilterDisclosure';
+export * from './ListFilterChips';
 // Status filter tabs for a list view — the same bar every portal's queues,
 // inbox and dashboard navigate with.
 export * from './StatusTabs';

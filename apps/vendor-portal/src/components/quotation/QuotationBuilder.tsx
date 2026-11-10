@@ -42,6 +42,7 @@ export default function QuotationBuilder({
     pricing,
     advanceRate,
     advanceDays,
+    advanceRateMax,
     addItem,
     removeItem,
     packages,
@@ -162,6 +163,7 @@ export default function QuotationBuilder({
         currency={currency}
         rate={advanceRate}
         daysBefore={advanceDays}
+        advanceRateMax={advanceRateMax}
       />
 
       <Button type="submit" variant="contained" disabled={busy} sx={{ alignSelf: 'flex-end' }}>

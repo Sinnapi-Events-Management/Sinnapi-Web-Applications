@@ -30,6 +30,15 @@ export function quotationColumns(input: {
       render: (q) => input.clientName(q.client_id),
     },
     {
+      // Resolved server-side (`search_quotations`): the quote's own date, else
+      // the date of the event the client attached. Sortable — it is a real
+      // column of the function's result.
+      field: 'event_on',
+      headerName: 'Event date',
+      sortable: true,
+      render: (q) => (q.event_on ? formatDate(q.event_on) : '—'),
+    },
+    {
       field: 'total',
       headerName: 'Total',
       align: 'right',

@@ -48,6 +48,12 @@ Deno.serve(
     const meta = { ...(existing?.user?.user_metadata ?? {}), must_change_password: true };
 
     const tempPassword = generatePassword(16);
+    // The auth.users guard (20261110000003) refuses a password write through
+    // GoTrue without a ticket, so a stolen session token cannot change one.
+    const { error: ticketErr } = await admin.rpc('issue_password_change_ticket', {
+      p_user_id: b.userId,
+    });
+    if (ticketErr) throw new HttpError(500, `password_ticket_failed:${ticketErr.message}`);
     const { error: updErr } = await admin.auth.admin.updateUserById(b.userId, {
       password: tempPassword,
       user_metadata: meta,
