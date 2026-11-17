@@ -28,7 +28,7 @@ const columns: DataTableColumn<QuotationModel>[] = [
     field: 'status',
     headerName: 'Status',
     sortable: true,
-    render: (q) => <StatusChip status={q.status} />,
+    render: (q) => <StatusChip status={q.status} domain="quotation" />,
   },
 ];
 

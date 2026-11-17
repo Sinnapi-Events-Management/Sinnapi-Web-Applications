@@ -40,7 +40,7 @@ export const vendorProfileFormSchema = z.object({
     .trim()
     .min(2, 'Business name must be at least 2 characters.')
     .max(140, 'Business name must be 140 characters or fewer.'),
-  base_city: z.string().trim().max(80, 'Base city must be 80 characters or fewer.'),
+  base_city: z.string().trim().max(80, 'Keep the town or city under 80 characters.'),
   business_location: z.string().trim().max(160, 'Location must be 160 characters or fewer.'),
   website: optionalUrlField('Enter a full URL, e.g. https://yourbusiness.com.'),
   biography: z

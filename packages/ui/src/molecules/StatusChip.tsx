@@ -1,11 +1,13 @@
 'use client';
 import { Chip } from '@mui/material';
-import { statusColor, titleizeStatus } from './statusColor';
+import { statusColor, titleizeStatus, type StatusDomain } from './statusColor';
 
 export type StatusChipProps = {
   /** Raw enum value from the database, e.g. `release_requested`. */
   status: string;
   size?: 'small' | 'medium';
+  /** Pass `booking` for a booking's status, so it reads "Booked", "Done"… */
+  domain?: StatusDomain;
 };
 
 /**
@@ -29,7 +31,7 @@ export type StatusChipProps = {
  * gradient banner on `IdentityCard`, a hovered table row — rather than only on the
  * white card it was first drawn against.
  */
-export function StatusChip({ status, size = 'small' }: StatusChipProps) {
+export function StatusChip({ status, size = 'small', domain }: StatusChipProps) {
   const color = statusColor(status);
   const outlined = color === 'default';
 
@@ -37,7 +39,7 @@ export function StatusChip({ status, size = 'small' }: StatusChipProps) {
     <Chip
       size={size}
       color={color}
-      label={titleizeStatus(status)}
+      label={titleizeStatus(status, domain)}
       variant={outlined ? 'outlined' : 'filled'}
       sx={
         outlined

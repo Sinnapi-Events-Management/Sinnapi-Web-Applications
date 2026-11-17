@@ -52,7 +52,13 @@ export type PackageAddOnsController = {
  * meant the whole editor. It lives in `usePackagePreview`, called by the panel
  * that shows it. See there.
  */
-export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onSaved: () => void) {
+export function usePackageEditor(
+  vendorId: string,
+  pkg: PackageModel | null,
+  onSaved: () => void,
+  /** A new package started from a service card starts under that service. */
+  defaultServiceId?: string | null,
+) {
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
@@ -63,8 +69,11 @@ export function usePackageEditor(vendorId: string, pkg: PackageModel | null, onS
   const schema = useMemo(() => makePackageFormSchema(advanceRateMax), [advanceRateMax]);
 
   const defaultValues = useMemo<PackageFormValues>(
-    () => (pkg ? packageToFormValues(pkg) : emptyPackageValues),
-    [pkg],
+    () =>
+      pkg
+        ? packageToFormValues(pkg)
+        : { ...emptyPackageValues, vendor_service_id: defaultServiceId ?? '' },
+    [pkg, defaultServiceId],
   );
 
   const {

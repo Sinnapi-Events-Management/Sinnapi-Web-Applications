@@ -306,7 +306,9 @@ export function paymentWindowCopy(
   switch (window.state) {
     case 'paid':
       return {
-        label: 'Paid',
+        // To a vendor "Paid" read as "paid to me". The client has paid, but
+        // Sinnapi holds it until the work is done, so say where the money is.
+        label: audience === 'vendor' ? 'Money with Sinnapi' : 'Paid',
         tone: 'success',
         detail:
           audience === 'client'

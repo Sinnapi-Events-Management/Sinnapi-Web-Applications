@@ -55,7 +55,7 @@ export default function ServiceArchiveDialog({
         description={`Clients can buy ${n === 1 ? 'it' : 'them'} right now, so this service cannot leave your catalogue yet. Hide ${n === 1 ? 'that package' : 'those packages'} from clients — or move ${n === 1 ? 'it' : 'them'} to another service — and try again.`}
         confirmLabel="Go to packages"
         cancelLabel="Not now"
-        onConfirm={() => navigate('/packages')}
+        onConfirm={() => navigate('/services')}
         onCancel={onCancel}
       />
     );

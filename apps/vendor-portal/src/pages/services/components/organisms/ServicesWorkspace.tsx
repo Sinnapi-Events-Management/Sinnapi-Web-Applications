@@ -1,4 +1,10 @@
-import { Alert, QueryState } from '@sinnapi/ui';
+import { useState } from 'react';
+import { Alert, Card, CardContent, ConfirmDialog, QueryState, Typography } from '@sinnapi/ui';
+import { usePackages } from '@/pages/packages/hooks/usePackages';
+import { usePackageActions } from '@/pages/packages/hooks/usePackageActions';
+import PackageEditorDialog from '@/pages/packages/components/organisms/PackageEditorDialog';
+import type { PackageModel } from '@/lib/types';
+import ServicePackages, { type PackageHandlers } from '../molecules/ServicePackages';
 import { useServices } from '../../hooks/useServices';
 import { useServiceActions } from '../../hooks/useServiceActions';
 import ServicesToolbar from './ServicesToolbar';
@@ -32,6 +38,26 @@ export default function ServicesWorkspace({ vendorId }: { vendorId: string }) {
   const list = useServices(vendorId);
   const actions = useServiceActions(vendorId);
 
+  // Prices (packages) live inside their service's card now — Services and
+  // Packages became one page on 2026-11-17.
+  const pkgs = usePackages(vendorId);
+  const pkgActions = usePackageActions(vendorId);
+  const [editor, setEditor] = useState<{
+    pkg: PackageModel | null;
+    serviceId: string | null;
+  } | null>(null);
+  const live = (pkgs.rows ?? []).filter((p) => p.is_active !== false);
+  const handlers = (serviceId: string | null): PackageHandlers => ({
+    onAdd: () => setEditor({ pkg: null, serviceId }),
+    onEdit: (pkg) => setEditor({ pkg, serviceId: pkg.vendor_service_id ?? null }),
+    onSetVisibility: (pkg, show) => void pkgActions.setVisibility(pkg, show),
+    onDuplicate: (pkg) => void pkgActions.duplicate(pkg),
+    onDelete: pkgActions.requestDelete,
+    busyId: pkgActions.busyId,
+  });
+  const serviceIds = new Set(list.visible.map((s) => s.id));
+  const loose = live.filter((p) => !p.vendor_service_id || !serviceIds.has(p.vendor_service_id));
+
   return (
     <>
       <ServicesToolbar
@@ -41,6 +67,11 @@ export default function ServicesWorkspace({ vendorId }: { vendorId: string }) {
         onAdd={list.create}
       />
 
+      {pkgActions.error && (
+        <Alert severity="error" onClose={pkgActions.dismissError} sx={{ mb: 2 }}>
+          {pkgActions.error}
+        </Alert>
+      )}
       {actions.error && (
         <Alert severity="error" onClose={actions.dismissError} sx={{ mb: 2 }}>
           {actions.error}
@@ -60,8 +91,43 @@ export default function ServicesWorkspace({ vendorId }: { vendorId: string }) {
           onToggleVisibility={(service) => actions.setVisibility(service, service.state !== 'live')}
           onArchive={actions.requestArchive}
           onRestore={actions.restore}
+          renderPrices={(service) => (
+            <ServicePackages
+              packages={live.filter((p) => p.vendor_service_id === service.id)}
+              h={handlers(service.id)}
+            />
+          )}
         />
+        {list.filter === 'all' && loose.length > 0 && (
+          <Card variant="outlined" sx={{ mt: 2, borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6">Other prices</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Not linked to a service. Open one and choose its service to tidy this up.
+              </Typography>
+              <ServicePackages packages={loose} h={handlers(null)} />
+            </CardContent>
+          </Card>
+        )}
       </QueryState>
+
+      <PackageEditorDialog
+        open={editor !== null}
+        vendorId={vendorId}
+        pkg={editor?.pkg ?? null}
+        defaultServiceId={editor?.serviceId}
+        onClose={() => setEditor(null)}
+      />
+      <ConfirmDialog
+        open={pkgActions.pending?.kind === 'delete'}
+        title={`Delete ${pkgActions.pending?.pkg.name ?? 'this price'}?`}
+        description="It leaves your page and you can no longer quote from it. Quotes already sent are not changed."
+        confirmLabel="Delete"
+        destructive
+        loading={pkgActions.busyId != null}
+        onConfirm={pkgActions.confirmPending}
+        onCancel={pkgActions.cancelPending}
+      />
 
       <ServiceDialog
         open={list.isEditorOpen}

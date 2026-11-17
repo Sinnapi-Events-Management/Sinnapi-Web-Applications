@@ -63,7 +63,7 @@ export default function QuoteSummaryCard({ quotation, requirement }: Props) {
                 {quotation.reference_no ?? 'Draft quote'}
               </AppLink>
             </Typography>
-            <StatusChip status={quotation.status} />
+            <StatusChip status={quotation.status} domain="quotation" />
           </Stack>
 
           {requirement && (

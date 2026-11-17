@@ -52,13 +52,13 @@ export default function ItemsSection({ f }: { f: InvoiceFormApi }) {
           sx={{ alignSelf: 'flex-start' }}
           disabled={f.busy}
         >
-          Add item
+          Add another item
         </Button>
       </Stack>
 
       <Stack spacing={1.5}>
         <Typography variant="subtitle2" color="text.secondary">
-          Extra charges — added after any discount
+          Other charges (transport, etc.) — not reduced by a discount
         </Typography>
         {fields.map((field, index) =>
           field.kind === 'charge' ? (
@@ -80,7 +80,7 @@ export default function ItemsSection({ f }: { f: InvoiceFormApi }) {
           sx={{ alignSelf: 'flex-start' }}
           disabled={f.busy}
         >
-          Add charge
+          Add another charge
         </Button>
       </Stack>
     </SectionCard>

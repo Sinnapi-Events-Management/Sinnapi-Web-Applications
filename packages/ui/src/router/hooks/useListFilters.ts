@@ -100,6 +100,18 @@ export function useListFilters<K extends string>(config: ListFilterConfig<K>): L
 
   // The facet + date part of the query, as the controls show it right now.
   // Serialized so the debounce below compares content, not identity.
+  const applyFilters = useCallback(
+    (next: { facets?: Partial<Record<K, string>>; dateRange?: IsoDateRange }) =>
+      writeParams({
+        ...Object.fromEntries(facetKeys.map((key) => [key, next.facets?.[key] ?? ''])),
+        [FROM_PARAM]: next.dateRange?.from ?? '',
+        [TO_PARAM]: next.dateRange?.to ?? '',
+      }),
+    // `facetKeys` is derived from the module-level config on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [writeParams],
+  );
+
   const liveKey = useMemo(() => {
     const out: PageFilters = {};
     for (const [key, value] of Object.entries(values) as [string, string][]) {
@@ -150,6 +162,7 @@ export function useListFilters<K extends string>(config: ListFilterConfig<K>): L
     setFacet,
     dateRange,
     setDateRange,
+    applyFilters,
     activeCount,
     isFiltered: activeCount > 0 || Boolean(search.query),
     clearAll,

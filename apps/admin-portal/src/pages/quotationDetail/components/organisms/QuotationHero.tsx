@@ -43,7 +43,7 @@ export default function QuotationHero({ quotation: q, pricing, isLapsed }: Props
             >
               Quotation {q.reference_no ?? '—'}
             </Typography>
-            <StatusChip status={q.status} size="medium" />
+            <StatusChip status={q.status} domain="quotation" size="medium" />
           </Stack>
           <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.25 }}>
             {q.vendor.name ?? 'Vendor'} · {q.client.name ?? 'Client'}

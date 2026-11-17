@@ -26,6 +26,7 @@ export default function QuotationTimelineCard({ quotationId, status }: Props) {
   return (
     <SectionCard title="Progress" icon={<TimelineIcon />} accent="info">
       <StatusTimeline
+        domain="quotation"
         steps={steps}
         formatTimestamp={formatDateTime}
         isLoading={isLoading}

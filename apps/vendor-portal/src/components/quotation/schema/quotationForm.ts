@@ -276,3 +276,52 @@ export function addOnToQuotationItem(line: PackageLineLike): QuotationItemValues
     unit_price: String(line.unit_price ?? 0),
   };
 }
+
+/**
+ * A quote the vendor already sent, back as builder values — so "Update the
+ * quote" (client asked for changes) and "Send a new price" (expired) start
+ * from the figures the client saw instead of a blank form. `valid_days`
+ * restarts at the default: a re-send is a fresh offer with a fresh date.
+ */
+export function quotationToFormValues(
+  q: {
+    discount_rate: number | null;
+    tax_rate: number | null;
+    tax_inclusive: boolean | null;
+    advance_rate: number | null;
+    advance_release_days_before: number | null;
+    advance_terms_note: string | null;
+    template_id: string | null;
+    template_tier_id: string | null;
+  },
+  lines: ReadonlyArray<{
+    description: string | null;
+    quantity: number | null;
+    unit_price: number | null;
+    sort_order?: number | null;
+  }>,
+): QuotationFormValues {
+  const items = [...lines]
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((line) => ({
+      description: line.description ?? '',
+      quantity: String(line.quantity ?? 1),
+      unit_price: String(line.unit_price ?? 0),
+    }));
+  const num = (v: number | null, fallback: string) => (v == null ? fallback : String(Number(v)));
+  return {
+    ...emptyQuotationValues,
+    template_id: q.template_id ?? '',
+    template_tier_id: q.template_tier_id ?? '',
+    items: items.length > 0 ? items : [emptyQuotationItem],
+    discount_rate: q.discount_rate ? String(Number(q.discount_rate)) : '',
+    tax_rate: q.tax_rate ? String(Number(q.tax_rate)) : '',
+    tax_inclusive: q.tax_inclusive === true,
+    advance_rate: num(q.advance_rate, emptyQuotationValues.advance_rate),
+    advance_release_days_before: num(
+      q.advance_release_days_before,
+      emptyQuotationValues.advance_release_days_before,
+    ),
+    advance_terms_note: q.advance_terms_note ?? '',
+  };
+}

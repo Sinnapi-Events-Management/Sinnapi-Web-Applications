@@ -2,7 +2,6 @@ import { DetailTabs, type DetailTabItem } from '@sinnapi/ui';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined';
 import { BOOKING_TABS, type BookingTab } from '../../schema';
 
 type Props = {
@@ -18,10 +17,9 @@ type Props = {
  * than a tab that renders blank.
  */
 const TAB_META: Record<BookingTab, Omit<DetailTabItem<BookingTab>, 'value'>> = {
-  overview: { label: 'Overview', icon: <ReceiptLongOutlinedIcon fontSize="small" /> },
-  money: { label: 'Payment', icon: <PaymentsOutlinedIcon fontSize="small" /> },
-  progress: { label: 'Progress', icon: <TimelineIcon fontSize="small" /> },
-  origin: { label: 'Origin', icon: <RequestQuoteOutlinedIcon fontSize="small" /> },
+  overview: { label: 'Details', icon: <ReceiptLongOutlinedIcon fontSize="small" /> },
+  money: { label: 'Money', icon: <PaymentsOutlinedIcon fontSize="small" /> },
+  progress: { label: 'History', icon: <TimelineIcon fontSize="small" /> },
 };
 
 const ITEMS = BOOKING_TABS.map((value) => ({ value, ...TAB_META[value] }));

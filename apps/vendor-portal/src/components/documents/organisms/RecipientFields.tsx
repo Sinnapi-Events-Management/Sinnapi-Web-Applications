@@ -58,10 +58,10 @@ export default function RecipientFields({
         sx={{ alignSelf: 'flex-start' }}
       >
         <ToggleButton value="client" sx={{ px: 2, minHeight: 44 }}>
-          On Sinnapi
+          Sinnapi client
         </ToggleButton>
         <ToggleButton value="external" sx={{ px: 2, minHeight: 44 }}>
-          Someone else
+          Not on Sinnapi
         </ToggleButton>
       </ToggleButtonGroup>
 
@@ -95,7 +95,7 @@ export default function RecipientFields({
             <TextField
               select
               fullWidth
-              label="Saved client"
+              label="My clients"
               value={contactId}
               disabled={disabled}
               onChange={(e) => chooseContact(e.target.value)}
@@ -152,7 +152,7 @@ export default function RecipientFields({
           />
           {contactId === NEW_CONTACT && (
             <Typography variant="body2" color="text.secondary">
-              New clients are saved to your Saved clients when you issue the document.
+              New clients are added to My clients automatically.
             </Typography>
           )}
         </>

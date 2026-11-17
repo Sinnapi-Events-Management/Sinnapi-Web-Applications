@@ -55,7 +55,7 @@ export default function DiscountsToolbar({
           onChange={onTerm}
           onClear={onClearTerm}
           ariaLabel="Search discount codes"
-          placeholder="Search by code or campaign"
+          placeholder="Search by name or code"
           size="small"
           // Grows into the row it shares but never below a width the
           // placeholder fits, so the button beside it cannot squeeze it shut.
@@ -67,7 +67,7 @@ export default function DiscountsToolbar({
           onClick={onCreate}
           sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
         >
-          New discount
+          New offer
         </Button>
       </Stack>
 

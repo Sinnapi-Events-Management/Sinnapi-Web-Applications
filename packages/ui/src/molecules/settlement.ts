@@ -366,6 +366,17 @@ export function canRequestSettlement(input: {
   if (escrowStatus === 'paid_out') {
     return { allowed: false, blockedReason: 'This booking has already been paid out in full.' };
   }
+  // Funded, but the advance was never sent on — the scheduled release did not
+  // run. The money is still here, so "nothing is being held" would be untrue;
+  // the release chain refuses this state, so support has to move it along.
+  if (escrowStatus === 'awaiting_advance') {
+    return {
+      allowed: false,
+      blockedReason:
+        'Your money is safe with Sinnapi, but your advance has not been sent to you yet. ' +
+        'Please contact support so we can release it — then you can ask for the rest.',
+    };
+  }
   if (!['held', 'advance_released'].includes(escrowStatus)) {
     return {
       allowed: false,

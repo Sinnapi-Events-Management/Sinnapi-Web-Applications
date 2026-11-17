@@ -90,7 +90,7 @@ export default function PublicEventCard({ event, interested }: PublicEventCardPr
                 events the tab bar and the action row already say what this is,
                 and a chip repeating it is the kind of redundancy that makes a
                 card feel busy without telling anyone anything. */}
-            {!actionable && <Chip size="small" variant="outlined" label="Inspiration" />}
+            {!actionable && <Chip size="small" variant="outlined" label="Ideas only" />}
           </Stack>
 
           {/* Right-hand slot, where the client portal's card carries its status

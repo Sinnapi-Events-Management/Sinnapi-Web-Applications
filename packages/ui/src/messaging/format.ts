@@ -27,7 +27,9 @@ export function formatRelativeTime(value: string | null | undefined): string {
   if (Number.isNaN(ms)) return '';
   const seconds = Math.round((Date.now() - ms) / 1000);
   if (seconds < MINUTE) return 'Just now';
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' });
+  // Long style: the short one gave "last mo.", which inbox rows then cut to
+  // "last mo" on a phone (2026-11-17).
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'long' });
   for (const [unit, per] of RELATIVE_UNITS) {
     if (seconds >= per) return rtf.format(-Math.floor(seconds / per), unit);
   }

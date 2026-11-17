@@ -33,7 +33,11 @@ export function useQuotationDetail() {
   // quote lands and does not serialize behind anything else on the page.
   const { profile: client, isLoading: isClientLoading } = useDirectoryProfile(data?.client_id);
 
-  useBreadcrumbTitle(data?.reference_no ? `Quotation ${data.reference_no}` : undefined);
+  // The client's name names the quote in the top bar (the code is in the
+  // header for support); the code stands in until the name arrives.
+  useBreadcrumbTitle(
+    client?.full_name ?? (data?.reference_no ? `Quotation ${data.reference_no}` : undefined),
+  );
 
   const items = useMemo(
     () =>

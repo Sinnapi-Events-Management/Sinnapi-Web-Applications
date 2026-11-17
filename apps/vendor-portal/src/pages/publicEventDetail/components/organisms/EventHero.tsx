@@ -61,7 +61,7 @@ export default function EventHero({ event, eventType, actionable }: Props) {
             {eventType && <Chip size="small" variant="outlined" label={eventType.name} />}
             {/* Says the same thing the withheld action does, in words. A vendor
                 who cannot find the button needs to know there isn't one. */}
-            {!actionable && <Chip size="small" variant="outlined" label="Inspiration only" />}
+            {!actionable && <Chip size="small" variant="outlined" label="Ideas only" />}
             {urgency && <EventUrgencyPill urgency={urgency} />}
           </Stack>
         </Box>

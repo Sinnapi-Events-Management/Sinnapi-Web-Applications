@@ -54,7 +54,7 @@ export default function PromotionsToolbar({ filter, counts, onFilter, onCreate }
         onClick={onCreate}
         sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
       >
-        New campaign
+        New sale name
       </Button>
     </Stack>
   );

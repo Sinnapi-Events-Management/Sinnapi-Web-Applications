@@ -5,8 +5,10 @@ import { RecordCard } from '../../molecules/RecordCard';
 export type DocumentListCardProps = {
   title: string;
   amount: string;
-  meta: string;
+  meta: ReactNode;
   chip: ReactNode;
+  /** Optional line under the card, e.g. what is still owed. */
+  footer?: ReactNode;
   onClick: () => void;
 };
 

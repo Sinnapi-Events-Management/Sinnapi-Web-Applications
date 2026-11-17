@@ -6,6 +6,7 @@ import {
   StatusChip,
 } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
+import { bookingListHint, relativeDay } from '@/lib/bookingCopy';
 import type { VendorBookingModel } from '@/lib/types';
 
 /**
@@ -21,6 +22,7 @@ import type { VendorBookingModel } from '@/lib/types';
  */
 export function bookingColumns(
   clientName: (id: string | null) => string,
+  bookingFor: (id: string) => string | null,
 ): DataTableColumn<VendorBookingModel>[] {
   return [
     {
@@ -32,13 +34,34 @@ export function bookingColumns(
     {
       field: 'client',
       headerName: 'Client',
-      render: (b) => clientName(b.client_id),
+      render: (b) => {
+        const what = bookingFor(b.id);
+        return (
+          <>
+            <Typography variant="body2" fontWeight={600}>
+              {clientName(b.client_id)}
+            </Typography>
+            {what && (
+              <Typography variant="caption" color="text.secondary">
+                {what}
+              </Typography>
+            )}
+          </>
+        );
+      },
     },
     {
       field: 'event_date',
       headerName: 'Date',
       sortable: true,
-      render: (b) => formatDate(b.event_date),
+      render: (b) => (
+        <>
+          <Typography variant="body2">{formatDate(b.event_date)}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {relativeDay(b.event_date)}
+          </Typography>
+        </>
+      ),
     },
     {
       field: 'amount',
@@ -61,13 +84,35 @@ export function bookingColumns(
       // Not sortable: the deadline in force may be an admin's override rather
       // than this column, so ordering by it would sort the list by a date some
       // rows are not actually counting down to.
-      render: (b) => <PaymentWindowChip booking={b} audience="vendor" />,
+      // Whether the client paid in time only matters while the job is open.
+      render: (b) =>
+        ['requested', 'confirmed', 'in_progress'].includes(b.status) ? (
+          <PaymentWindowChip booking={b} audience="vendor" />
+        ) : null,
     },
     {
       field: 'status',
       headerName: 'Status',
       sortable: true,
-      render: (b) => <StatusChip status={b.status} />,
+      render: (b) => {
+        const hint = bookingListHint(b);
+        return (
+          <>
+            <StatusChip status={b.status} domain="booking" />
+            {hint?.urgent && (
+              <Typography
+                variant="caption"
+                display="block"
+                fontWeight={700}
+                color="secondary.dark"
+                sx={{ mt: 0.5 }}
+              >
+                {hint.text}
+              </Typography>
+            )}
+          </>
+        );
+      },
     },
   ];
 }

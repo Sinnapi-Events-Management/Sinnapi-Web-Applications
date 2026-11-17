@@ -19,8 +19,8 @@ export default function Services() {
   return (
     <>
       <PageTitle
-        title="Services"
-        subtitle="List what you offer. Prices live on the packages you build under each service."
+        title="Services & prices"
+        subtitle="What you offer, and what each one costs. Clients see the ones marked Showing."
       />
       <VendorGate>{(vendorId) => <ServicesWorkspace vendorId={vendorId} />}</VendorGate>
     </>

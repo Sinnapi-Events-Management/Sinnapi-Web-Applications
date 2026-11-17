@@ -13,14 +13,28 @@ import type { Theme } from '@mui/material/styles';
 export const wrapTabsOnPhoneSx = (t: Theme) => ({
   [t.breakpoints.down('sm')]: {
     '& .MuiTabs-scroller': { overflow: 'visible !important' },
-    '& .MuiTabs-flexContainer': { flexWrap: 'wrap', rowGap: 0.5 },
+    // Pills that wrap, rather than tab labels that wrap. A second row of bare
+    // labels ("No longer offered (0)" alone on its own line) read as broken;
+    // chips on two rows read as a set of choices — the same look as the
+    // quick-view chips on the Bookings, Quotations and Invoices lists.
+    // (2026-11-17)
+    '& .MuiTabs-flexContainer': { flexWrap: 'wrap', gap: '6px', py: 1 },
     '& .MuiTabs-scrollButtons': { display: 'none' },
     '& .MuiTabs-indicator': { display: 'none' },
     '& .MuiTab-root': {
       minWidth: 0,
+      minHeight: 40,
       px: 1.5,
-      borderBottom: '2px solid transparent',
+      py: 0.5,
+      borderRadius: 999,
+      border: `1px solid ${t.palette.divider}`,
+      fontSize: '0.875rem',
+      color: t.palette.text.primary,
     },
-    '& .MuiTab-root.Mui-selected': { borderBottomColor: t.palette.primary.main },
+    '& .MuiTab-root.Mui-selected': {
+      bgcolor: t.palette.primary.main,
+      borderColor: t.palette.primary.main,
+      color: t.palette.primary.contrastText,
+    },
   },
 });

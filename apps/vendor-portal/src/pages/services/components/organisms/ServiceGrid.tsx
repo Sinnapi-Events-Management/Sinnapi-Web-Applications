@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Grid } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import ServiceCard from '../molecules/ServiceCard';
@@ -18,6 +19,8 @@ type Props = {
   onToggleVisibility: (service: ServiceRow) => void;
   onArchive: (service: ServiceRow) => void;
   onRestore: (service: ServiceRow) => void;
+  /** Renders a service's prices inside its card. */
+  renderPrices?: (service: ServiceRow) => ReactNode;
 };
 
 /**
@@ -53,6 +56,7 @@ export default function ServiceGrid({
   onToggleVisibility,
   onArchive,
   onRestore,
+  renderPrices,
 }: Props) {
   if (rows.length === 0) {
     if (isEmpty) {
@@ -107,6 +111,7 @@ export default function ServiceGrid({
             onToggleVisibility={() => onToggleVisibility(service)}
             onArchive={() => onArchive(service)}
             onRestore={() => onRestore(service)}
+            prices={renderPrices?.(service)}
           />
         </Grid>
       ))}

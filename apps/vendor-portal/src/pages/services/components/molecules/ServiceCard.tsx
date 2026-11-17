@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Box, Card, CardContent, Divider, LinearProgress, Stack, Typography } from '@sinnapi/ui';
 import ServiceStatusChip from '../atoms/ServiceStatusChip';
 import ServiceCardMenu from './ServiceCardMenu';
@@ -14,6 +15,8 @@ type Props = {
   onToggleVisibility: () => void;
   onArchive: () => void;
   onRestore: () => void;
+  /** The service's price list (Services & prices page); else the old summary. */
+  prices?: ReactNode;
 };
 
 /**
@@ -43,6 +46,7 @@ export default function ServiceCard({
   onToggleVisibility,
   onArchive,
   onRestore,
+  prices,
 }: Props) {
   const isArchived = service.state === 'archived';
 
@@ -103,7 +107,7 @@ export default function ServiceCard({
             are untouched.
           </Typography>
         ) : (
-          <ServicePriceSummary pricing={service.pricing} loading={pricingLoading} />
+          (prices ?? <ServicePriceSummary pricing={service.pricing} loading={pricingLoading} />)
         )}
       </CardContent>
     </Card>

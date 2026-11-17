@@ -21,6 +21,7 @@ export default function BookingTimelineCard({ bookingId, status }: Props) {
   return (
     <SectionCard title="Progress" icon={<TimelineIcon />} accent="info">
       <StatusTimeline
+        domain="booking"
         steps={steps}
         formatTimestamp={formatDateTime}
         isLoading={isLoading}

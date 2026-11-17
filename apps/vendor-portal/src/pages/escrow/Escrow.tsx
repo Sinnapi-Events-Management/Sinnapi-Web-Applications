@@ -9,7 +9,7 @@ export default function Escrow() {
       <PageTitle
         title="Escrow"
         titleHint={ESCROW_EXPLAINER}
-        subtitle="Client payments Sinnapi is keeping safe for your bookings. You can view them here; nothing to do."
+        subtitle="Money your clients paid through Sinnapi. It is kept safe and sent to you on time — you do not need to do anything here."
       />
       <VendorGate>{(vendorId) => <EscrowTable vendorId={vendorId} />}</VendorGate>
     </>

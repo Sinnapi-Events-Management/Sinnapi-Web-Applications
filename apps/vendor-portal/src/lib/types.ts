@@ -99,6 +99,15 @@ export type VendorBookingModel = {
   payment_terms_status: string | null;
 } & BookingPaymentWindowFields;
 
+/** An embedded relation read only for its title. */
+export type TitleRel = { title: string | null };
+
+/** What a booking is for: the service it was placed on, and its event. */
+export type BookingTitles = {
+  vendor_services: TitleRel | TitleRel[] | null;
+  events: TitleRel | TitleRel[] | null;
+};
+
 /**
  * The booking a client made from a quotation, when there is one. Deliberately
  * thin: the quotation page only needs to say whether the quote has turned into
@@ -211,6 +220,7 @@ export type VendorBookingDetailModel = {
   event_id: string | null;
   quotations: BookingQuotationModel | BookingQuotationModel[] | null;
   events: BookingEventModel | BookingEventModel[] | null;
+  vendor_services: TitleRel | TitleRel[] | null;
 };
 
 /**
@@ -768,7 +778,15 @@ export type EscrowModel = {
   advance_released_at: string | null;
   auto_release_due_at: string | null;
   currency: string | null;
-  bookings: BookingRel | BookingRel[] | null;
+  bookings: EscrowBookingRel | EscrowBookingRel[] | null;
+};
+
+/** The booking an escrow row is for: enough to name it and open it. */
+export type EscrowBookingRel = {
+  id: string;
+  reference_no: string | null;
+  event_date: string | null;
+  client_id: string | null;
 };
 
 /**

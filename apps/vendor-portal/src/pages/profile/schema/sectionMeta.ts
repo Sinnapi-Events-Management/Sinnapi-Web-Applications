@@ -34,7 +34,7 @@ export const BUSINESS_SECTION_META: Record<BusinessSectionKey, SectionMeta> = {
     icon: createElement(StorefrontIcon),
   },
   operations: {
-    label: 'Operations',
+    label: 'How you work',
     title: 'How you operate',
     subtitle: 'Where clients can visit you and how far ahead they should book',
     icon: createElement(WorkHistoryIcon),

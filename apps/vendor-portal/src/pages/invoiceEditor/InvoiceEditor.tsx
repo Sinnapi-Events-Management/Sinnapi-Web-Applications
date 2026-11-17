@@ -53,7 +53,7 @@ export default function InvoiceEditor() {
     <>
       <PageTitle
         title={id ? 'Edit draft invoice' : 'New invoice'}
-        subtitle="Drafts have no number. The number is given when you issue it."
+        subtitle="Three short steps. You can save and finish later."
       />
       <VendorGate>{(vendorId) => <Workspace vendorId={vendorId} invoiceId={id} />}</VendorGate>
     </>

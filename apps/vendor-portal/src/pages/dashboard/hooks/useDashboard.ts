@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { DEFAULT_PERIOD, getPeriodOption, type AnalyticsPeriod } from '@sinnapi/ui/analytics';
+import { DEFAULT_PERIOD } from '@sinnapi/ui/analytics';
+import { APP } from '@/lib/config';
 import { useVendorContext } from '@/vendor/VendorProvider';
 import { useMyApplication, useProfile } from '@/hooks/queries';
+import { useDocumentSummary } from '@/hooks/documentQueries';
+import { useOnboardingStatus } from '@/pages/gettingStarted/hooks/useOnboardingStatus';
 import { useVendorOverview } from '../data';
-import { useDashboardTabs } from './useDashboardTabs';
-import { useDashboardMedia } from './useDashboardMedia';
+import { useWaitingForYou } from './useWaitingForYou';
 
 /** Time-of-day greeting, so the page opens with a human line rather than a label. */
 function greeting(): string {
@@ -26,55 +26,38 @@ function firstName(fullName: string | null | undefined): string | null {
  * application fallback for an owner who has no vendor record yet. Everything
  * the page renders comes from here, so the components below stay presentational.
  */
+/**
+ * Everything the redesigned dashboard (2026-11-17) shows: quick actions, the
+ * people waiting, the next job, the money, and listing strength. The period
+ * picker and the Earnings / Bookings / Reputation panels moved to Analytics.
+ */
 export function useDashboard() {
-  const [period, setPeriod] = useState<AnalyticsPeriod>(DEFAULT_PERIOD);
   const { vendor, subscription, loading } = useVendorContext();
-  const { tabs, tab, activeTab, setTab } = useDashboardTabs();
-  const queryClient = useQueryClient();
-
   const { data: profile } = useProfile();
-  const { data, isLoading, isFetching, error, refetch } = useVendorOverview(vendor?.id, period);
-  // Only asked for when there is no vendor yet — that branch is the entire
-  // reason to fetch it, and an approved vendor should not pay for the request.
+  const overview = useVendorOverview(vendor?.id, DEFAULT_PERIOD);
   const application = useMyApplication();
-  // Listing state, not period state: it is deliberately outside the overview
-  // read so changing the date range cannot refetch or blank the gallery card.
-  const media = useDashboardMedia(vendor?.id);
+  const waiting = useWaitingForYou(vendor?.id);
+  const docs = useDocumentSummary(vendor?.id);
+  const listing = useOnboardingStatus(vendor?.id);
 
   const name = firstName(profile?.full_name) ?? vendor?.business_name;
-  // Badged on the Overview tab so a backlog stays visible from the analytics
-  // tabs. Escrow and payouts are excluded: money in flight is being handled by
-  // someone else, and badging it would cry wolf every time a vendor gets paid.
-  const attentionCount = (data?.queues ?? [])
-    .filter((q) => q.key !== 'escrow' && q.key !== 'payouts')
-    .reduce((acc, q) => acc + q.count, 0);
+  const ugx = docs.data?.find((r) => r.currency === 'UGX');
 
   return {
     vendor,
     subscription,
-    /** True while the vendor record itself is resolving — before this, nothing renders. */
     loading,
     application,
-    period,
-    setPeriod,
-    tabs,
-    tab,
-    activeTab,
-    setTab,
-    attentionCount,
-    media,
-    periodLabel: getPeriodOption(period).longLabel,
     title: name ? `${greeting()}, ${name}` : greeting(),
-    data,
-    isLoading,
-    /** True during a background refresh, when stale data is still on screen. */
-    isRefreshing: isFetching && !isLoading,
-    error,
-    refresh: () => {
-      // Drop the whole dashboard key so switching period after a refresh can't
-      // resolve from a cache entry that predates it.
-      queryClient.invalidateQueries({ queryKey: ['v-dashboard'] });
-      return refetch();
-    },
+    publicUrl: vendor ? `${APP.publicUrl.replace(/\/$/, '')}/vendors/${vendor.slug}` : '',
+    waiting,
+    upcoming: overview.data?.upcoming ?? [],
+    earnings: overview.data?.earnings,
+    owed: docs.data && docs.data.length > 0 ? Number(ugx?.outstanding ?? 0) : null,
+    overviewLoading: overview.isLoading,
+    overviewError: overview.error,
+    listingPercent: listing.percent,
+    listingTip: listing.nextListingTip,
+    listingLoading: listing.isLoading,
   };
 }

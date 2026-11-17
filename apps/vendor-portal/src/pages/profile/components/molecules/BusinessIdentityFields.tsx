@@ -31,7 +31,7 @@ export default function BusinessIdentityFields({ control, disabled }: Props) {
         <ControlledField
           name="base_city"
           control={control}
-          label="Base city"
+          label="Main town or city"
           placeholder="Kampala"
           disabled={disabled}
         />

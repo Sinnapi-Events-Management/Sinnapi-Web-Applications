@@ -15,7 +15,7 @@ export default function Portfolio() {
     <>
       <PageTitle
         title="Photos & Videos"
-        subtitle="Pictures and clips from the events you have done. Drag to set the order clients see."
+        subtitle="Show clients your best work from past events. The first one is your cover."
       />
       <VendorGate>{(vendorId) => <PortfolioWorkspace vendorId={vendorId} />}</VendorGate>
     </>

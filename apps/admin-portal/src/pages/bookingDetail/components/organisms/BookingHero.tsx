@@ -38,7 +38,7 @@ export default function BookingHero({ booking: b, timeWindow }: Props) {
             >
               Booking {b.reference_no ?? '—'}
             </Typography>
-            <StatusChip status={b.status} size="medium" />
+            <StatusChip status={b.status} domain="booking" size="medium" />
           </Stack>
           <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.25 }}>
             {b.vendor.name ?? 'Vendor'} · {b.client.name ?? 'Client'}

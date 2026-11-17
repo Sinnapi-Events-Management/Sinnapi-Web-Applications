@@ -50,14 +50,14 @@ export default function DiscountGrid({
   if (discounts.length === 0) {
     return isFiltered ? (
       <EmptyState
-        title="No codes match"
+        title="No offers here"
         description="Your other discount codes are still here — clear the search, or switch back to All."
       />
     ) : (
       <EmptyState
-        title="No discount codes yet"
-        description="A discount code is what a client types to get a reduction — an early-booking rate, a festive offer, a thank-you for a repeat client. Cap how many times it can be used, set the booking size it applies from, and attach it to a campaign to see exactly what that campaign returned."
-        ctaLabel="Create your first code"
+        title="No offers yet"
+        description="An offer takes money off your price — for everyone automatically, or for clients who type your code. Create one for a holiday, a slow month, or early bookings."
+        ctaLabel="Create your first offer"
         onCta={onCreate}
       />
     );

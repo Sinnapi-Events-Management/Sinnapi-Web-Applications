@@ -69,7 +69,10 @@ export function useDiscountForm(
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
+    trigger,
+    watch,
+    setValue,
+    formState: { isSubmitting, errors },
   } = useZodForm(discountFormSchema, {
     defaultValues: discount ? toDiscountValues(discount) : emptyDiscountValues,
   });
@@ -122,6 +125,11 @@ export function useDiscountForm(
 
   return {
     control,
+    /** For the 3-step form: check one step, read values for the summary. */
+    validate: (names: Parameters<typeof trigger>[0]) => trigger(names),
+    errors,
+    values: watch(),
+    setValue,
     error,
     busy: isSubmitting,
     isEdit,
@@ -129,7 +137,7 @@ export function useDiscountForm(
     codeLocked: isEdit && discount.used_count > 0,
     isFixed: type === 'fixed',
     isAutomatic,
-    valueLabel: type === 'fixed' ? 'Value (UGX)' : 'Value (%)',
+    valueLabel: type === 'fixed' ? 'Amount off (UGX)' : 'Percent off',
     promotionOptions: toPromotionOptions(promotions, discount?.promotion_id),
     submit,
     picker,

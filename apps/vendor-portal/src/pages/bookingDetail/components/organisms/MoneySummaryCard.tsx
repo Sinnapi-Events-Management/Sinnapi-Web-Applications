@@ -6,7 +6,6 @@ import {
   Chip,
   Skeleton,
   Stack,
-  StatusChip,
   Tooltip,
   Typography,
   alpha,
@@ -38,8 +37,7 @@ type Props = { money: MoneySectionModel };
  */
 export default function MoneySummaryCard({ money }: Props) {
   const theme = useTheme();
-  const { rail, total, currency, split, isSplitLoading, escrowSection } = money;
-  const { escrow } = escrowSection;
+  const { rail, total, currency, split, isSplitLoading } = money;
 
   const paidColor = theme.palette.success.main;
   const heldColor = theme.palette.secondary.main;
@@ -58,7 +56,7 @@ export default function MoneySummaryCard({ money }: Props) {
         >
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-              Agreed with the client
+              Your money for this booking
             </Typography>
             <Typography
               component="p"
@@ -72,11 +70,6 @@ export default function MoneySummaryCard({ money }: Props) {
             >
               {formatMoney(total, currency)}
             </Typography>
-            {rail === 'escrow' && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Yours in full — Sinnapi’s fee is added on top and paid by the client.
-              </Typography>
-            )}
           </Box>
 
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0 }}>
@@ -92,7 +85,6 @@ export default function MoneySummaryCard({ money }: Props) {
               }
               label={rail ? railLabelFor(rail, 'vendor') : 'Payment method not chosen yet'}
             />
-            {escrow && <StatusChip status={escrow.status} />}
           </Stack>
         </Stack>
 

@@ -22,7 +22,7 @@ type Props = {
  * The tabs scroll on narrow screens instead of wrapping, so the Add button
  * never gets pushed off the row it shares with them; below `sm` the whole bar
  * stacks and the button goes full width, where a 44px target beats a chip in
- * the corner. Same arrangement as `PackageToolbar`, so a vendor moving between
+ * the corner. Same arrangement as the other list toolbars, so a vendor moving between
  * the two screens is looking at one interface rather than two similar ones.
  */
 export default function ServicesToolbar({ filter, counts, onFilter, onAdd }: Props) {

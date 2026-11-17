@@ -48,7 +48,7 @@ export default function BookingHero({ booking: b, vendor, timeWindow }: Props) {
             <Typography variant="h4" fontWeight={700} sx={{ lineHeight: 1.15 }}>
               Booking {b.reference_no}
             </Typography>
-            <StatusChip status={b.status} size="medium" />
+            <StatusChip status={b.status} domain="booking" size="medium" />
           </Stack>
           <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.25 }}>
             {vendor?.slug ? (

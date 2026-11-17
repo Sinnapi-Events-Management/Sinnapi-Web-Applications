@@ -31,7 +31,7 @@ export default function PromotionDialog({ open, vendorId, promotion, onClose }: 
     // packages and their tiers, and at `sm` a vendor with four packages reads
     // it through a 260px window.
     <Dialog open={open} onClose={() => onClose()} fullWidth maxWidth="md" fullScreen={fullScreen}>
-      <DialogTitle>{promotion ? 'Edit campaign' : 'New campaign'}</DialogTitle>
+      <DialogTitle>{promotion ? 'Edit sale name' : 'New sale name'}</DialogTitle>
       {open && (
         <PromotionForm
           vendorId={vendorId}

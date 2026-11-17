@@ -21,7 +21,7 @@ export function describePaymentFailure(status: string, reason: string | null): s
     return KNOWN.psp_reversal;
   }
   const key = (reason ?? '').trim();
-  if (!key) return 'The provider did not confirm this payment. Nothing was charged.';
+  if (!key) return 'This payment did not go through. No money was taken.';
   if (KNOWN[key]) return KNOWN[key];
   // Our own functions fail a payment when the PSP would not open a checkout
   // for it; the token names the call, which means nothing to a person.

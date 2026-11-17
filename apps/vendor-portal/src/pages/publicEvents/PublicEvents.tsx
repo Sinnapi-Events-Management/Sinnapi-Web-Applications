@@ -72,8 +72,8 @@ export default function PublicEvents() {
   return (
     <>
       <PageTitle
-        title="Public events"
-        subtitle="Briefs posted by clients and admins. Express interest and prepare a quotation."
+        title="Events looking for vendors"
+        subtitle="Clients planning events who need vendors. Tap “I'm interested” to send them your price."
       />
       <VendorGate>{(vendorId) => <EventsFeed vendorId={vendorId} />}</VendorGate>
     </>

@@ -21,6 +21,6 @@ export default function PackageStatusChip({ pkg }: { pkg: PackageModel }) {
     );
   }
   if (pkg.is_active === false) return <Chip size="small" label="No longer offered" />;
-  if (isPackagePublished(pkg)) return <Chip size="small" color="success" label="Live" />;
-  return <Chip size="small" color="warning" variant="outlined" label="Draft" />;
+  if (isPackagePublished(pkg)) return <Chip size="small" color="success" label="Showing" />;
+  return <Chip size="small" color="warning" variant="outlined" label="Not showing" />;
 }

@@ -414,7 +414,14 @@ export function calendarSx({
         },
       },
       '& .rdp-blocked::after': { backgroundColor: theme.palette.error.main },
-      '& .rdp-booked::after': { backgroundColor: theme.palette.secondary.main },
+      // Booked days keep their gold dot even on a tinted grid, so a booked day
+      // still shows once it is in the past and greyed (2026-11-17).
+      '& .rdp-booked::after': {
+        backgroundColor: theme.palette.secondary.main,
+        content: '""',
+        width: 6,
+        height: 6,
+      },
       // On a selected day the dot has the fill behind it, so it flips to the ink.
       '& .rdp-selected::after': { backgroundColor: selectedInk },
 

@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
-import { Alert, Box, DataTable, Pagination, SearchField, Stack, StatusTabs } from '@sinnapi/ui';
+import { Alert, Box, DataTable, Pagination, SearchField, Stack, Typography } from '@sinnapi/ui';
+import QuickViewTabs from '@/components/list/QuickViewTabs';
+import { daysFromToday } from '@/lib/bookingCopy';
 import { EmptyState } from '@sinnapi/ui/router';
 import {
   DocumentListCard,
@@ -7,8 +9,9 @@ import {
   INVOICE_FILTERS,
   documentErrorMessage,
   formatDocumentDate,
-  formatOwed,
+  formatDocumentMoney,
   invoiceDisplayStatus,
+  toAmount,
   type InvoiceFilter,
 } from '@sinnapi/ui/documents';
 import { useInvoiceList } from '../../hooks/useDocumentList';
@@ -42,10 +45,10 @@ export default function InvoicesPanel({ vendorId }: { vendorId: string }) {
         justifyContent="space-between"
         alignItems={{ md: 'center' }}
       >
-        <StatusTabs<InvoiceFilter>
-          options={INVOICE_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
-          value={list.filter}
-          onChange={list.setFilter}
+        <QuickViewTabs<InvoiceFilter>
+          tabs={INVOICE_FILTERS}
+          active={list.filter}
+          onSelect={list.setFilter}
           ariaLabel="Filter invoices"
         />
         <SearchField
@@ -71,14 +74,36 @@ export default function InvoicesPanel({ vendorId }: { vendorId: string }) {
             <DocumentListCard
               key={r.id}
               title={r.recipient_name || 'Untitled client'}
-              amount={r.status === 'draft' ? '—' : formatOwed(r.balance_due, r.currency)}
-              meta={`${r.document_no ?? 'Draft'} · due ${formatDocumentDate(r.due_date)}`}
+              // The invoice's full amount — the card used to show what was
+              // still owed, so a paid invoice read "UGX 0".
+              amount={formatDocumentMoney(r.total, r.currency)}
+              meta={
+                <>
+                  {r.title && (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'block',
+                        color: 'text.primary',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {r.title}
+                    </Box>
+                  )}
+                  {r.status === 'draft'
+                    ? 'Draft — not sent yet'
+                    : `Due ${formatDocumentDate(r.due_date)}`}
+                </>
+              }
               chip={
                 <DocumentStatusChip
                   kind="invoice"
                   status={invoiceDisplayStatus(r.status, r.due_date, list.today)}
                 />
               }
+              footer={<OwedLine row={r} />}
               onClick={() => list.open(r.id, r.status)}
             />
           ))}
@@ -105,5 +130,28 @@ export default function InvoicesPanel({ vendorId }: { vendorId: string }) {
         />
       )}
     </Stack>
+  );
+}
+
+/** "UGX 599,962 still owed" (red when late) or "Paid in full". */
+function OwedLine({
+  row,
+}: {
+  row: { status: string; balance_due: unknown; currency: string; due_date: string | null };
+}) {
+  if (row.status === 'draft' || row.status === 'void') return null;
+  const owed = toAmount(row.balance_due as never);
+  if (owed <= 0) {
+    return (
+      <Typography variant="body2" fontWeight={700} color="success.main">
+        Paid in full
+      </Typography>
+    );
+  }
+  const late = (daysFromToday(row.due_date) ?? 0) < 0;
+  return (
+    <Typography variant="body2" fontWeight={700} color={late ? 'error.main' : 'secondary.dark'}>
+      {formatDocumentMoney(owed, row.currency)} still owed{late ? ' · late' : ''}
+    </Typography>
   );
 }

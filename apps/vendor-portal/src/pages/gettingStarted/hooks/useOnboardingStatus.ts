@@ -98,6 +98,8 @@ export function useOnboardingStatus(vendorId: string | undefined) {
     isComplete: REQUIRED_STEPS.every((s) => done[s.key]),
     /** The shared listing score — identical to the Profile header's. */
     percent: vendor ? listingPercent(checks) : 0,
+    /** The first listing improvement still missing, e.g. "Add your location". */
+    nextListingTip: checks.find((c) => !c.done)?.label ?? null,
     isLoading: vendorQuery.isLoading || coverage.isLoading,
     error: vendorQuery.error ?? coverage.error,
   };

@@ -44,7 +44,7 @@ export default function EventCardActions({
         <ExpressInterestButton eventId={eventId} already={interested} />
       ) : (
         <Typography variant="caption" color="text.secondary">
-          Inspiration only — not open to quotes
+          For ideas only — this client is not hiring
         </Typography>
       )}
     </Stack>

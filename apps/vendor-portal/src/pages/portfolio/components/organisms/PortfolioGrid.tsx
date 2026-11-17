@@ -73,6 +73,7 @@ export default function PortfolioGrid({
 
   return (
     <MediaGrid
+      compactOnPhone
       items={items}
       fallbackAlt={vendorName}
       onOpen={onOpen}

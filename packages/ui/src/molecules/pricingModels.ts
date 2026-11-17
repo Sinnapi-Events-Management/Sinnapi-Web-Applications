@@ -100,7 +100,7 @@ const SPECS: Record<PricingModel, PricingModelSpec> = {
   },
   combination: {
     model: 'combination',
-    label: 'Base fee + variable',
+    label: 'Base price + extras',
     tagline: 'A base fee plus what scales with your event',
     clientNote:
       'A fixed base covers the work itself; the rest moves with your numbers — guests, hours or units.',
@@ -111,7 +111,7 @@ const SPECS: Record<PricingModel, PricingModelSpec> = {
   },
   custom: {
     model: 'custom',
-    label: 'Custom quote',
+    label: 'Price on request',
     tagline: 'Priced per event, after you have talked',
     clientNote:
       'Any figure here is indicative. The vendor prices your event once they know what it involves.',

@@ -27,7 +27,7 @@ export default function Reviews() {
     <>
       <PageTitle
         title="Reviews"
-        subtitle="What clients say about your work — reply to turn a good review into proof and a hard one into a recovery."
+        subtitle="What clients say about your work. A kind reply shows new clients you care."
       />
       <VendorGate>{(vendorId) => <ReviewsWorkspace vendorId={vendorId} />}</VendorGate>
     </>

@@ -147,7 +147,17 @@ export function DetailTabs<T extends string>({
             iconPosition="start"
             id={detailTabId(idPrefix, item.value)}
             aria-controls={detailPanelId(idPrefix, item.value)}
-            sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            sx={{
+              minHeight: 48,
+              textTransform: 'none',
+              fontWeight: 600,
+              // On a phone the icons go and the padding tightens so three
+              // tabs share one row; with icons the third wrapped onto a row of
+              // its own on every detail page (2026-11-17).
+              px: { xs: 1.25, sm: 2 },
+              minWidth: { xs: 0, sm: 90 },
+              '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'inline-flex' } },
+            }}
           />
         ))}
       </Tabs>

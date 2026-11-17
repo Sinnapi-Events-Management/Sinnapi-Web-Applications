@@ -22,6 +22,7 @@ const KNOWN_PREFIXES = [
   '/payouts',
   '/escrow',
   '/reviews',
+  '/offers',
   '/promotions',
   '/discounts',
   '/public-events',
@@ -83,7 +84,7 @@ export function resolveTarget(notification: NotificationView): NotificationTarge
       return { path: '/subscription', label: 'View subscription' };
 
     case 'promotions':
-      return { path: '/promotions', label: 'View promotions' };
+      return { path: '/offers', label: 'View offers' };
 
     case 'events':
       return { path: '/public-events', label: 'View events' };

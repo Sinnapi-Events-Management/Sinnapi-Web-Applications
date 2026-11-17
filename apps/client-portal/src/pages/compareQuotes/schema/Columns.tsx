@@ -31,6 +31,6 @@ export const compareQuoteColumns: DataTableColumn<QuotationListModel>[] = [
     field: 'status',
     headerName: 'Status',
     sortable: true,
-    render: (q) => <StatusChip status={q.status} />,
+    render: (q) => <StatusChip status={q.status} domain="quotation" />,
   },
 ];

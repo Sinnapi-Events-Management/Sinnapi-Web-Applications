@@ -4,6 +4,7 @@ import { useAnalytics } from './hooks/useAnalytics';
 import AnalyticsWorkspace from './components/organisms/AnalyticsWorkspace';
 import AnalyticsUpgradeCard from './components/organisms/AnalyticsUpgradeCard';
 import AnalyticsPageSkeleton from './components/organisms/AnalyticsPageSkeleton';
+import BusinessSnapshot from './components/snapshot/BusinessSnapshot';
 
 /**
  * The vendor's analysis surface.
@@ -25,7 +26,15 @@ function AnalyticsView({ vendorId }: { vendorId: string }) {
   // the other's plan.
   if (analytics.entitlementLoading) return <AnalyticsPageSkeleton />;
 
-  if (!analytics.entitled) return <AnalyticsUpgradeCard />;
+  // Lower plans: the free numbers first, then what upgrading adds.
+  if (!analytics.entitled) {
+    return (
+      <>
+        <BusinessSnapshot vendorId={vendorId} />
+        <AnalyticsUpgradeCard />
+      </>
+    );
+  }
 
   return <AnalyticsWorkspace {...analytics} />;
 }
@@ -33,10 +42,7 @@ function AnalyticsView({ vendorId }: { vendorId: string }) {
 export default function Analytics() {
   return (
     <>
-      <PageTitle
-        title="Analytics"
-        subtitle="What is driving your bookings, your earnings and your reputation."
-      />
+      <PageTitle title="Analytics" subtitle="How your money, bookings and reviews are doing." />
       <VendorGate>{(vendorId) => <AnalyticsView vendorId={vendorId} />}</VendorGate>
     </>
   );

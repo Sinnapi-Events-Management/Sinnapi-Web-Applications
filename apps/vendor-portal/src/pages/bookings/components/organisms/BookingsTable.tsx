@@ -4,6 +4,7 @@ import { EmptyState } from '@sinnapi/ui/router';
 import { useBookings } from '../../hooks/useBookings';
 import { bookingColumns } from '../../schema';
 import BookingCard from '../molecules/BookingCard';
+import QuickViewTabs from '@/components/list/QuickViewTabs';
 
 /**
  * The bookings list for one vendor. Mounted by <VendorGate /> once the vendor
@@ -19,14 +20,23 @@ export default function BookingsTable({ vendorId }: { vendorId: string }) {
     table,
     openBooking,
     clientName,
+    bookingFor,
     namesLoading,
     list,
     facetCounts,
+    quickTabs,
   } = useBookings(vendorId);
-  const columns = useMemo(() => bookingColumns(clientName), [clientName]);
+  const columns = useMemo(() => bookingColumns(clientName, bookingFor), [clientName, bookingFor]);
 
   return (
     <>
+      <QuickViewTabs
+        tabs={quickTabs.tabs}
+        active={quickTabs.active}
+        onSelect={quickTabs.select}
+        counts={{ reply: quickTabs.needsReply }}
+        ariaLabel="Booking views"
+      />
       <ListToolbar list={list} counts={facetCounts} resultCount={total} />
 
       {error && (
@@ -46,6 +56,7 @@ export default function BookingsTable({ vendorId }: { vendorId: string }) {
           <BookingCard
             booking={b}
             clientName={namesLoading ? null : clientName(b.client_id)}
+            what={bookingFor(b.id)}
             onOpen={() => openBooking(b.id)}
           />
         )}
@@ -53,10 +64,17 @@ export default function BookingsTable({ vendorId }: { vendorId: string }) {
           list.isFiltered ? (
             <EmptyState
               embedded
-              title="No bookings match"
-              description="Try a different search, or clear the filters to see every booking."
-              ctaLabel="Clear search and filters"
-              onCta={list.clearAll}
+              title={quickTabs.active === 'reply' ? 'All caught up' : 'No bookings here'}
+              description={
+                quickTabs.active === 'reply'
+                  ? 'No new requests are waiting for your answer.'
+                  : 'Try a different search, or show all your bookings.'
+              }
+              ctaLabel="Show all bookings"
+              onCta={() => {
+                list.clearAll();
+                quickTabs.select('all');
+              }}
             />
           ) : (
             <EmptyState

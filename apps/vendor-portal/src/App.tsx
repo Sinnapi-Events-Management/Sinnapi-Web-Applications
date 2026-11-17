@@ -28,7 +28,6 @@ import Bookings from '@/pages/bookings';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
 import QuotationDetail from '@/pages/quotationDetail';
-import Packages from '@/pages/packages';
 import PublicEvents from '@/pages/publicEvents';
 import PublicEventDetail from '@/pages/publicEventDetail';
 import Escrow from '@/pages/escrow';
@@ -38,8 +37,7 @@ import InvoiceEditor from '@/pages/invoiceEditor';
 import InvoiceDetail from '@/pages/invoiceDetail';
 import ReceiptEditor from '@/pages/receiptEditor';
 import ReceiptDetail from '@/pages/receiptDetail';
-import Promotions from '@/pages/promotions';
-import Discounts from '@/pages/discounts';
+import Offers from '@/pages/offers';
 import Reviews from '@/pages/reviews';
 import Analytics from '@/pages/analytics';
 import Messages from '@/pages/messages';
@@ -123,10 +121,10 @@ export default function App() {
           <Route path="/bookings/:id" element={<BookingDetail />} />
           <Route path="/quotations" element={<Quotations />} />
           <Route path="/quotations/:id" element={<QuotationDetail />} />
-          <Route path="/packages" element={<Packages />} />
+          <Route path="/packages" element={<Navigate to="/services" replace />} />
           {/* The page was called "Templates" until packages carried a price.
               Vendors have the old path bookmarked and linked from email. */}
-          <Route path="/templates" element={<Navigate to="/packages" replace />} />
+          <Route path="/templates" element={<Navigate to="/services" replace />} />
           <Route path="/public-events" element={<PublicEvents />} />
           <Route path="/public-events/:id" element={<PublicEventDetail />} />
           <Route path="/escrow" element={<Escrow />} />
@@ -141,8 +139,10 @@ export default function App() {
           <Route path="/receipts" element={<Navigate to="/invoices?tab=receipts" replace />} />
           <Route path="/receipts/new" element={<ReceiptEditor />} />
           <Route path="/receipts/:id" element={<ReceiptDetail />} />
-          <Route path="/promotions" element={<Promotions />} />
-          <Route path="/discounts" element={<Discounts />} />
+          {/* Discounts + Promotions became one Offers page (2026-11-17). */}
+          <Route path="/offers" element={<Offers />} />
+          <Route path="/discounts" element={<Navigate to="/offers" replace />} />
+          <Route path="/promotions" element={<Navigate to="/offers?tab=sales" replace />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/messages" element={<Messages />} />

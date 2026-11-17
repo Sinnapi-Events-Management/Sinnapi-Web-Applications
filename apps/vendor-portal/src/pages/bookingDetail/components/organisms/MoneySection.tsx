@@ -60,7 +60,9 @@ export default function MoneySection({ booking }: Props) {
       ) : (
         <SectionGrid template={{ xs: '1fr', lg: 'minmax(0, 7fr) minmax(0, 5fr)' }}>
           <Stack spacing={3} sx={{ minWidth: 0 }}>
-            <BookingSettlementCard booking={booking} />
+            {/* Before the job is done the "What to do now" card already says
+                what unlocks the payout; this card only earns its place after. */}
+            {booking.status === 'completed' && <BookingSettlementCard booking={booking} />}
             <BookingPaymentCard booking={booking} section={money.escrowSection} />
           </Stack>
           <Stack spacing={3} sx={railSx}>

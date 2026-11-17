@@ -6,17 +6,27 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  Divider,
-  PageTitle,
+  DetailTabPanel,
+  DetailTabs,
   Stack,
   Toast,
   Typography,
 } from '@sinnapi/ui';
-import { EmptyState } from '@sinnapi/ui/router';
+import { BackButton, EmptyState, useBreadcrumbTitle, useUrlTab } from '@sinnapi/ui/router';
+import SendIcon from '@mui/icons-material/SendOutlined';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import DownloadIcon from '@mui/icons-material/FileDownloadOutlined';
+import BlockIcon from '@mui/icons-material/Block';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import DocumentActionBar, {
+  type DocAction,
+} from '@/components/documents/organisms/DocumentActionBar';
 import {
   DocumentStatusChip,
   ReceiptPreview,
   documentErrorMessage,
+  formatDocumentDate,
   formatDocumentMoney,
 } from '@sinnapi/ui/documents';
 import VendorGate from '@/vendor/VendorGate';
@@ -25,8 +35,12 @@ import DeliveryHistory from '@/components/documents/organisms/DeliveryHistory';
 import SendDocumentDialog from '@/components/documents/organisms/SendDocumentDialog';
 import { useReceiptDetail } from './hooks/useReceiptDetail';
 
+const TABS = ['receipt', 'emails'] as const;
+
 function Workspace({ receiptId }: { receiptId: string }) {
   const d = useReceiptDetail(receiptId);
+  const { tab, setTab } = useUrlTab(TABS);
+  useBreadcrumbTitle(d.row?.recipient_name ? `Receipt for ${d.row.recipient_name}` : undefined);
 
   if (d.isLoading) {
     return (
@@ -51,87 +65,120 @@ function Workspace({ receiptId }: { receiptId: string }) {
     );
   }
   const row = d.row;
+  const issued = row.status === 'issued';
+  const more: DocAction[] = [
+    ...(issued
+      ? [
+          {
+            label: 'Email a copy to myself',
+            busyLabel: 'Sending…',
+            onClick: d.emailSelf,
+            busy: d.emailingSelf,
+            icon: <PersonIcon />,
+          },
+          {
+            label: 'Cancel this receipt',
+            onClick: d.openVoid,
+            danger: true,
+            icon: <BlockIcon />,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-start' }}>
-        <Box sx={{ flex: '999 1 600px', minWidth: 0, order: { xs: 2, md: 1 } }}>
-          <ReceiptPreview receipt={d.view} />
-        </Box>
-        <Stack spacing={2} sx={{ flex: '1 1 300px', minWidth: 0, order: { xs: 1, md: 2 } }}>
-          <Card variant="outlined">
-            <CardContent sx={{ '&:last-child': { pb: 2.5 } }}>
-              <Stack spacing={1.5}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  spacing={1}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight={700}
-                    sx={{ fontVariantNumeric: 'tabular-nums' }}
-                  >
-                    {row.document_no}
-                  </Typography>
-                  <DocumentStatusChip kind="receipt" status={row.status} />
-                </Stack>
-                <Typography
-                  variant="h6"
-                  fontWeight={700}
-                  sx={{ fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {formatDocumentMoney(row.amount, row.currency)}
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
+          <Stack spacing={2}>
+            <Stack spacing={0.5}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="flex-start"
+                spacing={1}
+              >
+                <Typography variant="body1" color="text.secondary">
+                  Payment received from
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  From {row.recipient_name}
-                </Typography>
-                {d.downloadError && <Alert severity="error">{d.downloadError}</Alert>}
-                {row.status === 'issued' && (
-                  <Button variant="contained" onClick={d.openSend}>
-                    Email to client
-                  </Button>
-                )}
-                {row.status === 'issued' && (
-                  <Button variant="outlined" onClick={d.emailSelf} disabled={d.emailingSelf}>
-                    {d.emailingSelf ? 'Sending…' : 'Email to myself'}
-                  </Button>
-                )}
-                <Button variant="outlined" onClick={d.download} disabled={d.downloading}>
-                  {d.downloading ? 'Preparing PDF…' : 'Download PDF'}
-                </Button>
-                {row.invoice_id && (
-                  <Button
-                    component={RouterLink}
-                    to={`/invoices/${row.invoice_id}`}
-                    variant="outlined"
-                  >
-                    Open invoice {row.vendor_invoices?.document_no ?? ''}
-                  </Button>
-                )}
-                {row.status === 'void' && row.void_reason && (
-                  <Alert severity="warning">Cancelled: {row.void_reason}</Alert>
-                )}
-                {row.status === 'issued' && (
-                  <>
-                    <Divider />
-                    <Button
-                      color="error"
-                      size="small"
-                      onClick={d.openVoid}
-                      sx={{ alignSelf: 'flex-start' }}
-                    >
-                      Cancel receipt
-                    </Button>
-                  </>
-                )}
+                <DocumentStatusChip kind="receipt" status={row.status} />
               </Stack>
-            </CardContent>
-          </Card>
-          <DeliveryHistory deliveries={d.deliveries} loading={d.deliveriesLoading} />
-        </Stack>
-      </Box>
+              <Typography
+                variant="h5"
+                component="h2"
+                fontWeight={700}
+                sx={{ overflowWrap: 'anywhere' }}
+              >
+                {row.recipient_name}
+              </Typography>
+              <Typography
+                variant="h4"
+                fontWeight={700}
+                sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}
+              >
+                {formatDocumentMoney(row.amount, row.currency)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {formatDocumentDate(row.payment_date)}
+                {row.description ? ` · ${row.description}` : ''}
+              </Typography>
+            </Stack>
+            {row.status === 'void' && row.void_reason && (
+              <Alert severity="warning">Cancelled: {row.void_reason}</Alert>
+            )}
+            {d.downloadError && <Alert severity="error">{d.downloadError}</Alert>}
+            <DocumentActionBar
+              primary={
+                issued ? { label: 'Send to client', onClick: d.openSend, icon: <SendIcon /> } : null
+              }
+              secondary={[
+                {
+                  label: 'Download PDF',
+                  busyLabel: 'Preparing…',
+                  onClick: d.download,
+                  busy: d.downloading,
+                  icon: <DownloadIcon />,
+                },
+              ]}
+              more={more}
+            />
+            {row.invoice_id && (
+              <Button
+                component={RouterLink}
+                to={`/invoices/${row.invoice_id}`}
+                variant="text"
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Open invoice {row.vendor_invoices?.document_no ?? ''}
+              </Button>
+            )}
+            <Typography variant="caption" color="text.secondary">
+              Receipt number {row.document_no}
+            </Typography>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <DetailTabs
+        items={[
+          {
+            value: 'receipt',
+            label: 'Receipt',
+            icon: <ReceiptLongOutlinedIcon fontSize="small" />,
+          },
+          { value: 'emails', label: 'Emails', icon: <MailOutlineIcon fontSize="small" /> },
+        ]}
+        value={tab}
+        onChange={setTab}
+        idPrefix="receipt"
+        ariaLabel="Receipt sections"
+      />
+      <DetailTabPanel value="receipt" active={tab} idPrefix="receipt">
+        <ReceiptPreview receipt={d.view} />
+      </DetailTabPanel>
+      <DetailTabPanel value="emails" active={tab} idPrefix="receipt">
+        <DeliveryHistory deliveries={d.deliveries} loading={d.deliveriesLoading} />
+      </DetailTabPanel>
 
       <VoidDialog
         open={d.voidOpen}
@@ -164,14 +211,9 @@ export default function ReceiptDetail() {
   const { id = '' } = useParams<{ id: string }>();
   return (
     <>
-      <PageTitle
-        title="Receipt"
-        action={
-          <Button component={RouterLink} to="/invoices?tab=receipts" color="inherit">
-            All receipts
-          </Button>
-        }
-      />
+      <Box sx={{ mb: 2 }}>
+        <BackButton fallback="/invoices?tab=receipts" />
+      </Box>
       <VendorGate>{() => <Workspace receiptId={id} />}</VendorGate>
     </>
   );

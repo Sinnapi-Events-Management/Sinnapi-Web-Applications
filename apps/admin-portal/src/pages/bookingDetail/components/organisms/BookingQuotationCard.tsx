@@ -50,7 +50,7 @@ export default function BookingQuotationCard({ quotation: q, booking }: Props) {
       title="Quotation"
       icon={<RequestQuoteIcon />}
       accent="info"
-      action={<StatusChip status={q.status} />}
+      action={<StatusChip status={q.status} domain="quotation" />}
     >
       <Stack spacing={2.5}>
         <QuotationSummaryRows quotation={q} total={pricing.total} currency={pricing.currency} />

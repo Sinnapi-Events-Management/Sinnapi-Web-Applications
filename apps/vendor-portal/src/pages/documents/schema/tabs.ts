@@ -1,7 +1,7 @@
 export const TABS = [
   { value: 'invoices', label: 'Invoices' },
   { value: 'receipts', label: 'Receipts' },
-  { value: 'clients', label: 'Saved clients' },
+  { value: 'clients', label: 'My clients' },
 ] as const;
 
 export type DocumentsTab = (typeof TABS)[number]['value'];

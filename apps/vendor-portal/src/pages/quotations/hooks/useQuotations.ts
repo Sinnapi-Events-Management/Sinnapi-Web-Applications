@@ -8,6 +8,7 @@ import {
   useVendorQuotationFacets,
   useVendorQuotations,
 } from '@/hooks/queries';
+import { useQuotationQuickTabs } from './useQuotationQuickTabs';
 
 /**
  * The vendor's quote requests: URL-backed search + filters, server-paginated
@@ -25,6 +26,7 @@ export function useQuotations(vendorId: string) {
   });
   const { data, isLoading, isFetching, error } = useVendorQuotations(vendorId, table.params);
   const facets = useVendorQuotationFacets(vendorId, list.countsQuery);
+  const quickTabs = useQuotationQuickTabs(vendorId, list);
 
   const rows = data?.rows ?? [];
 
@@ -60,6 +62,7 @@ export function useQuotations(vendorId: string) {
     table,
     list,
     facetCounts: facets.data,
+    quickTabs,
     openQuotation,
   };
 }

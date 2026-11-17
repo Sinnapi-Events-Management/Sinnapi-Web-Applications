@@ -2,7 +2,14 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BOOKING_LIST_FILTERS, LIST_TIMING, useTableState } from '@sinnapi/ui';
 import { useListFilters } from '@sinnapi/ui/router';
-import { useProfileDirectory, useVendorBookingFacets, useVendorBookings } from '@/hooks/queries';
+import {
+  useProfileDirectory,
+  useVendorBookingFacets,
+  useVendorBookings,
+  useVendorBookingTitles,
+} from '@/hooks/queries';
+import { bookingWhat } from '@/lib/bookingCopy';
+import { useBookingQuickTabs } from './useBookingQuickTabs';
 
 /**
  * The vendor's bookings list: URL-backed search + filters, server-paginated
@@ -21,6 +28,7 @@ export function useBookings(vendorId: string) {
   });
   const { data, isLoading, isFetching, error } = useVendorBookings(vendorId, table.params);
   const facets = useVendorBookingFacets(vendorId, list.countsQuery);
+  const quickTabs = useBookingQuickTabs(vendorId, list, table);
 
   const rows = data?.rows ?? [];
 
@@ -37,6 +45,13 @@ export function useBookings(vendorId: string) {
     [profiles],
   );
 
+  // What each booking is for, a moment after the rows (see the query's note).
+  const { data: titles } = useVendorBookingTitles(rows.map((b) => b.id));
+  const bookingFor = useCallback(
+    (id: string) => (titles?.[id] ? bookingWhat(titles[id]) : null),
+    [titles],
+  );
+
   function openBooking(id: string) {
     navigate(`/bookings/${id}`);
   }
@@ -44,6 +59,8 @@ export function useBookings(vendorId: string) {
   return {
     rows,
     clientName,
+    /** The service or event a booking is for, once known; else null. */
+    bookingFor,
     /** Names still on their way — cards show a placeholder bar, not "Client". */
     namesLoading,
     total: data?.total ?? 0,
@@ -54,6 +71,7 @@ export function useBookings(vendorId: string) {
     table,
     list,
     facetCounts: facets.data,
+    quickTabs,
     openBooking,
   };
 }

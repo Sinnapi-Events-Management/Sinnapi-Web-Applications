@@ -34,8 +34,8 @@ export default function BankAccountForm({ vendorId }: { vendorId: string }) {
       <Stack component="form" spacing={2.5} onSubmit={submit} noValidate sx={{ maxWidth: 640 }}>
         <Typography variant="body2" color="text.secondary">
           {current
-            ? 'Re-enter your details to change where your money is sent. Your account number is encrypted and never displayed again, so it cannot be pre-filled.'
-            : 'Used for payouts. Your account number is encrypted and never displayed again — re-enter it to change it.'}
+            ? 'To change where your money is sent, type your new bank details below. For your safety we never show your full account number.'
+            : 'Where Sinnapi sends your money. For your safety we never show your full account number again.'}
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}

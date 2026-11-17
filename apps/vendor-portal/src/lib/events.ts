@@ -31,6 +31,8 @@ export type EventBudgetLike = {
 export function budgetLabel(event: EventBudgetLike): string | null {
   const { budget_min: min, budget_max: max, currency } = event;
   if (min == null && max == null) return null;
+  // A zero floor reads as broken ("UGX 0 – UGX 8,000,000"); say "Up to".
+  if (min != null && Number(min) <= 0 && max != null) return `Up to ${formatMoney(max, currency)}`;
   if (min != null && max != null && min !== max) {
     return `${formatMoney(min, currency)} – ${formatMoney(max, currency)}`;
   }
@@ -80,7 +82,8 @@ export function eventUrgency(eventDate: string | null): EventUrgency | null {
   if (days === 1) return { label: 'Tomorrow', tone: 'urgent' };
   if (days <= 7) return { label: `In ${days} days`, tone: 'urgent' };
   if (days <= 30) return { label: `In ${Math.round(days / 7)} weeks`, tone: 'soon' };
-  return { label: `In ${Math.round(days / 30)} months`, tone: 'scheduled' };
+  const months = Math.round(days / 30);
+  return { label: `In ${months} month${months === 1 ? '' : 's'}`, tone: 'scheduled' };
 }
 
 /** Whether this vendor can act on the event at all — admin posts are inspiration. */

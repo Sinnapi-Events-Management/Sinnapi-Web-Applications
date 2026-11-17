@@ -39,14 +39,18 @@ export default function PaymentHistoryCard({ payments, isLoading }: Props) {
               key={p.id}
               direction={{ xs: 'column', sm: 'row' }}
               spacing={1}
-              alignItems={{ sm: 'center' }}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
               justifyContent="space-between"
             >
               <Box sx={{ minWidth: 0 }}>
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {p.target_plan?.name ?? 'Plan'} · {formatMoney(p.amount, p.currency)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', overflowWrap: 'anywhere' }}
+                >
                   {formatDateTime(p.paid_at ?? p.created_at)} ·{' '}
                   {checkoutRailLabel(p.provider, p.provider_method)}
                   {p.provider_ref ? ` · ref ${p.provider_ref}` : ''}
