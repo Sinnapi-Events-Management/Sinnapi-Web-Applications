@@ -5,7 +5,6 @@ import MoneySummaryCard from './MoneySummaryCard';
 import BookingSettlementCard from './BookingSettlementCard';
 import BookingPaymentCard from './BookingPaymentCard';
 import BookingAgreementCard from './BookingAgreementCard';
-import BookingInvoiceCard from './BookingInvoiceCard';
 
 type Props = { booking: VendorBookingDetailModel };
 
@@ -44,12 +43,9 @@ const railSx = {
  */
 export default function MoneySection({ booking }: Props) {
   const money = useMoneySection(booking);
-  const record = (
-    <>
-      <BookingAgreementCard booking={booking} escrowSection={money.escrowSection} />
-      <BookingInvoiceCard booking={booking} />
-    </>
-  );
+  // The invoice moved to the booking header (2026-11-18); the agreement is
+  // the only record card left here.
+  const record = <BookingAgreementCard booking={booking} escrowSection={money.escrowSection} />;
 
   return (
     <Stack spacing={3}>

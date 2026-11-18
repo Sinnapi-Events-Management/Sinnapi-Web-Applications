@@ -1,20 +1,24 @@
+import type { ReactNode } from 'react';
 import {
   Avatar,
   Box,
-  Button,
-  Stack,
-  Typography,
-  StatusChip,
+  CopyButton,
   HeroSurface,
+  IconButton,
+  Stack,
+  StatusChip,
+  Tooltip,
+  Typography,
   heroAvatarSx,
 } from '@sinnapi/ui';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import PlaceIcon from '@mui/icons-material/Place';
-import PhoneIcon from '@mui/icons-material/Phone';
-import type { ReactNode } from 'react';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonthOutlined';
+import PlaceIcon from '@mui/icons-material/PlaceOutlined';
+import TagIcon from '@mui/icons-material/Tag';
+import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import { formatDate, formatMoney } from '@/lib/config';
 import { bookingWhat, relativeDay } from '@/lib/bookingCopy';
 import type { DirectoryProfile, VendorBookingDetailModel } from '@/lib/types';
+import BookingInvoiceAction from '../molecules/BookingInvoiceAction';
 
 type Props = {
   booking: VendorBookingDetailModel;
@@ -22,13 +26,17 @@ type Props = {
   timeWindow: string | null;
 };
 
-function Fact({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+/** One fact in the metadata row: a small icon and its text, never wrapping inside. */
+function Meta({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ minWidth: 0 }}>
-      <Box sx={{ color: 'text.secondary', display: 'flex', mt: '2px', '& svg': { fontSize: 18 } }}>
-        {icon}
-      </Box>
-      <Typography variant="body1" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+    <Stack
+      direction="row"
+      spacing={0.5}
+      alignItems="center"
+      sx={{ minWidth: 0, color: 'text.secondary', '& svg': { fontSize: 18 } }}
+    >
+      {icon}
+      <Typography variant="body2" component="span" sx={{ color: 'text.primary' }}>
         {children}
       </Typography>
     </Stack>
@@ -36,10 +44,15 @@ function Fact({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 }
 
 /**
- * Who the booking is with, what it is for, when, where and for how much — the
- * five things a vendor checks first. The booking code is kept, small, for
- * when they talk to support; it used to be the headline, which told a vendor
- * nothing about which job this was.
+ * The booking header, compact (redesigned 2026-11-18 after the previous
+ * version stacked full-width buttons and spent a row per fact).
+ *
+ * Follows the record-header pattern of current SaaS tools: who and the status
+ * on one line, the key facts — when, where, the booking code — in one
+ * wrapping metadata row, and the money with the page's secondary actions
+ * (Call, invoice) together on the right. On a phone the right-hand block drops
+ * under the facts as one row: amount on the left, actions on the right.
+ * The page's main action stays in the "What to do now" card below.
  */
 export default function BookingHero({ booking: b, client, timeWindow }: Props) {
   const name = client?.full_name ?? 'Client';
@@ -48,78 +61,121 @@ export default function BookingHero({ booking: b, client, timeWindow }: Props) {
   const phone = client?.contact_visible ? client.phone : null;
 
   return (
-    <HeroSurface>
-      <Stack spacing={2} sx={{ position: 'relative', minWidth: 0 }}>
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
-          <Avatar sx={{ ...heroAvatarSx, width: 48, height: 48 }}>{name.charAt(0)}</Avatar>
+    <HeroSurface sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={{ xs: 2, md: 3 }}
+        alignItems={{ md: 'center' }}
+        sx={{ position: 'relative', minWidth: 0 }}
+      >
+        {/* Identity + facts */}
+        <Stack direction="row" spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+          <Avatar sx={{ ...heroAvatarSx, width: 44, height: 44, flexShrink: 0 }}>
+            {name.charAt(0)}
+          </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography
-              variant="h5"
-              component="h1"
-              fontWeight={700}
-              sx={{ lineHeight: 1.2, overflowWrap: 'anywhere' }}
-            >
-              {name}
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+              <Typography
+                variant="h6"
+                component="h1"
+                fontWeight={700}
+                sx={{ lineHeight: 1.25, overflowWrap: 'anywhere' }}
+              >
+                {name}
+              </Typography>
+              <StatusChip status={b.status} domain="booking" />
+            </Stack>
             {what && (
-              <Typography variant="body1" color="text.secondary" noWrap>
+              <Typography variant="body2" color="text.secondary" noWrap>
                 {what}
               </Typography>
             )}
+            <Stack
+              direction="row"
+              useFlexGap
+              flexWrap="wrap"
+              columnGap={2}
+              rowGap={0.5}
+              alignItems="center"
+              sx={{ mt: 1 }}
+            >
+              <Meta icon={<CalendarMonthIcon />}>
+                {formatDate(b.event_date)}
+                {timeWindow && `, ${timeWindow}`}
+                {when && (
+                  <Box component="span" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                    {' · '}
+                    {when}
+                  </Box>
+                )}
+              </Meta>
+              {b.location && <Meta icon={<PlaceIcon />}>{b.location}</Meta>}
+              {b.reference_no && (
+                <Stack direction="row" alignItems="center" sx={{ ml: -0.5 }}>
+                  <Meta icon={<TagIcon />}>
+                    <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                      {b.reference_no}
+                    </Box>
+                  </Meta>
+                  <CopyButton value={b.reference_no} label="booking code" />
+                </Stack>
+              )}
+            </Stack>
           </Box>
-          <StatusChip status={b.status} size="medium" domain="booking" />
         </Stack>
 
-        <Stack spacing={1}>
-          <Fact icon={<CalendarMonthIcon />}>
-            {formatDate(b.event_date)}
-            {timeWindow && `, ${timeWindow}`}
-            {when && (
-              <Box component="span" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                {' · '}
-                {when}
-              </Box>
-            )}
-          </Fact>
-          {b.location && <Fact icon={<PlaceIcon />}>{b.location}</Fact>}
-        </Stack>
-
+        {/* Money + secondary actions */}
         <Stack
           direction="row"
           alignItems="center"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ pt: 1.5, borderTop: 1, borderColor: 'divider' }}
+          spacing={1}
+          sx={{
+            flexShrink: 0,
+            justifyContent: 'space-between',
+            pt: { xs: 1.5, md: 0 },
+            borderTop: { xs: '1px solid', md: 'none' },
+            borderLeft: { xs: 'none', md: '1px solid' },
+            // The hero's own hairline colour — the theme divider read as a dark
+            // rule on this surface.
+            borderTopColor: 'var(--hero-divider)',
+            borderLeftColor: 'var(--hero-divider)',
+            pl: { md: 3 },
+          }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Your money for this booking
+          <Box sx={{ flexShrink: 0 }}>
+            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+              Your money
             </Typography>
             <Typography
-              variant="h5"
+              variant="h6"
               fontWeight={700}
-              sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}
+              sx={{
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                fontSize: { xs: '1.05rem', sm: '1.25rem' },
+              }}
             >
               {formatMoney(b.amount, b.currency)}
             </Typography>
           </Box>
-          {phone && (
-            <Button
-              href={`tel:${phone.replace(/\s+/g, '')}`}
-              variant="outlined"
-              startIcon={<PhoneIcon />}
-              sx={{ minHeight: 44, flexShrink: 0 }}
-            >
-              Call
-            </Button>
-          )}
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+            {phone && (
+              <Tooltip title={`Call ${phone}`}>
+                <IconButton
+                  component="a"
+                  href={`tel:${phone.replace(/\s+/g, '')}`}
+                  aria-label={`Call ${name}`}
+                  color="secondary"
+                  sx={{ width: 40, height: 40, border: 1, borderColor: 'secondary.main' }}
+                >
+                  <PhoneIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <BookingInvoiceAction booking={b} />
+          </Stack>
         </Stack>
-
-        {b.reference_no && (
-          <Typography variant="caption" color="text.secondary">
-            Booking code {b.reference_no}
-          </Typography>
-        )}
       </Stack>
     </HeroSurface>
   );
