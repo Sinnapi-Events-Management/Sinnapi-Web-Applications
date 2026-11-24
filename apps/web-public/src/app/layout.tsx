@@ -5,7 +5,7 @@ import Providers from './providers';
 import PublicNavbar from '@/components/organisms/publicNavbar';
 import PublicFooter from '@/components/organisms/publicFooter';
 import WhatsAppFab from '@/components/atoms/whatsAppFab';
-import { SITE } from '@/lib/config/site';
+import { COLOR_MODE_STORAGE_KEY, SITE } from '@/lib/config/site';
 import { fontVariables } from '@/lib/fonts';
 import './globals.css';
 
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={fontVariables}>
       <body>
         {/* Applies the persisted color scheme before paint — must stay first in <body>. */}
-        <ColorSchemeScript />
+        <ColorSchemeScript modeStorageKey={COLOR_MODE_STORAGE_KEY} />
         <Providers>
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
             <PublicNavbar />

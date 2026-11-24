@@ -26,7 +26,7 @@ export type IconBadgeProps = {
  *
  * The 12% alpha is deliberately scheme-agnostic: `alpha()` composites against
  * whatever surface the badge lands on, so it reads as a soft wash on the pale
- * gold light canvas and on the warm dark canvas alike.
+ * gold light canvas and on the charcoal dark canvas alike.
  */
 export function IconBadge({
   accent = 'secondary',

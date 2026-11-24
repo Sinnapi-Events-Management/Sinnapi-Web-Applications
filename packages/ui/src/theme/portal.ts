@@ -150,10 +150,10 @@ export const portalLightPalette = {
 };
 
 /**
- * Dark scheme: the neutral `charcoal` palette (see ./tokens). Deliberately not
- * the marketing site's warm `palette.dark` — a hue-tilted canvas read as brown
- * across dense portal screens, so the portals go neutral and let a muted gold
- * carry the brand on the few places it is spent.
+ * Dark scheme: the neutral `charcoal` palette (see ./tokens), shared with the
+ * public site. A hue-tilted canvas read as brown across dense screens, so every
+ * app goes neutral and lets a muted gold carry the brand on the few places it
+ * is spent.
  */
 export const portalDarkPalette = charcoal;
 

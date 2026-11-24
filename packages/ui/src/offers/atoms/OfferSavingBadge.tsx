@@ -52,7 +52,7 @@ export function OfferSavingBadge({ offer, size = 'small', tone = 'soft' }: Offer
             }
           : {
               // alpha() over the palette rather than a fixed tint, so the chip
-              // sits correctly on both the light canvas and the warm dark one.
+              // sits correctly on both the light canvas and the charcoal dark one.
               bgcolor: (t) =>
                 alpha(t.palette.success.main, t.palette.mode === 'dark' ? 0.22 : 0.14),
               color: 'success.main',

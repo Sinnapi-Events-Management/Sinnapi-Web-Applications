@@ -61,7 +61,7 @@ export default function VendorCard({
                 image={image}
                 alt={vendor.business_name}
                 className="vendor-card-media"
-                sx={{ bgcolor: 'grey.100', transition: 'transform .4s ease' }}
+                sx={{ bgcolor: 'action.hover', transition: 'transform .4s ease' }}
               />
               {/* Bottom scrim so the badge stays legible over bright photos. */}
               <Box

@@ -16,8 +16,10 @@ import NavContactLinks from './NavContactLinks';
  * own background transitions between the two.
  *
  * The solid fill is scheme-specific: brand teal (`primary.main`, `#07504D`) in
- * light mode, and pure black (`#000000`) in dark mode, where it sits above a
- * lighter "light black" nav row (`background.paper`) for a two-tier contrast.
+ * light mode, and the charcoal canvas (`background.default`) in dark mode, where
+ * it sits above the lighter charcoal nav row (`background.paper`) for a two-tier
+ * contrast. Not pure black: a #000 strip next to charcoal surfaces reads as a
+ * hole rather than a surface.
  * White text clears AA against both fills. The `data-mui-color-scheme` selector
  * resolves the CSS variables at paint time — no flash, no `theme =>` callback.
  */
@@ -33,8 +35,8 @@ export default function NavTopBar({ transparent = false }: { transparent?: boole
           ? null
           : {
               '[data-mui-color-scheme="dark"] &': {
-                bgcolor: common.black,
-                borderColor: withAlpha(common.white, 0.1),
+                bgcolor: 'background.default',
+                borderColor: 'divider',
               },
             }),
       }}

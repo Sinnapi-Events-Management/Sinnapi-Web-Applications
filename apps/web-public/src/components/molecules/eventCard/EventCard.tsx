@@ -59,14 +59,36 @@ export default function EventCard({ event }: { event: EventCardModel }) {
         sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
       >
         <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-          <CardMedia
-            component="img"
-            height="190"
-            image={event.cover_image_url ?? '/placeholder-event.svg'}
-            alt={event.title}
-            className="event-card-media"
-            sx={{ bgcolor: 'grey.100', transition: 'transform .4s ease' }}
-          />
+          {event.cover_image_url ? (
+            <CardMedia
+              component="img"
+              height="190"
+              image={event.cover_image_url}
+              alt={event.title}
+              className="event-card-media"
+              sx={{ bgcolor: 'action.hover', transition: 'transform .4s ease' }}
+            />
+          ) : (
+            // No cover photo: a soft gold tint read from the theme's CSS
+            // variables, so it follows the light/dark toggle. (The static
+            // /placeholder-event.svg is a fixed cream that glares on charcoal.)
+            <Box
+              aria-hidden
+              className="event-card-media"
+              sx={{
+                height: 190,
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'rgba(var(--mui-palette-secondary-mainChannel) / 0.12)',
+                color: 'secondary.main',
+                // Gold tint on charcoal reads brown: neutral wash, gold icon.
+                '[data-mui-color-scheme="dark"] &': { bgcolor: 'action.selected' },
+                transition: 'transform .4s ease',
+              }}
+            >
+              <EventIcon sx={{ fontSize: 56, opacity: 0.85 }} />
+            </Box>
+          )}
           {/* Bottom scrim so the badge stays legible over bright photos. */}
           <Box
             aria-hidden
