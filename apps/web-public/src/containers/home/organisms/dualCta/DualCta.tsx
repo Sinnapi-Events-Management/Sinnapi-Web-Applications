@@ -101,13 +101,21 @@ export default function DualCta() {
                 position: 'absolute',
                 inset: 0,
                 background: `linear-gradient(135deg, ${withAlpha(gradientStops.goldDark, 0.94)} 0%, ${withAlpha(gradientStops.gold, 0.85)} 100%)`,
+                // Dark: a charcoal panel, not a gold wash — gold blended into a
+                // near-black canvas can only come out brown. The gold moves to
+                // the icon and the main button instead.
                 '[data-mui-color-scheme="dark"] &': {
-                  background: `linear-gradient(135deg, ${withAlpha(gradientStops.neutralDeep, 0.95)} 0%, ${withAlpha(gradientStops.goldDeep, 0.92)} 100%)`,
+                  background: `linear-gradient(135deg, ${withAlpha(gradientStops.neutralDeep, 0.97)} 0%, ${withAlpha(gradientStops.neutralDeep, 0.9)} 100%)`,
                 },
               }}
             />
             <Box sx={{ position: 'relative' }}>
-              <Storefront sx={{ fontSize: 35 }} />
+              <Storefront
+                sx={{
+                  fontSize: 35,
+                  '[data-mui-color-scheme="dark"] &': { color: 'secondary.main' },
+                }}
+              />
               <Typography variant="h3" sx={{ mt: 2, color: 'common.white' }}>
                 Grow your business
               </Typography>
@@ -124,7 +132,12 @@ export default function DualCta() {
                   sx={{
                     bgcolor: 'common.white',
                     color: 'secondary.dark',
-                    '&:hover': { bgcolor: 'grey.100' },
+                    '&:hover': { bgcolor: withAlpha(common.white, 0.9) },
+                    '[data-mui-color-scheme="dark"] &': {
+                      bgcolor: 'secondary.main',
+                      color: 'secondary.contrastText',
+                      '&:hover': { bgcolor: 'secondary.light' },
+                    },
                   }}
                 >
                   Become a vendor

@@ -62,6 +62,8 @@ export default function ApplyHero() {
           borderRadius: '50%',
           background: `radial-gradient(circle, ${withAlpha(gradientStops.gold, 0.16)} 0%, transparent 70%)`,
           pointerEvents: 'none',
+          // No gold glow on charcoal: it smears into a muddy olive haze.
+          '[data-mui-color-scheme="dark"] &': { display: 'none' },
         }}
       />
 

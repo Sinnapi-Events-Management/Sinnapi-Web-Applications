@@ -43,7 +43,7 @@ export type OutcomeMarkProps = {
  *
  * Every colour is resolved from `theme.palette[accent]` rather than written
  * as a hex, which is what makes the same component legible on the pale gold
- * light canvas and the warm dark one — a hardcoded `#4caf50` tick is the
+ * light canvas and the charcoal dark one — a hardcoded `#4caf50` tick is the
  * classic dark-mode failure on this screen, glowing at full saturation
  * against a near-black surface.
  *

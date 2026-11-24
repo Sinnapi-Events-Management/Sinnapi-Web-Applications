@@ -37,7 +37,7 @@ export type OfferRibbonProps = {
  * Tinted with `success`, not the brand gold. Gold is this platform's chrome —
  * every card, header and button already carries it — so a gold ribbon reads as
  * furniture. The tint is mixed through `alpha()` over the palette rather than
- * fixed, so it sits correctly on the light canvas and the warm dark one without
+ * fixed, so it sits correctly on the light canvas and the charcoal dark one without
  * a second definition.
  *
  * Wraps rather than truncates. On a phone the headline, the deadline and the

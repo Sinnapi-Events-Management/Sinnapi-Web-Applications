@@ -1,5 +1,12 @@
 'use client';
-import { extendTheme, modalOverrides, palette, type ThemeOptions } from '@sinnapi/ui/theme';
+import {
+  charcoal,
+  charcoalSurface,
+  extendTheme,
+  modalOverrides,
+  palette,
+  type ThemeOptions,
+} from '@sinnapi/ui/theme';
 import { fontStacks } from './fonts';
 
 // Marketing-site design language. Colors come from the shared design tokens
@@ -75,6 +82,18 @@ const shared: ThemeOptions = {
     },
     MuiCard: { styleOverrides: { root: { borderRadius: 12 } } },
     MuiPaper: { styleOverrides: { rounded: { borderRadius: 12 } } },
+    // MUI lightens dark Paper by elevation; at a Drawer's elevation (16) that
+    // overlay turns charcoal into a flat mid-grey. Pin it to the raised step.
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          '[data-mui-color-scheme="dark"] &': {
+            backgroundImage: 'none',
+            backgroundColor: charcoalSurface.raised,
+          },
+        },
+      },
+    },
     MuiChip: { styleOverrides: { root: { borderRadius: 999 } } },
     MuiTextField: { defaultProps: { variant: 'outlined', fullWidth: true } },
     MuiLink: { defaultProps: { underline: 'hover' } },
@@ -85,10 +104,14 @@ const shared: ThemeOptions = {
 // Single CSS-variables theme carrying both schemes. The active scheme is chosen
 // at runtime by ColorModeProvider/useColorScheme and applied via CSS variables,
 // so toggling re-colors every page instantly with no flash on reload.
+//
+// Light is the default (see COLOR_MODE_STORAGE_KEY); dark is the neutral
+// charcoal scheme the portals use, so the product reads as one system across
+// apps: #141414 canvas, #1E1E1E paper, off-white text and a muted gold.
 export const theme = extendTheme({
   ...shared,
   colorSchemes: {
     light: { palette: palette.light },
-    dark: { palette: palette.dark },
+    dark: { palette: charcoal },
   },
 });

@@ -78,11 +78,11 @@ export default function PublicNavbar() {
   const drawerActiveSx = {
     borderRadius: 1.5,
     '&.Mui-selected': {
-      backgroundColor: withAlpha(mode === 'dark' ? '#3F9BA3' : '#07504D', 0.1),
+      backgroundColor: 'rgba(var(--mui-palette-primary-mainChannel) / 0.1)',
       borderLeft: '3px solid',
       borderColor: 'primary.main',
       '&:hover': {
-        backgroundColor: withAlpha(mode === 'dark' ? '#3F9BA3' : '#07504D', 0.16),
+        backgroundColor: 'rgba(var(--mui-palette-primary-mainChannel) / 0.16)',
       },
     },
   };
@@ -118,7 +118,7 @@ export default function PublicNavbar() {
         color: transparent ? 'common.white' : 'text.primary',
         borderBottom: 1,
         borderColor: transparent ? 'transparent' : 'divider',
-        // Dark mode pairs a pure-black NavTopBar with a lighter "light black" nav
+        // Dark mode pairs a deeper charcoal NavTopBar with a lighter "light black" nav
         // row (elevated paper surface) for a two-tier header. Light mode keeps the
         // standard off-white surface above. Selector resolves CSS vars at paint time.
         ...(transparent

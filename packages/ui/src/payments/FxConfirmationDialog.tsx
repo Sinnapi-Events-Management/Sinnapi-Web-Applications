@@ -96,7 +96,7 @@ export function FxConfirmationDialog({
       fullWidth
       fullScreen={fullScreen}
       // Same surface as the checkout under it: MUI's dark-mode elevation
-      // overlay otherwise greys this step out against the warm frame.
+      // overlay otherwise greys this step out against the dark frame.
       PaperProps={{ sx: { borderRadius: fullScreen ? 0 : 4, backgroundImage: 'none' } }}
     >
       <DialogTitle component="div">
