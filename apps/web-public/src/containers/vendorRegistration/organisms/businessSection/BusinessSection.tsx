@@ -7,10 +7,15 @@ import RegistrationTextField from '../../molecules/RegistrationTextField';
 import ApplicantTypeToggle from '../../molecules/ApplicantTypeToggle';
 import ServicesField from '../../molecules/ServicesField';
 
-type Props = { fields: RegistrationFields; categories: ReferenceOption[]; disabled: boolean };
+type Props = {
+  fields: RegistrationFields;
+  categories: ReferenceOption[];
+  categoriesFailed: boolean;
+  disabled: boolean;
+};
 
 /** The business: its name, who is applying for it, and the services it offers. */
-export default function BusinessSection({ fields, categories, disabled }: Props) {
+export default function BusinessSection({ fields, categories, categoriesFailed, disabled }: Props) {
   const { values, errors, set } = fields;
 
   return (
@@ -44,6 +49,7 @@ export default function BusinessSection({ fields, categories, disabled }: Props)
           <ServicesField
             id={fieldId('serviceCategoryKeys')}
             categories={categories}
+            loadFailed={categoriesFailed}
             value={values.serviceCategoryKeys}
             error={errors.serviceCategoryKeys}
             disabled={disabled}

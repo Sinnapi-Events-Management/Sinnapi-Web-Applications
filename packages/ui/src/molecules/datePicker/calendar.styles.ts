@@ -66,7 +66,9 @@ export function hatchGradient(main: string, dark: boolean): string {
 
 /** The fill tint under a `solid`/`hatched` marker, in either scheme. */
 export function markerTint(main: string, dark: boolean): string {
-  return alpha(main, dark ? 0.3 : 0.16);
+  // Tonal on charcoal, like the portal's chips: a faint tint (paired with a
+  // hairline in `markedDay`). At 0.3 the muted gold days read as brown tiles.
+  return alpha(main, dark ? 0.14 : 0.16);
 }
 
 export type CalendarSkin = {
@@ -127,6 +129,9 @@ export function calendarSx({
       fontWeight: 600,
       // Deliberately no ring: `today` already owns an inset box-shadow, and two
       // rings on one day is noise. The fill alone carries the state.
+      // In dark mode a hairline in the same hue (an outline, so it never fights
+      // `today`'s box-shadow) keeps the low-alpha tint legible as a state.
+      ...(dark ? { outline: `1px solid ${alpha(main, 0.4)}`, outlineOffset: -1 } : {}),
       '&:hover': { backgroundColor: alpha(main, dark ? 0.38 : 0.24) },
       ...(dayEmphasis === 'hatched' && {
         backgroundImage: hatchGradient(main, dark),

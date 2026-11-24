@@ -33,7 +33,10 @@ export default function BankAccountOnFile({ account, loading }: Props) {
         p: 2,
         borderRadius: 2,
         border: (t) => `1px solid ${t.palette.divider}`,
-        bgcolor: (t) => alpha(t.palette.secondary.main, t.palette.mode === 'dark' ? 0.08 : 0.05),
+        bgcolor: (t) =>
+          t.palette.mode === 'dark'
+            ? alpha(t.palette.text.primary, 0.03)
+            : alpha(t.palette.secondary.main, 0.05),
       }}
     >
       <Box

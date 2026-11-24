@@ -1,6 +1,6 @@
 'use client';
 import { experimental_extendTheme as extendTheme, type ThemeOptions } from '@mui/material/styles';
-import { palette, fonts } from './tokens';
+import { palette, charcoal, fonts, withAlpha } from './tokens';
 import { modalOverrides } from './theme';
 
 /**
@@ -21,6 +21,43 @@ import { modalOverrides } from './theme';
  * ordinary actions is what previously made the client and vendor portals read
  * as a different product from admin.
  */
+
+/** Selector for the dark scheme emitted by the CSS-vars provider. */
+const DARK = '[data-mui-color-scheme="dark"] &';
+
+type ChipTone = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
+const CHIP_TONES: readonly ChipTone[] = [
+  'primary',
+  'secondary',
+  'success',
+  'warning',
+  'error',
+  'info',
+];
+
+/**
+ * In charcoal dark mode a *filled* coloured chip renders tonal — a faint tint of
+ * its colour, a hairline in the same hue, and the colour as ink — the way
+ * GitHub/Linear/Vercel draw status pills. Solid saturated pills (bright blue,
+ * green, gold) were the loudest thing on every dark list screen. Light mode is
+ * untouched: solid fills read well on white. Teal ink uses `.light`, since its
+ * `.main` sits under AA on the dark panel.
+ */
+function tonalChipInDark(ownerState: { color?: string; variant?: string }) {
+  const tone = ownerState.color as ChipTone | undefined;
+  if (ownerState.variant === 'outlined' || !tone || !CHIP_TONES.includes(tone)) return {};
+  const main = charcoal[tone].main;
+  const ink = tone === 'primary' ? charcoal.primary.light : main;
+  return {
+    [DARK]: {
+      color: ink,
+      backgroundColor: withAlpha(main, 0.14),
+      border: `1px solid ${withAlpha(main, 0.3)}`,
+      '& .MuiChip-icon, & .MuiChip-deleteIcon': { color: ink },
+      '&.MuiChip-clickable:hover': { backgroundColor: withAlpha(main, 0.22) },
+    },
+  };
+}
 
 /** Palette-independent options: typography scale and component defaults. */
 export const portalThemeBase: ThemeOptions = {
@@ -53,7 +90,7 @@ export const portalThemeBase: ThemeOptions = {
     // above. Applies to contained, outlined and text alike;
     // `secondary.contrastText` keeps solid buttons AA-legible, and
     // outlined/text use `secondary.main`/`.dark`, which clear contrast on the
-    // pale-gold light canvas and the warm dark canvas alike.
+    // pale-gold light canvas and the charcoal dark canvas alike.
     MuiButton: {
       defaultProps: { disableElevation: true, color: 'secondary' },
       styleOverrides: {
@@ -75,9 +112,26 @@ export const portalThemeBase: ThemeOptions = {
       },
     },
     MuiCard: { styleOverrides: { root: { borderRadius: 12 } } },
-    MuiChip: { styleOverrides: { root: { borderRadius: 999 } } },
+    MuiChip: {
+      styleOverrides: {
+        root: ({ ownerState }) => ({ borderRadius: 999, ...tonalChipInDark(ownerState) }),
+      },
+    },
     MuiTextField: { defaultProps: { variant: 'outlined', fullWidth: true, size: 'small' } },
-    MuiListItemButton: { styleOverrides: { root: { borderRadius: 8 } } },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          // The selected nav row is a neutral raised highlight in charcoal dark
+          // mode; the teal icon alone marks it as wayfinding. MUI's default
+          // primary-tinted fill read as a blue-green smear on the neutral canvas.
+          [DARK]: {
+            '&.Mui-selected': { backgroundColor: charcoal.action.selected },
+            '&.Mui-selected:hover': { backgroundColor: 'rgba(255,255,255,0.11)' },
+          },
+        },
+      },
+    },
   },
 };
 
@@ -96,11 +150,12 @@ export const portalLightPalette = {
 };
 
 /**
- * Dark scheme. The warm tilt lives in the tokens themselves (see `palette.dark`
- * in ./tokens), so unlike the light scheme there is nothing to override here —
- * the canvas already carries the same gold family as its light counterpart.
+ * Dark scheme: the neutral `charcoal` palette (see ./tokens). Deliberately not
+ * the marketing site's warm `palette.dark` — a hue-tilted canvas read as brown
+ * across dense portal screens, so the portals go neutral and let a muted gold
+ * carry the brand on the few places it is spent.
  */
-export const portalDarkPalette = palette.dark;
+export const portalDarkPalette = charcoal;
 
 /**
  * Builds the portal theme: a single CSS-variables theme carrying both schemes.

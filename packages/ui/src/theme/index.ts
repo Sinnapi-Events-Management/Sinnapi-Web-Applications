@@ -1,5 +1,14 @@
 export { lightTheme, darkTheme, modalOverrides, type AppTheme } from './theme';
-export { palette, radius, fonts, brand, common, gradientStops } from './tokens';
+export {
+  palette,
+  charcoal,
+  charcoalSurface,
+  radius,
+  fonts,
+  brand,
+  common,
+  gradientStops,
+} from './tokens';
 
 // The portal design language (admin / client / vendor) — denser and
 // secondary-forward, as opposed to the marketing themes above.

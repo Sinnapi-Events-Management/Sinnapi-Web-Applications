@@ -54,6 +54,8 @@ export default function CalendarRail({ calendar, rail }: Props) {
           bgcolor: 'secondary.main',
           zIndex: 2,
         },
+        // Mirrors SectionCard: no accent bar in charcoal dark mode.
+        '[data-mui-color-scheme="dark"] &::before': { display: 'none' },
       }}
     >
       {/* Unpadded so the tab bar's underline spans the card, not the text. */}

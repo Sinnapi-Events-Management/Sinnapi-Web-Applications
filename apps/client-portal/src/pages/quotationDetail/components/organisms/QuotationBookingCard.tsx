@@ -78,7 +78,7 @@ export default function QuotationBookingCard({ booking }: Props) {
           <Button
             fullWidth
             variant={stage === 'released' ? 'outlined' : 'contained'}
-            color={stage === 'released' ? 'inherit' : 'primary'}
+            color={stage === 'released' ? 'inherit' : 'secondary'}
             disableElevation
             startIcon={<OpenInNewIcon />}
             component={RouterLink}

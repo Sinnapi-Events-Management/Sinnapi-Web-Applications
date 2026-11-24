@@ -1,4 +1,4 @@
-import { Card, CardContent, Box, Typography, Skeleton } from '@sinnapi/ui';
+import { Card, CardContent, Box, Typography, Skeleton, alpha } from '@sinnapi/ui';
 
 export type SummaryAccent =
   | 'default'
@@ -49,6 +49,12 @@ export default function SummaryTile({ label, value, icon, accent = 'default', lo
             flexShrink: 0,
             color: fg,
             bgcolor: bg,
+            // Charcoal dark mode: a tonal badge (faint tint of the accent) rather
+            // than the solid `.light` fill, which read as a bright disc.
+            '[data-mui-color-scheme="dark"] &': {
+              bgcolor: (t) =>
+                accent === 'default' ? t.palette.action.hover : alpha(t.palette[accent].main, 0.14),
+            },
           }}
         >
           {icon}

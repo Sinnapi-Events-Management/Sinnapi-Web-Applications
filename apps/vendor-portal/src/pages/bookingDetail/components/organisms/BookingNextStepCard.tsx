@@ -82,6 +82,14 @@ export default function BookingNextStepCard({ booking, timeWindow, onOpenMoney }
           borderColor: (t) => alpha(t.palette[color].main, 0.5),
           borderTopWidth: 4,
           borderTopColor: `${color}.main`,
+          // Charcoal dark mode spends colour sparingly: a neutral hairline frame
+          // with the tone kept only as a thin top accent, so the card reads as a
+          // panel rather than a gold-outlined box.
+          '[data-mui-color-scheme="dark"] &': {
+            borderColor: 'divider',
+            borderTopWidth: 2,
+            borderTopColor: (t) => alpha(t.palette[color].main, 0.85),
+          },
         }}
       >
         <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>

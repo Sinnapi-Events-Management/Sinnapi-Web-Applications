@@ -27,7 +27,13 @@ export default function CalendarStat({ label, value, accent }: Props) {
         px: { xs: 1.5, sm: 2 },
         py: 1.25,
         borderRadius: 2,
-        bgcolor: (t) => alpha(t.palette[accent].main, t.palette.mode === 'dark' ? 0.16 : 0.08),
+        // On charcoal the tile is a neutral lift with a hairline; the coloured
+        // dot carries the meaning. A 16% hue fill read as brown/maroon blocks.
+        bgcolor: (t) =>
+          t.palette.mode === 'dark'
+            ? alpha(t.palette.text.primary, 0.04)
+            : alpha(t.palette[accent].main, 0.08),
+        border: (t) => (t.palette.mode === 'dark' ? `1px solid ${t.palette.divider}` : 'none'),
       }}
     >
       <Box

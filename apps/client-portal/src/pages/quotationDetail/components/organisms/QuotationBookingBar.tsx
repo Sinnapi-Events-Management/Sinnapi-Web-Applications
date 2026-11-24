@@ -145,7 +145,6 @@ export default function QuotationBookingBar({ booking }: Props) {
 
         <Button
           variant="contained"
-          color="primary"
           size="large"
           disableElevation
           startIcon={<EventAvailableIcon />}

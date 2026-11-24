@@ -123,6 +123,13 @@ export default function QuotationNextStepCard({
           borderColor: (t) => alpha(t.palette[color].main, 0.5),
           borderTopWidth: 4,
           borderTopColor: `${color}.main`,
+          // Same charcoal dark treatment as BookingNextStepCard: neutral frame,
+          // tone kept as a thin top accent.
+          '[data-mui-color-scheme="dark"] &': {
+            borderColor: 'divider',
+            borderTopWidth: 2,
+            borderTopColor: (t) => alpha(t.palette[color].main, 0.85),
+          },
         }}
       >
         <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
