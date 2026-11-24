@@ -33,7 +33,7 @@ export default function DiscountDialog({ open, vendorId, discount, promotions, o
     // packages and their tiers, and at `sm` a vendor with four packages reads
     // it through a 260px window.
     <Dialog open={open} onClose={() => onClose()} fullWidth maxWidth="md" fullScreen={fullScreen}>
-      <DialogTitle>{discount ? 'Edit discount' : 'New discount'}</DialogTitle>
+      <DialogTitle>{discount ? 'Edit offer' : 'New offer'}</DialogTitle>
       {open && (
         <DiscountForm
           vendorId={vendorId}

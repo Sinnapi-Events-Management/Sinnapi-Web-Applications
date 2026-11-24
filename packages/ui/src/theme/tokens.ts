@@ -99,6 +99,47 @@ export const palette = {
 } as const;
 
 /**
+ * The **portal** dark scheme (admin, client, vendor): a neutral charcoal with
+ * no hue tilt, in the manner of modern editor/tool dark modes (VS Code, Linear,
+ * Vercel). `palette.dark` above stays as the marketing site's warm dark scheme.
+ *
+ * Elevation is carried by lightness steps rather than colour — canvas → paper →
+ * raised — each about 4% apart, with hairline dividers at ~9% white. Gold is
+ * muted (~#D9B35E rather than the bright #F6D064) so it reads as a brand accent
+ * on the few places it is spent (primary buttons, the active step, money
+ * figures) instead of as yellow. Status colours keep the dark scheme's lighter
+ * stops, which already read well on a neutral canvas.
+ */
+export const charcoal = {
+  ...palette.dark,
+  primary: { ...palette.dark.primary, contrastText: '#141414' },
+  secondary: {
+    lightest: '#FAF3E2',
+    lighter: '#F0DCAE',
+    light: '#E6C987',
+    main: '#D9B35E',
+    dark: '#C49A45',
+    contrastText: '#141414',
+  },
+  background: { default: '#141414', paper: '#1E1E1E' },
+  text: { primary: '#EDEDED', secondary: '#A3A3A3', disabled: '#5E5E5E' },
+  divider: 'rgba(255,255,255,0.09)',
+  action: {
+    hover: 'rgba(255,255,255,0.05)',
+    selected: 'rgba(255,255,255,0.08)',
+    focus: 'rgba(255,255,255,0.12)',
+  },
+} as const;
+
+/** Surface steps of the charcoal scheme, for raised panels outside the palette. */
+export const charcoalSurface = {
+  canvas: '#141414',
+  paper: '#1E1E1E',
+  raised: '#232323',
+  border: '#2B2B2B',
+} as const;
+
+/**
  * Absolute black & white. MUI exposes these as `theme.palette.common`, but the
  * palette only exists at runtime inside a React/theme context. This token gives
  * the same hexes to non-theme call sites (e.g. Server Components composing an

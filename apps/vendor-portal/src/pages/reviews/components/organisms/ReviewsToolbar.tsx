@@ -78,7 +78,7 @@ export default function ReviewsToolbar({
           onChange={onTerm}
           onClear={onClearTerm}
           ariaLabel="Search reviews"
-          placeholder="Search by client, headline or wording"
+          placeholder="Search reviews"
           size="small"
           // Grows into the row it shares but never below a width the
           // placeholder fits, so the sort control beside it cannot squeeze it shut.

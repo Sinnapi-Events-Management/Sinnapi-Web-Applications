@@ -38,7 +38,10 @@ export function useMoneySection(booking: VendorBookingDetailModel) {
     : null;
 
   const currency = escrow?.currency ?? booking.currency ?? 'UGX';
-  const total = escrow?.gross_amount ?? booking.amount;
+  // The vendor's figure is the booking amount. `gross_amount` adds the fee the
+  // client pays Sinnapi on top, which is not the vendor's money and showed
+  // vendors two different totals for one job (decided 2026-11-17).
+  const total = booking.amount ?? escrow?.gross_amount ?? null;
 
   const canSplit =
     rail === 'escrow' &&

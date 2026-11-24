@@ -8,7 +8,7 @@ export default function Quotations() {
     <>
       <PageTitle
         title="Quotations"
-        subtitle="Build and send quotes in response to client requests."
+        subtitle="Price new requests, answer changes, and see which quotes became bookings."
       />
       <VendorGate>
         {(vendorId) => (

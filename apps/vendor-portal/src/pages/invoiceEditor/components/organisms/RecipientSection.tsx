@@ -9,7 +9,7 @@ import SectionCard from '../molecules/SectionCard';
 /** Who the invoice is for, and the optional "For" line printed beside them. */
 export default function RecipientSection({ f }: { f: InvoiceFormApi }) {
   return (
-    <SectionCard title="Client">
+    <SectionCard title="Who is paying?">
       {f.isBookingInvoice ? (
         <>
           <Typography>
@@ -36,7 +36,7 @@ export default function RecipientSection({ f }: { f: InvoiceFormApi }) {
       <ControlledField
         name="title"
         control={f.control}
-        label="For (optional)"
+        label="What is this invoice for? (optional)"
         placeholder="e.g. Wedding reception décor — 22 Nov 2026"
         disabled={f.busy}
       />

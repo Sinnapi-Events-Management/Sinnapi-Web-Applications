@@ -28,7 +28,7 @@ export type ServiceFilter = 'all' | ServiceState;
 
 export const SERVICE_FILTERS: { value: ServiceFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'live', label: 'Live' },
+  { value: 'live', label: 'Showing' },
   { value: 'hidden', label: 'Hidden' },
   { value: 'archived', label: 'No longer offered' },
 ];

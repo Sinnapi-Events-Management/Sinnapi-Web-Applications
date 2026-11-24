@@ -57,15 +57,18 @@ export function CompletenessMeter({ items, subject, collapsedCount = 3 }: Comple
           {shown.map((item) => (
             <Chip
               key={item.key}
-              size="small"
               variant="outlined"
+              color="secondary"
               icon={<AddIcon />}
               label={item.label}
               onClick={item.onSelect}
+              // Thumb-sized: the small chips were the page's main
+              // "what next" and too fiddly to tap on a phone (2026-11-17).
+              sx={{ height: 40, fontWeight: 600 }}
             />
           ))}
           {hidden > 0 && (
-            <Chip size="small" label={`+${hidden} more`} onClick={() => setExpanded(true)} />
+            <Chip label={`+${hidden} more`} onClick={() => setExpanded(true)} sx={{ height: 40 }} />
           )}
         </Stack>
       )}

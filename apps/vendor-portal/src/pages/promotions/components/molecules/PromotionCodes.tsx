@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/config';
 import { Chip, Skeleton, Stack, Tooltip, Typography } from '@sinnapi/ui';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import type { PromotionRow } from '../../schema';
@@ -25,35 +26,45 @@ export default function PromotionCodes({
   if (promotion.codes.length === 0) {
     return (
       <Typography variant="caption" color="text.secondary">
-        No discount code attached
+        No offers in this sale yet — add one from the Offers tab
       </Typography>
     );
   }
 
+  // What clients actually get, from the offers themselves — the sale's own
+  // description is free text and once said "40% discount" over two codes
+  // worth 10% and 15% (2026-11-17).
   return (
-    <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
-      <LocalOfferOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-      {promotion.codes.map((code) => (
-        <Tooltip
-          key={code.id}
-          title={code.is_active === false ? 'This code is switched off' : ''}
-          disableHoverListener={code.is_active !== false}
-        >
-          <Chip
-            size="small"
-            variant="outlined"
-            label={code.code ?? 'Automatic'}
-            sx={{
-              fontFamily: 'monospace',
-              // A switched-off code still counts toward redemptions, so it
-              // stays on the card — just visibly out of play.
-              opacity: code.is_active === false ? 0.55 : 1,
-            }}
-          />
-        </Tooltip>
-      ))}
+    <Stack spacing={0.75}>
+      <Typography variant="caption" color="text.secondary" fontWeight={700}>
+        What clients get
+      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+        <LocalOfferOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+        {promotion.codes.map((code) => {
+          const off =
+            code.type === 'fixed'
+              ? `${formatMoney(code.value, code.currency ?? 'UGX')} off`
+              : `${Number(code.value)}% off`;
+          return (
+            <Tooltip
+              key={code.id}
+              title={code.is_active === false ? 'This offer is paused' : ''}
+              disableHoverListener={code.is_active !== false}
+            >
+              <Chip
+                size="small"
+                color="secondary"
+                variant="outlined"
+                label={code.code ? `${off} · ${code.code}` : `${off} · automatic`}
+                sx={{ opacity: code.is_active === false ? 0.55 : 1, fontWeight: 600 }}
+              />
+            </Tooltip>
+          );
+        })}
+      </Stack>
       <Typography variant="caption" color="text.secondary">
-        {promotion.redemptions} {promotion.redemptions === 1 ? 'redemption' : 'redemptions'}
+        Used {promotion.redemptions} {promotion.redemptions === 1 ? 'time' : 'times'}
       </Typography>
     </Stack>
   );

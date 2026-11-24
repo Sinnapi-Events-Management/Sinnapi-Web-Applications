@@ -81,6 +81,7 @@ import type {
   SubscriptionPaymentModel,
   SubscriptionEventModel,
   PaymentReturnModel,
+  BookingTitles,
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
@@ -252,6 +253,36 @@ export function useVendorBookings(vendorId: string | undefined, params: PagePara
 }
 
 /**
+ * What each booking on a page is for — the service it was placed on and the
+ * event it hangs off — keyed by booking id. A second read rather than an embed
+ * because `search_bookings` returns a table type, which PostgREST cannot join
+ * from. One request per page of rows, like the client-name directory lookup.
+ * `events(title)` is null where RLS withholds a private event.
+ */
+export function useVendorBookingTitles(ids: string[]) {
+  const key = [...ids].sort().join(',');
+  return useQuery({
+    queryKey: ['v-bookings', 'titles', key],
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('id,vendor_services(title),events(title)')
+        .in('id', ids)
+        .abortSignal(signal);
+      if (error) throw error;
+      const out: Record<string, BookingTitles> = {};
+      for (const row of (data ?? []) as unknown as (BookingTitles & { id: string })[]) {
+        out[row.id] = { vendor_services: row.vendor_services, events: row.events };
+      }
+      return out;
+    },
+    enabled: ids.length > 0,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
  * Per-option counts for the bookings filter dropdowns, under the same search
  * and filters as the list (each facet ignoring its own). Same key prefix as the
  * list, so every invalidation that refreshes the list refreshes these too.
@@ -293,6 +324,7 @@ const VENDOR_BOOKING_DETAIL_SELECT = [
     'advance_terms_note,sent_at,responded_at,created_at,' +
     'quotation_items(id,description,quantity,unit_price,line_total,sort_order))',
   'events(id,title,event_date,location,payment_type,payment_terms_note)',
+  'vendor_services(title)',
 ].join(',');
 
 export function useVendorBooking(id: string) {
@@ -1143,7 +1175,7 @@ export function useVendorEscrow(vendorId: string | undefined, params: PageParams
         supabase
           .from('escrow_transactions')
           .select(
-            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,currency,bookings(reference_no)',
+            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,currency,bookings(id,reference_no,event_date,client_id)',
             { count: 'exact' },
           )
           .eq('vendor_id', vendorId!),

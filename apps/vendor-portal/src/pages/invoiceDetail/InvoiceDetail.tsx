@@ -1,7 +1,10 @@
-import { useParams, Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, CircularProgress, PageTitle, Stack } from '@sinnapi/ui';
-import { EmptyState } from '@sinnapi/ui/router';
+import { useParams } from 'react-router-dom';
+import { Alert, Box, CircularProgress, DetailTabPanel, DetailTabs } from '@sinnapi/ui';
+import { BackButton, EmptyState, useBreadcrumbTitle, useUrlTab } from '@sinnapi/ui/router';
 import { InvoicePreview, documentErrorMessage } from '@sinnapi/ui/documents';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import VendorGate from '@/vendor/VendorGate';
 import DeliveryHistory from '@/components/documents/organisms/DeliveryHistory';
 import { useInvoiceDetail } from './hooks/useInvoiceDetail';
@@ -9,8 +12,18 @@ import InvoiceActionsCard from './components/organisms/InvoiceActionsCard';
 import InvoiceReceiptsCard from './components/organisms/InvoiceReceiptsCard';
 import InvoiceDialogs from './components/organisms/InvoiceDialogs';
 
+const TABS = ['invoice', 'payments', 'emails'] as const;
+
+/**
+ * One issued invoice (redesigned 2026-11-17): the summary card with one main
+ * action on top, then the invoice itself, its payments and its emails behind
+ * three tabs — on a phone the document used to sit below six buttons and two
+ * cards.
+ */
 function Workspace({ invoiceId }: { invoiceId: string }) {
   const d = useInvoiceDetail(invoiceId);
+  const { tab, setTab } = useUrlTab(TABS);
+  useBreadcrumbTitle(d.row?.recipient_name ? `Invoice for ${d.row.recipient_name}` : undefined);
 
   if (d.isLoading) {
     return (
@@ -37,38 +50,50 @@ function Workspace({ invoiceId }: { invoiceId: string }) {
   }
   if (d.row.status === 'draft') return null; // forwarding to the editor
 
-  // Phone: summary and receipts first (what the vendor came to act on),
-  // the paper below. Desktop: the paper leads, the panel sits beside it.
+  const payments = d.receipts.liveCount;
   return (
     <>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-start' }}>
-        <Box sx={{ flex: '999 1 600px', minWidth: 0, order: { xs: 2, md: 1 } }}>
-          <InvoicePreview invoice={d.view} />
-        </Box>
-        <Stack spacing={2} sx={{ flex: '1 1 320px', minWidth: 0, order: { xs: 1, md: 2 } }}>
-          <InvoiceActionsCard d={d} />
-          <InvoiceReceiptsCard d={d} />
-          <DeliveryHistory deliveries={d.deliveries} loading={d.deliveriesLoading} />
-        </Stack>
-      </Box>
+      <InvoiceActionsCard d={d} />
+      <DetailTabs
+        items={[
+          {
+            value: 'invoice',
+            label: 'Invoice',
+            icon: <ReceiptLongOutlinedIcon fontSize="small" />,
+          },
+          {
+            value: 'payments',
+            label: payments ? `Payments (${payments})` : 'Payments',
+            icon: <PaymentsOutlinedIcon fontSize="small" />,
+          },
+          { value: 'emails', label: 'Emails', icon: <MailOutlineIcon fontSize="small" /> },
+        ]}
+        value={tab}
+        onChange={setTab}
+        idPrefix="invoice"
+        ariaLabel="Invoice sections"
+      />
+      <DetailTabPanel value="invoice" active={tab} idPrefix="invoice">
+        <InvoicePreview invoice={d.view} />
+      </DetailTabPanel>
+      <DetailTabPanel value="payments" active={tab} idPrefix="invoice">
+        <InvoiceReceiptsCard d={d} />
+      </DetailTabPanel>
+      <DetailTabPanel value="emails" active={tab} idPrefix="invoice">
+        <DeliveryHistory deliveries={d.deliveries} loading={d.deliveriesLoading} />
+      </DetailTabPanel>
       <InvoiceDialogs d={d} />
     </>
   );
 }
 
-/** `/invoices/:id` — an issued invoice, its receipts and what to do next. */
 export default function InvoiceDetail() {
   const { id = '' } = useParams<{ id: string }>();
   return (
     <>
-      <PageTitle
-        title="Invoice"
-        action={
-          <Button component={RouterLink} to="/invoices" color="inherit">
-            All invoices
-          </Button>
-        }
-      />
+      <Box sx={{ mb: 2 }}>
+        <BackButton fallback="/invoices" />
+      </Box>
       <VendorGate>{() => <Workspace invoiceId={id} />}</VendorGate>
     </>
   );

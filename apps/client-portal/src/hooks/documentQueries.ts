@@ -101,6 +101,33 @@ export function useClientReceipts(params: PageParams) {
   });
 }
 
+/**
+ * The issued invoice for one of the client's bookings, if the vendor has sent
+ * one — for the booking header's "View invoice" button. Drafts and cancelled
+ * invoices are the vendor's business and stay out of sight.
+ */
+export function useClientBookingInvoice(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ['c-booking-invoice', bookingId],
+    enabled: !!bookingId,
+    queryFn: async () => {
+      const me = await myId();
+      const { data, error } = await supabase
+        .from('vendor_invoices')
+        .select('id,status')
+        .eq('booking_id', bookingId!)
+        .eq('client_id', me)
+        .not('status', 'in', '("draft","void")')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { id: string; status: string } | null) ?? null;
+    },
+  });
+}
+
 export function useClientInvoice(id: string | undefined) {
   return useQuery({
     queryKey: ['c-invoice', id],

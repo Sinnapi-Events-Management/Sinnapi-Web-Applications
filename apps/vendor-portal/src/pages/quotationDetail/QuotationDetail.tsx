@@ -2,38 +2,23 @@ import { Box, DetailTabPanel, QueryState } from '@sinnapi/ui';
 import { BackButton, EmptyState } from '@sinnapi/ui/router';
 import { FEATURES } from '@sinnapi/utils/constants';
 import QuotationHero from './components/organisms/QuotationHero';
-import QuotationFeedbackBanner from './components/organisms/QuotationFeedbackBanner';
-import QuotationActionBar from './components/organisms/QuotationActionBar';
+import QuotationNextStepCard from './components/organisms/QuotationNextStepCard';
 import QuotationTabs from './components/molecules/QuotationTabs';
 import OverviewSection from './components/organisms/OverviewSection';
 import QuoteSection from './components/organisms/QuoteSection';
-import PaymentSection from './components/organisms/PaymentSection';
 import MessagesSection from './components/organisms/MessagesSection';
 import ProgressSection from './components/organisms/ProgressSection';
 import { useQuotationDetailPage } from './hooks/useQuotationDetailPage';
 
 /**
- * A single quotation as the vendor sees it: who asked, what they asked for,
- * what was quoted back, what the client said about it, what it pays and what
- * can still be done about it.
+ * One quotation as the vendor sees it, redesigned phone-first on 2026-11-17:
  *
- * Three things stay above the tabs and never move: the hero, which says which
- * quote this is; the client's last word on it, when they left one; and the
- * action bar, which is the only part of the page that *does* anything.
- * Everything below them is a record, split into five sections that each fit a
- * screen.
+ * 1. **Header** — who, what they asked for, when, where, the price, Call.
+ * 2. **What to do now** — Request → Price sent → Accepted → Booked, one
+ *    sentence and one main button (usually the 3-step builder).
+ * 3. **Details · Quote · Messages · History** — the record.
  *
- * THE FEEDBACK BANNER IS ABOVE THE TABS FOR A REASON. The client's note lives
- * in `quotation_status_history.reason`, rendered only by the status trail, in
- * the last tab — so a vendor opening a quote marked `revised` saw the word and
- * none of the sentence. It now sits between the hero and the actions, which is
- * both where the question is asked and the order it should be answered in: the
- * request first, then the controls that respond to it.
- *
- * This file is the composition and nothing else — no condition about when a
- * card appears, no arithmetic on the price. `useQuotationDetailPage` owns the
- * reads, every derived figure, the open section, the client's note and the
- * conversation; each section owns its own contents.
+ * Layout only — `useQuotationDetailPage` owns the reads and the open tab.
  */
 export default function QuotationDetail() {
   const {
@@ -45,8 +30,6 @@ export default function QuotationDetail() {
     items,
     pricing,
     advance,
-    isEditable,
-    isLapsed,
     tab,
     setTab,
     feedback,
@@ -56,6 +39,15 @@ export default function QuotationDetail() {
     isLoading,
     error,
   } = useQuotationDetailPage();
+
+  const openQuote = () => {
+    setTab('quote');
+    requestAnimationFrame(() =>
+      document
+        .getElementById('quote-tabs-anchor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  };
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -71,29 +63,29 @@ export default function QuotationDetail() {
           ctaHref="/quotations"
         />
       ) : (
-        <>
-          <QuotationHero
+        // Room at the bottom on phones for the sticky action button.
+        <Box sx={{ pb: { xs: 10, md: 0 } }}>
+          <Box sx={{ mb: 2 }}>
+            <QuotationHero
+              quotation={quotation}
+              client={client}
+              event={event}
+              pricing={pricing}
+              pdf={pdf}
+            />
+          </Box>
+
+          <QuotationNextStepCard
             quotation={quotation}
+            items={items}
             client={client}
-            event={event}
-            pricing={pricing}
-            pdf={pdf}
-          />
-
-          <QuotationFeedbackBanner
-            feedback={feedback}
-            onMessageClient={() => void messageClient()}
-            onOpenQuote={() => setTab('quote')}
-            isStarting={conversation.isStarting}
-          />
-
-          <QuotationActionBar
-            quotation={quotation}
-            isLapsed={isLapsed}
+            feedback={feedback?.isOutstanding || quotation.status !== 'revised' ? feedback : null}
+            onOpenQuote={openQuote}
             onMessageClient={() => void messageClient()}
             isMessaging={conversation.isStarting}
           />
 
+          <Box id="quote-tabs-anchor" sx={{ scrollMarginTop: 72 }} />
           <QuotationTabs value={tab} onChange={setTab} unreadCount={conversation.unreadCount} />
 
           <DetailTabPanel value="overview" active={tab} idPrefix="quotation">
@@ -105,19 +97,7 @@ export default function QuotationDetail() {
             />
           </DetailTabPanel>
           <DetailTabPanel value="quote" active={tab} idPrefix="quotation">
-            <QuoteSection
-              quotation={quotation}
-              items={items}
-              pricing={pricing}
-              isEditable={isEditable}
-            />
-          </DetailTabPanel>
-          <DetailTabPanel value="payment" active={tab} idPrefix="quotation">
-            <PaymentSection
-              pricing={pricing}
-              advance={advance}
-              daysBefore={quotation.advance_release_days_before}
-            />
+            <QuoteSection quotation={quotation} items={items} pricing={pricing} advance={advance} />
           </DetailTabPanel>
           {FEATURES.clientVendorMessaging && (
             <DetailTabPanel value="messages" active={tab} idPrefix="quotation">
@@ -136,7 +116,7 @@ export default function QuotationDetail() {
           <DetailTabPanel value="progress" active={tab} idPrefix="quotation">
             <ProgressSection quotationId={quotationId} quotation={quotation} />
           </DetailTabPanel>
-        </>
+        </Box>
       )}
     </QueryState>
   );

@@ -68,7 +68,7 @@ export default function QuotationBookingBar({ booking }: Props) {
         icon={<EventAvailableIcon />}
         accent="primary"
         subtitle="This quote is scheduled"
-        action={<StatusChip status={made.status} />}
+        action={<StatusChip status={made.status} domain="booking" />}
         sx={{ mb: 3 }}
       >
         <Stack
@@ -145,7 +145,6 @@ export default function QuotationBookingBar({ booking }: Props) {
 
         <Button
           variant="contained"
-          color="primary"
           size="large"
           disableElevation
           startIcon={<EventAvailableIcon />}

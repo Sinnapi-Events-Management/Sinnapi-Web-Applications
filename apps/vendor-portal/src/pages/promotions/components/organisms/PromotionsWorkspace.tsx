@@ -2,7 +2,6 @@ import { Alert, QueryState } from '@sinnapi/ui';
 import { ConfirmDialog } from '@sinnapi/ui';
 import { usePromotions } from '../../hooks/usePromotions';
 import { usePromotionActions } from '../../hooks/usePromotionActions';
-import PromotionsMetrics from './PromotionsMetrics';
 import PromotionsToolbar from './PromotionsToolbar';
 import PromotionGrid from './PromotionGrid';
 import PromotionDialog from './PromotionDialog';
@@ -31,14 +30,12 @@ export default function PromotionsWorkspace({ vendorId }: { vendorId: string }) 
   const {
     visible,
     counts,
-    kpis,
     filter,
     setFilter,
     now,
     isLoading,
     error,
     codesLoading,
-    isEmpty,
     isFiltered,
     editing,
     isEditorOpen,
@@ -63,8 +60,6 @@ export default function PromotionsWorkspace({ vendorId }: { vendorId: string }) 
 
   return (
     <>
-      <PromotionsMetrics kpis={kpis} loading={codesLoading} hidden={isEmpty} />
-
       <PromotionsToolbar filter={filter} counts={counts} onFilter={setFilter} onCreate={create} />
 
       {actionError && (
@@ -78,8 +73,8 @@ export default function PromotionsWorkspace({ vendorId }: { vendorId: string }) 
           catalogue until they reopen it and narrow the scope. */}
       {editorWarning && (
         <Alert severity="warning" onClose={dismissEditorWarning} sx={{ mb: 2 }}>
-          {editorWarning} The campaign was saved and currently applies to everything you sell — open
-          it again to choose which packages it covers.
+          {editorWarning} The sale was saved and currently applies to everything you sell — open it
+          again to choose which packages it covers.
         </Alert>
       )}
 
@@ -107,7 +102,7 @@ export default function PromotionsWorkspace({ vendorId }: { vendorId: string }) 
 
       <ConfirmDialog
         open={pending !== null}
-        title="Delete this campaign?"
+        title="Delete this sale name?"
         description={
           pending
             ? `"${pending.promotion.title}" will stop showing to clients. Any discount codes attached to it keep working, and the bookings they priced are unaffected.`

@@ -57,11 +57,15 @@ export function IdentityBanner({ badges }: IdentityBannerProps) {
         px: 1.25,
         // The strip the picture rises into. Never occupied by a badge.
         pb: IDENTITY_AVATAR_OVERHANG,
+        // Brand gradient in light mode; a neutral lift on charcoal dark, where
+        // the teal→gold wash read as a brown band.
         background: (t) =>
-          `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.18)}, ${alpha(
-            t.palette.secondary.main,
-            0.22,
-          )})`,
+          t.palette.mode === 'dark'
+            ? alpha(t.palette.text.primary, 0.05)
+            : `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.18)}, ${alpha(
+                t.palette.secondary.main,
+                0.22,
+              )})`,
       }}
     >
       {badges}

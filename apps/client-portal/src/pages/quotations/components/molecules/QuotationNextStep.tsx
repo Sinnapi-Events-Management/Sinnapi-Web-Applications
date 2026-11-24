@@ -39,7 +39,6 @@ export default function QuotationNextStep({ status, booking, onBook }: Props) {
     <Button
       size="small"
       variant="contained"
-      color="primary"
       disableElevation
       startIcon={<EventAvailableIcon />}
       // The row's own click handler opens the quote; this one has its own

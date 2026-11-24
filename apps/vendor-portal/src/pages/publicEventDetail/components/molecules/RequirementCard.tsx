@@ -95,7 +95,7 @@ export default function RequirementCard({ requirement, eventId, standing, action
             client to reach; a booked line is one the server would refuse; and a
             line outside the vendor's categories is the bug this gate closes.
             Only the last one is worth explaining — the other two are already
-            said by the event's "Inspiration only" chip and the line's "Taken"
+            said by the event's "Ideas only" chip and the line's "Taken"
             chip respectively. */}
         {actionable &&
           requirement.is_open &&

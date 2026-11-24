@@ -128,6 +128,8 @@ export default function PromotionCard({
           </IconButton>
         </Stack>
 
+        <PromotionCodes promotion={promotion} loading={codesLoading} />
+
         {promotion.description && (
           <Typography
             variant="body2"
@@ -152,7 +154,6 @@ export default function PromotionCard({
         <Divider />
 
         <PromotionWindow promotion={promotion} now={now} />
-        <PromotionCodes promotion={promotion} loading={codesLoading} />
       </CardContent>
 
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={closeMenu}>

@@ -45,7 +45,7 @@ export default function PromotionForm({ vendorId, promotion, onCancel, onSuccess
           Cancel
         </Button>
         <Button type="submit" variant="contained" disabled={busy}>
-          {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Create campaign'}
+          {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Save sale name'}
         </Button>
       </DialogActions>
     </Box>

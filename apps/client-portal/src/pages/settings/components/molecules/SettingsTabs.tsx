@@ -83,10 +83,23 @@ export default function SettingsTabs({ items, value, onChange }: Props) {
                 // The indicator is hidden on desktop (above) because a filled row
                 // reads better against a card-shaped rail than a hairline does.
                 '&.Mui-selected': {
-                  bgcolor: { md: alpha(theme.palette.secondary.main, 0.12) },
+                  bgcolor: {
+                    md:
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.action.selected
+                        : alpha(theme.palette.secondary.main, 0.12),
+                  },
                   color: 'text.primary',
                 },
-                '&:hover': { bgcolor: { md: alpha(theme.palette.secondary.main, 0.06) } },
+                // Neutral on charcoal dark, where a gold wash read as brown.
+                '&:hover': {
+                  bgcolor: {
+                    md:
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.action.hover
+                        : alpha(theme.palette.secondary.main, 0.06),
+                  },
+                },
               }}
             />
           );

@@ -1,10 +1,13 @@
 import { TextField } from '@sinnapi/ui/atoms';
 import { Autocomplete } from '@sinnapi/ui/molecules';
 import type { ReferenceOption } from '@/lib/queries';
+import ServicesLoadError from './ServicesLoadError';
 
 type Props = {
   id: string;
   categories: ReferenceOption[];
+  /** The categories could not be loaded: show the retry state instead of an empty picker. */
+  loadFailed?: boolean;
   value: string[];
   error?: string;
   disabled?: boolean;
@@ -12,7 +15,17 @@ type Props = {
 };
 
 /** Searchable multi-select of the service categories a vendor offers, shown as chips. */
-export default function ServicesField({ id, categories, value, error, disabled, onChange }: Props) {
+export default function ServicesField({
+  id,
+  categories,
+  loadFailed,
+  value,
+  error,
+  disabled,
+  onChange,
+}: Props) {
+  if (loadFailed) return <ServicesLoadError id={id} />;
+
   const names = new Map(categories.map((c) => [c.key, c.name]));
 
   return (

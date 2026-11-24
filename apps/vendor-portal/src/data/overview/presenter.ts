@@ -91,7 +91,7 @@ function toPipeline(row: PipelineRow, unit: Unit): PipelineModel {
       bookings: r.bookings,
       quotations: r.quotations,
     })),
-    statusMix: toStatusSlices(row.status_mix ?? []),
+    statusMix: toStatusSlices(row.status_mix ?? [], 'booking'),
   };
 }
 
@@ -157,7 +157,7 @@ function toActivity(rows: ActivityRow[]): ActivityModel[] {
     to: r.kind === 'booking' ? `/bookings/${r.entity_id}` : `/quotations/${r.entity_id}`,
     label: r.kind === 'booking' ? 'Booking' : 'Quotation',
     reference: r.reference_no,
-    status: titleizeStatus(r.status),
+    status: titleizeStatus(r.status, r.kind === 'booking' ? 'booking' : 'quotation'),
     occurredAt: formatRelative(r.occurred_at),
   }));
 }

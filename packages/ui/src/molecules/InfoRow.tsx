@@ -33,10 +33,17 @@ export function InfoRow({ label, value, icon, copyValue, mono }: InfoRowProps) {
   }
 
   return (
+    // Wraps rather than squeezes: the label never shrinks, so in a narrow card
+    // a long label ("Two-step verification") used to crush the value into one
+    // letter per line. Now a value that cannot fit beside its label drops to its
+    // own line, still right-aligned; rows that fit render exactly as before.
     <Stack
       direction="row"
       alignItems="center"
-      spacing={2}
+      flexWrap="wrap"
+      useFlexGap
+      columnGap={2}
+      rowGap={0.25}
       sx={{
         py: 1,
         borderBottom: (t) => `1px dashed ${alpha(t.palette.divider, 0.9)}`,
@@ -54,14 +61,20 @@ export function InfoRow({ label, value, icon, copyValue, mono }: InfoRowProps) {
           {label}
         </Typography>
       </Stack>
-      <Box sx={{ flex: 1 }} />
-      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="flex-end"
+        spacing={0.5}
+        sx={{ minWidth: 0, maxWidth: '100%', ml: 'auto' }}
+      >
         <Typography
           variant="subtitle2"
           fontWeight={600}
           sx={{
             textAlign: 'right',
-            wordBreak: 'break-word',
+            minWidth: 0,
+            overflowWrap: 'anywhere',
             fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined,
           }}
         >

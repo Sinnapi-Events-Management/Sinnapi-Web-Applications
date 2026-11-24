@@ -109,8 +109,8 @@ export const PROMOTION_STATUS_META: Record<
   PromotionStatus,
   { label: string; color: 'success' | 'info' | 'warning' | 'default' }
 > = {
-  live: { label: 'Live', color: 'success' },
-  scheduled: { label: 'Scheduled', color: 'info' },
+  live: { label: 'Running', color: 'success' },
+  scheduled: { label: 'Coming', color: 'info' },
   paused: { label: 'Paused', color: 'warning' },
   ended: { label: 'Ended', color: 'default' },
 };
@@ -120,8 +120,8 @@ export type PromotionFilter = 'all' | PromotionStatus;
 
 export const PROMOTION_FILTERS: { value: PromotionFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'live', label: 'Live' },
-  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'live', label: 'Running now' },
+  { value: 'scheduled', label: 'Coming' },
   { value: 'paused', label: 'Paused' },
   { value: 'ended', label: 'Ended' },
 ];

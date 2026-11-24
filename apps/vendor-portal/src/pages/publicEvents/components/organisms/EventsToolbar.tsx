@@ -80,7 +80,7 @@ export default function EventsToolbar({
             value={search.input}
             onChange={search.setInput}
             onClear={search.clear}
-            placeholder="Search events by title or town…"
+            placeholder="Search by name or town"
             ariaLabel="Search events"
             inputProps={{ 'aria-label': 'Search events', enterKeyHint: 'search' }}
           />

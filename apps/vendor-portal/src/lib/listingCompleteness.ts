@@ -70,7 +70,7 @@ export function listingChecks(vendor: ListingFields, regionCount: number): Listi
       label: 'Write a fuller bio',
       done: (vendor.biography?.trim().length ?? 0) >= MEANINGFUL_BIO_LENGTH,
     },
-    { key: 'city', label: 'Set your base city', done: has(vendor.base_city) },
+    { key: 'city', label: 'Set your main town or city', done: has(vendor.base_city) },
     { key: 'location', label: 'Add your location', done: has(vendor.business_location) },
     { key: 'years', label: 'Years in operation', done: has(vendor.years_in_operation) },
     { key: 'lead', label: 'Typical lead time', done: has(vendor.lead_time) },

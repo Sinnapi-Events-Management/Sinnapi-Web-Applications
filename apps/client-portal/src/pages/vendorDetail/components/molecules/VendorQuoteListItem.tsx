@@ -113,7 +113,7 @@ export default function VendorQuoteListItem({ row, onOpen }: Props) {
         sx={{ flexShrink: 0 }}
       >
         <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: 'flex-end' }}>
-          <StatusChip status={quote.status} />
+          <StatusChip status={quote.status} domain="quotation" />
           <Typography variant="subtitle2">{formatMoney(quote.total, quote.currency)}</Typography>
         </Stack>
 

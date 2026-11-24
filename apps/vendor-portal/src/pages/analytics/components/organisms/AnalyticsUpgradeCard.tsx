@@ -12,23 +12,23 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 const INCLUDED = [
   {
     icon: <PaidIcon />,
-    title: 'Earnings over any window',
-    body: 'Booked, held in escrow and paid out, trended across 7 days to 12 months.',
+    title: 'Your money over time',
+    body: 'How much was booked, held by Sinnapi and paid to you — for a week, a month or a year.',
   },
   {
     icon: <TimelineIcon />,
-    title: 'Demand and how fast you answer',
-    body: 'Win rate per package, your median time to price a request, and how far ahead clients commit.',
+    title: 'How quickly you win work',
+    body: 'Which prices clients say yes to, how fast you answer, and how early clients book.',
   },
   {
     icon: <GroupsIcon />,
-    title: 'Where the work comes from',
-    body: 'Which services and packages earn, what events book you, who returns, and when your year is busy.',
+    title: 'Where your clients come from',
+    body: 'Which services earn most, which clients come back, and your busiest months.',
   },
   {
     icon: <FileDownloadIcon />,
     title: 'Export to Excel or PDF',
-    body: 'Every figure on the page, in a document you can send to your accountant or your bank.',
+    body: 'Download your numbers to share with your accountant or bank.',
   },
 ];
 
@@ -61,8 +61,7 @@ export default function AnalyticsUpgradeCard() {
         </Box>
         <Typography variant="h4">See what is driving your business</Typography>
         <Typography color="text.secondary">
-          Detailed analytics is included with Professional and Elite. It turns the figures you
-          already have into the reasons behind them.
+          Professional and Elite plans show you why your business is growing — and where to improve.
         </Typography>
       </Stack>
 
@@ -94,11 +93,7 @@ export default function AnalyticsUpgradeCard() {
           Compare plans
         </Button>
         <Typography variant="body2" color="text.secondary">
-          Your live earnings, bookings and reviews stay free on the{' '}
-          <Box component={RouterLink} to="/dashboard" sx={{ color: 'primary.main' }}>
-            dashboard
-          </Box>
-          .
+          The money, bookings and reviews numbers above stay free on every plan.
         </Typography>
       </Stack>
     </Paper>

@@ -2,7 +2,7 @@ import type { FacetOption } from '../molecules/FacetSelect';
 import type { IsoDateRange } from '../molecules/datePicker/isoDate';
 import type { RangePreset } from '../molecules/datePicker/presets';
 import { FUTURE_RANGE_PRESETS } from '../molecules/datePicker/presets';
-import { titleizeStatus } from '../molecules/statusColor';
+import { titleizeStatus, type StatusDomain } from '../molecules/statusColor';
 import type { PageFilters } from './table';
 
 // The list search + filter contract shared by the vendor and client portals'
@@ -66,6 +66,13 @@ export type ListFilterState<K extends string = string> = {
   setFacet: (key: K, value: string) => void;
   dateRange: IsoDateRange;
   setDateRange: (next: IsoDateRange) => void;
+  /**
+   * Set several filters in one URL write. Calling `setFacet`/`setDateRange`
+   * back to back loses all but the last: each rebuilds from the same location,
+   * so a preset ("new requests", "upcoming") must go through this.
+   * Facets not named are cleared; omitting `dateRange` clears it too.
+   */
+  applyFilters: (next: { facets?: Partial<Record<K, string>>; dateRange?: IsoDateRange }) => void;
   /** Facets + date range narrowing the list (the search term not included). */
   activeCount: number;
   /** Anything at all narrowing the list, search included. */
@@ -105,30 +112,20 @@ export function toFacetCounts(
 // `titleizeStatus` — the same words the StatusChip in the row shows.
 // ---------------------------------------------------------------------------
 
-const statusOptions = (values: readonly string[]): FacetOption[] =>
-  values.map((value) => ({ value, label: titleizeStatus(value) }));
+const statusOptions = (values: readonly string[], domain?: StatusDomain): FacetOption[] =>
+  values.map((value) => ({ value, label: titleizeStatus(value, domain) }));
 
 /** `booking_status`, in lifecycle order. */
-export const BOOKING_STATUS_OPTIONS = statusOptions([
-  'requested',
-  'confirmed',
-  'in_progress',
-  'completed',
-  'cancelled',
-  'declined',
-]);
+export const BOOKING_STATUS_OPTIONS = statusOptions(
+  ['requested', 'confirmed', 'in_progress', 'completed', 'cancelled', 'declined'],
+  'booking',
+);
 
 /** `quotation_status`, in lifecycle order. `voided` reads "Cancelled". */
-export const QUOTATION_STATUS_OPTIONS = statusOptions([
-  'requested',
-  'draft',
-  'sent',
-  'revised',
-  'accepted',
-  'declined',
-  'expired',
-  'voided',
-]);
+export const QUOTATION_STATUS_OPTIONS = statusOptions(
+  ['requested', 'draft', 'sent', 'revised', 'accepted', 'declined', 'expired', 'voided'],
+  'quotation',
+);
 
 /** `payment_type`, worded as PaymentTermsChip words it. */
 export const PAYMENT_TYPE_OPTIONS: FacetOption[] = [
@@ -150,7 +147,7 @@ export type QuotationFilterKey = 'status';
 /** Search + filters for a Bookings list. Same in both portals. */
 export const BOOKING_LIST_FILTERS: ListFilterConfig<BookingFilterKey> = {
   id: 'bookings-filters',
-  searchPlaceholder: 'Search by reference, name, event or place…',
+  searchPlaceholder: 'Search name, place or code…',
   searchLabel: 'Search bookings',
   facets: [
     {
@@ -179,7 +176,7 @@ export const BOOKING_LIST_FILTERS: ListFilterConfig<BookingFilterKey> = {
 /** Search + filters for a Quotations list. Same in both portals. */
 export const QUOTATION_LIST_FILTERS: ListFilterConfig<QuotationFilterKey> = {
   id: 'quotations-filters',
-  searchPlaceholder: 'Search by reference, name, event or place…',
+  searchPlaceholder: 'Search name, place or code…',
   searchLabel: 'Search quotations',
   facets: [
     {

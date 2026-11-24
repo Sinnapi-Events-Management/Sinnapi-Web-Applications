@@ -110,6 +110,10 @@ export function useReceiptForm(
   return {
     control,
     setValue,
+    /** Live values and errors, for the step-by-step new-receipt form. */
+    values: form.watch(),
+    errors: form.formState.errors,
+    validate: (names: Parameters<typeof form.trigger>[0]) => form.trigger(names),
     submit,
     busy: record.isPending,
     error,

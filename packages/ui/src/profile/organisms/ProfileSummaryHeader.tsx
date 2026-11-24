@@ -63,11 +63,15 @@ export function ProfileSummaryHeader({
       sx={{
         borderRadius: 3,
         mb: 3,
+        // Brand-tinted gradient in light mode; plain paper on charcoal dark,
+        // where the teal→gold wash read as a muddy brown band.
         background: (t) =>
-          `linear-gradient(120deg, ${alpha(t.palette.primary.main, 0.1)}, ${alpha(
-            t.palette.secondary.main,
-            0.12,
-          )} 60%, ${t.palette.background.paper})`,
+          t.palette.mode === 'dark'
+            ? t.palette.background.paper
+            : `linear-gradient(120deg, ${alpha(t.palette.primary.main, 0.1)}, ${alpha(
+                t.palette.secondary.main,
+                0.12,
+              )} 60%, ${t.palette.background.paper})`,
       }}
     >
       <Box sx={{ p: { xs: 2, sm: 2.5 } }}>

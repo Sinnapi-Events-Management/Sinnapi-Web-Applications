@@ -1,13 +1,14 @@
-import type { QuotationPricing } from '@sinnapi/ui';
+import { Stack, type QuotationAdvanceSplit, type QuotationPricing } from '@sinnapi/ui';
 import type { QuotationDetailModel, QuotationItemModel } from '@/lib/types';
 import QuotationQuoteCard from './QuotationQuoteCard';
 import PackageOrderCard from './PackageOrderCard';
+import QuotationAdvanceTermsCard from './QuotationAdvanceTermsCard';
 
 type Props = {
   quotation: QuotationDetailModel;
   items: QuotationItemModel[];
   pricing: QuotationPricing;
-  isEditable: boolean;
+  advance: QuotationAdvanceSplit;
 };
 
 /**
@@ -21,22 +22,23 @@ type Props = {
  * and unit-price fields into a column they do not fit. Once sent it is the
  * breakdown, which is a table with the same appetite for width.
  */
-export default function QuoteSection({ quotation, items, pricing, isEditable }: Props) {
-  // A package order that is still unanswered is not a quote the vendor is
-  // building — it is one the client has already priced and is waiting on. The
-  // builder would offer controls the server refuses (see migration 0903b), so
-  // the approval panel takes its place. Once answered, it is a record like any
-  // other quote and the ordinary breakdown resumes.
+export default function QuoteSection({ quotation, items, pricing, advance }: Props) {
   if (quotation.quote_origin === 'package' && quotation.status === 'requested') {
     return <PackageOrderCard quotation={quotation} items={items} pricing={pricing} />;
   }
 
+  // What was priced, then how it gets paid — the old Payment tab, folded in
+  // because both showed the same total.
   return (
-    <QuotationQuoteCard
-      quotation={quotation}
-      items={items}
-      pricing={pricing}
-      isEditable={isEditable}
-    />
+    <Stack spacing={3}>
+      <QuotationQuoteCard quotation={quotation} items={items} pricing={pricing} />
+      {advance.hasTerms && (
+        <QuotationAdvanceTermsCard
+          pricing={pricing}
+          advance={advance}
+          daysBefore={quotation.advance_release_days_before}
+        />
+      )}
+    </Stack>
   );
 }

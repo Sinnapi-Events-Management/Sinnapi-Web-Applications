@@ -95,9 +95,9 @@ const NO_QUOTE: QuoteStanding = {
   quotation: null,
   label: 'You have not quoted for this event',
   detail:
-    'Expressing interest opens a quote for you and tells the client you are available. You can ' +
+    'Saying you are interested opens a quote for you and tells the client you are available. You can ' +
     'price it now or come back to it.',
-  ctaLabel: 'Express interest',
+  ctaLabel: "I'm interested",
 };
 
 /**

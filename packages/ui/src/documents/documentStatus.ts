@@ -16,7 +16,7 @@ export const INVOICE_STATUS_META: Readonly<
   Record<InvoiceDisplayStatus, { label: string; color: StatusChipColor }>
 > = {
   draft: { label: 'Draft', color: 'default' },
-  issued: { label: 'Issued', color: 'info' },
+  issued: { label: 'Not paid yet', color: 'info' },
   partially_paid: { label: 'Partly paid', color: 'warning' },
   paid: { label: 'Paid', color: 'success' },
   overpaid: { label: 'Overpaid', color: 'secondary' },

@@ -1,6 +1,5 @@
 import { StatusChip } from '@sinnapi/ui';
 import { AccountFactsCard, type AccountFact } from '@sinnapi/ui/profile';
-import BadgeIcon from '@mui/icons-material/BadgeOutlined';
 import CalendarIcon from '@mui/icons-material/CalendarMonthOutlined';
 import MailIcon from '@mui/icons-material/MailOutline';
 import ShieldIcon from '@mui/icons-material/ShieldOutlined';
@@ -57,14 +56,6 @@ export default function AccountGlanceCard({ profile }: Props) {
       label: 'Member since',
       icon: <CalendarIcon />,
       value: profile?.created_at ? formatDate(profile.created_at) : undefined,
-    },
-    {
-      key: 'id',
-      label: 'Account ID',
-      icon: <BadgeIcon />,
-      value: profile?.public_id,
-      copyValue: profile?.public_id ?? undefined,
-      mono: true,
     },
   ];
 

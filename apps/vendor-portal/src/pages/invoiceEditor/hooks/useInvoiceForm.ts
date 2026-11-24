@@ -226,11 +226,11 @@ export function useInvoiceForm({ row, clients, contacts, card }: Args) {
       setConfirmIssue(false);
       navigate(`/invoices/${id}`, {
         replace: true,
-        state: { notice: `Invoice ${res.document_no} issued` },
+        state: { notice: `Invoice ${res.document_no} created — now send it to your client` },
       });
     } catch (e) {
       setConfirmIssue(false);
-      setError(documentErrorMessage(e, 'This invoice could not be issued.'));
+      setError(documentErrorMessage(e, 'This invoice could not be created.'));
     }
   });
 
@@ -249,6 +249,10 @@ export function useInvoiceForm({ row, clients, contacts, card }: Args) {
   return {
     control,
     setValue,
+    /** Live validation errors, for the step "Please fix this first" list. */
+    errors: formState.errors,
+    /** Validates one step's fields before the form moves on. */
+    validate: (names: Parameters<typeof form.trigger>[0]) => form.trigger(names),
     values,
     items,
     addLine: (kind: 'item' | 'charge') => items.append(emptyLine(kind)),

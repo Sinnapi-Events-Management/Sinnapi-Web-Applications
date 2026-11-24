@@ -64,7 +64,13 @@ export function NotificationsToolbar({
         </Typography>
       </Stack>
       {(alerts || chime) && (
-        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+        // Computers only: desktop pop-ups and a chime mean little on a phone,
+        // and the two pills crowded the filters there (decided 2026-11-17).
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{ flexWrap: 'wrap', rowGap: 0.75, display: { xs: 'none', md: 'flex' } }}
+        >
           {alerts && <DesktopAlertsToggle alerts={alerts} />}
           {chime && <NotificationChimeToggle chime={chime} />}
         </Stack>

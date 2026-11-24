@@ -56,7 +56,7 @@ export default function ReceiptsPanel({ vendorId }: { vendorId: string }) {
               key={r.id}
               title={r.recipient_name}
               amount={formatDocumentMoney(r.amount, r.currency)}
-              meta={`${r.document_no} · ${formatDocumentDate(r.payment_date)}`}
+              meta={[r.description, formatDocumentDate(r.payment_date)].filter(Boolean).join(' · ')}
               chip={<DocumentStatusChip kind="receipt" status={r.status} />}
               onClick={() => list.open(r.id)}
             />

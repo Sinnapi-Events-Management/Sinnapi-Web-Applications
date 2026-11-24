@@ -34,13 +34,16 @@ export default function EscrowStateSummary({
       <EscrowJourney
         status={escrow.status}
         currency={currency}
-        grossAmount={escrow.gross_amount}
+        // The vendor's share (advance + balance), not `gross_amount`, which
+        // includes the fee the client pays Sinnapi (decided 2026-11-17).
+        grossAmount={Number(escrow.advance_amount ?? 0) + Number(escrow.balance_amount ?? 0)}
         advanceAmount={escrow.advance_amount}
         balanceAmount={escrow.balance_amount}
       />
 
       <MoneyBreakdown
         dense
+        wrapLabels
         currency={currency}
         lines={[
           {

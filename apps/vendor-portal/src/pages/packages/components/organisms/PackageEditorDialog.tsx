@@ -8,6 +8,7 @@ type Props = {
   /** The package being edited, or null for a new one. */
   pkg: PackageModel | null;
   onClose: () => void;
+  defaultServiceId?: string | null;
 };
 
 /**
@@ -22,15 +23,27 @@ type Props = {
  * are seeded from `defaultValues`, which react-hook-form reads once — a form
  * kept alive between opens would show the previous package's tiers.
  */
-export default function PackageEditorDialog({ open, vendorId, pkg, onClose }: Props) {
+export default function PackageEditorDialog({
+  open,
+  vendorId,
+  pkg,
+  onClose,
+  defaultServiceId,
+}: Props) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" fullScreen={fullScreen}>
-      <DialogTitle>{pkg ? `Edit ${pkg.name}` : 'New package'}</DialogTitle>
+      <DialogTitle>{pkg ? `Edit ${pkg.name}` : 'Add a price'}</DialogTitle>
       {open && (
-        <PackageEditorForm vendorId={vendorId} pkg={pkg} onCancel={onClose} onSaved={onClose} />
+        <PackageEditorForm
+          vendorId={vendorId}
+          pkg={pkg}
+          onCancel={onClose}
+          onSaved={onClose}
+          defaultServiceId={defaultServiceId}
+        />
       )}
     </Dialog>
   );

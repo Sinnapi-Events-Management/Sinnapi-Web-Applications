@@ -124,26 +124,21 @@ export default function DiscountCard({
       )}
 
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {/* What the client gets leads (redesign 2026-11-17): the amount, then
+            the offer's name, then how a client claims it. */}
         <Stack direction="row" alignItems="flex-start" spacing={1}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* The name above the code. The code is still what leaves the
-                screen and still gets the copy affordance, but "Early-bird 20%
-                off" is what the client reads on the package card, and a vendor
-                scanning a grid of six recognises the name faster than a token
-                they invented last season. */}
+            <DiscountValue discount={discount} />
             <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                mb: 0.75,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
+              variant="body2"
+              color="text.secondary"
+              sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >
-              {discount.title ?? discount.code ?? 'Automatic discount'}
+              {discount.title ?? (discount.code ? `Code ${discount.code}` : 'Automatic offer')}
             </Typography>
-            <DiscountCode code={discount.code} copied={copied} onCopy={onCopy} />
+          </Box>
+          <Box sx={{ flexShrink: 0, pt: 0.5 }}>
+            <DiscountStatusChip status={discount.status} />
           </Box>
           <IconButton
             aria-label={`Actions for ${label}`}
@@ -156,12 +151,14 @@ export default function DiscountCard({
           </IconButton>
         </Stack>
 
-        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-          <DiscountValue discount={discount} />
-          <Box sx={{ flexShrink: 0 }}>
-            <DiscountStatusChip status={discount.status} />
-          </Box>
-        </Stack>
+        <Box>
+          {discount.code && (
+            <Typography variant="caption" color="text.secondary">
+              {discount.is_automatic ? 'Automatic — or clients can type' : 'Clients type this code'}
+            </Typography>
+          )}
+          <DiscountCode code={discount.code} copied={copied} onCopy={onCopy} />
+        </Box>
 
         <DiscountCoverage discount={discount} />
 

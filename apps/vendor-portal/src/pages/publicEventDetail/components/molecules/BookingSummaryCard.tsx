@@ -52,7 +52,7 @@ export default function BookingSummaryCard({ booking }: Props) {
                 {booking.reference_no ?? 'Booking'}
               </AppLink>
             </Typography>
-            <StatusChip status={booking.status} />
+            <StatusChip status={booking.status} domain="booking" />
           </Stack>
 
           <Typography variant="caption" color="text.secondary">

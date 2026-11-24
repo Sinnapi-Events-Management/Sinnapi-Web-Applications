@@ -55,7 +55,7 @@ export default function LineRow({
         <ControlledField
           name={`items.${index}.description`}
           control={control}
-          label={isCharge ? 'Charge (e.g. Transport)' : 'Description'}
+          label={isCharge ? 'Other charge (e.g. Transport)' : 'What you are charging for'}
           size="small"
           disabled={disabled}
         />
@@ -65,7 +65,7 @@ export default function LineRow({
           <ControlledField
             name={`items.${index}.quantity`}
             control={control}
-            label="Qty"
+            label="How many"
             type="text"
             size="small"
             inputProps={{ inputMode: 'decimal', autoComplete: 'off' }}
@@ -77,7 +77,7 @@ export default function LineRow({
         <ControlledField
           name={`items.${index}.unit_price`}
           control={control}
-          label={isCharge ? 'Amount' : 'Unit price'}
+          label={isCharge ? 'Amount' : 'Price for one'}
           type="text"
           size="small"
           inputProps={{ inputMode: 'decimal', autoComplete: 'off' }}
@@ -94,7 +94,7 @@ export default function LineRow({
         }}
         aria-label="Line amount"
       >
-        {amount}
+        {isCharge ? amount : `Comes to ${amount}`}
       </Typography>
       <Box sx={{ gridArea: 'rm', display: 'flex', justifyContent: 'flex-end' }}>
         <IconButton aria-label="Remove line" onClick={onRemove} disabled={!canRemove || disabled}>

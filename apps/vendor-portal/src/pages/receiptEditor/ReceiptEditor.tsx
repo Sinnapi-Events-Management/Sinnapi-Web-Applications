@@ -3,7 +3,7 @@ import { Box, Card, CardContent, CircularProgress, PageTitle } from '@sinnapi/ui
 import VendorGate from '@/vendor/VendorGate';
 import { useVendorClients } from '@/hooks/queries';
 import { useVendorContacts } from '@/hooks/documentQueries';
-import ReceiptForm from '@/components/documents/organisms/ReceiptForm';
+import NewReceiptSteps from '@/components/documents/organisms/NewReceiptSteps';
 
 function Workspace({ vendorId }: { vendorId: string }) {
   const navigate = useNavigate();
@@ -21,8 +21,7 @@ function Workspace({ vendorId }: { vendorId: string }) {
   return (
     <Card variant="outlined" sx={{ maxWidth: 760 }}>
       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-        <ReceiptForm
-          linked={null}
+        <NewReceiptSteps
           clients={clients.data ?? []}
           contacts={contacts.data ?? []}
           onCancel={() => navigate('/invoices?tab=receipts')}
@@ -47,7 +46,7 @@ export default function ReceiptEditor() {
     <>
       <PageTitle
         title="New receipt"
-        subtitle="Confirm a payment you received. For a payment against one of your invoices, record it from the invoice instead."
+        subtitle="Proof for your client that you received their money. Paid against one of your invoices? Open the invoice and tap “Record a payment” instead."
       />
       <VendorGate>{(vendorId) => <Workspace vendorId={vendorId} />}</VendorGate>
     </>

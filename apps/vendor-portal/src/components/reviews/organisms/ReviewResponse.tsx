@@ -56,10 +56,12 @@ export default function ReviewResponse({ reviewId, existing }: Props) {
           borderRadius: 2,
           borderLeft: 3,
           borderColor: 'secondary.main',
-          // Tinted from the accent rather than set to a fixed fill, so the
-          // quote reads as the same soft wash on the light canvas and the warm
-          // dark one instead of a grey block that only suits one of them.
-          bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.07),
+          // A soft gold wash on the light canvas; a neutral lift on charcoal,
+          // where gold at low alpha turns brown. The gold rule keeps the accent.
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark'
+              ? alpha(theme.palette.text.primary, 0.04)
+              : alpha(theme.palette.secondary.main, 0.07),
         }}
       >
         <Stack

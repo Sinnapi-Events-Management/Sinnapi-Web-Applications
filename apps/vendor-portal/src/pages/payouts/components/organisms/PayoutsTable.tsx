@@ -27,7 +27,7 @@ export default function PayoutsTable({ vendorId }: { vendorId: string }) {
           <EmptyState
             embedded
             title="Nothing paid to you yet"
-            description="When a client’s payment is released from escrow, the money sent to you shows here."
+            description="When Sinnapi sends you money for a finished job, it shows here with the date and how it was sent."
           />
         }
         {...table.controls}

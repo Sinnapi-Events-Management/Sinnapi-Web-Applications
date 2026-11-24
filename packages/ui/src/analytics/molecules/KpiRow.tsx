@@ -1,5 +1,6 @@
 'use client';
-import { Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Box, Card, CardContent, Grid, Skeleton, Stack, Typography } from '@mui/material';
+import { formatValue } from '../core';
 import type { Kpi } from '../core';
 import KpiTile from './KpiTile';
 
@@ -62,17 +63,57 @@ export default function KpiRow({
   const md = columns(kpis.length);
 
   return (
-    <Grid container spacing={2}>
-      {kpis.map((kpi) => (
-        <Grid key={kpi.key} item xs={6} md={md}>
-          <KpiTile
-            kpi={kpi}
-            loading={loading}
-            comparisonLabel={comparisonLabel}
-            comparisonHint={comparisonHint}
-          />
-        </Grid>
-      ))}
-    </Grid>
+    <>
+      {/* Phones: one compact card, a line per figure. Four tall tiles in a
+          2×2 grid pushed every page's real content a full screen down
+          (Discounts, Promotions, Reviews, the dashboard). (2026-11-17) */}
+      <Card variant="outlined" sx={{ display: { xs: 'block', sm: 'none' } }}>
+        <Stack divider={<Box sx={{ borderTop: 1, borderColor: 'divider' }} />}>
+          {kpis.map((kpi) => (
+            <Stack
+              key={kpi.key}
+              direction="row"
+              justifyContent="space-between"
+              alignItems="baseline"
+              spacing={2}
+              sx={{ px: 2, py: 1.25 }}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {kpi.label}
+                </Typography>
+                {kpi.delta === null && kpi.noDeltaLabel && (
+                  <Typography variant="caption" color="text.disabled">
+                    {kpi.noDeltaLabel}
+                  </Typography>
+                )}
+              </Box>
+              {loading ? (
+                <Skeleton width={60} />
+              ) : (
+                <Typography
+                  fontWeight={700}
+                  sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+                >
+                  {formatValue(kpi.value, kpi.format)}
+                </Typography>
+              )}
+            </Stack>
+          ))}
+        </Stack>
+      </Card>
+      <Grid container spacing={2} sx={{ display: { xs: 'none', sm: 'flex' } }}>
+        {kpis.map((kpi) => (
+          <Grid key={kpi.key} item xs={6} md={md}>
+            <KpiTile
+              kpi={kpi}
+              loading={loading}
+              comparisonLabel={comparisonLabel}
+              comparisonHint={comparisonHint}
+            />
+          </Grid>
+        ))}
+      </Grid>
+    </>
   );
 }

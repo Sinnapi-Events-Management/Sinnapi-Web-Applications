@@ -1,7 +1,6 @@
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import DescriptionIcon from '@mui/icons-material/Description';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
@@ -9,7 +8,6 @@ import CelebrationIcon from '@mui/icons-material/Celebration';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
-import DiscountIcon from '@mui/icons-material/Discount';
 import StarIcon from '@mui/icons-material/Star';
 import InsightsIcon from '@mui/icons-material/Insights';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -89,7 +87,7 @@ export const NAV_SECTIONS: NavSection[] = [
       // document to attach, not as their own gallery, so the page they most need
       // went unopened. The label is the one WhatsApp uses for the same thing.
       { label: 'Photos & Videos', to: MEDIA_PATH, icon: PhotoLibraryIcon },
-      { label: 'Promotions', to: '/promotions', icon: LocalOfferIcon },
+      { label: 'Offers', to: '/offers', icon: LocalOfferIcon },
     ],
   },
   {
@@ -102,9 +100,8 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Listing',
     items: [
-      { label: 'Services', to: '/services', icon: DesignServicesIcon },
-      { label: 'Packages', to: '/packages', icon: DescriptionIcon },
-      { label: 'Public Events', to: '/public-events', icon: CelebrationIcon },
+      { label: 'Services & prices', to: '/services', icon: DesignServicesIcon },
+      { label: 'Events looking for vendors', to: '/public-events', icon: CelebrationIcon },
     ],
   },
   {
@@ -117,7 +114,6 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Growth',
     items: [
-      { label: 'Discounts', to: '/discounts', icon: DiscountIcon },
       { label: 'Reviews', to: '/reviews', icon: StarIcon },
       { label: 'Analytics', to: '/analytics', icon: InsightsIcon },
     ],

@@ -1,55 +1,63 @@
-import { Box, Stack } from '@sinnapi/ui';
-import { KpiRow, type Kpi } from '@sinnapi/ui/analytics';
+import { useState } from 'react';
+import { Box, Button, Card, Collapse, Stack, Typography } from '@sinnapi/ui';
+import StarIcon from '@mui/icons-material/Star';
 import type { RatingBand, StarFilter } from '../../schema';
 import RatingBreakdownCard from './RatingBreakdownCard';
 
 type Props = {
-  kpis: Kpi[];
   bands: RatingBand[];
   average: number;
   publishedCount: number;
   star: StarFilter;
   onSelectStar: (star: StarFilter) => void;
-  loading: boolean;
 };
 
 /**
- * What the reviews add up to, above the list of them.
- *
- * The KPI row comes from the shared analytics kit rather than tiles written
- * here, so a figure on this page is rendered by the same component as a figure
- * on the dashboard — one place to change how a metric reads, and no chance of
- * two screens formatting the same count differently.
- *
- * The operational figures lead and the reputational card follows. A vendor
- * opening this page is far more often here to clear what they owe a reply to
- * than to admire an average, and the order of the page should match the order
- * of the job.
+ * Your rating in one line, with the score bars one tap away (2026-11-17).
+ * Four stat lines and an open breakdown card used to sit above every review,
+ * pushing the one that needed an answer to the bottom of the page.
  */
 export default function ReviewsSummary({
-  kpis,
   bands,
   average,
   publishedCount,
   star,
   onSelectStar,
-  loading,
 }: Props) {
+  const [open, setOpen] = useState(star !== 0);
   return (
-    <Stack component="section" spacing={3} sx={{ mb: 3 }}>
-      <Box>
-        {/* No comparison label: none of these is a delta, so there is no window
-            to name. Each tile captions the span it covers instead. */}
-        <KpiRow kpis={kpis} loading={loading} skeletonCount={4} />
-      </Box>
-
-      <RatingBreakdownCard
-        average={average}
-        publishedCount={publishedCount}
-        bands={bands}
-        star={star}
-        onSelectStar={onSelectStar}
-      />
-    </Stack>
+    <Box component="section" sx={{ mb: 3 }}>
+      <Card variant="outlined" sx={{ px: 2, py: 1.5 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <Typography variant="h5" fontWeight={700}>
+              {publishedCount ? average.toFixed(1) : '—'}
+            </Typography>
+            <StarIcon sx={{ color: 'secondary.main' }} />
+            <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              from {publishedCount} review{publishedCount === 1 ? '' : 's'}
+            </Typography>
+          </Stack>
+          <Button
+            size="small"
+            onClick={() => setOpen((o) => !o)}
+            sx={{ minHeight: 40, whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            {open ? 'Hide' : 'Details'}
+          </Button>
+        </Stack>
+      </Card>
+      <Collapse in={open} unmountOnExit>
+        <Box sx={{ mt: 2 }}>
+          <RatingBreakdownCard
+            average={average}
+            publishedCount={publishedCount}
+            bands={bands}
+            star={star}
+            onSelectStar={onSelectStar}
+          />
+        </Box>
+      </Collapse>
+    </Box>
   );
 }

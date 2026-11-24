@@ -53,7 +53,7 @@ export function NotificationRow({
         display: 'flex',
         alignItems: 'flex-start',
         gap: 0.5,
-        p: 0.5,
+        p: { xs: 0.25, sm: 0.5 },
         borderRadius: 2,
         border: 1,
         borderColor: active ? 'primary.main' : 'divider',
@@ -69,7 +69,15 @@ export function NotificationRow({
     >
       <Box
         className="notification-row-controls"
-        sx={{ opacity: controlsVisible ? 1 : 0, transition: 'opacity 120ms ease', pt: 0.75 }}
+        sx={{
+          opacity: controlsVisible ? 1 : 0,
+          transition: 'opacity 120ms ease',
+          pt: 0.75,
+          // Phones have no hover, so an invisible checkbox only stole width
+          // and squeezed every title to "New quote re…". It appears there
+          // only while selecting. (2026-11-17)
+          display: { xs: controlsVisible ? 'block' : 'none', sm: 'block' },
+        }}
       >
         <Checkbox
           size="small"
@@ -96,22 +104,20 @@ export function NotificationRow({
           <NotificationIcon domain={domain} />
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={0.75}>
-              <Typography
-                variant="subtitle2"
-                noWrap
-                sx={{ flex: 1, minWidth: 0, fontWeight: unread ? 700 : 500 }}
-              >
-                {notification.headline}
-              </Typography>
-              <Typography
-                variant="caption"
-                color={unread ? 'text.primary' : 'text.secondary'}
-                sx={{ whiteSpace: 'nowrap', fontWeight: unread ? 600 : 400 }}
-              >
-                {formatRelativeTime(notification.createdAt) || '—'}
-              </Typography>
-            </Stack>
+            {/* Up to two lines: one truncated line read "New quote re…". */}
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: unread ? 700 : 500,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                wordBreak: 'break-word',
+              }}
+            >
+              {notification.headline}
+            </Typography>
 
             <Typography
               variant="body2"
@@ -138,6 +144,13 @@ export function NotificationRow({
                 variant={unread ? 'filled' : 'outlined'}
                 sx={{ height: 20, fontSize: 11 }}
               />
+              <Typography
+                variant="caption"
+                color={unread ? 'text.primary' : 'text.secondary'}
+                sx={{ whiteSpace: 'nowrap', fontWeight: unread ? 600 : 400 }}
+              >
+                {formatRelativeTime(notification.createdAt) || '—'}
+              </Typography>
               <Box sx={{ flex: 1 }} />
               {unread && (
                 <Box
@@ -157,7 +170,11 @@ export function NotificationRow({
 
       <Box
         className="notification-row-controls"
-        sx={{ opacity: controlsVisible ? 1 : 0, transition: 'opacity 120ms ease', pt: 0.75 }}
+        sx={{
+          opacity: { xs: 1, sm: controlsVisible ? 1 : 0 },
+          transition: 'opacity 120ms ease',
+          pt: 0.75,
+        }}
       >
         <NotificationRowMenu
           unread={unread}

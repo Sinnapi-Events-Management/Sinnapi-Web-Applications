@@ -42,7 +42,20 @@ export function RecordCard({ title, amount, meta, chip, footer, onClick }: Recor
       </Stack>
       {(meta != null || chip != null) && (
         <Stack direction="row" justifyContent="space-between" spacing={1.5} alignItems="center">
-          <Typography variant="body2" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            // Up to three lines, not one: a single truncated line cut dates and
+            // references mid-word ("due 6 Nov 20…"). (2026-11-17)
+            sx={{
+              minWidth: 0,
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflowWrap: 'anywhere',
+            }}
+          >
             {meta}
           </Typography>
           {chip != null && <Box sx={{ flexShrink: 0 }}>{chip}</Box>}

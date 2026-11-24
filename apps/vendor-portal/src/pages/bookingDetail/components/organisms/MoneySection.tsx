@@ -5,7 +5,6 @@ import MoneySummaryCard from './MoneySummaryCard';
 import BookingSettlementCard from './BookingSettlementCard';
 import BookingPaymentCard from './BookingPaymentCard';
 import BookingAgreementCard from './BookingAgreementCard';
-import BookingInvoiceCard from './BookingInvoiceCard';
 
 type Props = { booking: VendorBookingDetailModel };
 
@@ -44,12 +43,9 @@ const railSx = {
  */
 export default function MoneySection({ booking }: Props) {
   const money = useMoneySection(booking);
-  const record = (
-    <>
-      <BookingAgreementCard booking={booking} escrowSection={money.escrowSection} />
-      <BookingInvoiceCard booking={booking} />
-    </>
-  );
+  // The invoice moved to the booking header (2026-11-18); the agreement is
+  // the only record card left here.
+  const record = <BookingAgreementCard booking={booking} escrowSection={money.escrowSection} />;
 
   return (
     <Stack spacing={3}>
@@ -60,7 +56,9 @@ export default function MoneySection({ booking }: Props) {
       ) : (
         <SectionGrid template={{ xs: '1fr', lg: 'minmax(0, 7fr) minmax(0, 5fr)' }}>
           <Stack spacing={3} sx={{ minWidth: 0 }}>
-            <BookingSettlementCard booking={booking} />
+            {/* Before the job is done the "What to do now" card already says
+                what unlocks the payout; this card only earns its place after. */}
+            {booking.status === 'completed' && <BookingSettlementCard booking={booking} />}
             <BookingPaymentCard booking={booking} section={money.escrowSection} />
           </Stack>
           <Stack spacing={3} sx={railSx}>

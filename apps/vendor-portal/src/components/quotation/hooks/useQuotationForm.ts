@@ -13,6 +13,7 @@ import {
   makeQuotationFormSchema,
   emptyQuotationValues,
   emptyQuotationItem,
+  type QuotationFormValues,
   quotationFormPricing,
   packageToQuotationValues,
   toSendQuotationArgs,
@@ -20,6 +21,10 @@ import {
 
 export type QuotationFormOptions = {
   vendorId?: string;
+  /** Start from these values (a quote being updated or re-sent). */
+  initialValues?: QuotationFormValues;
+  /** Called once the quote has been sent. */
+  onSent?: () => void;
   /** The package the client asked about, when they requested against one. */
   requestedPackageId?: string | null;
   requestedTierId?: string | null;
@@ -70,8 +75,9 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
     getValues,
     reset,
     setValue,
+    trigger,
     formState: { isSubmitting, errors },
-  } = useZodForm(schema, { defaultValues: emptyQuotationValues });
+  } = useZodForm(schema, { defaultValues: options.initialValues ?? emptyQuotationValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
@@ -120,7 +126,9 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
    */
   const seeded = useRef(false);
   useEffect(() => {
-    if (seeded.current || !options.requestedPackageId || !packages) return;
+    if (seeded.current || options.initialValues || !options.requestedPackageId || !packages) {
+      return;
+    }
     const pkg = packages.find((entry) => entry.id === options.requestedPackageId);
     if (!pkg) return;
 
@@ -131,7 +139,13 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
 
     seeded.current = true;
     applyPackage(pkg, tier);
-  }, [packages, options.requestedPackageId, options.requestedTierId, applyPackage]);
+  }, [
+    packages,
+    options.initialValues,
+    options.requestedPackageId,
+    options.requestedTierId,
+    applyPackage,
+  ]);
 
   const clearPackage = useCallback(() => {
     setValue('template_id', '');
@@ -153,9 +167,11 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
         return;
       }
       qc.invalidateQueries({ queryKey: ['v-quotation', quotationId] });
+      qc.invalidateQueries({ queryKey: ['v-quotation-history', quotationId] });
       qc.invalidateQueries({ queryKey: ['v-quotations'] });
+      options.onSent?.();
     },
-    [qc, quotationId],
+    [qc, quotationId, options],
   );
 
   // Validated first, then the logo is asked for (it heads the quotation the
@@ -194,5 +210,11 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
       append(addOnToQuotationItem(line)),
 
     submit,
+    /** Current validation errors, for the builder's "what is missing" list. */
+    errors,
+    /** Validates one step's fields before the builder moves on. */
+    validate: (names: Parameters<typeof trigger>[0]) => trigger(names),
+    setValue,
+    getValues,
   };
 }

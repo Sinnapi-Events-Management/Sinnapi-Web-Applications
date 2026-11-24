@@ -1,4 +1,4 @@
-import { QueryState } from '@sinnapi/ui';
+import { Box, QueryState, Typography } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import { useReviews } from '../../hooks/useReviews';
 import { useReviewFilters } from '../../hooks/useReviewFilters';
@@ -27,9 +27,15 @@ import ReviewsList from './ReviewsList';
  * about having none is to go and deliver one.
  */
 export default function ReviewsWorkspace({ vendorId }: { vendorId: string }) {
-  const { rows, kpis, bands, counts, average, publishedCount, isLoading, error, isEmpty } =
+  const { rows, bands, counts, average, publishedCount, isLoading, error, isEmpty } =
     useReviews(vendorId);
   const filters = useReviewFilters(rows);
+
+  // Reviews waiting for an answer come first (2026-11-17) — they were last.
+  // Shown once: the list below leaves them out while they lead the page.
+  const awaiting = rows.filter((r) => r.reply === null);
+  const showWaiting = awaiting.length > 0 && filters.reply !== 'awaiting';
+  const listRows = showWaiting ? filters.visible.filter((r) => r.reply !== null) : filters.visible;
 
   return (
     <QueryState isLoading={isLoading} error={error}>
@@ -42,14 +48,25 @@ export default function ReviewsWorkspace({ vendorId }: { vendorId: string }) {
         />
       ) : (
         <>
+          {showWaiting && (
+            <Box component="section" sx={{ mb: 3 }}>
+              <Typography variant="h6" component="h2" fontWeight={700} sx={{ mb: 1 }}>
+                Waiting for your reply ({awaiting.length})
+              </Typography>
+              <ReviewsList
+                rows={awaiting}
+                isFilteredEmpty={false}
+                onClearFilters={filters.clearAll}
+              />
+            </Box>
+          )}
+
           <ReviewsSummary
-            kpis={kpis}
             bands={bands}
             average={average}
             publishedCount={publishedCount}
             star={filters.star}
             onSelectStar={filters.toggleStar}
-            loading={isLoading}
           />
 
           <ReviewsToolbar
@@ -66,7 +83,7 @@ export default function ReviewsWorkspace({ vendorId }: { vendorId: string }) {
           />
 
           <ReviewsList
-            rows={filters.visible}
+            rows={listRows}
             isFilteredEmpty={filters.isFilteredEmpty}
             onClearFilters={filters.clearAll}
           />

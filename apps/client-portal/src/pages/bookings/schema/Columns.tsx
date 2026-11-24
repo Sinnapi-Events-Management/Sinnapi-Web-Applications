@@ -62,6 +62,6 @@ export const bookingColumns: DataTableColumn<BookingListModel>[] = [
     field: 'status',
     headerName: 'Status',
     sortable: true,
-    render: (b) => <StatusChip status={b.status} />,
+    render: (b) => <StatusChip status={b.status} domain="booking" />,
   },
 ];

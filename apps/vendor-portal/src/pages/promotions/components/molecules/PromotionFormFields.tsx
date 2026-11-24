@@ -82,8 +82,8 @@ export default function PromotionFormFields({
         toName="ends_at"
         control={control}
         label="Runs between"
-        placeholder="Select the campaign window"
-        helperText="The dates this campaign is shown to clients, inclusive."
+        placeholder="Pick the first and last day"
+        helperText="The days this sale shows on your page."
       />
 
       <Divider />

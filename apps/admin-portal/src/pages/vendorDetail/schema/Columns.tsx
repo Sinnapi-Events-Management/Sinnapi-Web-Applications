@@ -33,7 +33,7 @@ export const bookingColumns: DataTableColumn<BookingModel>[] = [
     field: 'status',
     headerName: 'Status',
     sortable: true,
-    render: (b) => <StatusChip status={b.status} />,
+    render: (b) => <StatusChip status={b.status} domain="booking" />,
   },
   {
     field: 'event_date',
@@ -65,7 +65,7 @@ export const quotationColumns: DataTableColumn<QuotationModel>[] = [
     field: 'status',
     headerName: 'Status',
     sortable: true,
-    render: (q) => <StatusChip status={q.status} />,
+    render: (q) => <StatusChip status={q.status} domain="quotation" />,
   },
   {
     field: 'created_at',

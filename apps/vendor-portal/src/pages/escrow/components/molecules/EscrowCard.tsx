@@ -1,26 +1,26 @@
-import { RecordCard, StatusChip } from '@sinnapi/ui';
+import { RecordCard, Skeleton, StatusChip } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
-import type { BookingRel, EscrowModel } from '@/lib/types';
+import type { EscrowBookingRel, EscrowModel } from '@/lib/types';
+import { escrowLine } from '../../schema/escrowLine';
 
-/**
- * One escrow record on a phone. Read-only, like the table: release is the
- * client's and Sinnapi's step, not the vendor's. The line under the amount
- * answers "when does my advance arrive", the question a vendor opens this for.
- */
-export default function EscrowCard({ escrow: e }: { escrow: EscrowModel }) {
-  const advance = e.advance_released_at
-    ? `Advance ${formatMoney(e.advance_amount, e.currency)} sent ${formatDate(e.advance_released_at)}`
-    : e.advance_release_due_at
-      ? `Advance ${formatMoney(e.advance_amount, e.currency)} due ${formatDate(e.advance_release_due_at)}`
-      : `Rest paid after client confirms`;
+type Props = { escrow: EscrowModel; clientName: string | null; onOpen: () => void };
 
+/** One booking's held money on a phone: who, how much, and when it comes. */
+export default function EscrowCard({ escrow: e, clientName, onOpen }: Props) {
+  const b = one<EscrowBookingRel>(e.bookings);
   return (
     <RecordCard
-      title={`Booking ${one<BookingRel>(e.bookings)?.reference_no ?? '—'}`}
+      title={clientName ?? <Skeleton width={120} />}
       amount={formatMoney(e.agreed_amount ?? e.net_payout_amount, e.currency)}
-      meta={advance}
-      chip={<StatusChip status={e.status} />}
+      meta={
+        <>
+          {b?.event_date ? `Event ${formatDate(b.event_date)} · ` : ''}
+          {escrowLine(e)}
+        </>
+      }
+      chip={<StatusChip status={e.status} domain="vendorEscrow" />}
+      onClick={b?.id ? onOpen : undefined}
     />
   );
 }
