@@ -73,7 +73,11 @@ export default function PackageEditorForm({
               <PackageTiersSection control={control} tiers={editor.tiers} />
               <PackageAddOnsSection control={control} addOns={editor.addOns} />
               <PackageScopeSection control={control} />
-              <PackageTermsFields control={control} advanceRateMax={editor.advanceRateMax} />
+              <PackageTermsFields
+                control={control}
+                setValue={setValue}
+                advanceRateMax={editor.advanceRateMax}
+              />
               <PackagePublishFields control={control} />
             </Stack>
           </Grid>
