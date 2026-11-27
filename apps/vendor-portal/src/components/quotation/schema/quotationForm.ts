@@ -56,6 +56,20 @@ export const VENDOR_ADVANCE_RATE_MAX_FALLBACK = 30;
 export const ADVANCE_RATE_START = 30;
 export const ADVANCE_DAYS_MAX = 30;
 
+/**
+ * One-tap advance choices (`PresetChips`), shared by the quotation builder and
+ * the package editor so the two never offer different answers to the same
+ * question.
+ * Callers hide anything above the live ceiling (`advanceRateMax`, from
+ * `platform_settings.advance_rate_default`), so 75% / 100% only appear when an
+ * admin allows them.
+ */
+export const ADVANCE_RATE_PRESETS = [0, 30, 50, 75, 100];
+export const ADVANCE_DAY_PRESETS = [3, 7, 14];
+
+export const formatAdvanceRate = (n: number) => (n === 0 ? 'Nothing before' : `${n}%`);
+export const formatAdvanceDays = (n: number) => `${n} days`;
+
 /** The advance a vendor types: required, 0 up to the admin's ceiling. */
 export const advanceRateField = (max: number) =>
   z

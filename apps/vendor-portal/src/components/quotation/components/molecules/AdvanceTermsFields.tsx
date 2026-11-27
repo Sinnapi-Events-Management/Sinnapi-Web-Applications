@@ -1,8 +1,17 @@
 import type { Control, UseFormSetValue } from 'react-hook-form';
-import { Box, Chip, Stack, Typography } from '@sinnapi/ui';
+import { Box, Stack, Typography } from '@sinnapi/ui';
 import { ControlledField } from '@sinnapi/ui/forms';
 import { formatMoney } from '@/lib/config';
-import { ADVANCE_DAYS_MAX, advanceAmount, type QuotationFormValues } from '../../schema';
+import {
+  ADVANCE_DAYS_MAX,
+  ADVANCE_DAY_PRESETS,
+  ADVANCE_RATE_PRESETS,
+  advanceAmount,
+  formatAdvanceDays,
+  formatAdvanceRate,
+  type QuotationFormValues,
+} from '../../schema';
+import PresetChips from './PresetChips';
 
 type Props = {
   control: Control<QuotationFormValues>;
@@ -13,42 +22,6 @@ type Props = {
   daysBefore: string;
   advanceRateMax: number;
 };
-
-const RATE_PRESETS = [0, 30, 50];
-const DAY_PRESETS = [3, 7, 14];
-
-function Presets({
-  values,
-  current,
-  format,
-  onPick,
-  label,
-}: {
-  values: number[];
-  current: string;
-  format: (n: number) => string;
-  onPick: (n: number) => void;
-  label: string;
-}) {
-  return (
-    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap aria-label={label}>
-      {values.map((n) => {
-        const on = Number(current) === n;
-        return (
-          <Chip
-            key={n}
-            label={format(n)}
-            clickable
-            onClick={() => onPick(n)}
-            color={on ? 'secondary' : 'default'}
-            variant={on ? 'filled' : 'outlined'}
-            sx={{ height: 40, fontWeight: on ? 700 : 500 }}
-          />
-        );
-      })}
-    </Stack>
-  );
-}
 
 /**
  * "When do you get paid?" — one-tap choices for the usual answers, with the
@@ -68,6 +41,10 @@ export default function AdvanceTermsFields({
   const advance = advanceAmount(total, rate);
   const balance = total - advance;
   const days = Number(daysBefore);
+  const when =
+    Number.isFinite(days) && days > 0
+      ? ` ${days} day${days === 1 ? '' : 's'} before the event`
+      : ' as soon as the client pays';
   const pick = (name: 'advance_rate' | 'advance_release_days_before') => (n: number) =>
     setValue(name, String(n), { shouldValidate: true, shouldDirty: true });
 
@@ -81,11 +58,11 @@ export default function AdvanceTermsFields({
           This part of your price reaches you before the event. The rest comes after the work is
           done. The client agrees to this before they pay.
         </Typography>
-        <Presets
+        <PresetChips
           label="Advance presets"
-          values={RATE_PRESETS.filter((n) => n <= advanceRateMax)}
+          values={ADVANCE_RATE_PRESETS.filter((n) => n <= advanceRateMax)}
           current={rate}
-          format={(n) => (n === 0 ? 'Nothing before' : `${n}%`)}
+          format={formatAdvanceRate}
           onPick={pick('advance_rate')}
         />
         <ControlledField
@@ -103,11 +80,11 @@ export default function AdvanceTermsFields({
           <Typography variant="subtitle1" fontWeight={700}>
             How many days before the event?
           </Typography>
-          <Presets
+          <PresetChips
             label="Days presets"
-            values={DAY_PRESETS}
+            values={ADVANCE_DAY_PRESETS}
             current={daysBefore}
-            format={(n) => `${n} days`}
+            format={formatAdvanceDays}
             onPick={pick('advance_release_days_before')}
           />
           <ControlledField
@@ -123,17 +100,24 @@ export default function AdvanceTermsFields({
 
       {total > 0 && (
         <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'action.hover' }}>
-          {Number(rate) > 0 ? (
+          {Number(rate) > 0 && balance <= 0 ? (
+            // 100%: nothing is left for after the event, so don't promise a
+            // zero "other part".
+            <Typography variant="body1">
+              You get all{' '}
+              <Box component="span" fontWeight={700}>
+                {formatMoney(total, currency)}
+              </Box>
+              {when}.
+            </Typography>
+          ) : Number(rate) > 0 ? (
             <>
               <Typography variant="body1">
                 You get{' '}
                 <Box component="span" fontWeight={700}>
                   {formatMoney(advance, currency)}
                 </Box>
-                {Number.isFinite(days) && days > 0
-                  ? ` ${days} day${days === 1 ? '' : 's'} before the event`
-                  : ' as soon as the client pays'}
-                .
+                {when}.
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 The other {formatMoney(balance, currency)} comes after the client confirms the work
