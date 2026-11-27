@@ -50,7 +50,7 @@ export default function FeaturedVendorCard({ vendor }: { vendor: VendorListingMo
             image={image}
             alt={vendor.business_name}
             className="featured-card-media"
-            sx={{ bgcolor: 'grey.100', transition: 'transform .45s ease' }}
+            sx={{ bgcolor: 'action.hover', transition: 'transform .45s ease' }}
           />
           {/* Bottom scrim keeps the ribbon + any bright photo legible. */}
           <Box

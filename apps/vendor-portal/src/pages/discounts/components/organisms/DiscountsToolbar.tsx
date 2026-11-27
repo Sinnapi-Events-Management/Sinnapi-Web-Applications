@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { Box, Button, SearchField, Stack, Tab, Tabs } from '@sinnapi/ui';
 import AddIcon from '@mui/icons-material/Add';
 import { DISCOUNT_FILTERS, type DiscountFilter } from '../../schema';
@@ -54,7 +55,7 @@ export default function DiscountsToolbar({
           onChange={onTerm}
           onClear={onClearTerm}
           ariaLabel="Search discount codes"
-          placeholder="Search by code or campaign"
+          placeholder="Search by name or code"
           size="small"
           // Grows into the row it shares but never below a width the
           // placeholder fits, so the button beside it cannot squeeze it shut.
@@ -66,7 +67,7 @@ export default function DiscountsToolbar({
           onClick={onCreate}
           sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
         >
-          New discount
+          New offer
         </Button>
       </Stack>
 
@@ -77,12 +78,15 @@ export default function DiscountsToolbar({
         scrollButtons="auto"
         allowScrollButtonsMobile
         aria-label="Filter discount codes by status"
-        sx={{
-          minHeight: 40,
-          borderBottom: 1,
-          borderColor: 'divider',
-          '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontWeight: 600 },
-        }}
+        sx={[
+          wrapTabsOnPhoneSx,
+          {
+            minHeight: 40,
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontWeight: 600 },
+          },
+        ]}
       >
         {DISCOUNT_FILTERS.map((option) => (
           <Tab

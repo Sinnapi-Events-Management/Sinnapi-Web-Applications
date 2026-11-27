@@ -41,7 +41,7 @@ export const ANALYTICS_TABS: AnalyticsTabDef[] = [
     label: 'Clients & services',
     description:
       'Which services and packages earn, what kind of events book you, and who comes back.',
-    link: { label: 'Manage packages', to: '/packages' },
+    link: { label: 'Manage your prices', to: '/services' },
   },
   {
     value: 'reputation',

@@ -10,13 +10,23 @@ import {
   paginate,
   rpcErrorMessage,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
+  LIST_TIMING,
+  bookingSearchArgs,
+  quotationSearchArgs,
+  toFacetCounts,
+  type PageFilters,
   type PageParams,
+  type PageQuery,
   type Paged,
 } from '@sinnapi/ui';
 import type { FxQuoteView } from '@sinnapi/ui/payments';
 import { invokeFunction, EDGE_FUNCTION_TIMEOUT_MS } from '@/lib/functions';
 import { supabase } from '@/lib/supabase';
 import { one } from '@/lib/rel';
+import {
+  ADVANCE_RATE_HARD_MAX,
+  VENDOR_ADVANCE_RATE_MAX_FALLBACK,
+} from '@/components/quotation/schema';
 import { fetchLatestDeletionRequest } from '@/lib/accountApi';
 import type {
   EventSearchFilters,
@@ -71,6 +81,7 @@ import type {
   SubscriptionPaymentModel,
   SubscriptionEventModel,
   PaymentReturnModel,
+  BookingTitles,
 } from '@/lib/types';
 
 // All reads are RLS-scoped: a vendor sees only rows for vendors they own.
@@ -88,11 +99,17 @@ import type {
 function pagedOptions<Row>(
   key: readonly unknown[],
   params: PageParams,
-  fetcher: () => Promise<Paged<Row>>,
+  /**
+   * Receives react-query's abort signal. A fetcher that hands it to the
+   * builder (`.abortSignal(signal)`) has its request cancelled the moment a
+   * newer page / sort / filter replaces it, instead of finishing for nobody.
+   * Fetchers that ignore it behave exactly as before.
+   */
+  fetcher: (signal: AbortSignal) => Promise<Paged<Row>>,
 ) {
   return {
     queryKey: [...key, params.page, params.pageSize, params.sort, params.filters] as const,
-    queryFn: fetcher,
+    queryFn: ({ signal }: { signal: AbortSignal }) => fetcher(signal),
     placeholderData: keepPreviousData,
   };
 }
@@ -208,26 +225,84 @@ export function useMyApplication() {
   });
 }
 
-/** One page of the vendor's bookings, by event date unless re-sorted. */
+/**
+ * One page of the vendor's bookings, searched and filtered, by event date
+ * unless re-sorted. `search_bookings` scopes to this vendor (and refuses one
+ * the caller does not own) and hides soft-deleted rows; ordering, the range and
+ * the exact count are still PostgREST's, through the shared `paginate`.
+ *
+ * `throwOnError` because `paginate` reads only `data`/`count`: without it a
+ * failed call — the function not yet deployed, say — renders as "No bookings".
+ */
 export function useVendorBookings(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    ...pagedOptions(['v-bookings', vendorId], params, () =>
+    ...pagedOptions(['v-bookings', vendorId], params, (signal) =>
       paginate<VendorBookingModel>(
         supabase
-          .from('bookings')
+          .rpc('search_bookings', bookingSearchArgs(vendorId!, params.filters), { count: 'exact' })
           .select(
             'id,reference_no,status,event_date,amount,currency,client_id,payment_type,' +
               `payment_terms_status,${BOOKING_PAYMENT_WINDOW_COLUMNS}`,
-            {
-              count: 'exact',
-            },
           )
-          .eq('vendor_id', vendorId!),
+          .abortSignal(signal)
+          .throwOnError() as unknown as PageQuery,
         params,
         { field: 'event_date', ascending: false },
       ),
     ),
     enabled: !!vendorId,
+  });
+}
+
+/**
+ * What each booking on a page is for — the service it was placed on and the
+ * event it hangs off — keyed by booking id. A second read rather than an embed
+ * because `search_bookings` returns a table type, which PostgREST cannot join
+ * from. One request per page of rows, like the client-name directory lookup.
+ * `events(title)` is null where RLS withholds a private event.
+ */
+export function useVendorBookingTitles(ids: string[]) {
+  const key = [...ids].sort().join(',');
+  return useQuery({
+    queryKey: ['v-bookings', 'titles', key],
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('id,vendor_services(title),events(title)')
+        .in('id', ids)
+        .abortSignal(signal);
+      if (error) throw error;
+      const out: Record<string, BookingTitles> = {};
+      for (const row of (data ?? []) as unknown as (BookingTitles & { id: string })[]) {
+        out[row.id] = { vendor_services: row.vendor_services, events: row.events };
+      }
+      return out;
+    },
+    enabled: ids.length > 0,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Per-option counts for the bookings filter dropdowns, under the same search
+ * and filters as the list (each facet ignoring its own). Same key prefix as the
+ * list, so every invalidation that refreshes the list refreshes these too.
+ */
+export function useVendorBookingFacets(vendorId: string | undefined, filters: PageFilters) {
+  return useQuery({
+    queryKey: ['v-bookings', vendorId, 'facets', filters] as const,
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase
+        .rpc('booking_list_facets', bookingSearchArgs(vendorId!, filters))
+        .abortSignal(signal);
+      if (error) throw error;
+      return toFacetCounts(data);
+    },
+    enabled: !!vendorId,
+    // Counts are the heaviest, least urgent call: reuse a set for a minute.
+    staleTime: LIST_TIMING.countsStaleMs,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -251,6 +326,7 @@ const VENDOR_BOOKING_DETAIL_SELECT = [
     'advance_terms_note,sent_at,responded_at,created_at,' +
     'quotation_items(id,description,quantity,unit_price,line_total,sort_order))',
   'events(id,title,event_date,location,payment_type,payment_terms_note)',
+  'vendor_services(title)',
 ].join(',');
 
 export function useVendorBooking(id: string) {
@@ -359,23 +435,48 @@ export function useVendorBookingStatusHistory(id: string) {
   });
 }
 
-/** One page of the vendor's quote requests, newest first unless re-sorted. */
+/**
+ * One page of the vendor's quote requests, searched and filtered, newest first
+ * unless re-sorted. `event_on` is the quote's event date, resolved server-side
+ * (the quote's own date, else the linked event's — which RLS would otherwise
+ * hide from the vendor). See `search_quotations` and useVendorBookings.
+ */
 export function useVendorQuotations(vendorId: string | undefined, params: PageParams) {
   return useQuery({
-    ...pagedOptions(['v-quotations', vendorId], params, () =>
+    ...pagedOptions(['v-quotations', vendorId], params, (signal) =>
       paginate<VendorQuotationModel>(
         supabase
-          .from('quotations')
+          .rpc('search_quotations', quotationSearchArgs(vendorId!, params.filters), {
+            count: 'exact',
+          })
           .select(
-            'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id',
-            { count: 'exact' },
+            'id,reference_no,status,total,currency,valid_until,request_details,created_at,client_id,event_on',
           )
-          .eq('vendor_id', vendorId!),
+          .abortSignal(signal)
+          .throwOnError() as unknown as PageQuery,
         params,
         { field: 'created_at', ascending: false },
       ),
     ),
     enabled: !!vendorId,
+  });
+}
+
+/** Status counts for the quotations filter, under the list's other filters. */
+export function useVendorQuotationFacets(vendorId: string | undefined, filters: PageFilters) {
+  return useQuery({
+    queryKey: ['v-quotations', vendorId, 'facets', filters] as const,
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase
+        .rpc('quotation_list_facets', quotationSearchArgs(vendorId!, filters))
+        .abortSignal(signal);
+      if (error) throw error;
+      return toFacetCounts(data);
+    },
+    enabled: !!vendorId,
+    // Counts are the heaviest, least urgent call: reuse a set for a minute.
+    staleTime: LIST_TIMING.countsStaleMs,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -1076,7 +1177,7 @@ export function useVendorEscrow(vendorId: string | undefined, params: PageParams
         supabase
           .from('escrow_transactions')
           .select(
-            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,currency,bookings(reference_no)',
+            'id,status,gross_amount,commission_amount,net_payout_amount,agreed_amount,advance_amount,balance_amount,advance_release_due_at,advance_released_at,auto_release_due_at,currency,bookings(id,reference_no,event_date,client_id)',
             { count: 'exact' },
           )
           .eq('vendor_id', vendorId!),
@@ -1944,5 +2045,40 @@ export function usePaymentById(
     },
     enabled: !!paymentId,
     refetchInterval: options.refetchInterval,
+  });
+}
+
+// ---------- Vendor advance ceiling ----------
+
+/**
+ * The most a vendor may ask for up front, as a %: `advance_rate_default`,
+ * read live from `platform_settings`.
+ *
+ * Mirrors `public.vendor_advance_rate_max()`, which `send_quotation` and
+ * `save_quote_package` check — same setting, same fallback, same 100 clamp —
+ * so the form says no exactly where the server would. `advance_rate_max` is
+ * the client's checkout ceiling and does not apply to vendors.
+ */
+export function useVendorAdvanceRateMax() {
+  return useQuery({
+    queryKey: ['v-vendor-advance-rate-max'],
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('value')
+        .eq('key', 'advance_rate_default')
+        .maybeSingle();
+      if (error) throw error;
+
+      const raw = data?.value;
+      const n = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
+      return Math.min(
+        Number.isFinite(n) ? n : VENDOR_ADVANCE_RATE_MAX_FALLBACK,
+        ADVANCE_RATE_HARD_MAX,
+      );
+    },
+    // An admin's timescale, not a keystroke's — but short enough that a change
+    // reaches a vendor's next quote without a reload.
+    staleTime: 60 * 1000,
   });
 }

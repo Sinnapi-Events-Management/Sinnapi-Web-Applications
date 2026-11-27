@@ -82,7 +82,7 @@ export function BudgetMeter({ figures, compact = false, hideLegend = false }: Bu
           overflow: 'hidden',
           // The unfilled remainder of the track. `action.hover` rather than a
           // fixed grey so the empty part of the bar sits correctly against both
-          // the light sheet and the warm dark panel.
+          // the light sheet and the charcoal dark panel.
           bgcolor: 'action.hover',
         }}
       >

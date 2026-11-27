@@ -1,7 +1,8 @@
 import { type DataTableColumn, StatusChip, Stack, Typography } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import { one } from '@/lib/rel';
-import type { BookingRel, EscrowModel } from '@/lib/types';
+import type { EscrowBookingRel, EscrowModel } from '@/lib/types';
+import { escrowLine } from './escrowLine';
 
 /**
  * Columns for the vendor's escrow view. Read-only: release is confirmed by the
@@ -12,11 +13,25 @@ import type { BookingRel, EscrowModel } from '@/lib/types';
  * client rather than deducted. The advance and balance beneath it say *when*
  * each part arrives, which is the question a vendor is actually asking.
  */
-export const escrowColumns: DataTableColumn<EscrowModel>[] = [
+export const escrowColumns = (
+  clientName: (e: EscrowModel) => string,
+): DataTableColumn<EscrowModel>[] => [
   {
     field: 'booking',
-    headerName: 'Booking',
-    render: (e) => one<BookingRel>(e.bookings)?.reference_no ?? '—',
+    headerName: 'Client',
+    render: (e) => {
+      const b = one<EscrowBookingRel>(e.bookings);
+      return (
+        <Stack spacing={0}>
+          <Typography variant="body2" fontWeight={600}>
+            {clientName(e)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {b?.event_date ? `Event ${formatDate(b.event_date)}` : (b?.reference_no ?? '')}
+          </Typography>
+        </Stack>
+      );
+    },
   },
   {
     field: 'agreed_amount',
@@ -47,7 +62,7 @@ export const escrowColumns: DataTableColumn<EscrowModel>[] = [
   },
   {
     field: 'balance_amount',
-    headerName: 'Balance',
+    headerName: 'Rest',
     align: 'right',
     sortable: true,
     render: (e) => (
@@ -60,22 +75,16 @@ export const escrowColumns: DataTableColumn<EscrowModel>[] = [
     ),
   },
   {
-    field: 'gross_amount',
-    headerName: 'Client paid',
-    align: 'right',
-    sortable: true,
-    // Context, not the vendor's money: the client pays commission and the
-    // processing fee on top, so this is always the larger figure.
-    render: (e) => (
-      <Typography variant="body2" color="text.secondary">
-        {formatMoney(e.gross_amount, e.currency)}
-      </Typography>
-    ),
-  },
-  {
     field: 'status',
     headerName: 'Status',
     sortable: true,
-    render: (e) => <StatusChip status={e.status} />,
+    render: (e) => (
+      <Stack spacing={0.5} alignItems="flex-start">
+        <StatusChip status={e.status} domain="vendorEscrow" />
+        <Typography variant="caption" color="text.secondary">
+          {escrowLine(e)}
+        </Typography>
+      </Stack>
+    ),
   },
 ];

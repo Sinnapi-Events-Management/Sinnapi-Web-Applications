@@ -10,10 +10,15 @@
       tradeoff of an SPA vs httpOnly-cookie auth). Tighten connect-src to your
       Supabase project URL. In production prefer serving CSP as a real HTTP
       header from your host/CDN rather than a meta tag.
+
+      `blob:` in frame-src / object-src lets the quotation PDF preview show the
+      file the page itself just generated; nothing remote can be framed.
+      `frame-ancestors` is not here because browsers ignore it in a meta tag —
+      anti-framing must be sent as a real HTTP header by the host.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+      content="default-src 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com blob:; base-uri 'self'; object-src blob:"
     />
     <title>Sinnapi Client Portal</title>
   </head>

@@ -13,7 +13,13 @@ import {
   PACKAGE_PUBLIC_COLUMNS,
   todayIso,
   BOOKING_PAYMENT_WINDOW_COLUMNS,
+  LIST_TIMING,
+  bookingSearchArgs,
+  quotationSearchArgs,
+  toFacetCounts,
+  type PageFilters,
   type PageParams,
+  type PageQuery,
   type Paged,
   type PaymentTermsPreview,
 } from '@sinnapi/ui';
@@ -43,6 +49,7 @@ import type {
   DirectoryProfile,
   BookingStatusEventModel,
   QuotationListModel,
+  QuotationListRowModel,
   VendorQuotationModel,
   QuotationDetailModel,
   QuotationStatusEventModel,
@@ -107,13 +114,19 @@ function throwIfAborted(signal?: AbortSignal): void {
 function pagedOptions<Row>(
   key: readonly unknown[],
   params: PageParams,
-  fetcher: () => Promise<Paged<Row>>,
+  /**
+   * Receives react-query's abort signal. A fetcher that hands it to the
+   * builder (`.abortSignal(signal)`) has its request cancelled the moment a
+   * newer page / sort / filter replaces it, instead of finishing for nobody.
+   * Fetchers that ignore it behave exactly as before.
+   */
+  fetcher: (signal: AbortSignal) => Promise<Paged<Row>>,
 ) {
   return {
     // The list's own key stays the prefix, so existing broad invalidations
     // (`invalidateQueries({ queryKey: ['bookings'] })`) still match every page.
     queryKey: [...key, params.page, params.pageSize, params.sort, params.filters] as const,
-    queryFn: fetcher,
+    queryFn: ({ signal }: { signal: AbortSignal }) => fetcher(signal),
     placeholderData: keepPreviousData,
   };
 }
@@ -538,17 +551,58 @@ const BOOKING_LIST_SELECT =
 /** Statuses the dashboard treats as "still happening". */
 const ACTIVE_BOOKING_STATUSES = ['requested', 'confirmed', 'in_progress'];
 
-/** One page of the client's bookings, ordered by event date unless re-sorted. */
+/**
+ * The list's columns as `search_bookings` returns them. `vendors` is a plain
+ * jsonb column there (same `{ business_name, slug, primary_image_url }` shape
+ * as the embed), so it is selected by name rather than as a relation.
+ */
+const BOOKING_SEARCH_SELECT =
+  'id,reference_no,status,event_date,amount,currency,payment_type,payment_terms_status,vendor_id,' +
+  `${BOOKING_PAYMENT_WINDOW_COLUMNS},vendors`;
+
+/**
+ * One page of the client's bookings, searched and filtered, ordered by event
+ * date unless re-sorted. `search_bookings` (p_vendor_id null) scopes to the
+ * caller's own bookings and hides soft-deleted rows; ordering, range and count
+ * stay PostgREST's, through the shared `paginate`.
+ *
+ * `throwOnError` because `paginate` reads only `data`/`count`: without it a
+ * failed call renders as "No bookings yet".
+ */
 export function useBookings(params: PageParams) {
   return useQuery(
-    pagedOptions(['bookings'], params, () =>
+    pagedOptions(['bookings'], params, (signal) =>
       paginate<BookingListModel>(
-        supabase.from('bookings').select(BOOKING_LIST_SELECT, { count: 'exact' }),
+        supabase
+          .rpc('search_bookings', bookingSearchArgs(null, params.filters), { count: 'exact' })
+          .select(BOOKING_SEARCH_SELECT)
+          .abortSignal(signal)
+          .throwOnError() as unknown as PageQuery,
         params,
         { field: 'event_date', ascending: false },
       ),
     ),
   );
+}
+
+/**
+ * Per-option counts for the bookings filter dropdowns. Same key prefix as the
+ * list, so every `['bookings']` invalidation refreshes these too.
+ */
+export function useBookingFacets(filters: PageFilters) {
+  return useQuery({
+    queryKey: ['bookings', 'facets', filters] as const,
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase
+        .rpc('booking_list_facets', bookingSearchArgs(null, filters))
+        .abortSignal(signal);
+      if (error) throw error;
+      return toFacetCounts(data);
+    },
+    // Counts are the heaviest, least urgent call: reuse a set for a minute.
+    staleTime: LIST_TIMING.countsStaleMs,
+    placeholderData: keepPreviousData,
+  });
 }
 
 /**
@@ -649,17 +703,46 @@ const QUOTATION_LIST_SELECT =
  */
 const COMPARABLE_QUOTE_STATUSES = ['sent', 'accepted', 'revised'];
 
-/** One page of the client's quotations, newest first unless re-sorted. */
+/** `search_quotations`' columns for the list; `vendors` is a jsonb column there. */
+const QUOTATION_SEARCH_SELECT =
+  'id,reference_no,status,total,currency,valid_until,created_at,vendor_id,vendors,event_on';
+
+/**
+ * One page of the client's quotations, searched and filtered, newest first
+ * unless re-sorted. `event_on` is the quote's event date (its own, else the
+ * linked event's). See useBookings for the scoping and `throwOnError`.
+ */
 export function useQuotations(params: PageParams) {
   return useQuery(
-    pagedOptions(['quotations'], params, () =>
-      paginate<QuotationListModel>(
-        supabase.from('quotations').select(QUOTATION_LIST_SELECT, { count: 'exact' }),
+    pagedOptions(['quotations'], params, (signal) =>
+      paginate<QuotationListRowModel>(
+        supabase
+          .rpc('search_quotations', quotationSearchArgs(null, params.filters), { count: 'exact' })
+          .select(QUOTATION_SEARCH_SELECT)
+          .abortSignal(signal)
+          .throwOnError() as unknown as PageQuery,
         params,
         { field: 'created_at', ascending: false },
       ),
     ),
   );
+}
+
+/** Status counts for the quotations filter, under the list's other filters. */
+export function useQuotationFacets(filters: PageFilters) {
+  return useQuery({
+    queryKey: ['quotations', 'facets', filters] as const,
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase
+        .rpc('quotation_list_facets', quotationSearchArgs(null, filters))
+        .abortSignal(signal);
+      if (error) throw error;
+      return toFacetCounts(data);
+    },
+    // Counts are the heaviest, least urgent call: reuse a set for a minute.
+    staleTime: LIST_TIMING.countsStaleMs,
+    placeholderData: keepPreviousData,
+  });
 }
 
 const VENDOR_QUOTATION_SELECT =

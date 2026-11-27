@@ -104,7 +104,7 @@ export function PricingModelPicker({
                 p: 1.75,
                 borderRadius: 2,
                 // Every colour goes through the palette rather than a literal,
-                // so the card is legible on the warm dark canvas and on the
+                // so the card is legible on the charcoal dark canvas and on the
                 // light one without a second definition.
                 border: (t) =>
                   `1px solid ${isOn ? t.palette.primary.main : alpha(t.palette.text.primary, 0.16)}`,

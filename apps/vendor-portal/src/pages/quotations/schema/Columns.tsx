@@ -1,5 +1,6 @@
 import { Typography, type DataTableColumn, StatusChip } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
+import { quoteListHint, requestSnippet } from '@/lib/quoteCopy';
 import type { QuotationBookingModel, VendorQuotationModel } from '@/lib/types';
 import QuotationBookingCell from '../components/molecules/QuotationBookingCell';
 
@@ -27,7 +28,30 @@ export function quotationColumns(input: {
     {
       field: 'client',
       headerName: 'Client',
-      render: (q) => input.clientName(q.client_id),
+      render: (q) => {
+        const what = requestSnippet(q.request_details, 48);
+        return (
+          <>
+            <Typography variant="body2" fontWeight={600}>
+              {input.clientName(q.client_id)}
+            </Typography>
+            {what && (
+              <Typography variant="caption" color="text.secondary">
+                {what}
+              </Typography>
+            )}
+          </>
+        );
+      },
+    },
+    {
+      // Resolved server-side (`search_quotations`): the quote's own date, else
+      // the date of the event the client attached. Sortable — it is a real
+      // column of the function's result.
+      field: 'event_on',
+      headerName: 'Event date',
+      sortable: true,
+      render: (q) => (q.event_on ? formatDate(q.event_on) : '—'),
     },
     {
       field: 'total',
@@ -46,7 +70,25 @@ export function quotationColumns(input: {
       field: 'status',
       headerName: 'Status',
       sortable: true,
-      render: (q) => <StatusChip status={q.status} />,
+      render: (q) => {
+        const hint = quoteListHint({ ...q, hasBooking: !!input.bookingFor(q.id) });
+        return (
+          <>
+            <StatusChip status={q.status} domain="quotation" />
+            {hint?.urgent && (
+              <Typography
+                variant="caption"
+                display="block"
+                fontWeight={700}
+                color="secondary.dark"
+                sx={{ mt: 0.5 }}
+              >
+                {hint.text}
+              </Typography>
+            )}
+          </>
+        );
+      },
     },
     {
       field: 'booking',

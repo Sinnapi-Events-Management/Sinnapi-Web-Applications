@@ -110,7 +110,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
   const fromAddress = msg.from ?? Deno.env.get('EMAIL_FROM') ?? Deno.env.get('SMTP_USER')!;
 
   // Only pay the ~9 KB attachment cost when the template actually renders it.
-  const attachments = msg.html.includes(`cid:${LOGO_CID}`)
+  const logo = msg.html.includes(`cid:${LOGO_CID}`)
     ? [
         {
           filename: 'sinnapi-logo.png',
@@ -121,7 +121,15 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
           contentDisposition: 'inline' as const,
         },
       ]
-    : undefined;
+    : [];
+  const files = (msg.attachments ?? []).map((a) => ({
+    filename: a.filename,
+    content: a.contentBase64,
+    encoding: 'base64' as const,
+    contentType: a.contentType,
+    contentDisposition: 'attachment' as const,
+  }));
+  const attachments = logo.length || files.length ? [...logo, ...files] : undefined;
 
   try {
     const info = await transporter.sendMail({
@@ -146,7 +154,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
     }
 
     console.log('[EMAIL] === sendEmail SUCCESS ===');
-    return { sent: true };
+    return { sent: true, messageId: info.messageId };
   } catch (err) {
     const error = err as Error & { code?: string; responseCode?: number };
     console.error('[EMAIL] === SEND FAILED ===');

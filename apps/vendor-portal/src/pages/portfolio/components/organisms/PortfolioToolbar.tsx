@@ -49,11 +49,11 @@ export default function PortfolioToolbar({
           <Typography variant="body2" color="text.secondary">
             {counts.all === 0
               ? 'No photos or videos yet.'
-              : `${counts.all} ${counts.all === 1 ? 'item' : 'items'} on your public profile.`}
+              : `${counts.all} ${counts.all === 1 ? 'photo or video' : 'photos and videos'} on your page.`}
           </Typography>
           {canReorder && (
             <Typography variant="caption" color="text.secondary">
-              Drag a tile to reorder, or use the arrows on it. Clients see this order.
+              Use the arrows on a photo to change the order clients see.
             </Typography>
           )}
         </Stack>

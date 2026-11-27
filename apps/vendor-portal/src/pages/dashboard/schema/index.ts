@@ -2,4 +2,3 @@
 // the Analytics page. Re-exported here so the dashboard's components keep one
 // local import for both it and the dashboard-only tab definitions.
 export * from '@/data/overview';
-export * from './tabs';

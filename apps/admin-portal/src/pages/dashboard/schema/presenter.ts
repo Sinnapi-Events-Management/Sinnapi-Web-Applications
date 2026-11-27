@@ -133,7 +133,7 @@ function toOperations(row: OperationsGrowthRow | null, unit: Unit): GrowthModel[
       bookings: r.bookings,
       quotations: r.quotations,
     })),
-    statusMix: toStatusSlices(row.status_mix ?? []),
+    statusMix: toStatusSlices(row.status_mix ?? [], 'booking'),
   };
 }
 

@@ -1,9 +1,8 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, Divider, Stack, Typography } from '@sinnapi/ui';
-import { ImagePicker } from '@sinnapi/ui/profile';
 import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined';
 import type { VendorOnboardingModel } from '../../hooks/useOnboardingStatus';
-import { useOnboardingCover } from '../../hooks/useOnboardingCover';
+import { LogoUploadField, useBusinessLogo } from '@/components/businessLogo';
 import { useStepForm } from '../../hooks/useStepForm';
 import { showcaseSchema, toShowcasePatch, toShowcaseValues } from '../../schema/showcaseForm';
 import { ADD_MEDIA_PATH } from '@/lib/config';
@@ -21,7 +20,7 @@ type Props = {
 };
 
 /**
- * The optional finishing touches: a cover image, social profiles, and the way
+ * The optional finishing touches: the business logo, social profiles, and the way
  * through to Photos & Videos.
  *
  * Gallery images and videos are NOT uploaded here. They are rows in
@@ -37,7 +36,13 @@ export default function ShowcaseStep({
   onCancel,
   onDone,
 }: Props) {
-  const cover = useOnboardingCover(vendorId, vendor?.primary_image_url ?? null);
+  // The same business logo Profile manages, printed on every quotation,
+  // invoice and receipt. Optional here; asked for again before the first send.
+  const logo = useBusinessLogo({
+    vendorId,
+    currentUrl: vendor?.primary_image_url ?? null,
+    onboardingPhotoUrl: vendor?.profile_image_url ?? null,
+  });
   const { control, submit, saving, error } = useStepForm(
     vendorId,
     showcaseSchema,
@@ -51,24 +56,22 @@ export default function ShowcaseStep({
     <Box component="form" noValidate onSubmit={submit}>
       <Stack spacing={3}>
         {error && <Alert severity="error">{error}</Alert>}
-        {cover.error && <Alert severity="error">{cover.error}</Alert>}
 
         <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-            Cover image
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+            Business logo
           </Typography>
-          <ImagePicker
-            src={cover.displayUrl}
-            name={vendor?.business_name ?? 'Your business'}
-            busy={cover.busy}
-            maxSizeMb={cover.maxSizeMb}
-            shape="rounded"
-            size={128}
-            subject="cover image"
-            helperText="A wide shot of your best work. Clients see this first on your listing card."
-            onSelect={cover.upload}
-            onRemove={cover.remove}
-          />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Shown on your listing and at the top of your quotations, invoices and receipts. You will
+            need it before you send your first quotation.
+          </Typography>
+          <Box sx={{ maxWidth: 420 }}>
+            <LogoUploadField
+              upload={logo}
+              businessName={vendor?.business_name ?? 'Your business'}
+              size={112}
+            />
+          </Box>
         </Box>
 
         <Divider />
@@ -104,7 +107,7 @@ export default function ShowcaseStep({
       <WizardFooter
         showBack
         optional
-        saving={saving || cover.busy}
+        saving={saving || logo.busy}
         isLast={isLast}
         onBack={onBack}
         onCancel={onCancel}

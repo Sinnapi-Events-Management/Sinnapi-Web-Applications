@@ -11,7 +11,8 @@ import {
   Typography,
 } from '@sinnapi/ui';
 import CheckIcon from '@mui/icons-material/Check';
-import { formatMoney, titleize } from '@/lib/config';
+import { formatMoney } from '@/lib/config';
+import { featureLine } from '../../schema/planFeatures';
 import type { PlanModel } from '@/lib/types';
 
 type Props = {
@@ -48,7 +49,7 @@ export default function PlanCard({ plan, isCurrent, highlight, actionLabel, onAc
       <CardContent sx={{ flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="h4">{plan.name}</Typography>
-          {isCurrent && <Chip size="small" color="success" label="Current plan" />}
+          {isCurrent && <Chip size="small" color="success" label="Your plan" />}
           {!isCurrent && highlight && <Chip size="small" color="secondary" label="Popular" />}
         </Box>
         <Typography variant="h5" sx={{ my: 1 }}>
@@ -64,25 +65,40 @@ export default function PlanCard({ plan, isCurrent, highlight, actionLabel, onAc
         )}
         <List dense>
           {features
-            .filter((f) => f.value !== false && f.value !== 'false')
+            .map((f) => ({ key: f.feature_key, line: featureLine(f.feature_key, f.value) }))
+            .filter((f): f is { key: string; line: string } => !!f.line)
             .map((f) => (
-              <ListItem key={f.feature_key} disableGutters>
+              <ListItem key={f.key} disableGutters>
                 <ListItemIcon sx={{ minWidth: 30 }}>
                   <CheckIcon color="secondary" fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary={titleize(f.feature_key)} />
+                <ListItemText primary={f.line} />
               </ListItem>
             ))}
         </List>
       </CardContent>
       <Box sx={{ p: 2 }}>
-        <Button
-          fullWidth
-          variant={highlight || isCurrent ? 'contained' : 'outlined'}
-          onClick={onAction}
-        >
-          {actionLabel}
-        </Button>
+        {/* The plan you are on has no button here: "Renew" lives once, on the
+            "Your subscription" card at the top — it used to appear twice. */}
+        {isCurrent ? (
+          <Typography
+            variant="body2"
+            color="success.main"
+            fontWeight={700}
+            sx={{ textAlign: 'center' }}
+          >
+            This is your plan
+          </Typography>
+        ) : (
+          <Button
+            fullWidth
+            variant={highlight ? 'contained' : 'outlined'}
+            onClick={onAction}
+            sx={{ minHeight: 48 }}
+          >
+            {actionLabel}
+          </Button>
+        )}
       </Box>
     </Card>
   );

@@ -105,10 +105,10 @@ export function toPromotionKpis(rows: PromotionRow[]): Kpi[] {
       format: 'number',
       delta: null,
     },
-    { key: 'codes', label: 'Codes attached', value: codes, format: 'number', delta: null },
+    { key: 'codes', label: 'Discount codes', value: codes, format: 'number', delta: null },
     {
       key: 'redemptions',
-      label: 'Redemptions',
+      label: 'Times used',
       value: redemptions,
       format: 'number',
       delta: null,

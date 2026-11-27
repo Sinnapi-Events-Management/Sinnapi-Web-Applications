@@ -1,4 +1,4 @@
-import { statusColor, titleizeStatus } from '../molecules/statusColor';
+import { statusColor, titleizeStatus, type StatusDomain } from '../molecules/statusColor';
 import type { BreakdownSlice, SeriesColor } from './types';
 
 const SERIES_COLORS: SeriesColor[] = [
@@ -24,11 +24,15 @@ export function toSeriesColor(raw: string): SeriesColor {
  * and coloured by the app's status semantics. Zero-count entries are dropped so
  * a chart only ever shows what actually exists.
  */
-export function toStatusSlices(rows: Array<{ name: string; value: number }>): BreakdownSlice[] {
+export function toStatusSlices(
+  rows: Array<{ name: string; value: number }>,
+  /** Pass `booking` when the counts are booking statuses. */
+  domain?: StatusDomain,
+): BreakdownSlice[] {
   return rows
     .filter((r) => r.value > 0)
     .map((r) => ({
-      name: titleizeStatus(r.name),
+      name: titleizeStatus(r.name, domain),
       value: r.value,
       color: toSeriesColor(statusColor(r.name)),
     }));

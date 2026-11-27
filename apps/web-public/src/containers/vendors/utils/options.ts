@@ -1,18 +1,12 @@
-import { VENDOR_CATEGORIES, SERVICE_REGIONS, titleize } from '@/lib/config/site';
+import { SERVICE_REGIONS, titleize } from '@/lib/config/site';
 import type { FilterOption, VendorSortKey } from '@/lib/types';
 
 /**
- * Single source of truth for the vendors page facets. The category/region
- * `value`s are the same keys `service_categories.key` / `service_regions.key`
+ * Single source of truth for the vendors page facets. The region
+ * `value`s are the same keys `service_regions.key`
  * carry in the database, because they are passed straight through to
  * `search_vendors_public` — a label change here is safe, a value change is not.
  */
-
-/** Service-category tokens (snake_case to match the DB category slugs). */
-export const CATEGORY_OPTIONS: FilterOption[] = VENDOR_CATEGORIES.map((value) => ({
-  value,
-  label: titleize(value),
-}));
 
 /** Service-region tokens (snake_case to match the DB region slugs). */
 export const REGION_OPTIONS: FilterOption[] = SERVICE_REGIONS.map((value) => ({

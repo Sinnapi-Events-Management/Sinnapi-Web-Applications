@@ -4,13 +4,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { defaultPackageTier, packageAddOns, packageTiers, type PackageTierLike } from '@sinnapi/ui';
 import { supabase } from '@/lib/supabase';
-import { useQuotablePackages } from '@/hooks/queries';
+import { useVendorAdvanceRateMax, useQuotablePackages } from '@/hooks/queries';
+import { useLogoGate } from '@/components/businessLogo';
 import type { PackageModel } from '@/lib/types';
 import {
   addOnToQuotationItem,
-  quotationFormSchema,
+  ADVANCE_RATE_HARD_MAX,
+  makeQuotationFormSchema,
   emptyQuotationValues,
   emptyQuotationItem,
+  type QuotationFormValues,
   quotationFormPricing,
   packageToQuotationValues,
   toSendQuotationArgs,
@@ -18,6 +21,10 @@ import {
 
 export type QuotationFormOptions = {
   vendorId?: string;
+  /** Start from these values (a quote being updated or re-sent). */
+  initialValues?: QuotationFormValues;
+  /** Called once the quote has been sent. */
+  onSent?: () => void;
   /** The package the client asked about, when they requested against one. */
   requestedPackageId?: string | null;
   requestedTierId?: string | null;
@@ -50,8 +57,17 @@ export type QuotationFormOptions = {
 export function useQuotationForm(quotationId: string, options: QuotationFormOptions = {}) {
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const { requireLogo } = useLogoGate();
 
   const { data: packages, isLoading: isPackagesLoading } = useQuotablePackages(options.vendorId);
+
+  const { data: vendorAdvanceRateMax } = useVendorAdvanceRateMax();
+  // `advance_rate_default` is the vendor's ceiling. Until it loads, only the
+  // column's own 0–100 applies; the server re-checks against the live setting
+  // either way. react-hook-form reads the resolver on every render, so swapping
+  // the schema here takes effect at once.
+  const advanceRateMax = vendorAdvanceRateMax ?? ADVANCE_RATE_HARD_MAX;
+  const schema = useMemo(() => makeQuotationFormSchema(advanceRateMax), [advanceRateMax]);
 
   const {
     control,
@@ -59,8 +75,9 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
     getValues,
     reset,
     setValue,
+    trigger,
     formState: { isSubmitting, errors },
-  } = useZodForm(quotationFormSchema, { defaultValues: emptyQuotationValues });
+  } = useZodForm(schema, { defaultValues: options.initialValues ?? emptyQuotationValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
@@ -109,7 +126,9 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
    */
   const seeded = useRef(false);
   useEffect(() => {
-    if (seeded.current || !options.requestedPackageId || !packages) return;
+    if (seeded.current || options.initialValues || !options.requestedPackageId || !packages) {
+      return;
+    }
     const pkg = packages.find((entry) => entry.id === options.requestedPackageId);
     if (!pkg) return;
 
@@ -120,25 +139,46 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
 
     seeded.current = true;
     applyPackage(pkg, tier);
-  }, [packages, options.requestedPackageId, options.requestedTierId, applyPackage]);
+  }, [
+    packages,
+    options.initialValues,
+    options.requestedPackageId,
+    options.requestedTierId,
+    applyPackage,
+  ]);
 
   const clearPackage = useCallback(() => {
     setValue('template_id', '');
     setValue('template_tier_id', '');
   }, [setValue]);
 
-  const submit = handleSubmit(async (values) => {
+  const send = useCallback(
+    async (values: Parameters<typeof toSendQuotationArgs>[0]) => {
+      const { error: rpcError } = await supabase.rpc(
+        'send_quotation',
+        toSendQuotationArgs(values, quotationId),
+      );
+      if (rpcError) {
+        setError(
+          rpcError.message.includes('logo_required')
+            ? 'Add your business logo before sending quotations.'
+            : rpcError.message,
+        );
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ['v-quotation', quotationId] });
+      qc.invalidateQueries({ queryKey: ['v-quotation-history', quotationId] });
+      qc.invalidateQueries({ queryKey: ['v-quotations'] });
+      options.onSent?.();
+    },
+    [qc, quotationId, options],
+  );
+
+  // Validated first, then the logo is asked for (it heads the quotation the
+  // client opens), then sent — without the vendor retyping anything.
+  const submit = handleSubmit((values) => {
     setError(null);
-    const { error: rpcError } = await supabase.rpc(
-      'send_quotation',
-      toSendQuotationArgs(values, quotationId),
-    );
-    if (rpcError) {
-      setError(rpcError.message);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ['v-quotation', quotationId] });
-    qc.invalidateQueries({ queryKey: ['v-quotations'] });
+    return requireLogo('quotation', () => send(values));
   });
 
   return {
@@ -152,6 +192,8 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
     /** Kept for callers that only want the pre-tax figure. */
     total: pricing.base,
     advanceRate: advanceRate ?? '0',
+    /** The vendor's live ceiling (`advance_rate_default`), for the input's own `max`. */
+    advanceRateMax,
     advanceDays: advanceDays ?? '0',
     addItem: () => append(emptyQuotationItem),
     removeItem: remove,
@@ -168,5 +210,11 @@ export function useQuotationForm(quotationId: string, options: QuotationFormOpti
       append(addOnToQuotationItem(line)),
 
     submit,
+    /** Current validation errors, for the builder's "what is missing" list. */
+    errors,
+    /** Validates one step's fields before the builder moves on. */
+    validate: (names: Parameters<typeof trigger>[0]) => trigger(names),
+    setValue,
+    getValues,
   };
 }

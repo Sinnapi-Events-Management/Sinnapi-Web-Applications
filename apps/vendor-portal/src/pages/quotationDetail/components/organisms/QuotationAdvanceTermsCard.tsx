@@ -67,8 +67,8 @@ export default function QuotationAdvanceTermsCard({ pricing, advance, daysBefore
           ]}
           footnote={
             daysBefore != null && daysBefore > 0
-              ? `Sinnapi releases your advance ${daysBefore} days before the event date. The balance follows once the client confirms delivery. Commission and processing fees are deducted at payout.`
-              : 'The balance is released once the client confirms delivery. Commission and processing fees are deducted at payout.'
+              ? `Sinnapi releases your advance ${daysBefore} days before the event date. The balance follows once the client confirms delivery. Commission and processing fees are taken off before the money is sent to you.`
+              : 'The balance is released once the client confirms delivery. Commission and processing fees are taken off before the money is sent to you.'
           }
         />
       ) : (

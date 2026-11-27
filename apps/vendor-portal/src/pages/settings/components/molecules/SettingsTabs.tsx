@@ -1,3 +1,4 @@
+import { wrapTabsOnPhoneSx } from '@sinnapi/ui';
 import { alpha, Box, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@sinnapi/ui';
 import { panelId, tabId, type SettingsTab, type SettingsTabMeta } from '../../schema';
 
@@ -45,7 +46,7 @@ export default function SettingsTabs({ items, value, onChange }: Props) {
         allowScrollButtonsMobile
         aria-label="Settings sections"
         TabIndicatorProps={{ sx: { display: { md: 'none' } } }}
-        sx={{ '& .MuiTabs-flexContainer': { gap: { md: 0.5 } } }}
+        sx={[wrapTabsOnPhoneSx, { '& .MuiTabs-flexContainer': { gap: { md: 0.5 } } }]}
       >
         {items.map(({ value: v, meta }) => {
           const Icon = meta.icon;
@@ -82,11 +83,25 @@ export default function SettingsTabs({ items, value, onChange }: Props) {
                 px: { md: 1.5 },
                 // The indicator is hidden on desktop (above) because a filled row
                 // reads better against a card-shaped rail than a hairline does.
+                // Gold-tinted in light mode; a neutral raised row in charcoal dark
+                // mode, where a gold wash on a nav row read as brown.
                 '&.Mui-selected': {
-                  bgcolor: { md: alpha(theme.palette.secondary.main, 0.12) },
+                  bgcolor: {
+                    md:
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.action.selected
+                        : alpha(theme.palette.secondary.main, 0.12),
+                  },
                   color: 'text.primary',
                 },
-                '&:hover': { bgcolor: { md: alpha(theme.palette.secondary.main, 0.06) } },
+                '&:hover': {
+                  bgcolor: {
+                    md:
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.action.hover
+                        : alpha(theme.palette.secondary.main, 0.06),
+                  },
+                },
               }}
             />
           );

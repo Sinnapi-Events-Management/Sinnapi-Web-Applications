@@ -34,6 +34,11 @@ export type QuotationPdfDocument = {
   sent_at: string | null;
   created_at: string | null;
   vendor_name: string | null;
+  /**
+   * The vendor's business logo (`vendors.primary_image_url`). Optional: the
+   * header draws the vendor's initials without it.
+   */
+  vendor_logo_url?: string | null;
   client_name: string | null;
   event_title: string | null;
   items: QuotationPdfItem[];
@@ -42,7 +47,7 @@ export type QuotationPdfDocument = {
   request_details?: string | null;
   /** Shown beside the reference once a quote has been revised at least once. */
   version_no?: number | null;
-  /** Share of the total released to the vendor before the event, as a fraction. */
+  /** Share of the total released to the vendor before the event, as a percentage (50 = 50%). */
   advance_rate?: number | null;
   /** How many days before the event date that advance is released. */
   advance_release_days_before?: number | null;

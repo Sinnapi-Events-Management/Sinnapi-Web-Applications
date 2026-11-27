@@ -4,9 +4,9 @@ import type { ServiceState } from '../../schema';
 /** How each state is worn: label, colour, and whether it is filled in. */
 const CHIP: Record<ServiceState, { label: string; color: 'success' | 'default'; filled: boolean }> =
   {
-    live: { label: 'Live', color: 'success', filled: true },
+    live: { label: 'Showing', color: 'success', filled: true },
     hidden: { label: 'Hidden', color: 'default', filled: false },
-    archived: { label: 'Archived', color: 'default', filled: false },
+    archived: { label: 'No longer offered', color: 'default', filled: false },
   };
 
 /**

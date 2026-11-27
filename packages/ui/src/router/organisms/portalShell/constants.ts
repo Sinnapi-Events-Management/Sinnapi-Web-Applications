@@ -15,3 +15,20 @@ export const CONTENT_MAX_WIDTH = 1440;
 export function shellStorageKey(portalId: string, name: string): string {
   return `sinnapi.${portalId}.shell.${name}`;
 }
+
+/** Height of the phone-only bottom tab bar, before the home-indicator inset. */
+export const BOTTOM_NAV_HEIGHT = 64;
+
+/**
+ * CSS custom property holding the space the bottom tab bar takes on screen:
+ * its height plus the safe-area inset on phones that show it, `0px` elsewhere.
+ * Anything pinned to the bottom of the viewport — sticky save bars, floating
+ * buttons — adds it to its own `bottom` so it sits above the bar, not under it.
+ * Read it with a fallback: `var(--portal-bottom-nav-height, 0px)`.
+ */
+export const BOTTOM_NAV_HEIGHT_VAR = '--portal-bottom-nav-height';
+
+/** `calc()` for a bottom offset that clears the tab bar when there is one. */
+export function aboveBottomNav(px: number): string {
+  return `calc(${px}px + var(${BOTTOM_NAV_HEIGHT_VAR}, 0px))`;
+}

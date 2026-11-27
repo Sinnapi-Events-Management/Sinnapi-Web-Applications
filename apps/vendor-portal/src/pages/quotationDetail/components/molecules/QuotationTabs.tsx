@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { DetailTabs, type DetailTabItem } from '@sinnapi/ui';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import HandshakeOutlinedIcon from '@mui/icons-material/HandshakeOutlined';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { FEATURES } from '@sinnapi/utils/constants';
@@ -23,11 +22,10 @@ type Props = {
  * than a tab that renders blank.
  */
 const TAB_META: Record<QuotationTab, Omit<DetailTabItem<QuotationTab>, 'value'>> = {
-  overview: { label: 'Overview', icon: <DescriptionOutlinedIcon fontSize="small" /> },
+  overview: { label: 'Details', icon: <DescriptionOutlinedIcon fontSize="small" /> },
   quote: { label: 'Quote', icon: <ReceiptLongOutlinedIcon fontSize="small" /> },
-  payment: { label: 'Payment', icon: <HandshakeOutlinedIcon fontSize="small" /> },
   messages: { label: 'Messages', icon: <ForumOutlinedIcon fontSize="small" /> },
-  progress: { label: 'Progress', icon: <TimelineIcon fontSize="small" /> },
+  progress: { label: 'History', icon: <TimelineIcon fontSize="small" /> },
 };
 
 export default function QuotationTabs({ value, onChange, unreadCount = 0 }: Props) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { RESET_LINK_STALE_MESSAGE, updateOwnPassword } from '@sinnapi/utils/passwordWrite';
 
 const LINK_EXPIRED = 'This reset link is invalid or has expired. Request a new one.';
 
@@ -58,10 +59,11 @@ export function useResetPassword() {
   async function submit(password: string) {
     setError(null);
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    // Ticketed write — see `updateOwnPassword`.
+    const failure = await updateOwnPassword(supabase, { password }, RESET_LINK_STALE_MESSAGE);
     setSubmitting(false);
-    if (error) {
-      setError(error.message);
+    if (failure) {
+      setError(failure);
       return;
     }
     navigate('/dashboard', { replace: true });

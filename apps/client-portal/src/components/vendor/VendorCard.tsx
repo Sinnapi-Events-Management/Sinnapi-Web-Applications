@@ -9,6 +9,7 @@ import {
   Rating,
   Box,
   alpha,
+  LogoMedia,
 } from '@sinnapi/ui';
 import PlaceIcon from '@mui/icons-material/Place';
 import { formatMoney } from '@/lib/config';
@@ -34,15 +35,24 @@ export default function VendorCard({ vendor }: { vendor: VendorCardData }) {
         to={`/discover/vendors/${vendor.slug}`}
         sx={{ height: '100%' }}
       >
-        <CardMedia
-          component="img"
-          height="160"
-          image={vendor.primary_image_url ?? vendor.profile_image_url ?? '/placeholder-vendor.svg'}
-          alt={vendor.business_name}
-          // Letterbox fill behind the photo — a translucent ink wash rather than
-          // a fixed grey, so it recedes on the warm dark canvas too.
-          sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.07) }}
-        />
+        {vendor.primary_image_url ? (
+          // The business logo, whole, on a light plate — never cropped.
+          <LogoMedia
+            src={vendor.primary_image_url}
+            alt={`${vendor.business_name} logo`}
+            height={160}
+          />
+        ) : (
+          <CardMedia
+            component="img"
+            height="160"
+            image={vendor.profile_image_url ?? '/placeholder-vendor.svg'}
+            alt={vendor.business_name}
+            // Letterbox fill behind the photo — a translucent ink wash rather than
+            // a fixed grey, so it recedes on the warm dark canvas too.
+            sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.07) }}
+          />
+        )}
         <CardContent>
           <Typography variant="h6" noWrap>
             {vendor.business_name}

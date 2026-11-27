@@ -56,6 +56,7 @@ export default function BusinessSectionPanel({
           vendorId={vendorId}
           businessName={vendor.business_name}
           logoUrl={vendor.primary_image_url}
+          onboardingPhotoUrl={vendor.profile_image_url}
           onDone={onDone}
         />
       )}

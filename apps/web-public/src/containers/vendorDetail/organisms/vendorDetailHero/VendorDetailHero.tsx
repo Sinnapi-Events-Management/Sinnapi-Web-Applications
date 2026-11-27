@@ -1,5 +1,14 @@
 import NextLink from 'next/link';
-import { Box, Container, Typography, Chip, Stack, Rating, Link } from '@sinnapi/ui/atoms';
+import {
+  Box,
+  Container,
+  Typography,
+  Chip,
+  Stack,
+  Rating,
+  Link,
+  LOGO_PLATE,
+} from '@sinnapi/ui/atoms';
 import {
   Verified as VerifiedIcon,
   Place as PlaceIcon,
@@ -9,6 +18,7 @@ import {
 import { common, gradientStops, palette, withAlpha } from '@sinnapi/ui/tokens';
 import ShareButton from '@/components/atoms/shareButton';
 import { MotionCoverImage } from '@/components/atoms/motionImage';
+import { HeroLogoBackdrop, HeroLogoPlate } from '../../atoms/heroLogo';
 import type { VendorDetailModel } from '@/lib/types';
 
 const PLACEHOLDER_IMAGE = '/placeholder-vendor.svg';
@@ -23,7 +33,10 @@ const PLACEHOLDER_IMAGE = '/placeholder-vendor.svg';
  */
 export default function VendorDetailHero({ vendor }: { vendor: VendorDetailModel }) {
   const overlayLink = { color: withAlpha(common.white, 0.85), '&:hover': { color: common.white } };
-  const cover = vendor.primary_image_url ?? vendor.profile_image_url ?? PLACEHOLDER_IMAGE;
+  // The business logo is never stretched across the banner: it sits whole on a
+  // light plate beside the name, over a soft blur of itself for colour.
+  const logo = vendor.primary_image_url || null;
+  const cover = logo ?? vendor.profile_image_url ?? PLACEHOLDER_IMAGE;
 
   return (
     <Box
@@ -37,7 +50,11 @@ export default function VendorDetailHero({ vendor }: { vendor: VendorDetailModel
         alignItems: 'flex-end',
       }}
     >
-      <MotionCoverImage src={cover} alt={vendor.business_name} />
+      {logo ? (
+        <HeroLogoBackdrop src={logo} />
+      ) : (
+        <MotionCoverImage src={cover} alt={vendor.business_name} />
+      )}
 
       {/* Brand teal scrim — darkest at the bottom where the copy sits. */}
       <Box
@@ -154,17 +171,26 @@ export default function VendorDetailHero({ vendor }: { vendor: VendorDetailModel
           )}
         </Stack>
 
-        <Typography
-          variant="h1"
-          sx={{
-            color: 'common.white',
-            fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.4rem' },
-            lineHeight: 1.1,
-            maxWidth: 860,
-          }}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 2, sm: 2.5 }}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
         >
-          {vendor.business_name}
-        </Typography>
+          {logo && <HeroLogoPlate src={logo} name={vendor.business_name} />}
+          <Typography
+            variant="h1"
+            sx={{
+              color: 'common.white',
+              fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.4rem' },
+              lineHeight: 1.1,
+              maxWidth: 860,
+              minWidth: 0,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {vendor.business_name}
+          </Typography>
+        </Stack>
 
         <Stack
           direction="row"

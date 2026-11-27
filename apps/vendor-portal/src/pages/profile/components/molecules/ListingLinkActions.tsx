@@ -51,9 +51,9 @@ export default function ListingLinkActions({ publicUrl, blockedReason }: Props) 
             rel="noopener noreferrer"
             disabled={!!blockedReason}
             endIcon={<OpenInNewIcon />}
-            sx={{ flex: 1 }}
+            sx={{ flex: 1, whiteSpace: 'nowrap' }}
           >
-            Preview listing
+            See my page
           </Button>
         </Box>
       </Tooltip>

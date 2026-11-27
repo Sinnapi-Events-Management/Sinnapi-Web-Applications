@@ -140,14 +140,14 @@ export function toDiscountKpis(rows: DiscountRow[]): Kpi[] {
     },
     {
       key: 'redemptions',
-      label: 'Redemptions',
+      label: 'Times used',
       value: redemptions,
       format: 'number',
       delta: null,
     },
     {
       key: 'exhausted',
-      label: 'Fully redeemed',
+      label: 'All used up',
       value: counts.exhausted,
       format: 'number',
       delta: null,

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Box, Card, CardContent, Divider, LinearProgress, Stack, Typography } from '@sinnapi/ui';
 import ServiceStatusChip from '../atoms/ServiceStatusChip';
 import ServiceCardMenu from './ServiceCardMenu';
@@ -14,6 +15,8 @@ type Props = {
   onToggleVisibility: () => void;
   onArchive: () => void;
   onRestore: () => void;
+  /** The service's price list (Services & prices page); else the old summary. */
+  prices?: ReactNode;
 };
 
 /**
@@ -43,6 +46,7 @@ export default function ServiceCard({
   onToggleVisibility,
   onArchive,
   onRestore,
+  prices,
 }: Props) {
   const isArchived = service.state === 'archived';
 
@@ -99,11 +103,11 @@ export default function ServiceCard({
           // and for an archived service the answer is nothing. Showing a price
           // here would be the card quoting an offer that is not on sale.
           <Typography variant="body2" color="text.secondary">
-            Out of your catalogue. Restore it to list it again — its packages and past bookings are
-            untouched.
+            Not offered right now. Choose “Offer again” to list it — its packages and past bookings
+            are untouched.
           </Typography>
         ) : (
-          <ServicePriceSummary pricing={service.pricing} loading={pricingLoading} />
+          (prices ?? <ServicePriceSummary pricing={service.pricing} loading={pricingLoading} />)
         )}
       </CardContent>
     </Card>

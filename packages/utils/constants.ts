@@ -24,6 +24,18 @@ export const CONTACT = {
 
 export type Contact = typeof CONTACT;
 
+/**
+ * The public website, as printed and as linked from documents that leave the
+ * platform (quotation PDFs). The link carries UTM tags so visits from a
+ * forwarded quote show up as their own source in analytics; the printed text
+ * stays clean.
+ */
+export const SITE = {
+  display: 'www.sinnapi.com',
+  documentLink:
+    'https://www.sinnapi.com/?utm_source=quotation_pdf&utm_medium=document&utm_campaign=vendor_quotation',
+} as const;
+
 /** Shared client-side feature switches for portal experiences. */
 export const FEATURES = {
   // Set true to restore client-vendor messaging in both portal frontends.

@@ -35,7 +35,7 @@ export default function AppShell() {
  * subscription through context and so has to run *below* the provider.
  */
 function PortalChrome() {
-  const { brand, sections, account, badges, messages, notifications } = useAppShell();
+  const { brand, sections, bottomNav, account, badges, messages, notifications } = useAppShell();
   const banner = useShellBanner();
 
   return (
@@ -43,6 +43,7 @@ function PortalChrome() {
       portalId="vendor"
       brand={brand}
       sections={sections}
+      bottomNav={bottomNav}
       account={account}
       badges={badges}
       messages={messages}

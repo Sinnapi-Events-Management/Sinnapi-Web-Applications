@@ -48,13 +48,19 @@ export function InboxToolbar({
 
   return (
     <Stack spacing={1.25}>
-      <Stack direction="row" spacing={1} alignItems="center">
+      {/* Phones: search on its own line, the action below — side by side the
+          box was crushed to "Search na" (2026-11-17). */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1}
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+      >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <SearchField
             value={search.input}
             onChange={search.setInput}
             onClear={search.clear}
-            placeholder="Search name, subject or message…"
+            placeholder="Search messages"
             ariaLabel="Search conversations"
           />
         </Box>

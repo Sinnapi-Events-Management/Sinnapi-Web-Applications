@@ -6,6 +6,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FileUploadIcon from '@mui/icons-material/FileUploadOutlined';
 import { PROFILE_IMAGE_ACCEPT } from '../schema';
+import { LogoTile } from '../../atoms/LogoTile';
 
 export type ImagePickerProps = {
   /** Currently stored image, or the in-flight local preview. */
@@ -14,9 +15,12 @@ export type ImagePickerProps = {
   name: string;
   busy?: boolean;
   maxSizeMb: number;
-  /** Circular reads as a person, rounded as a business. */
-  shape?: 'circle' | 'rounded';
-  /** Edge length in px. */
+  /**
+   * Circular reads as a person, rounded as a business. `logo` is a wide tile
+   * that shows the whole image uncropped — for logos stored in their own shape.
+   */
+  shape?: 'circle' | 'rounded' | 'logo';
+  /** Edge length in px (the height, for `logo`). */
   size?: number;
   /** What the picker is for, e.g. `profile photo` or `business logo`. */
   subject?: string;
@@ -56,6 +60,10 @@ export function ImagePicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const radius = shape === 'circle' ? '50%' : 3;
+  const isLogo = shape === 'logo';
+  // A logo tile is wider than tall: most wordmarks are, and a square one
+  // still sits comfortably in the middle.
+  const frameWidth = isLogo ? Math.round(size * 1.75) : size;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,22 +125,26 @@ export function ImagePicker({
             },
           }}
         >
-          <Avatar
-            src={src ?? undefined}
-            alt={src ? `${name} — ${subject}` : undefined}
-            variant={shape === 'circle' ? 'circular' : 'rounded'}
-            sx={{
-              width: size,
-              height: size,
-              borderRadius: radius,
-              fontSize: Math.round(size * 0.36),
-              fontWeight: 600,
-              border: (t) => `3px solid ${t.palette.background.paper}`,
-              boxShadow: (t) => `0 0 0 1px ${t.palette.divider}`,
-            }}
-          >
-            {name.charAt(0).toUpperCase()}
-          </Avatar>
+          {isLogo ? (
+            <LogoTile src={src} name={name} subject={subject} width={frameWidth} height={size} />
+          ) : (
+            <Avatar
+              src={src ?? undefined}
+              alt={src ? `${name} — ${subject}` : undefined}
+              variant={shape === 'circle' ? 'circular' : 'rounded'}
+              sx={{
+                width: size,
+                height: size,
+                borderRadius: radius,
+                fontSize: Math.round(size * 0.36),
+                fontWeight: 600,
+                border: (t) => `3px solid ${t.palette.background.paper}`,
+                boxShadow: (t) => `0 0 0 1px ${t.palette.divider}`,
+              }}
+            >
+              {name.charAt(0).toUpperCase()}
+            </Avatar>
+          )}
 
           {/* One overlay for two states: the camera glyph on hover, and a stronger
               drop affordance while a file is over the target. */}
@@ -170,13 +182,26 @@ export function ImagePicker({
           />
         )}
 
-        {busy && (
-          <CircularProgress
-            size={size + 10}
-            thickness={2}
-            sx={{ position: 'absolute', top: -5, left: -5 }}
-          />
-        )}
+        {busy &&
+          (isLogo ? (
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                display: 'grid',
+                placeItems: 'center',
+                pointerEvents: 'none',
+              }}
+            >
+              <CircularProgress size={32} />
+            </Box>
+          ) : (
+            <CircularProgress
+              size={size + 10}
+              thickness={2}
+              sx={{ position: 'absolute', top: -5, left: -5 }}
+            />
+          ))}
       </Box>
 
       <input

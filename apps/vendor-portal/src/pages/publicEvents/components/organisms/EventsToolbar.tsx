@@ -7,7 +7,7 @@ import {
   FilterDisclosure,
   FilterToggleButton,
 } from '@sinnapi/ui';
-import type { SearchTerm } from '@/hooks/useSearchTerm';
+import type { SearchTerm } from '@sinnapi/ui';
 import type { EventFacetCounts } from '@/lib/types';
 import type { EventFilters } from '../../hooks/useEventFilters';
 import type { FilterPanel } from '../../hooks/useFilterPanel';
@@ -80,7 +80,7 @@ export default function EventsToolbar({
             value={search.input}
             onChange={search.setInput}
             onClear={search.clear}
-            placeholder="Search events by title or town…"
+            placeholder="Search by name or town"
             ariaLabel="Search events"
             inputProps={{ 'aria-label': 'Search events', enterKeyHint: 'search' }}
           />

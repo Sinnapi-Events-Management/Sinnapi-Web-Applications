@@ -69,7 +69,11 @@ export function applyFilters<Q>(query: Q, filters?: PageFilters): Q {
 
 // Minimal structural shape of the Supabase query builder we depend on: applying
 // an order then a range yields a thenable carrying the page rows + exact count.
-type PageQuery = {
+//
+// Exported for RPC-backed lists: an untyped client types an RPC's `data` as
+// "one row or an array", which this shape (rightly) rejects. A set-returning
+// function always yields an array, so those call sites assert `as PageQuery`.
+export type PageQuery = {
   order: (column: string, options: { ascending: boolean }) => PageQuery;
   range: (
     from: number,

@@ -55,7 +55,7 @@ export default function QuotationBookingCard({ quotation }: Props) {
             <Typography variant="body2" fontWeight={600}>
               {booking.reference_no ?? 'Booking'}
             </Typography>
-            <StatusChip status={booking.status} />
+            <StatusChip status={booking.status} domain="booking" />
           </Stack>
 
           <Typography variant="body2" color="text.secondary">

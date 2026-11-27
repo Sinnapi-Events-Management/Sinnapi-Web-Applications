@@ -30,7 +30,7 @@ export default function DiscountUsage({ discount }: { discount: DiscountRow }) {
         <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
           {discount.used_count}
         </Box>{' '}
-        {discount.used_count === 1 ? 'redemption' : 'redemptions'} · no limit
+        {discount.used_count === 1 ? 'time used' : 'times used'} · no limit
       </Typography>
     );
   }
@@ -44,7 +44,7 @@ export default function DiscountUsage({ discount }: { discount: DiscountRow }) {
           <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
             {usage.used}
           </Box>{' '}
-          of {usage.max} redeemed
+          of {usage.max} used
         </Typography>
         <Typography
           variant="caption"
@@ -57,7 +57,7 @@ export default function DiscountUsage({ discount }: { discount: DiscountRow }) {
         variant="determinate"
         value={usage.percent}
         color={tight ? 'warning' : 'success'}
-        aria-label={`${usage.used} of ${usage.max} redemptions used`}
+        aria-label={`Used ${usage.used} of ${usage.max} times`}
         sx={{
           mt: 0.75,
           height: 6,

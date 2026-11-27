@@ -1,7 +1,6 @@
 import { Button, PageTitle, Snackbar, Alert } from '@sinnapi/ui';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import {
-  NotificationsSummary,
   NotificationTabs,
   NotificationsWorkspace,
   NotificationDetailPane,
@@ -19,7 +18,7 @@ export default function Notifications() {
     <>
       <PageTitle
         title="Notifications"
-        subtitle="Alerts about your bookings, quotes, payouts and Sinnapi support."
+        subtitle="Alerts about your bookings, quotes, payments and Sinnapi support."
         action={
           counts.unread > 0 ? (
             <Button
@@ -33,8 +32,6 @@ export default function Notifications() {
           ) : undefined
         }
       />
-
-      <NotificationsSummary counts={counts} loading={page.countsLoading} />
 
       <NotificationTabs
         options={buildNotificationTabs(counts)}

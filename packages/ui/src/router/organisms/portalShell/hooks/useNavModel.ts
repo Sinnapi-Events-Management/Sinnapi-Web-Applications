@@ -75,9 +75,14 @@ export function useNavModel({
   );
   const activeSection = activeItem?.section;
 
+  const pinnedTitles = useMemo(
+    () => new Set(visibleSections.filter((s) => s.pinned).map((s) => s.title)),
+    [visibleSections],
+  );
+
   const isGroupOpen = useCallback(
-    (title: string) => openGroups[title] ?? title === activeSection,
-    [openGroups, activeSection],
+    (title: string) => pinnedTitles.has(title) || (openGroups[title] ?? title === activeSection),
+    [pinnedTitles, openGroups, activeSection],
   );
 
   const toggleGroup = useCallback(

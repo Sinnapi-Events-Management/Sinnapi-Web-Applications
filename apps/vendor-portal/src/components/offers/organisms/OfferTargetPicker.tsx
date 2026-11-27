@@ -89,7 +89,7 @@ export default function OfferTargetPicker({
         </Typography>
         <Typography variant="caption" color="text.secondary">
           Pick the packages or tiers clients get this saving on. Leave everything unticked and it
-          applies to your whole catalogue.
+          applies to everything you sell.
         </Typography>
       </Box>
 
@@ -120,7 +120,7 @@ export default function OfferTargetPicker({
       >
         {isLoading ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-            Loading your catalogue…
+            Loading your services…
           </Typography>
         ) : packages.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
@@ -159,7 +159,7 @@ export default function OfferTargetPicker({
                     meta={`${tiers.length} ${tiers.length === 1 ? 'tier' : 'tiers'}`}
                     disabled={!published}
                     disabledReason={
-                      published ? undefined : 'Not published — clients cannot see this package'
+                      published ? undefined : 'Hidden — clients cannot see this package'
                     }
                   />
 

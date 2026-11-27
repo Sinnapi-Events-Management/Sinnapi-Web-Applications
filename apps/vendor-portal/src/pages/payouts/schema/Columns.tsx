@@ -4,7 +4,7 @@ import { settlementMethodLabel } from '@sinnapi/ui';
 import { formatDate, formatMoney } from '@/lib/config';
 import type { PayoutModel } from '@/lib/types';
 
-const KIND_LABEL: Record<string, string> = {
+export const PAYOUT_KIND_LABEL: Record<string, string> = {
   advance: 'Advance',
   balance: 'Balance',
   refund: 'Refund',
@@ -23,15 +23,15 @@ const KIND_LABEL: Record<string, string> = {
 export const payoutColumns: DataTableColumn<PayoutModel>[] = [
   {
     field: 'created_at',
-    headerName: 'Raised',
+    headerName: 'Date',
     sortable: true,
     render: (p) => formatDate(p.created_at),
   },
   {
     field: 'kind',
-    headerName: 'Tranche',
+    headerName: 'For',
     sortable: true,
-    render: (p) => KIND_LABEL[p.kind] ?? p.kind,
+    render: (p) => PAYOUT_KIND_LABEL[p.kind] ?? p.kind,
   },
   {
     field: 'amount',
@@ -60,7 +60,7 @@ export const payoutColumns: DataTableColumn<PayoutModel>[] = [
   },
   {
     field: 'settled_at',
-    headerName: 'Settled',
+    headerName: 'Paid on',
     sortable: true,
     render: (p) => formatDate(p.settled_at ?? p.completed_at),
   },
@@ -70,11 +70,11 @@ export const payoutColumns: DataTableColumn<PayoutModel>[] = [
     sortable: true,
     render: (p) =>
       p.blocked_reason ? (
-        <Tooltip title="Add your payout details in Settings so we can send this.">
+        <Tooltip title="Add your bank account in Settings so we can send this.">
           <Stack direction="row" spacing={0.5} alignItems="center">
             <WarningAmberIcon sx={{ fontSize: 16, color: 'warning.main' }} />
             <Typography variant="body2" color="warning.main" fontWeight={600}>
-              Needs payout details
+              Needs bank details
             </Typography>
           </Stack>
         </Tooltip>

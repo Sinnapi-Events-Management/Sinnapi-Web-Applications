@@ -39,7 +39,7 @@ export const LOCATION_OPTIONS: FilterOption[] = [
  */
 export const SOURCE_OPTIONS: FilterOption[] = [
   { value: 'client', label: 'Open events' },
-  { value: 'admin', label: 'Inspiration' },
+  { value: 'admin', label: 'Ideas only' },
 ];
 
 /**
@@ -85,10 +85,10 @@ export const BUDGET_RANGES: Record<string, { min: number; max: number | null }> 
  * server-side rather than erroring.
  */
 export const SORT_OPTIONS: { value: EventSortKey; label: string }[] = [
-  { value: 'soonest', label: 'Happening soonest' },
-  { value: 'newest', label: 'Recently posted' },
-  { value: 'budget_asc', label: 'Budget: low to high' },
-  { value: 'budget_desc', label: 'Budget: high to low' },
+  { value: 'soonest', label: 'Soonest first' },
+  { value: 'newest', label: 'Newest posts' },
+  { value: 'budget_asc', label: 'Lowest budget' },
+  { value: 'budget_desc', label: 'Highest budget' },
 ];
 
 /** The order applied when the vendor hasn't chosen one. */

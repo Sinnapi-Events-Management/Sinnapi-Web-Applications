@@ -1,4 +1,5 @@
 'use client';
+import { wrapTabsOnPhoneSx } from '../../molecules/wrapTabsOnPhone';
 import { Box, Tab, Tabs } from '@mui/material';
 import type { ProfileTabItem } from '../types';
 
@@ -31,6 +32,7 @@ export function ProfileTabs<T extends string>({
         variant="scrollable"
         allowScrollButtonsMobile
         aria-label={ariaLabel}
+        sx={wrapTabsOnPhoneSx}
       >
         {items.map((item) => (
           <Tab

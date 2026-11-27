@@ -123,7 +123,7 @@ export default function Dashboard() {
                     </Box>
                     <Stack direction="row" spacing={2} alignItems="center">
                       <Typography variant="body2">{formatMoney(b.amount, b.currency)}</Typography>
-                      <StatusChip status={b.status} />
+                      <StatusChip status={b.status} domain="booking" />
                     </Stack>
                   </Stack>
                 ))}

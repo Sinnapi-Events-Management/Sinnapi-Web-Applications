@@ -24,8 +24,8 @@ export default function PromotionCoverage({ promotion }: { promotion: PromotionR
     <Tooltip
       title={
         unscoped
-          ? 'No packages are attached, so every code under this campaign discounts everything you sell. Edit the campaign to narrow it.'
-          : 'Codes under this campaign apply to these, unless a code names packages of its own.'
+          ? 'No packages are attached, so every offer in this sale applies to everything you sell. Edit the campaign to narrow it.'
+          : 'Offers in this sale apply to these, unless a code names packages of its own.'
       }
     >
       <Stack direction="row" spacing={0.75} alignItems="flex-start" sx={{ minWidth: 0 }}>

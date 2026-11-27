@@ -12,7 +12,7 @@ const MESSAGES = {
 
 /**
  * The vendor's own photo — `profiles.avatar_url`, the person rather than the
- * business (see `useVendorLogo` for the listing image).
+ * business (see `useBusinessLogo` for the business logo).
  *
  * This is what clients see beside your messages and what staff see on your
  * account, so it is worth having even for a vendor whose listing carries a logo.

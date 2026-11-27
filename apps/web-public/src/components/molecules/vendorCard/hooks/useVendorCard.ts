@@ -11,7 +11,10 @@ const PLACEHOLDER_IMAGE = '/placeholder-vendor.svg';
  */
 export function useVendorCard(vendor: VendorCardModel) {
   const price = formatMoney(vendor.starting_price, vendor.starting_price_currency);
-  const image = vendor.primary_image_url ?? vendor.profile_image_url ?? PLACEHOLDER_IMAGE;
+  // The business logo, when set, is shown whole on a light plate rather than
+  // cropped like a cover photo. Only the fallbacks fill the frame.
+  const logo = vendor.primary_image_url || null;
+  const image = logo ?? vendor.profile_image_url ?? PLACEHOLDER_IMAGE;
 
-  return { price, image };
+  return { price, image, isLogo: !!logo };
 }

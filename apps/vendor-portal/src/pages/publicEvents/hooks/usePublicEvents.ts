@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { usePublicEventSearch, usePublicEventFacetCounts, useMyInterests } from '@/hooks/queries';
-import { useSearchTerm } from '@/hooks/useSearchTerm';
+import { useSearchTerm } from '@sinnapi/ui/router';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { EventSearchFilters } from '@/lib/types';
 import { useEventFilters } from './useEventFilters';

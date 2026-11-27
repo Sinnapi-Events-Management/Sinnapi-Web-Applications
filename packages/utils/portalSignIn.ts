@@ -116,12 +116,28 @@ export async function requestPortalSignIn(
     captchaToken: string;
     /** This project's anon key — see rule 1 above. */
     anonKey: string;
+    /**
+     * "Keep me signed in on this device". Recorded server-side against the new
+     * session: unticked, the portal gate ends it after 12 hours. Defaults to
+     * true (the admin portal has no checkbox; its own 24-hour rule applies).
+     */
+    remember?: boolean;
+    /** `getDeviceId()` — lets the server tell a new device from a known one. */
+    deviceId?: string | null;
   },
 ): Promise<SignInOutcome> {
-  const { portal, email, password, captchaToken, anonKey } = params;
+  const {
+    portal,
+    email,
+    password,
+    captchaToken,
+    anonKey,
+    remember = true,
+    deviceId = null,
+  } = params;
 
   const { data, error } = await client.functions.invoke<SignInResponse>(SIGN_IN_FUNCTION, {
-    body: { email, password, portal, captchaToken },
+    body: { email, password, portal, captchaToken, remember, deviceId },
     // Rule 1. supabase-js sets `Authorization` from the stored session only
     // when the header is missing, so naming it here keeps any stale, foreign or
     // expired token out of a request that must be anonymous.

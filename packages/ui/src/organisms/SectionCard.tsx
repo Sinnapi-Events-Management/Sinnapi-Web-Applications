@@ -43,6 +43,9 @@ export function SectionCard({
           height: 3,
           bgcolor: `${accent}.main`,
         },
+        // Charcoal dark mode keeps card frames neutral: the accent lives in the
+        // icon badge, and a coloured bar on every card read as decoration.
+        '[data-mui-color-scheme="dark"] &::before': { display: 'none' },
         ...sx,
       }}
     >

@@ -2,7 +2,6 @@ import { Alert, ConfirmDialog, QueryState, Toast } from '@sinnapi/ui';
 import { useDiscounts } from '../../hooks/useDiscounts';
 import { useDiscountActions } from '../../hooks/useDiscountActions';
 import { useCopyCode } from '../../hooks/useCopyCode';
-import DiscountsMetrics from './DiscountsMetrics';
 import DiscountsToolbar from './DiscountsToolbar';
 import DiscountGrid from './DiscountGrid';
 import DiscountDialog from './DiscountDialog';
@@ -33,7 +32,6 @@ export default function DiscountsWorkspace({ vendorId }: { vendorId: string }) {
   const {
     visible,
     counts,
-    kpis,
     filter,
     setFilter,
     term,
@@ -44,7 +42,6 @@ export default function DiscountsWorkspace({ vendorId }: { vendorId: string }) {
     now,
     isLoading,
     error,
-    isEmpty,
     isFiltered,
     editing,
     isEditorOpen,
@@ -71,8 +68,6 @@ export default function DiscountsWorkspace({ vendorId }: { vendorId: string }) {
 
   return (
     <>
-      <DiscountsMetrics kpis={kpis} hidden={isEmpty} />
-
       <DiscountsToolbar
         filter={filter}
         counts={counts}

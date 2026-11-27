@@ -1,7 +1,6 @@
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import DescriptionIcon from '@mui/icons-material/Description';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
@@ -9,7 +8,6 @@ import CelebrationIcon from '@mui/icons-material/Celebration';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
-import DiscountIcon from '@mui/icons-material/Discount';
 import StarIcon from '@mui/icons-material/Star';
 import InsightsIcon from '@mui/icons-material/Insights';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -18,8 +16,9 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { FEATURES } from '@sinnapi/utils/constants';
-import type { PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
+import type { PortalBottomNavItem, PortalNavItem, PortalNavSection } from '@sinnapi/ui/router';
 
 export const APP = {
   name: 'Sinnapi',
@@ -52,11 +51,45 @@ export const ADD_MEDIA_PATH = `${MEDIA_PATH}?add=1`;
 export const ADD_MEDIA_LABEL = 'Add photos or videos';
 
 /**
- * Sidebar groups, mirroring admin's sectioned nav. Nineteen destinations is far
- * too many for a flat list, so they're grouped by the job at hand: winning work,
- * maintaining the public listing, getting paid, and growing demand.
+ * "Escrow" stays as the word — it is the term Sinnapi's terms and the escrow
+ * policy use — but it is explained, in these words, everywhere it is a label.
+ */
+export const ESCROW_EXPLAINER =
+  'Escrow is your client’s payment, kept safe by Sinnapi until the job is done. ' +
+  'Any agreed advance is sent to you before the event; the rest is sent to your bank ' +
+  'account after the client confirms you delivered.';
+
+/** Invoices own their receipts' pages too, so both light the same nav item. */
+const INVOICES_ITEM: NavItem = {
+  label: 'Invoices & Receipts',
+  to: '/invoices',
+  icon: ReceiptLongIcon,
+  matches: ['/receipts'],
+};
+
+/**
+ * Sidebar groups, mirroring admin's sectioned nav.
+ *
+ * "Quick Links" comes first and is pinned open: these five pages are daily
+ * work, yet they used to sit inside groups that start closed, so vendors did
+ * not know they existed. Each lives only here — a second copy lower down would
+ * make the list longer to scan without making anything easier to find.
  */
 export const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Quick Links',
+    pinned: true,
+    items: [
+      { label: 'Bookings', to: '/bookings', icon: EventNoteIcon },
+      { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon },
+      INVOICES_ITEM,
+      // "Photos & Videos", not "Portfolio": our vendors read "portfolio" as a
+      // document to attach, not as their own gallery, so the page they most need
+      // went unopened. The label is the one WhatsApp uses for the same thing.
+      { label: 'Photos & Videos', to: MEDIA_PATH, icon: PhotoLibraryIcon },
+      { label: 'Offers', to: '/offers', icon: LocalOfferIcon },
+    ],
+  },
   {
     title: 'Overview',
     items: [
@@ -65,36 +98,22 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Bookings & Quotes',
-    items: [
-      { label: 'Bookings', to: '/bookings', icon: EventNoteIcon },
-      { label: 'Quotations', to: '/quotations', icon: RequestQuoteIcon },
-      { label: 'Packages', to: '/packages', icon: DescriptionIcon },
-    ],
-  },
-  {
     title: 'Listing',
     items: [
-      { label: 'Services', to: '/services', icon: DesignServicesIcon },
-      // "Photos & Videos", not "Portfolio": our vendors read "portfolio" as a
-      // document to attach, not as their own gallery, so the page they most need
-      // went unopened. The label is the one WhatsApp uses for the same thing.
-      { label: 'Photos & Videos', to: MEDIA_PATH, icon: PhotoLibraryIcon },
-      { label: 'Public Events', to: '/public-events', icon: CelebrationIcon },
+      { label: 'Services & prices', to: '/services', icon: DesignServicesIcon },
+      { label: 'Events looking for vendors', to: '/public-events', icon: CelebrationIcon },
     ],
   },
   {
     title: 'Finance',
     items: [
       { label: 'Escrow', to: '/escrow', icon: AccountBalanceIcon },
-      { label: 'Payouts', to: '/payouts', icon: PaymentsIcon },
+      { label: 'Money paid to you', to: '/payouts', icon: PaymentsIcon },
     ],
   },
   {
     title: 'Growth',
     items: [
-      { label: 'Promotions', to: '/promotions', icon: LocalOfferIcon },
-      { label: 'Discounts', to: '/discounts', icon: DiscountIcon },
       { label: 'Reviews', to: '/reviews', icon: StarIcon },
       { label: 'Analytics', to: '/analytics', icon: InsightsIcon },
     ],
@@ -129,6 +148,18 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+/**
+ * The phone bottom bar: four everyday pages in thumb reach, one short word
+ * each, plus the shell's own "More" tab for the full menu. Bookings is not
+ * here by choice — it sits first in Quick Links, one tap behind "More".
+ */
+export const BOTTOM_NAV: PortalBottomNavItem[] = [
+  { label: 'Home', to: '/dashboard', icon: DashboardIcon },
+  { label: 'Quotes', to: '/quotations', icon: RequestQuoteIcon },
+  { label: 'Invoices', to: '/invoices', icon: ReceiptLongIcon, matches: ['/receipts'] },
+  { label: 'Photos', to: MEDIA_PATH, icon: PhotoLibraryIcon },
+];
+
 export function formatMoney(
   amount: number | null | undefined,
   currency: string | null = 'UGX',
@@ -139,6 +170,10 @@ export function formatMoney(
     return new Intl.NumberFormat('en-UG', {
       style: 'currency',
       currency: cur,
+      // "UGX 10,600,000", not the locale's "USh": the code is what banks,
+      // mobile money and our own printed invoices and receipts use, and one
+      // notation everywhere stops a vendor wondering if two figures differ.
+      currencyDisplay: 'code',
       maximumFractionDigits: cur === 'UGX' ? 0 : 2,
     }).format(amount);
   } catch {

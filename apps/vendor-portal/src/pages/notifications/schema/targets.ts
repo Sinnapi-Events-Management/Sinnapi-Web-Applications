@@ -22,6 +22,7 @@ const KNOWN_PREFIXES = [
   '/payouts',
   '/escrow',
   '/reviews',
+  '/offers',
   '/promotions',
   '/discounts',
   '/public-events',
@@ -75,11 +76,15 @@ export function resolveTarget(notification: NotificationView): NotificationTarge
     case 'reviews':
       return { path: '/reviews', label: 'View reviews' };
 
+    // A sign-in from a new device: the device list is where it can be signed out.
+    case 'account':
+      return { path: '/settings?tab=security', label: 'Review your devices' };
+
     case 'subscriptions':
       return { path: '/subscription', label: 'View subscription' };
 
     case 'promotions':
-      return { path: '/promotions', label: 'View promotions' };
+      return { path: '/offers', label: 'View offers' };
 
     case 'events':
       return { path: '/public-events', label: 'View events' };

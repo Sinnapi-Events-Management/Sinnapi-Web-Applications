@@ -23,6 +23,14 @@ type ColorSchemeTheme = ReturnType<typeof experimental_extendTheme>;
 const DEFAULT_MODE = 'light' as const;
 
 /**
+ * MUI's default localStorage key for the chosen mode. An app can pass its own
+ * key (to both the provider and the script — they must match) to start every
+ * visitor afresh on the light default, discarding choices stored under an
+ * earlier key.
+ */
+const DEFAULT_MODE_STORAGE_KEY = 'mui-mode';
+
+/**
  * Wraps an app in MUI's CSS-variables theme provider so a stored dark-mode
  * choice is applied before paint (see {@link ColorSchemeScript}) instead of
  * flashing light first. Pass a theme built with `extendTheme({ colorSchemes })`.
@@ -31,13 +39,21 @@ const DEFAULT_MODE = 'light' as const;
  */
 export function ColorModeProvider({
   theme,
+  modeStorageKey = DEFAULT_MODE_STORAGE_KEY,
   children,
 }: {
   theme: ColorSchemeTheme;
+  /** localStorage key for the chosen mode; must match {@link ColorSchemeScript}'s. */
+  modeStorageKey?: string;
   children: ReactNode;
 }) {
   return (
-    <CssVarsProvider theme={theme} defaultMode={DEFAULT_MODE} disableTransitionOnChange>
+    <CssVarsProvider
+      theme={theme}
+      defaultMode={DEFAULT_MODE}
+      modeStorageKey={modeStorageKey}
+      disableTransitionOnChange
+    >
       <CssBaseline enableColorScheme />
       {children}
     </CssVarsProvider>
@@ -49,6 +65,11 @@ export function ColorModeProvider({
  * eliminating the flash of the wrong theme. Render it as the first child of
  * `<body>` in the root layout.
  */
-export function ColorSchemeScript() {
-  return <>{getInitColorSchemeScript({ defaultMode: DEFAULT_MODE })}</>;
+export function ColorSchemeScript({
+  modeStorageKey = DEFAULT_MODE_STORAGE_KEY,
+}: {
+  /** localStorage key for the chosen mode; must match {@link ColorModeProvider}'s. */
+  modeStorageKey?: string;
+} = {}) {
+  return <>{getInitColorSchemeScript({ defaultMode: DEFAULT_MODE, modeStorageKey })}</>;
 }

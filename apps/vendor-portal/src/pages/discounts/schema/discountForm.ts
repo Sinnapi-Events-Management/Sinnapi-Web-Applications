@@ -13,12 +13,12 @@ export const DISCOUNT_TYPES = ['percentage', 'fixed'] as const;
 export type DiscountType = (typeof DISCOUNT_TYPES)[number];
 
 export const DISCOUNT_TYPE_OPTIONS: SelectOption[] = [
-  { value: 'percentage', label: 'Percentage' },
-  { value: 'fixed', label: 'Fixed (UGX)' },
+  { value: 'percentage', label: 'A percentage (%)' },
+  { value: 'fixed', label: 'An amount (UGX)' },
 ];
 
 /** The "no campaign" entry. A standalone code is the common case, so it leads. */
-export const NO_PROMOTION_OPTION: SelectOption = { value: '', label: 'No campaign' };
+export const NO_PROMOTION_OPTION: SelectOption = { value: '', label: 'None' };
 
 /**
  * The vendor's campaigns as the attach picker's options.
@@ -132,7 +132,7 @@ export const discountFormSchema = z
   // live, priced and unreachable — the failure this refine exists to prevent
   // is a vendor building a campaign that quietly does nothing.
   .refine((v) => v.is_automatic || v.code.trim() !== '', {
-    message: 'Give the offer a code, or switch on “apply automatically”.',
+    message: 'Type the code clients will use, or choose “Automatically”.',
     path: ['code'],
   })
   // A fixed discount at or above the floor that qualifies for it would settle

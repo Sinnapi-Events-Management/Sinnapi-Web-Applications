@@ -24,7 +24,7 @@ export default function PromotionBannerField({ vendorId, control }: Props) {
   return (
     <CoverImageField
       label="Banner"
-      hint="Optional. A wide image for this campaign — it is the first thing a client sees."
+      hint="Optional. A wide picture for this sale — it is the first thing a client sees."
       value={field.value ?? ''}
       preview={banner.preview}
       busy={banner.busy}

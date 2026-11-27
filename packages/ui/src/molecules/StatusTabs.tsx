@@ -1,4 +1,5 @@
 'use client';
+import { wrapTabsOnPhoneSx } from './wrapTabsOnPhone';
 import { Box, Chip, Tab, Tabs, Skeleton } from '@mui/material';
 
 export type StatusTabOption<V extends string = string> = {
@@ -59,6 +60,7 @@ export function StatusTabs<V extends string>({
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
+        sx={wrapTabsOnPhoneSx}
       >
         {options.map((option) => (
           <Tab

@@ -93,7 +93,7 @@ export default function DiscountCode({ code, copied, onCopy }: Props) {
               Automatic
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Applies with no code
+              No code needed — everyone gets it
             </Typography>
           </Box>
         </Stack>

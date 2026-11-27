@@ -1,26 +1,38 @@
-import { useVendorLogo } from '../../hooks/useVendorLogo';
-import ProfileImageField from '../molecules/ProfileImageField';
+import { Box, Stack } from '@sinnapi/ui';
+import { DocumentHeaderPreview, LogoUploadField, useBusinessLogo } from '@/components/businessLogo';
 
 type Props = {
   vendorId: string;
   businessName: string;
   logoUrl: string | null;
+  onboardingPhotoUrl: string | null;
   onDone: (message: string) => void;
 };
 
 /**
- * The listing image — `vendors.primary_image_url`. Rounded rather than circular,
- * the one cue separating it from the personal photo, which writes to a different
- * record through an otherwise identical control.
+ * The business logo — `vendors.primary_image_url`, printed on every
+ * quotation, invoice and receipt and shown on the listing. The preview
+ * beneath shows it on a document exactly as a client will see it.
  */
-export default function BusinessLogoPanel({ vendorId, businessName, logoUrl, onDone }: Props) {
-  const upload = useVendorLogo(vendorId, logoUrl, onDone);
+export default function BusinessLogoPanel({
+  vendorId,
+  businessName,
+  logoUrl,
+  onboardingPhotoUrl,
+  onDone,
+}: Props) {
+  const upload = useBusinessLogo({ vendorId, currentUrl: logoUrl, onboardingPhotoUrl, onDone });
+
   return (
-    <ProfileImageField
-      upload={upload}
-      name={businessName}
-      shape="rounded"
-      subject="business logo"
-    />
+    <Box sx={{ py: { xs: 1, sm: 2 }, maxWidth: 520, mx: 'auto' }}>
+      <Stack spacing={3} alignItems="center">
+        <LogoUploadField upload={upload} businessName={businessName} size={128} />
+        <DocumentHeaderPreview
+          businessName={businessName}
+          logoUrl={upload.displayUrl}
+          label="How it looks on your documents"
+        />
+      </Stack>
+    </Box>
   );
 }

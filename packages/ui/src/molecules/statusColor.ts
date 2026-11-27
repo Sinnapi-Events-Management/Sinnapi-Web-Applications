@@ -157,7 +157,67 @@ export function statusColor(status: string): StatusChipColor {
   return MAP[status] ?? 'default';
 }
 
+/**
+ * Statuses whose database word is not the word people use. "Voided" is
+ * accounting language; the record is kept, so "Cancelled" (not "Deleted") is
+ * the plain word that is also true. Payout statuses say whose money it is.
+ */
+const STATUS_LABELS: Readonly<Record<string, string>> = {
+  voided: 'Cancelled',
+  void: 'Cancelled',
+  payout_approved: 'Approved for payment',
+  paid_out: 'Paid to you',
+};
+
+/**
+ * Which record a status belongs to, when its word means something different
+ * there. `requested` and `completed` are also payout, refund and erasure
+ * statuses, so a booking's plain words can only apply where the caller says the
+ * status is a booking's.
+ */
+export type StatusDomain = 'booking' | 'quotation' | 'vendorEscrow';
+
+/**
+ * A booking's statuses in the words people use (decided 2026-11-17, all
+ * portals). Vendors read "Confirmed" and "Requested" as system states and could
+ * not tell what to do next; these say where the booking actually is.
+ */
+const DOMAIN_LABELS: Readonly<Record<StatusDomain, Readonly<Record<string, string>>>> = {
+  booking: {
+    requested: 'New request',
+    confirmed: 'Booked',
+    in_progress: 'Happening now',
+    completed: 'Done',
+  },
+  // `requested` here is a client asking for a price; `revised` is the client
+  // asking for changes — "Revised" read as if the vendor had revised it.
+  quotation: {
+    requested: 'New request',
+    revised: 'Changes asked',
+  },
+  // Escrow as the *vendor* reads it — whose money, and is it coming. Vendor
+  // pages only; the client and admin read the same rows from other sides.
+  vendorEscrow: {
+    initiated: 'Not paid yet',
+    funded: 'Held safely',
+    held: 'Held safely',
+    awaiting_advance: 'Advance coming',
+    advance_released: 'Advance sent',
+    release_requested: 'Client approved',
+    admin_review: 'Being checked',
+    payout_approved: 'Being sent to you',
+    paid_out: 'Paid to you',
+    disputed: 'Being checked',
+    refunded: 'Returned to client',
+    partially_refunded: 'Partly returned',
+  },
+};
+
 /** `in_progress` → `In Progress`. Shared so status labels read alike everywhere. */
-export function titleizeStatus(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+export function titleizeStatus(status: string, domain?: StatusDomain): string {
+  return (
+    (domain && DOMAIN_LABELS[domain][status]) ??
+    STATUS_LABELS[status] ??
+    status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }

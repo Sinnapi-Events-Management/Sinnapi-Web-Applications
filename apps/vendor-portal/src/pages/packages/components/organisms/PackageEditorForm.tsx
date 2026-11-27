@@ -18,6 +18,7 @@ type Props = {
   pkg: PackageModel | null;
   onCancel: () => void;
   onSaved: () => void;
+  defaultServiceId?: string | null;
 };
 
 /**
@@ -39,8 +40,14 @@ type Props = {
  * Two columns from `md`, stacked below it, with the preview following the form
  * on a phone rather than leading it.
  */
-export default function PackageEditorForm({ vendorId, pkg, onCancel, onSaved }: Props) {
-  const editor = usePackageEditor(vendorId, pkg, onSaved);
+export default function PackageEditorForm({
+  vendorId,
+  pkg,
+  onCancel,
+  onSaved,
+  defaultServiceId,
+}: Props) {
+  const editor = usePackageEditor(vendorId, pkg, onSaved, defaultServiceId);
   const { control, setValue } = editor;
   const { services, options: serviceOptions } = usePackageServiceOptions(vendorId, control);
 
@@ -66,7 +73,7 @@ export default function PackageEditorForm({ vendorId, pkg, onCancel, onSaved }: 
               <PackageTiersSection control={control} tiers={editor.tiers} />
               <PackageAddOnsSection control={control} addOns={editor.addOns} />
               <PackageScopeSection control={control} />
-              <PackageTermsFields control={control} />
+              <PackageTermsFields control={control} advanceRateMax={editor.advanceRateMax} />
               <PackagePublishFields control={control} />
             </Stack>
           </Grid>

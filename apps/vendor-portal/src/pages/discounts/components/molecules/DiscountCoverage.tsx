@@ -33,7 +33,7 @@ export default function DiscountCoverage({ discount }: { discount: DiscountRow }
         unscoped
           ? 'This code has no packages attached, so it discounts everything you sell. Edit it to narrow the scope.'
           : discount.coverageInherited
-            ? `Inherited from the ${discount.promotionTitle ?? 'campaign'} campaign. Change it there, or attach packages to this code to override.`
+            ? `Set by the ${discount.promotionTitle ?? ''} sale. Change it there, or attach packages to this code to override.`
             : 'The packages and tiers clients get this saving on.'
       }
     >
@@ -58,7 +58,7 @@ export default function DiscountCoverage({ discount }: { discount: DiscountRow }
           }}
         >
           {discount.coverage}
-          {discount.coverageInherited && ' — via the campaign'}
+          {discount.coverageInherited && ' — from the sale'}
         </Typography>
       </Stack>
     </Tooltip>

@@ -263,15 +263,29 @@ export async function getEventById(id: string): Promise<EventCardModel | null> {
 /** {key,name} pairs for a reference lookup (categories/regions). */
 export type ReferenceOption = { key: string; name: string };
 
-/** Service categories (public read) — powers the vendor application form. */
+const byName = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+
+/**
+ * Service categories (public read) — powers the vendor application form.
+ *
+ * Active only: a category an admin has switched off is not something a new
+ * vendor can apply for. Sorted alphabetically by display name (not the admin
+ * `sort_order`) so applicants can scan the list; sorted here rather than with
+ * `.order('name')` so the result does not depend on the database collation.
+ *
+ * A failed request throws rather than resolving to `[]`, for the same reason as
+ * `searchPublicVendors`: an empty list would read as "no services exist" and
+ * the form could never show its retry state. Missing env still degrades quietly.
+ */
 export async function getServiceCategories(): Promise<ReferenceOption[]> {
   const supa = createPublicClient();
   if (!supa) return [];
-  const { data } = await supa
+  const { data, error } = await supa
     .from('service_categories')
     .select('key,name')
-    .order('sort_order', { ascending: true });
-  return (data ?? []) as ReferenceOption[];
+    .eq('is_active', true);
+  if (error) throw error;
+  return ((data ?? []) as ReferenceOption[]).sort((a, b) => byName.compare(a.name, b.name));
 }
 
 /**

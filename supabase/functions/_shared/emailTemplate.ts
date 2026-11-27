@@ -508,11 +508,22 @@ export interface EmailMessage {
   /** Override the From header. Defaults to EMAIL_FROM/SMTP_USER. */
   from?: string;
   replyTo?: string;
+  /** Files sent with the message, e.g. an invoice PDF. The inline logo is added separately. */
+  attachments?: EmailAttachment[];
+}
+
+export interface EmailAttachment {
+  filename: string;
+  /** File bytes, base64-encoded. */
+  contentBase64: string;
+  contentType: string;
 }
 
 export interface EmailResult {
   sent: boolean;
   error?: string;
+  /** The SMTP Message-ID, present when the server accepted the message. */
+  messageId?: string;
 }
 
 // ───────────────────────────────────────────────────────────────────────────

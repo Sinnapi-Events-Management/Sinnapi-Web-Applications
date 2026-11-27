@@ -32,17 +32,17 @@ export default function DiscountTerms({ discount }: { discount: DiscountRow }) {
             size="small"
             variant="outlined"
             icon={<PaymentsOutlinedIcon />}
-            label={`Min. ${formatMoney(discount.min_amount, discount.currency ?? 'UGX')}`}
+            label={`Bookings of ${formatMoney(discount.min_amount, discount.currency ?? 'UGX')}+`}
           />
         </Tooltip>
       )}
       {discount.promotionTitle && (
-        <Tooltip title="This code's redemptions roll up into this campaign">
+        <Tooltip title="Part of this sale">
           <Chip
             size="small"
             variant="outlined"
             icon={<CampaignOutlinedIcon />}
-            label={discount.promotionTitle}
+            label={`Sale: ${discount.promotionTitle}`}
             // A long campaign title must not stretch the row it shares with the
             // minimum: the chip truncates and the tooltip carries the rest.
             sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden' } }}

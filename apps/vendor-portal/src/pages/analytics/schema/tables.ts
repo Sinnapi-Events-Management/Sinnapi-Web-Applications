@@ -41,7 +41,7 @@ function earningsTables(overview: DashboardModel): ReportTable[] {
       rows: [
         ['Held in escrow', earnings.inEscrow],
         ['Funded bookings in escrow', earnings.escrowCount],
-        ['Payouts in flight', earnings.pendingPayout],
+        ['On its way to you', earnings.pendingPayout],
         ['Paid out all time', earnings.lifetimeReleased],
       ],
     },

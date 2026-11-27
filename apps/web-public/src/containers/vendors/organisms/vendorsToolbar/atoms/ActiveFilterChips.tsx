@@ -1,16 +1,13 @@
 'use client';
 import { Chip, Stack } from '@sinnapi/ui/atoms';
-import {
-  CATEGORY_OPTIONS,
-  REGION_OPTIONS,
-  PRICE_OPTIONS,
-  RATING_OPTIONS,
-} from '../../../utils/options';
+import { REGION_OPTIONS, PRICE_OPTIONS, RATING_OPTIONS } from '../../../utils/options';
+import { titleize } from '@/lib/config/site';
 import type { FacetKey, VendorsSearchParams } from '../../../utils/searchParams';
 
 /** Label lookup per facet, so a chip reads "Kampala" rather than "kampala". */
 const LABELS: Record<FacetKey, Record<string, string>> = {
-  category: Object.fromEntries(CATEGORY_OPTIONS.map((o) => [o.value, o.label])),
+  // Categories are DB-driven; the key titleizes to a readable label.
+  category: {},
   region: Object.fromEntries(REGION_OPTIONS.map((o) => [o.value, o.label])),
   price: Object.fromEntries(PRICE_OPTIONS.map((o) => [o.value, o.label])),
   rating: Object.fromEntries(RATING_OPTIONS.map((o) => [o.value, o.label])),
@@ -37,7 +34,11 @@ export default function ActiveFilterChips({
   if (params.q) chips.push({ key: 'q', label: `“${params.q}”` });
   for (const key of FACET_ORDER) {
     const value = params[key];
-    if (value) chips.push({ key, label: LABELS[key][value] ?? value });
+    if (value)
+      chips.push({
+        key,
+        label: LABELS[key][value] ?? (key === 'category' ? titleize(value) : value),
+      });
   }
 
   if (chips.length === 0) return null;

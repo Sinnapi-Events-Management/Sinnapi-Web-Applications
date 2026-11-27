@@ -1,6 +1,6 @@
 import type { SxProps } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
-import { palette, withAlpha } from '../theme/tokens';
+import { palette, charcoal, charcoalSurface, withAlpha } from '../theme/tokens';
 
 /**
  * Style tokens for the detail-page hero banner (see {@link ./HeroSurface}).
@@ -9,8 +9,9 @@ import { palette, withAlpha } from '../theme/tokens';
  * products (Linear / Stripe / Vercel) use for page headers: a clean card that
  * lifts off the canvas with a hairline border and a soft shadow rather than a
  * saturated colour fill. Colour is spent only where it carries meaning — status
- * chips, the avatar, icons — plus a single whisper of warm brand glow in one
- * corner. Light mode is white-on-cream; dark mode is a raised warm panel.
+ * chips, the avatar, icons — plus, in light mode only, a single whisper of warm
+ * brand glow in one corner. Light mode is white-on-cream; dark mode is a raised
+ * neutral charcoal panel with no glow (a gold haze on charcoal reads as a stain).
  *
  * The root publishes a small set of CSS custom properties that flip with the
  * colour scheme; content references them through the `hero*Sx` helpers below.
@@ -20,9 +21,8 @@ import { palette, withAlpha } from '../theme/tokens';
 // Near-white surface with a barely-there warm tilt, so the card reads as a
 // distinct sheet above the pale-gold page canvas without adding visible colour.
 const LIGHT_BG = 'linear-gradient(180deg, #FFFFFF 0%, #FBFAF8 100%)';
-// Raised panel a step above the warm dark canvas (#14100B) / paper (#1F1811),
-// carrying the same low-saturation gold tilt as the rest of the dark scheme.
-const DARK_BG = 'linear-gradient(180deg, #2A2117 0%, #1E1811 100%)';
+// Raised panel one lightness step above the charcoal paper — neutral, no tint.
+const DARK_BG = `linear-gradient(180deg, ${charcoalSurface.raised} 0%, ${charcoalSurface.paper} 100%)`;
 
 // The dark-scheme selector emitted by the CSS-vars provider. Equal to
 // `theme.getColorSchemeSelector('dark')` for the default `data-mui-color-scheme`
@@ -59,18 +59,18 @@ export const heroRootSx: SxProps<Theme> = () => ({
   '--hero-danger-bg': withAlpha(palette.light.error.main, 0.1),
   '--hero-danger-bg-hover': withAlpha(palette.light.error.main, 0.18),
 
-  // --- dark mode: raised warm panel, warm-white text ---
+  // --- dark mode: raised charcoal panel, neutral off-white text ---
   [DARK_SELECTOR]: {
-    color: palette.dark.text.primary,
+    color: charcoal.text.primary,
     background: DARK_BG,
-    border: `1px solid ${withAlpha(palette.dark.text.primary, 0.08)}`,
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 34px -20px rgba(0, 0, 0, 0.65)',
-    '--hero-overlay': withAlpha(palette.dark.text.primary, 0.06),
-    '--hero-overlay-strong': withAlpha(palette.dark.text.primary, 0.1),
-    '--hero-overlay-hover': withAlpha(palette.dark.text.primary, 0.13),
-    '--hero-border': withAlpha(palette.dark.text.primary, 0.16),
-    '--hero-divider': withAlpha(palette.dark.text.primary, 0.1),
-    '--hero-glow': withAlpha(palette.dark.secondary.main, 0.1),
+    border: `1px solid ${charcoalSurface.border}`,
+    boxShadow: '0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px -20px rgba(0, 0, 0, 0.7)',
+    '--hero-overlay': withAlpha(charcoal.text.primary, 0.06),
+    '--hero-overlay-strong': withAlpha(charcoal.text.primary, 0.1),
+    '--hero-overlay-hover': withAlpha(charcoal.text.primary, 0.13),
+    '--hero-border': withAlpha(charcoal.text.primary, 0.16),
+    '--hero-divider': withAlpha(charcoal.text.primary, 0.1),
+    '--hero-glow': 'transparent',
     // The dark scheme's amber/red already read as light-on-dark, so `.main` is
     // the legible ink here; tints run a touch stronger to survive the panel.
     '--hero-warning': palette.dark.warning.main,

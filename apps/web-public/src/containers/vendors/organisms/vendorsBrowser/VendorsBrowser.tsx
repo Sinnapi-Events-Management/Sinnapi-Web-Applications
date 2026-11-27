@@ -1,6 +1,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import { Container } from '@sinnapi/ui/atoms';
+import type { CategoryOption } from '@/lib/types';
 import SectionHeading from '@/components/molecules/sectionHeading';
 import VendorsToolbar from '../vendorsToolbar';
 import VendorsResults from '../vendorsResults';
@@ -10,7 +11,8 @@ import { useVendorsSearch } from './hooks/useVendorsSearch';
 import VendorsLoadMore from './molecules/VendorsLoadMore';
 
 /**
- * The interactive half of the vendors page: spotlight, toolbar, grid, paging.
+ * The interactive half of the vendors page: spotlight, category row, toolbar,
+ * grid, paging.
  *
  * `featuredSlot` is a fully server-rendered element handed down as a prop, not
  * a component this file imports. That keeps the featured rail in the server
@@ -27,9 +29,12 @@ import VendorsLoadMore from './molecules/VendorsLoadMore';
 export default function VendorsBrowser({
   featuredSlot,
   featuredCount,
+  categories,
 }: {
   featuredSlot: ReactNode;
   featuredCount: number;
+  /** Active `service_categories`, fetched on the server — the row is DB-driven. */
+  categories: CategoryOption[];
 }) {
   const { filters, activeFilters, isDefaultView, clearAll } = useVendorsFilters();
 
@@ -57,6 +62,7 @@ export default function VendorsBrowser({
           loaded={vendors.length}
           total={isDefaultView ? total + featuredCount : total}
           facetCounts={facetCounts}
+          categories={categories}
           isLoading={isLoading}
         />
 

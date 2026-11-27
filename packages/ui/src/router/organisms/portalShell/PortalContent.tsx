@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { Box, Toolbar } from '@mui/material';
 import { Outlet } from 'react-router-dom';
-import { CONTENT_MAX_WIDTH } from './constants';
+import { BOTTOM_NAV_HEIGHT_VAR, CONTENT_MAX_WIDTH } from './constants';
 import { chromeTransition } from './portalShell.styles';
 import type { PortalContentWidth } from './types';
 
@@ -27,6 +27,9 @@ export function PortalContent({ sidebarWidth, contentWidth, focus, banner }: Por
         // past the viewport and puts a horizontal scrollbar on every screen.
         // Pinning it to 0 keeps that overflow inside the page that caused it.
         minWidth: 0,
+        // Room for the phone bottom bar, so the last row of a page can scroll
+        // clear of it. Zero wherever the bar is not shown.
+        pb: `var(${BOTTOM_NAV_HEIGHT_VAR}, 0px)`,
         transition: chromeTransition,
       }}
     >

@@ -70,7 +70,7 @@ export default function ServiceCardMenu({
         {state === 'archived' ? (
           <MenuItem onClick={pick(onRestore)}>
             <UnarchiveOutlinedIcon fontSize="small" sx={{ mr: 1.5 }} />
-            Restore to catalogue
+            Offer again
           </MenuItem>
         ) : (
           [
@@ -88,7 +88,7 @@ export default function ServiceCardMenu({
             </MenuItem>,
             <MenuItem key="archive" onClick={pick(onArchive)} sx={{ color: 'error.main' }}>
               <ArchiveOutlinedIcon fontSize="small" sx={{ mr: 1.5 }} />
-              Archive
+              Stop offering
             </MenuItem>,
           ]
         )}

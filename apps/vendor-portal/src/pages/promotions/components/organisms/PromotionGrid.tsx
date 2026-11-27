@@ -48,13 +48,13 @@ export default function PromotionGrid({
     return isFiltered ? (
       <EmptyState
         title="Nothing under this filter"
-        description="Your other campaigns are still here — switch back to All to see them."
+        description="Your other sales are still here — switch back to All to see them."
       />
     ) : (
       <EmptyState
-        title="No campaigns yet"
-        description="A campaign is a dated offer clients see on your profile — a festive discount, a last-minute deal, an early-booking window. Attach a discount code to one and you can see exactly what it returned."
-        ctaLabel="Create your first campaign"
+        title="No sale names yet"
+        description="A sale name groups your offers under one title and picture for a set time — like “Festive Season” — so clients see it on your page."
+        ctaLabel="Create a sale name"
         onCta={onCreate}
       />
     );

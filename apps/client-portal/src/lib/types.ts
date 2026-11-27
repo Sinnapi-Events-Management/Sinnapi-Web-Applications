@@ -158,7 +158,12 @@ export type VendorSearchCardModel = VendorCardModel & {
 
 /** Orderings `search_vendors_public` whitelists. Anything else falls back server-side. */
 export type VendorSortKey =
-  'recommended' | 'rating' | 'reviews' | 'price_asc' | 'price_desc' | 'newest';
+  | 'recommended'
+  | 'rating'
+  | 'reviews'
+  | 'price_asc'
+  | 'price_desc'
+  | 'newest';
 
 /**
  * Everything that narrows the discovery grid, in the numeric form the RPC
@@ -357,6 +362,13 @@ export type QuotationListModel = {
   created_at: string;
   vendor_id: string | null;
   vendors: VendorNameSlugRefModel | VendorNameSlugRefModel[] | null;
+};
+
+/** A row of the Quotations list, which also shows the event's date. */
+export type QuotationListRowModel = QuotationListModel & {
+  /** The quote's own event date (package orders) or the linked event's.
+   *  Resolved by `search_quotations`; `null` when the request names no date. */
+  event_on: string | null;
 };
 
 /**

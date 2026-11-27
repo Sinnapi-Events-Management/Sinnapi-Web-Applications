@@ -8,9 +8,9 @@ export type PackageFilter = 'all' | 'published' | 'drafts' | 'archived';
 
 export const PACKAGE_FILTERS: { value: PackageFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'published', label: 'Published' },
+  { value: 'published', label: 'Live' },
   { value: 'drafts', label: 'Drafts' },
-  { value: 'archived', label: 'Archived' },
+  { value: 'archived', label: 'No longer offered' },
 ];
 
 function matches(pkg: PackageModel, filter: PackageFilter): boolean {

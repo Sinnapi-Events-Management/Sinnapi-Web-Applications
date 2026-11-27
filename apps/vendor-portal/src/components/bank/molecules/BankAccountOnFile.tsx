@@ -33,7 +33,10 @@ export default function BankAccountOnFile({ account, loading }: Props) {
         p: 2,
         borderRadius: 2,
         border: (t) => `1px solid ${t.palette.divider}`,
-        bgcolor: (t) => alpha(t.palette.secondary.main, t.palette.mode === 'dark' ? 0.08 : 0.05),
+        bgcolor: (t) =>
+          t.palette.mode === 'dark'
+            ? alpha(t.palette.text.primary, 0.03)
+            : alpha(t.palette.secondary.main, 0.05),
       }}
     >
       <Box
@@ -62,8 +65,25 @@ export default function BankAccountOnFile({ account, loading }: Props) {
             : 'Add your bank details below to receive payouts.'}
         </Typography>
         {account && (
-          <Typography variant="caption" color="text.secondary" noWrap component="div">
-            {[account.account_name, account.branch].filter(Boolean).join(' · ')}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            component="div"
+            sx={{ overflowWrap: 'anywhere' }}
+          >
+            {/* Labelled: a bare number typed as the account name read like a
+                leaked account number (2026-11-17). */}
+            {[
+              account.account_name && `Name on account: ${account.account_name}`,
+              account.branch && `Branch: ${account.branch}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </Typography>
+        )}
+        {account && !account.is_verified && (
+          <Typography variant="caption" color="warning.main" component="div" sx={{ mt: 0.5 }}>
+            We check new bank details within 2 working days. Payments wait until then.
           </Typography>
         )}
       </Box>

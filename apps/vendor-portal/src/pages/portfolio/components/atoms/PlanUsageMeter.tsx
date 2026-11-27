@@ -27,15 +27,17 @@ export default function PlanUsageMeter({ used, limit, planName }: Props) {
   return (
     <Box sx={{ minWidth: { xs: '100%', sm: 190 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
-        <Typography variant="caption" color="text.secondary">
-          {planName ? `${planName} plan` : 'Photo allowance'}
-        </Typography>
+        {/* "3 of 10 photos & videos (Starter plan)" — "3 / 10" did not say
+            what the 10 counted. */}
         <Typography
           variant="caption"
           fontWeight={700}
           color={isFull ? 'error.main' : 'text.primary'}
         >
-          {used} / {limit}
+          {used} of {limit} photos & videos
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {planName ? `${planName} plan` : 'Your plan'}
         </Typography>
       </Stack>
       <LinearProgress

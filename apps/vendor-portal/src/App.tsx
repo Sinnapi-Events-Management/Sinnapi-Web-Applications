@@ -1,9 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/auth/ProtectedRoute';
-import SessionTimeoutGuard from '@/auth/SessionTimeoutGuard';
 import { VendorProvider } from '@/vendor/VendorProvider';
 import OnboardingGate from '@/vendor/OnboardingGate';
 import AppShell from '@/components/shell/AppShell';
+import { LogoGateProvider } from '@/components/businessLogo';
 
 import SignIn from '@/pages/auth/signIn';
 import ForgotPassword from '@/pages/auth/forgotPassword';
@@ -28,13 +28,16 @@ import Bookings from '@/pages/bookings';
 import BookingDetail from '@/pages/bookingDetail';
 import Quotations from '@/pages/quotations';
 import QuotationDetail from '@/pages/quotationDetail';
-import Packages from '@/pages/packages';
 import PublicEvents from '@/pages/publicEvents';
 import PublicEventDetail from '@/pages/publicEventDetail';
 import Escrow from '@/pages/escrow';
 import Payouts from '@/pages/payouts';
-import Promotions from '@/pages/promotions';
-import Discounts from '@/pages/discounts';
+import Documents from '@/pages/documents';
+import InvoiceEditor from '@/pages/invoiceEditor';
+import InvoiceDetail from '@/pages/invoiceDetail';
+import ReceiptEditor from '@/pages/receiptEditor';
+import ReceiptDetail from '@/pages/receiptDetail';
+import Offers from '@/pages/offers';
 import Reviews from '@/pages/reviews';
 import Analytics from '@/pages/analytics';
 import Messages from '@/pages/messages';
@@ -45,10 +48,6 @@ import NotFound from '@/pages/notFound';
 export default function App() {
   return (
     <>
-      {/* Above the routes on purpose: the idle guard then covers every
-          authenticated page, including the forced password change below,
-          which sits outside the app shell. */}
-      <SessionTimeoutGuard />
       <Routes>
         {/* No /sign-up: the `vendor` role is granted only when an application is
           approved (`approve_vendor`), so a self-registered account could never
@@ -90,7 +89,11 @@ export default function App() {
                     or photo. This holds them on the setup wizard until their
                     listing is something a client could actually find. */}
                 <OnboardingGate>
-                  <AppShell />
+                  {/* Asks for the business logo the moment a document is sent
+                      without one — see `useLogoGate`. */}
+                  <LogoGateProvider>
+                    <AppShell />
+                  </LogoGateProvider>
                 </OnboardingGate>
               </VendorProvider>
             </ProtectedRoute>
@@ -118,16 +121,28 @@ export default function App() {
           <Route path="/bookings/:id" element={<BookingDetail />} />
           <Route path="/quotations" element={<Quotations />} />
           <Route path="/quotations/:id" element={<QuotationDetail />} />
-          <Route path="/packages" element={<Packages />} />
+          <Route path="/packages" element={<Navigate to="/services" replace />} />
           {/* The page was called "Templates" until packages carried a price.
               Vendors have the old path bookmarked and linked from email. */}
-          <Route path="/templates" element={<Navigate to="/packages" replace />} />
+          <Route path="/templates" element={<Navigate to="/services" replace />} />
           <Route path="/public-events" element={<PublicEvents />} />
           <Route path="/public-events/:id" element={<PublicEventDetail />} />
           <Route path="/escrow" element={<Escrow />} />
           <Route path="/payouts" element={<Payouts />} />
-          <Route path="/promotions" element={<Promotions />} />
-          <Route path="/discounts" element={<Discounts />} />
+          {/* Invoices & receipts. `/invoices` holds all three tabs (invoices,
+              receipts, saved clients); `new` routes sit above `:id` so the
+              literal segment wins. */}
+          <Route path="/invoices" element={<Documents />} />
+          <Route path="/invoices/new" element={<InvoiceEditor />} />
+          <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/invoices/:id/edit" element={<InvoiceEditor />} />
+          <Route path="/receipts" element={<Navigate to="/invoices?tab=receipts" replace />} />
+          <Route path="/receipts/new" element={<ReceiptEditor />} />
+          <Route path="/receipts/:id" element={<ReceiptDetail />} />
+          {/* Discounts + Promotions became one Offers page (2026-11-17). */}
+          <Route path="/offers" element={<Offers />} />
+          <Route path="/discounts" element={<Navigate to="/offers" replace />} />
+          <Route path="/promotions" element={<Navigate to="/offers?tab=sales" replace />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/messages" element={<Messages />} />

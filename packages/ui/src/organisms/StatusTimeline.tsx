@@ -1,6 +1,7 @@
 'use client';
 import { Box, Skeleton, Stack, Typography } from '@mui/material';
 import { StatusChip } from '../molecules/StatusChip';
+import type { StatusDomain } from '../molecules/statusColor';
 
 /**
  * A step on a rendered status trail.
@@ -31,6 +32,8 @@ export type StatusTimelineProps = {
   error?: unknown;
   /** Shown in place of the trail when the history read fails. */
   errorMessage?: string;
+  /** Pass `booking` on a booking's trail so steps read "Booked", "Done"… */
+  domain?: StatusDomain;
 };
 
 /**
@@ -48,6 +51,7 @@ export function StatusTimeline({
   isLoading,
   error,
   errorMessage = 'The progress trail could not be loaded.',
+  domain,
 }: StatusTimelineProps) {
   if (isLoading) {
     return (
@@ -75,6 +79,7 @@ export function StatusTimeline({
           step={step}
           isLast={i === steps.length - 1}
           formatTimestamp={formatTimestamp}
+          domain={domain}
         />
       ))}
     </Box>
@@ -91,17 +96,19 @@ function TimelineRow({
   step,
   isLast,
   formatTimestamp,
+  domain,
 }: {
   step: StatusTimelineStep;
   isLast: boolean;
   formatTimestamp: (value: string) => string;
+  domain?: StatusDomain;
 }) {
   return (
     <Stack direction="row" spacing={1.5} sx={{ opacity: step.done ? 1 : 0.5 }}>
       <TimelineNode done={step.done} isLast={isLast} />
       <Box sx={{ minWidth: 0, pb: isLast ? 0 : 2.5 }}>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-          <StatusChip status={step.status} />
+          <StatusChip status={step.status} domain={domain} />
           <Typography variant="caption" color="text.secondary">
             {step.occurredAt ? formatTimestamp(step.occurredAt) : 'Pending'}
           </Typography>

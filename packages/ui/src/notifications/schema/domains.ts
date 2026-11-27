@@ -44,6 +44,8 @@ const DOMAIN_PREFIXES: { prefix: string; domain: NotificationDomain }[] = [
   { prefix: 'promotion', domain: { key: 'promotions', label: 'Promotions', accent: 'secondary' } },
   { prefix: 'discount', domain: { key: 'promotions', label: 'Promotions', accent: 'secondary' } },
   { prefix: 'event', domain: { key: 'events', label: 'Events', accent: 'primary' } },
+  // Sign-in alerts (`account.new_sign_in`). Security, so it reads as a warning.
+  { prefix: 'account', domain: { key: 'account', label: 'Account', accent: 'warning' } },
 ];
 
 /** Catch-all for a trigger key no prefix claims — labelled, but never linked. */

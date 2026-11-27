@@ -1,10 +1,12 @@
 'use client';
 import { Box } from '@mui/material';
 import { BreadcrumbTitleProvider } from './BreadcrumbTitleProvider';
+import { PortalBottomNav } from './PortalBottomNav';
 import { PortalContent } from './PortalContent';
 import { PortalFocusExit } from './PortalFocusExit';
 import { PortalSidebar } from './PortalSidebar';
 import { PortalTopBar } from './PortalTopBar';
+import { BOTTOM_NAV_HEIGHT, BOTTOM_NAV_HEIGHT_VAR } from './constants';
 import { usePortalShell } from './hooks/usePortalShell';
 import type { PortalShellProps } from './types';
 
@@ -41,12 +43,28 @@ function PortalShellFrame({
   homeLabel,
   banner,
   topBarActions,
+  bottomNav,
+  bottomNavMoreLabel = 'More',
 }: PortalShellProps) {
   const shell = usePortalShell({ portalId, brand, sections, can, homeLabel });
   const { view } = shell;
+  const bottomItems = view.focus ? [] : (bottomNav ?? []);
+  const showBottomNav = bottomItems.length > 0;
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
+    <Box
+      sx={(t) => ({
+        display: 'flex',
+        minHeight: '100dvh',
+        bgcolor: 'background.default',
+        // Published for anything pinned to the viewport's bottom edge — see
+        // `BOTTOM_NAV_HEIGHT_VAR`. Zero from `md` up, where the bar is hidden.
+        [BOTTOM_NAV_HEIGHT_VAR]: showBottomNav
+          ? `calc(${BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`
+          : '0px',
+        [t.breakpoints.up('md')]: { [BOTTOM_NAV_HEIGHT_VAR]: '0px' },
+      })}
+    >
       {view.focus ? (
         <PortalFocusExit onExit={view.exitFocus} />
       ) : (
@@ -86,6 +104,15 @@ function PortalShellFrame({
         focus={view.focus}
         banner={banner}
       />
+
+      {showBottomNav && (
+        <PortalBottomNav
+          items={bottomItems}
+          moreLabel={bottomNavMoreLabel}
+          badges={badges}
+          onOpenMore={shell.openMobileNav}
+        />
+      )}
     </Box>
   );
 }

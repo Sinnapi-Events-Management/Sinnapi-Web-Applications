@@ -1,7 +1,6 @@
 import { Button, PageTitle, Snackbar, Alert } from '@sinnapi/ui';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import {
-  NotificationsSummary,
   NotificationTabs,
   NotificationsWorkspace,
   NotificationDetailPane,
@@ -33,8 +32,6 @@ export default function Notifications() {
           ) : undefined
         }
       />
-
-      <NotificationsSummary counts={counts} loading={page.countsLoading} />
 
       <NotificationTabs
         options={buildNotificationTabs(counts)}

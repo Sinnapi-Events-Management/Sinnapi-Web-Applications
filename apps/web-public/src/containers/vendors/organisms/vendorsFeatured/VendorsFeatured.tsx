@@ -30,6 +30,10 @@ export default function VendorsFeatured({ vendors }: { vendors: VendorListingMod
         borderBottom: '1px solid',
         borderColor: 'divider',
         background: `linear-gradient(180deg, ${withAlpha(GOLD.light, 0.16)} 0%, ${withAlpha(GOLD.light, 0.04)} 100%)`,
+        // A gold wash over charcoal reads as brown, so dark mode sets the band
+        // apart with the raised neutral surface; the cards' gold frames carry
+        // the "featured" accent on their own.
+        '[data-mui-color-scheme="dark"] &': { background: 'none', bgcolor: 'background.paper' },
       }}
     >
       <Container>

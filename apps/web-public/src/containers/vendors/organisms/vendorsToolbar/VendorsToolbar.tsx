@@ -1,7 +1,8 @@
 'use client';
 import { Paper } from '@sinnapi/ui/atoms';
-import type { VendorFacetCounts } from '@/lib/types';
+import type { CategoryOption, VendorFacetCounts } from '@/lib/types';
 import { useVendorsFilters } from '../../hooks/useVendorsFilters';
+import VendorsCategoryRail from '../vendorsCategoryRail';
 import ToolbarSearch from './molecules/ToolbarSearch';
 import ToolbarSummary from './molecules/ToolbarSummary';
 import ToolbarFacets from './molecules/ToolbarFacets';
@@ -11,6 +12,7 @@ type VendorsToolbarProps = {
   loaded: number;
   total: number;
   facetCounts?: VendorFacetCounts;
+  categories: CategoryOption[];
   isLoading: boolean;
 };
 
@@ -27,6 +29,7 @@ export default function VendorsToolbar({
   loaded,
   total,
   facetCounts,
+  categories,
   isLoading,
 }: VendorsToolbarProps) {
   const { params, activeFilters, setFacet, setSort, clearFacet, clearAll } = useVendorsFilters();
@@ -48,6 +51,7 @@ export default function VendorsToolbar({
         onSortChange={setSort}
       />
       <ActiveFilterChips params={params} onRemove={clearFacet} />
+      <VendorsCategoryRail categories={categories} facetCounts={facetCounts} />
     </Paper>
   );
 }

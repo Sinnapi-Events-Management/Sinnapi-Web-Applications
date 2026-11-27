@@ -1,8 +1,8 @@
 import { Box, Grid, PageTitle, QueryState, Stack } from '@sinnapi/ui';
 import { profileSideColumnSx, useUrlTab } from '@sinnapi/ui/profile';
-import { PrivacyDataSection, SecuritySection } from '@sinnapi/ui/settings';
+import { PrivacyDataSection, SecuritySection, SignedInDevicesSection } from '@sinnapi/ui/settings';
 import { PASSWORD_MIN_LENGTH } from '@/components/auth/schema';
-import { formatDate } from '@/lib/config';
+import { formatDate, formatDateTime } from '@/lib/config';
 import { useSettings } from './hooks/useSettings';
 import { panelId, tabId, SETTINGS_TABS, SETTINGS_TAB_META, type SettingsTab } from './schema';
 import AccountGlanceCard from './components/organisms/AccountGlanceCard';
@@ -16,7 +16,7 @@ import SettingsTabs from './components/molecules/SettingsTabs';
  * appear in.
  */
 const RETENTION_NOTE =
-  'Ask us to erase your personal data. Records tied to completed bookings, payouts and tax reporting are kept for the period the law requires before they can be removed.';
+  'Ask us to erase your personal data. Records tied to completed bookings, payments to you and tax reporting are kept for the period the law requires before they can be removed.';
 
 const TAB_ITEMS = SETTINGS_TABS.map((value) => ({ value, meta: SETTINGS_TAB_META[value] }));
 
@@ -58,12 +58,15 @@ export default function Settings() {
     changePassword,
     exportMyData,
     requestDeletion,
+    listSessions,
+    revokeSession,
+    revokeOtherSessions,
   } = useSettings();
   const { tab, setTab } = useUrlTab<SettingsTab>(SETTINGS_TABS);
 
   return (
     <>
-      <PageTitle title="Settings" subtitle="Payout banking, security and privacy." />
+      <PageTitle title="Settings" subtitle="Your bank account, security and privacy." />
 
       <QueryState isLoading={isLoading} error={error}>
         <Grid container spacing={3} alignItems="flex-start">
@@ -90,11 +93,19 @@ export default function Settings() {
               {tab === 'payouts' && <PayoutBankSection />}
 
               {tab === 'security' && (
-                <SecuritySection
-                  email={profile?.email}
-                  minLength={PASSWORD_MIN_LENGTH}
-                  onChangePassword={changePassword}
-                />
+                <Stack spacing={3}>
+                  <SecuritySection
+                    email={profile?.email}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    onChangePassword={changePassword}
+                  />
+                  <SignedInDevicesSection
+                    onList={listSessions}
+                    onRevoke={revokeSession}
+                    onRevokeOthers={revokeOtherSessions}
+                    formatDateTime={formatDateTime}
+                  />
+                </Stack>
               )}
 
               {tab === 'privacy' && (

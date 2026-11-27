@@ -39,6 +39,9 @@ create table if not exists storage.objects (
   created_at timestamptz default now(), updated_at timestamptz default now(),
   last_accessed_at timestamptz default now(), path_tokens text[], version text);
 alter table auth.users add column if not exists email_confirmed_at timestamptz;
+-- 20261023000001 calls storage.filename(), which the storage service normally provides
+create or replace function storage.filename(name text) returns text language sql immutable as
+  $$ select (string_to_array(name, '/'))[array_length(string_to_array(name, '/'), 1)] $$;
 SQL
 
 # 3. apply every migration in order, stopping on the first error
@@ -73,7 +76,8 @@ immediately before applying that file.
 
 ## Files
 
-| File                                | Proves                                                                                                                                                                                                                             |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0904_payment_attribution.test.sql` | An IPN-driven payment transition lands as `actor_kind = 'psp_webhook'`, not `'system'`; a client checkout lands as `'user'`; the reconciliation sweep is distinguishable from both; and a signed-in caller cannot forge any of it. |
-| `0904_payment_trace.test.sql`       | One correlation id returns the complete life of a transaction, in order, across all seven tables.                                                                                                                                  |
+| File                                | Proves                                                                                                                                                                                                                                                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0904_payment_attribution.test.sql` | An IPN-driven payment transition lands as `actor_kind = 'psp_webhook'`, not `'system'`; a client checkout lands as `'user'`; the reconciliation sweep is distinguishable from both; and a signed-in caller cannot forge any of it.                                                           |
+| `0904_payment_trace.test.sql`       | One correlation id returns the complete life of a transaction, in order, across all seven tables.                                                                                                                                                                                            |
+| `1105_financial_documents.test.sql` | Vendor invoices and receipts: the totals formula (UGX and USD rounding, tax both ways), the issued-document lock, partial payments and voids, double-submit safety, cross-vendor and client isolation under RLS, booking invoices following their escrow, random numbers, and the email cap. |

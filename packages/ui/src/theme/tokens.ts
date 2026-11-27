@@ -64,12 +64,11 @@ export const palette = {
     text: { primary: '#1A1320', secondary: '#5C5468', disabled: '#A8A0B5' },
     divider: 'rgba(26,19,32,0.12)',
   },
-  // The dark scheme is warm-neutral, not the cool near-black most dark modes
-  // default to: the canvas carries a low-saturation gold tilt (hue ~40°) so the
-  // secondary-forward identity survives the scheme flip instead of only reading
-  // in light mode. Text, dividers and the `contrastText` inks are warmed to the
-  // same family — a cool grey text on a warm canvas is what makes tinted dark
-  // modes look muddy.
+  // The dark scheme is a neutral charcoal with no hue tilt (changed 2026-11-24:
+  // the earlier warm, gold-tilted canvas `#14100B` read as brown). Following
+  // Material's dark-theme guidance: never pure black, elevation shown by
+  // lighter surfaces rather than shadows, text off pure white, and the accents
+  // lifted to lighter stops so they keep AA contrast on the dark canvas.
   dark: {
     mode: 'dark',
     primary: {
@@ -78,7 +77,7 @@ export const palette = {
       light: '#7FC4C1',
       main: '#3F9BA3',
       dark: '#07504D',
-      contrastText: '#14100B',
+      contrastText: '#141414',
     },
     secondary: {
       lightest: '#FEFAEF',
@@ -86,16 +85,57 @@ export const palette = {
       light: '#FADF92',
       main: '#F6D064',
       dark: '#D4A017',
-      contrastText: '#14100B',
+      contrastText: '#141414',
     },
     success: { lightest: '#E7F4E8', lighter: '#9FD4A4', main: '#5FB868' },
     warning: { lightest: '#FFF4E3', lighter: '#FFD391', main: '#FFB547' },
     error: { lightest: '#FDE5E5', lighter: '#F59896', main: '#EF5350' },
     info: { lightest: '#E5F6FE', lighter: '#95DBFA', main: '#4FC3F7' },
-    background: { default: '#14100B', paper: '#1F1811' },
-    text: { primary: '#F3F0E9', secondary: '#B5ADA0', disabled: '#6B6358' },
-    divider: 'rgba(243,240,233,0.12)',
+    background: { default: '#141414', paper: '#1E1E1E' },
+    text: { primary: '#EDEDED', secondary: '#A3A3A3', disabled: '#5E5E5E' },
+    divider: 'rgba(255,255,255,0.09)',
   },
+} as const;
+
+/**
+ * The dark scheme every app ships (admin, client, vendor portals and the public
+ * site): a neutral charcoal with no hue tilt, in the manner of modern
+ * editor/tool dark modes (VS Code, Linear, Vercel).
+ *
+ * Elevation is carried by lightness steps rather than colour — canvas → paper →
+ * raised — each about 4% apart, with hairline dividers at ~9% white. Gold is
+ * muted (~#D9B35E rather than the bright #F6D064) so it reads as a brand accent
+ * on the few places it is spent (primary buttons, the active step, money
+ * figures) instead of as yellow. Status colours keep the dark scheme's lighter
+ * stops, which already read well on a neutral canvas.
+ */
+export const charcoal = {
+  ...palette.dark,
+  primary: { ...palette.dark.primary, contrastText: '#141414' },
+  secondary: {
+    lightest: '#FAF3E2',
+    lighter: '#F0DCAE',
+    light: '#E6C987',
+    main: '#D9B35E',
+    dark: '#C49A45',
+    contrastText: '#141414',
+  },
+  background: { default: '#141414', paper: '#1E1E1E' },
+  text: { primary: '#EDEDED', secondary: '#A3A3A3', disabled: '#5E5E5E' },
+  divider: 'rgba(255,255,255,0.09)',
+  action: {
+    hover: 'rgba(255,255,255,0.05)',
+    selected: 'rgba(255,255,255,0.08)',
+    focus: 'rgba(255,255,255,0.12)',
+  },
+} as const;
+
+/** Surface steps of the charcoal scheme, for raised panels outside the palette. */
+export const charcoalSurface = {
+  canvas: '#141414',
+  paper: '#1E1E1E',
+  raised: '#232323',
+  border: '#2B2B2B',
 } as const;
 
 /**
@@ -117,7 +157,6 @@ export const gradientStops = {
   tealDeep: '#042E2C', // hero overlay start — one shade below primary.dark
   gold: '#B9890F', // vendor CTA gradient (brand gold before AA-deepening)
   goldDark: '#946D0B', // vendor CTA gradient
-  goldDeep: '#634908', // vendor CTA dark-mode gradient
   neutralDeep: '#232323', // dark-mode photo overlay neutral
 } as const;
 

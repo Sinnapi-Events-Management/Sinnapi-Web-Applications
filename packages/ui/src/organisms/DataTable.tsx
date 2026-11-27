@@ -15,7 +15,11 @@ import {
   Skeleton,
   Typography,
   LinearProgress,
+  Pagination,
+  Stack,
+  useMediaQuery,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 
 export type SortDirection = 'asc' | 'desc';
 export type SortModel = { field: string; direction: SortDirection } | null;
@@ -56,6 +60,12 @@ export type DataTableProps<Row> = {
    * dense tables legible on small screens instead of squashing columns.
    */
   minWidth?: number | string;
+  /**
+   * Below `md`, render each row as this card instead of a table row — a list
+   * of tappable cards with page buttons underneath. Return a `RecordCard`.
+   * Omit to keep the table (scrolling sideways) at every width.
+   */
+  renderCard?: (row: Row) => ReactNode;
 };
 
 /**
@@ -82,9 +92,36 @@ export function DataTable<Row>({
   size = 'medium',
   stickyHeader = false,
   minWidth = 640,
+  renderCard,
 }: DataTableProps<Row>) {
   const sortingEnabled = Boolean(onSortChange);
   const isInitialLoad = loading && rows.length === 0;
+  const compact = useMediaQuery((t: Theme) => t.breakpoints.down('md'));
+
+  if (renderCard && compact) {
+    const pages = Math.ceil(rowCount / pageSize);
+    return (
+      <Stack spacing={1.25}>
+        {isInitialLoad &&
+          Array.from({ length: Math.min(loadingRows, 3) }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={84} />
+          ))}
+        {!isInitialLoad && rows.length === 0 && (
+          <Paper variant="outlined" sx={{ py: 6, px: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary" component="div">
+              {emptyMessage}
+            </Typography>
+          </Paper>
+        )}
+        {!isInitialLoad && rows.map((row) => <Box key={getRowId(row)}>{renderCard(row)}</Box>)}
+        {pages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+            <Pagination count={pages} page={page + 1} onChange={(_, p) => onPageChange(p - 1)} />
+          </Box>
+        )}
+      </Stack>
+    );
+  }
 
   function handleSort(field: string) {
     if (!onSortChange) return;
@@ -154,16 +191,6 @@ export function DataTable<Row>({
                   </TableRow>
                 ))}
 
-              {!isInitialLoad && rows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={columns.length} align="center" sx={{ py: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {emptyMessage}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-
               {!isInitialLoad &&
                 rows.map((row) => (
                   <TableRow
@@ -182,6 +209,15 @@ export function DataTable<Row>({
             </TableBody>
           </Table>
         </TableContainer>
+        {/* Outside the table on purpose: inside it, the message is centred on
+            the table's `minWidth`, so on a phone it sits half off-screen. */}
+        {!isInitialLoad && rows.length === 0 && (
+          <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary" component="div">
+              {emptyMessage}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       <TablePagination

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Grid } from '@sinnapi/ui';
 import { EmptyState } from '@sinnapi/ui/router';
 import ServiceCard from '../molecules/ServiceCard';
@@ -18,6 +19,8 @@ type Props = {
   onToggleVisibility: (service: ServiceRow) => void;
   onArchive: (service: ServiceRow) => void;
   onRestore: (service: ServiceRow) => void;
+  /** Renders a service's prices inside its card. */
+  renderPrices?: (service: ServiceRow) => ReactNode;
 };
 
 /**
@@ -53,6 +56,7 @@ export default function ServiceGrid({
   onToggleVisibility,
   onArchive,
   onRestore,
+  renderPrices,
 }: Props) {
   if (rows.length === 0) {
     if (isEmpty) {
@@ -69,7 +73,7 @@ export default function ServiceGrid({
     if (filter === 'archived') {
       return (
         <EmptyState
-          title="Nothing archived"
+          title="Nothing here"
           description="Services you take out of your catalogue land here, and you can put them back at any time."
         />
       );
@@ -80,7 +84,7 @@ export default function ServiceGrid({
       return (
         <EmptyState
           title="Your catalogue is empty"
-          description={`${n === 1 ? 'Your only service is archived' : `All ${n} of your services are archived`}. Open the Archived tab to put one back, or add a new service.`}
+          description={`${n === 1 ? 'Your only service is no longer offered' : `None of your ${n} services are offered right now`}. Open the “No longer offered” tab to offer one again, or add a new service.`}
           ctaLabel="Add a service"
           onCta={onAdd}
         />
@@ -107,6 +111,7 @@ export default function ServiceGrid({
             onToggleVisibility={() => onToggleVisibility(service)}
             onArchive={() => onArchive(service)}
             onRestore={() => onRestore(service)}
+            prices={renderPrices?.(service)}
           />
         </Grid>
       ))}

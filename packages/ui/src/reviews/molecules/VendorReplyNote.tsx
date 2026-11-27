@@ -58,7 +58,12 @@ export function VendorReplyNote({
         borderRadius: 2,
         borderLeft: 3,
         borderColor: 'secondary.main',
-        bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.07),
+        // Neutral lift on charcoal dark (a low-alpha gold reads brown there);
+        // the gold left rule still carries the accent.
+        bgcolor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? alpha(theme.palette.text.primary, 0.04)
+            : alpha(theme.palette.secondary.main, 0.07),
       }}
     >
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>

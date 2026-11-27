@@ -14,6 +14,12 @@ export type MediaGridProps<T extends MediaRecord> = {
   renderBadge?: (item: PlayableMedia<T>, index: number) => ReactNode;
   /** Wraps a tile — used to make it a drag handle without this kit knowing how. */
   renderWrapper?: (item: PlayableMedia<T>, index: number, tile: ReactNode) => ReactNode;
+  /**
+   * Phones: two square tiles per row, like a phone gallery, instead of one
+   * full-width tile each (the vendor's own Photos page — three photos used to
+   * fill 2,000px). Off by default, so clients' galleries are unchanged.
+   */
+  compactOnPhone?: boolean;
 };
 
 /**
@@ -35,14 +41,27 @@ export function MediaGrid<T extends MediaRecord>({
   renderOverlay,
   renderBadge,
   renderWrapper,
+  compactOnPhone = false,
 }: MediaGridProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  const columns = isMobile ? 1 : isTablet ? 2 : 3;
+  const compact = compactOnPhone && isMobile;
+  const columns = compact ? 2 : isMobile ? 1 : isTablet ? 2 : 3;
 
   return (
-    <ImageList variant="masonry" cols={columns} gap={12} sx={{ m: 0, overflow: 'visible' }}>
+    <ImageList
+      variant={compact ? 'standard' : 'masonry'}
+      cols={columns}
+      gap={compact ? 8 : 12}
+      sx={{
+        m: 0,
+        overflow: 'visible',
+        ...(compact && {
+          '& .media-tile-visual': { aspectRatio: '1 / 1', height: 'auto', objectFit: 'cover' },
+        }),
+      }}
+    >
       {items.map((item, index) => {
         const tile = (
           <MediaTile

@@ -56,7 +56,7 @@ export default function AccountFactsSection({ profile }: Props) {
           Security
         </Button>
       }
-      note="Your email is your account identity and can't be changed here — contact support if it needs to move. Password and payout banking live under Settings."
+      note="Your email is your account identity and can't be changed here — contact support if it needs to move. Password and bank account live under Settings."
     />
   );
 }

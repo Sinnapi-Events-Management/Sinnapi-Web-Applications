@@ -51,7 +51,8 @@ export function StickySaveBar({
         aria-label="Unsaved changes"
         sx={{
           position: 'sticky',
-          bottom: { xs: 12, md: 16 },
+          // Clears a portal's phone bottom bar when one is showing (`0px` otherwise).
+          bottom: { xs: 'calc(12px + var(--portal-bottom-nav-height, 0px))', md: 16 },
           zIndex: (t) => t.zIndex.appBar - 1,
           mt: 3,
           p: { xs: 1.5, sm: 2 },

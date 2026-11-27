@@ -90,7 +90,7 @@ function winRateInsights({ pipeline }: DashboardModel): Insight[] {
         tone: 'attention',
         headline: `${pct(winRate)} of your answered quotes convert`,
         detail: `${quotesAccepted} of ${quotesAnswered} answered quotes became a booking. Check your package pricing against what the winning quotes looked like.`,
-        action: { label: 'Review packages', to: '/packages' },
+        action: { label: 'Review your prices', to: '/services' },
       },
     ];
   }
@@ -201,7 +201,7 @@ function clientInsights({ clients, leadTime, services }: AnalyticsModel): Insigh
         headline: `Clients book you only ${leadTime.headline}`,
         detail:
           'A short horizon makes staffing and stock hard to plan. An early-booking discount is the usual lever for pulling it out.',
-        action: { label: 'Set up a discount', to: '/discounts' },
+        action: { label: 'Set up an offer', to: '/offers' },
       });
     } else {
       out.push({

@@ -25,6 +25,9 @@
  * deliberate: the two sides are looking at one object and should recognise each
  * other's screen.
  */
-export const QUOTATION_TABS = ['overview', 'quote', 'payment', 'messages', 'progress'] as const;
+// 2026-11-17: Payment folded into Quote (the two showed overlapping figures)
+// and the labels became Details · Quote · Messages · History. Keys kept so old
+// links land; a stale `?tab=payment` falls back to Details.
+export const QUOTATION_TABS = ['overview', 'quote', 'messages', 'progress'] as const;
 
 export type QuotationTab = (typeof QUOTATION_TABS)[number];

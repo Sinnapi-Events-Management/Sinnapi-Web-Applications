@@ -222,8 +222,9 @@ export function evaluateBookingStartGate(input: {
     };
   }
   // 'held' is funded and waiting; 'advance_released' is funded with the advance
-  // already sent on. Both mean the money is in.
-  if (!['held', 'advance_released'].includes(escrowStatus ?? '')) {
+  // already sent on, 'awaiting_advance' is funded with the advance not yet
+  // due. All three mean the money is in. Mirrors `start_booking` (20261117000001).
+  if (!['held', 'awaiting_advance', 'advance_released'].includes(escrowStatus ?? '')) {
     return {
       canStart: false,
       blockedReason:

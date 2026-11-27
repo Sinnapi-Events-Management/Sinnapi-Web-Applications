@@ -56,7 +56,12 @@ export default function BookingDetail() {
         />
       ) : (
         <>
-          <BookingHero booking={booking} vendor={vendor} timeWindow={timeWindow} />
+          <BookingHero
+            booking={booking}
+            vendor={vendor}
+            vendorContact={vendorContact}
+            timeWindow={timeWindow}
+          />
           <BookingActionBar booking={booking} vendorName={vendor?.business_name} />
 
           <BookingTabs value={tab} onChange={setTab} />

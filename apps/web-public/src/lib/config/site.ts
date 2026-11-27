@@ -212,3 +212,13 @@ export function formatMoney(amount: number | null, currency: string | null): str
 export function titleize(key: string): string {
   return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+/**
+ * localStorage key for the visitor's light/dark choice, shared by the no-flash
+ * script in the root layout and the ColorModeProvider (they must match).
+ * Renamed from MUI's default `mui-mode` on 2026-11-24, when the dark scheme
+ * moved from warm brown to charcoal: every visitor starts again on the light
+ * default instead of inheriting a dark choice made against the old palette.
+ * Changing it again resets everyone's choice the same way.
+ */
+export const COLOR_MODE_STORAGE_KEY = 'sinnapi-color-mode';

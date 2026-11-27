@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useZodForm } from '@sinnapi/ui/forms';
 import { supabase } from '@/lib/supabase';
+import { RESET_LINK_STALE_MESSAGE, updateOwnPassword } from '@sinnapi/utils/passwordWrite';
 import { resetPasswordSchema, emptyResetPasswordValues } from '../schema';
 
 /**
@@ -24,9 +25,11 @@ export function useResetPasswordForm() {
 
   const submit = handleSubmit(async ({ password }) => {
     setError(null);
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) {
-      setError(updateError.message);
+    // Ticketed write — see `updateOwnPassword`. The reset link's own sign-in
+    // is what authorises it, for an hour.
+    const failure = await updateOwnPassword(supabase, { password }, RESET_LINK_STALE_MESSAGE);
+    if (failure) {
+      setError(failure);
       return;
     }
     navigate('/dashboard', { replace: true });
