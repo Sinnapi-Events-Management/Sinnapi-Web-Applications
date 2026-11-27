@@ -1,6 +1,8 @@
 import { Grid, Stack } from '@sinnapi/ui';
+import { WhatsAppUpdatesSwitch } from '@sinnapi/ui/phone';
 import type { ProfileModel } from '@/lib/types';
 import { useProfileDetails } from '../../hooks/useProfileDetails';
+import { useWhatsAppPreference } from '../../hooks/useWhatsAppPreference';
 import type { ProfileFormValues } from '../../schema';
 import ProfileIdentityCard from './ProfileIdentityCard';
 import AccountSummaryCard from './AccountSummaryCard';
@@ -31,6 +33,7 @@ export default function ProfileSection({
   onDone,
 }: Props) {
   const { busy, err, save } = useProfileDetails(onDone);
+  const whatsapp = useWhatsAppPreference(profile.id, onDone);
 
   return (
     <Grid container spacing={3} alignItems="flex-start">
@@ -50,7 +53,22 @@ export default function ProfileSection({
       </Grid>
 
       <Grid item xs={12} md={8}>
-        <ProfileDetailsForm values={values} email={email} busy={busy} err={err} onSave={save} />
+        <ProfileDetailsForm
+          values={values}
+          email={email}
+          busy={busy}
+          err={err}
+          onSave={save}
+          whatsapp={
+            <WhatsAppUpdatesSwitch
+              phoneE164={profile.phone_e164}
+              optedOut={Boolean(profile.whatsapp_opt_out_at)}
+              busy={whatsapp.busy}
+              error={whatsapp.error}
+              onChange={whatsapp.setEnabled}
+            />
+          }
+        />
       </Grid>
     </Grid>
   );

@@ -1,5 +1,6 @@
 import { PortalShell } from '@sinnapi/ui/router';
 import { NotificationLiveProvider } from '@sinnapi/ui/notifications';
+import PhonePromptHost from './PhonePromptHost';
 import { useAppShell } from './hooks/useAppShell';
 import { useNotificationLiveConfig } from './hooks/useNotificationLiveConfig';
 
@@ -19,6 +20,9 @@ export default function AppShell() {
   return (
     <NotificationLiveProvider {...live}>
       <PortalChrome />
+      {/* Asks for a phone with a country code when the saved one has none,
+          so WhatsApp updates can reach this person. */}
+      <PhonePromptHost />
     </NotificationLiveProvider>
   );
 }

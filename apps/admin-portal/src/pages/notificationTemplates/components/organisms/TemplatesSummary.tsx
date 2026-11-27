@@ -2,6 +2,7 @@ import { Grid } from '@sinnapi/ui';
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import SummaryTile from '../molecules/SummaryTile';
 import type { NotificationTemplateStats } from '@/hooks/queries';
@@ -11,7 +12,7 @@ type Props = {
   loading?: boolean;
 };
 
-/** KPI summary bar above the table: total, email, in-app, and active counts. */
+/** KPI summary bar above the table: total, per-channel and active counts. */
 export default function TemplatesSummary({ stats, loading }: Props) {
   const tiles = [
     {
@@ -33,6 +34,12 @@ export default function TemplatesSummary({ stats, loading }: Props) {
       accent: 'info' as const,
     },
     {
+      label: 'WhatsApp',
+      value: stats?.whatsapp ?? 0,
+      icon: <WhatsAppIcon />,
+      accent: 'success' as const,
+    },
+    {
       label: 'Active',
       value: stats?.active ?? 0,
       icon: <CheckCircleOutlineIcon />,
@@ -43,7 +50,7 @@ export default function TemplatesSummary({ stats, loading }: Props) {
   return (
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {tiles.map((t) => (
-        <Grid key={t.label} item xs={6} md={3}>
+        <Grid key={t.label} item xs={6} sm={4} md={2.4}>
           <SummaryTile {...t} loading={loading} />
         </Grid>
       ))}

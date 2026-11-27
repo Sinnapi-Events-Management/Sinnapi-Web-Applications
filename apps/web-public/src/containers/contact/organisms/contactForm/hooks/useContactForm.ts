@@ -1,16 +1,21 @@
 'use client';
 import { useState } from 'react';
 import { z } from 'zod';
+import { phoneProblem } from '@sinnapi/ui/phone';
 import { INQUIRY_TYPES } from '../data/inquiryTypes';
 
 export const contactSchema = z.object({
   name: z.string().min(2, 'Please enter your name'),
   email: z.string().email('Enter a valid email'),
-  // Optional, but if supplied must look like a phone number.
+  // Optional, but if supplied must be a valid international number — the same
+  // rule as every Sinnapi phone field.
   phone: z
     .string()
     .trim()
-    .refine((v) => v === '' || /^[+\d][\d\s()-]{6,}$/.test(v), 'Enter a valid phone number')
+    .superRefine((v, ctx) => {
+      const problem = phoneProblem(v);
+      if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+    })
     .optional(),
   inquiryType: z.enum(INQUIRY_TYPES, { errorMap: () => ({ message: 'Choose a topic' }) }),
   message: z.string().min(10, 'Tell us a little more (10+ characters)'),

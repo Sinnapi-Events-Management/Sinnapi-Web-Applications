@@ -1,6 +1,7 @@
 import { Chip } from '@sinnapi/ui';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { CHANNEL_LABELS, isNotificationChannel } from '../../schema';
 
 type Props = {
@@ -15,14 +16,19 @@ type Props = {
 export default function ChannelBadge({ channel }: Props) {
   const known = isNotificationChannel(channel);
   const label = known ? CHANNEL_LABELS[channel] : channel;
-  const isEmail = channel === 'email';
+  const look =
+    channel === 'email'
+      ? { color: 'primary' as const, icon: <EmailOutlinedIcon /> }
+      : channel === 'whatsapp'
+        ? { color: 'success' as const, icon: <WhatsAppIcon /> }
+        : { color: 'info' as const, icon: <NotificationsNoneOutlinedIcon /> };
 
   return (
     <Chip
       size="small"
       variant="outlined"
-      color={isEmail ? 'primary' : 'info'}
-      icon={isEmail ? <EmailOutlinedIcon /> : <NotificationsNoneOutlinedIcon />}
+      color={look.color}
+      icon={look.icon}
       label={label}
       sx={{ fontWeight: 600, textTransform: 'capitalize' }}
     />

@@ -2,6 +2,8 @@ import { Box, Grid } from '@sinnapi/ui/atoms';
 import type { RegistrationFields } from '../../hooks/useRegistrationFields';
 import FormSectionHeading from '../../atoms/FormSectionHeading';
 import RegistrationTextField from '../../molecules/RegistrationTextField';
+import { PhoneField } from '@sinnapi/ui/phone';
+import { fieldId } from '../../utils/fieldId';
 
 type Props = { fields: RegistrationFields; disabled: boolean };
 
@@ -37,12 +39,14 @@ export default function OwnerSection({ fields, disabled }: Props) {
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <RegistrationTextField
+          <PhoneField
+            id={fieldId('ownerPhone')}
             name="ownerPhone"
-            fields={fields}
             label="Phone number"
-            type="tel"
-            autoComplete="tel"
+            value={fields.values.ownerPhone}
+            onChange={(v) => fields.set('ownerPhone', v)}
+            error={fields.errors.ownerPhone}
+            helperText="We'll send updates about your application and bookings here, including on WhatsApp."
             required
             disabled={disabled}
           />

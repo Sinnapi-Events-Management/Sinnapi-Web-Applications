@@ -1,4 +1,5 @@
 import type { Control } from 'react-hook-form';
+import { WhatsAppUpdatesSwitch } from '@sinnapi/ui/phone';
 import type { ProfileModel } from '@/lib/types';
 import type { AccountFormValues, PersonalSectionKey } from '../../schema';
 import { PERSONAL_SECTION_META } from '../../schema/sectionMeta';
@@ -6,6 +7,7 @@ import SectionPanel from '../molecules/SectionPanel';
 import AccountIdentityFields from '../molecules/AccountIdentityFields';
 import AccountFactsSection from './AccountFactsSection';
 import PersonalPhotoPanel from './PersonalPhotoPanel';
+import { useWhatsAppPreference } from '../../hooks/useWhatsAppPreference';
 
 type Props = {
   section: PersonalSectionKey;
@@ -28,12 +30,27 @@ export default function PersonalSectionPanel({
   disabled,
   onDone,
 }: Props) {
+  // Called before the early return so the hook order never changes between sections.
+  const whatsapp = useWhatsAppPreference(profile.id, onDone);
   if (section === 'account') return <AccountFactsSection profile={profile} />;
 
   return (
     <SectionPanel meta={PERSONAL_SECTION_META[section]}>
       {section === 'details' ? (
-        <AccountIdentityFields control={control} email={profile.email} disabled={disabled} />
+        <AccountIdentityFields
+          control={control}
+          email={profile.email}
+          disabled={disabled}
+          whatsapp={
+            <WhatsAppUpdatesSwitch
+              phoneE164={profile.phone_e164}
+              optedOut={Boolean(profile.whatsapp_opt_out_at)}
+              busy={whatsapp.busy}
+              error={whatsapp.error}
+              onChange={whatsapp.setEnabled}
+            />
+          }
+        />
       ) : (
         <PersonalPhotoPanel
           profileId={profile.id}

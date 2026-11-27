@@ -16,8 +16,15 @@
 // key as the in-app title.
 import { handler, json } from '../_shared/http.ts';
 import { adminClient, isCronCaller, HttpError } from '../_shared/supabase.ts';
-import { parseRecipients, sendEmail, type EmailMessage } from '../_shared/email.ts';
+import { parseRecipients } from '../_shared/email.ts';
+import { deliverEmail as deliver } from '../_shared/deliverEmail.ts';
 import { notificationEmail, templatedEmail, supportMessageInboxEmail, deepLink } from './emails.ts';
+import {
+  maskPhone,
+  sendWhatsAppTemplate,
+  templateParam,
+  whatsAppConfig,
+} from '../_shared/whatsapp.ts';
 
 /** Legacy projection for the aggregates that still use blanket triggers. */
 const LEGACY_ROUTES: Record<string, { trigger: string }> = {
@@ -40,6 +47,9 @@ const MAX_ATTEMPTS = 5;
  * notifications.sql`).
  */
 const SUPPORT_INBOX_EVENT = 'message.support_inbox';
+
+/** `payload.channel` on outbox rows enqueued for WhatsApp rather than email. */
+const WHATSAPP_CHANNEL = 'whatsapp';
 
 type Supa = ReturnType<typeof adminClient>;
 type Payload = Record<string, unknown>;
@@ -85,7 +95,13 @@ Deno.serve(
         // `audience`: this row is addressed to a MAILBOX, not to a profile, so
         // it carries neither and would otherwise fall through to the legacy
         // projection and be silently dropped.
-        if (row.event_type === SUPPORT_INBOX_EVENT) {
+        // A WhatsApp row (see `enqueue_whatsapp_notification`) also carries
+        // `recipient_id` + `audience`, so it MUST be routed before the
+        // addressed path, which would otherwise re-send the email and write a
+        // second in-app row for it.
+        if (payload.channel === WHATSAPP_CHANNEL) {
+          await dispatchWhatsApp(supa, row.id, row.event_type, payload);
+        } else if (row.event_type === SUPPORT_INBOX_EVENT) {
           await dispatchSupportInbox(payload);
         } else if (payload.recipient_id && payload.audience) {
           await dispatchAddressed(supa, row.event_type, payload);
@@ -207,6 +223,155 @@ async function dispatchAddressed(supa: Supa, trigger: string, payload: Payload):
       dispatched: true,
     },
   });
+}
+
+// ---------------------------------------------------------------------
+// WhatsApp dispatch — one recipient, one approved Meta template.
+//
+// The row was enqueued by `enqueue_whatsapp_notification`, which already
+// checked phone, opt-out and template. They are checked AGAIN here because
+// up to a minute (or five retries) has passed: the person may have opted out
+// or cleared their number since, and that must win.
+//
+// WHAT HAPPENS ON FAILURE
+//   * not configured here (no secrets)  -> logged, row processed, nothing sent
+//   * retryable (rate limit, outage, expired token) -> throw, outbox retries
+//   * permanent (not on WhatsApp, template mismatch) -> logged on the send
+//     log, row processed — five retries cannot change the answer
+//
+// IDEMPOTENCY
+// The `whatsapp_messages` row (unique per outbox row) is written before Meta
+// is called. A retry that finds it already carrying a Meta message id knows
+// the previous attempt sent and only failed afterwards, so it stops there.
+// ---------------------------------------------------------------------
+async function dispatchWhatsApp(
+  supa: Supa,
+  outboxId: string,
+  trigger: string,
+  payload: Payload,
+): Promise<void> {
+  const config = whatsAppConfig();
+  if (!config) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'whatsapp_not_configured',
+        detail: 'WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN unset',
+        outbox_id: outboxId,
+      }),
+    );
+    return;
+  }
+
+  const recipientId = payload.recipient_id as string;
+  const audience = payload.audience as string;
+
+  const { data: profile } = await supa
+    .from('profiles')
+    .select('full_name, phone_e164, whatsapp_opt_out_at, locale, deleted_at')
+    .eq('id', recipientId)
+    .maybeSingle();
+  if (!profile || profile.deleted_at || !profile.phone_e164 || profile.whatsapp_opt_out_at) return;
+
+  const { data: template } = await supa
+    .rpc('resolve_whatsapp_template', {
+      p_trigger: trigger,
+      p_audience: audience,
+      p_locale: profile.locale ?? 'en',
+    })
+    .maybeSingle();
+  const tpl = template as { provider_template: string; params: string[]; locale: string } | null;
+  if (!tpl?.provider_template) return; // template switched off since enqueue
+
+  // Already sent by an earlier attempt? Then this retry has nothing to do.
+  const { data: prior } = await supa
+    .from('whatsapp_messages')
+    .select('id, provider_message_id')
+    .eq('outbox_id', outboxId)
+    .maybeSingle();
+  if (prior?.provider_message_id) return;
+
+  const to = profile.phone_e164 as string;
+  const enriched = await enrich(supa, payload);
+  // Keys every WhatsApp template may use besides the event's own payload:
+  // who it is for, and where to act on it. The link goes in the message body
+  // as a blank, not as a button, because Meta's URL buttons need one fixed
+  // domain and the three portals live on three.
+  const fullName = String(profile.full_name ?? '').trim();
+  enriched.recipient_name = fullName || 'there';
+  enriched.recipient_first_name = fullName.split(/\s+/)[0] || 'there';
+  enriched.link = deepLink(audience, enriched);
+
+  const bodyParams = (tpl.params ?? []).map((key) => templateParam(enriched[key]));
+
+  const logRow = {
+    outbox_id: outboxId,
+    notification_id: (payload.notification_id as string | null) ?? null,
+    recipient_id: recipientId,
+    trigger_key: trigger,
+    provider_template: tpl.provider_template,
+    to_phone: to,
+    status: 'sending',
+    error_code: null,
+    error_message: null,
+    updated_at: new Date().toISOString(),
+  };
+  const { data: log, error: logError } = await supa
+    .from('whatsapp_messages')
+    .upsert(logRow, { onConflict: 'outbox_id' })
+    .select('id')
+    .single();
+  // No log row means no idempotency guard; sending anyway risks a duplicate on
+  // the next retry, so retry the whole row instead.
+  if (logError || !log) throw new Error(`whatsapp_log_failed: ${logError?.message ?? 'no row'}`);
+
+  const result = await sendWhatsAppTemplate(config, {
+    to,
+    template: tpl.provider_template,
+    // Meta language codes are `en`, `en_US`, `fr`…; our locale column holds
+    // the same short form for English, which is all that is approved today.
+    language: tpl.locale || 'en',
+    bodyParams,
+  });
+
+  const now = new Date().toISOString();
+  if (result.sent) {
+    await supa
+      .from('whatsapp_messages')
+      .update({
+        provider_message_id: result.messageId,
+        status: 'sent',
+        status_at: now,
+        updated_at: now,
+      })
+      .eq('id', log.id);
+    return;
+  }
+
+  await supa
+    .from('whatsapp_messages')
+    .update({
+      status: 'failed',
+      error_code: result.code,
+      error_message: result.message.slice(0, 1000),
+      status_at: now,
+      updated_at: now,
+    })
+    .eq('id', log.id);
+
+  if (result.retryable) throw new Error(`whatsapp_${result.code}: ${result.message}`);
+
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      message: 'whatsapp_permanent_failure',
+      outbox_id: outboxId,
+      trigger,
+      to: maskPhone(to),
+      code: result.code,
+      detail: result.message,
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -366,7 +531,12 @@ async function enrich(supa: Supa, payload: Payload): Promise<Payload> {
     'total',
     'subtotal',
   ]) {
-    if (out[key] != null) out[key] = formatAmount(Number(out[key]));
+    if (out[key] == null) continue;
+    out[key] = formatAmount(Number(out[key]));
+    // The same figure with its currency, as ONE value (`UGX 226,600`). Email
+    // copy prints `{{currency}} {{total}}`, but a WhatsApp template may not
+    // put two blanks side by side, so its copy uses `{{total_money}}`.
+    out[`${key}_money`] = [out.currency, out[key]].filter((v) => v != null && v !== '').join(' ');
   }
 
   for (const key of ['advance_release_due_at', 'event_date', 'auto_release_due_at']) {
@@ -517,38 +687,4 @@ function render(template: string, payload: Payload): string {
 function humanise(key: string): string {
   const words = key.replace(/[._]/g, ' ').trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-/**
- * Prefer the shared SMTP transport so the message gets the standard Sinnapi
- * shell with the inline (CID) brand logo, falling back to the HTTP provider
- * for environments that only have EMAIL_API_KEY. The HTTP path cannot carry an
- * inline attachment, so the logo degrades to its alt text there.
- */
-async function deliver(msg: EmailMessage): Promise<void> {
-  const result = await sendEmail(msg);
-  if (result.sent) return;
-
-  const key = Deno.env.get('EMAIL_API_KEY');
-  // Throwing here is what makes the outbox retry and then dead-letter the row.
-  // Returning quietly marked it processed with nothing delivered.
-  if (!key) throw new Error(`email_not_sent: ${result.error ?? 'unknown'}`);
-  const res = await fetch(Deno.env.get('EMAIL_API_URL') ?? 'https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: Deno.env.get('EMAIL_FROM'),
-      to: msg.to,
-      subject: msg.subject,
-      html: msg.html,
-      text: msg.text,
-      // Carried through deliberately: the support-desk copy relies on Reply-To
-      // to let an operator answer the person who wrote in. Dropping it on the
-      // HTTP path would make that work over SMTP and silently not over Resend.
-      ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
-    }),
-  });
-  // Surface a provider rejection so the outbox retries instead of marking the
-  // row processed with nothing delivered.
-  if (!res.ok) throw new Error(`email_provider_${res.status}`);
 }

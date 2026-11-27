@@ -1,11 +1,6 @@
 import { z } from 'zod';
+import { phoneSchema } from '@sinnapi/ui/forms';
 import type { ProfileModel } from '@/lib/types';
-
-// Deliberately permissive: numbers, spaces and the usual grouping punctuation.
-// Real validation of a dialable number belongs to a phone library, not a regex.
-// (Kept in step with the Users page's rule so staff records validate the same
-// way whether an admin edits them or the owner edits their own.)
-const PHONE_RE = /^[+()\-\s\d]{6,20}$/;
 
 const nameField = (label: string) =>
   z
@@ -23,7 +18,9 @@ export const profileFormSchema = z.object({
   first_name: nameField('First name'),
   middle_name: z.string().trim().max(80, 'Middle name must be 80 characters or fewer.'),
   last_name: nameField('Last name'),
-  phone: z.union([z.literal(''), z.string().trim().regex(PHONE_RE, 'Enter a valid phone number.')]),
+  // International (E.164): staff get WhatsApp updates on it. Same shared rule
+  // as every portal, and as the database trigger behind it.
+  phone: phoneSchema(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;

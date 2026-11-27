@@ -135,7 +135,7 @@ function pagedOptions<Row>(key: string, params: PageParams, fetcher: () => Promi
 // parts, phone, account facts) need, so both share one `['profile']` cache entry
 // — saving the page therefore refreshes the AppBar avatar in the same tick.
 const MY_PROFILE_SELECT =
-  'id,public_id,full_name,first_name,middle_name,last_name,email,phone,avatar_url,status,created_at,last_login_at';
+  'id,public_id,full_name,first_name,middle_name,last_name,email,phone,phone_e164,whatsapp_opt_out_at,avatar_url,status,created_at,last_login_at';
 
 export function useProfile() {
   return useQuery({
@@ -1767,6 +1767,7 @@ export type NotificationTemplateStats = {
   all: number;
   email: number;
   in_app: number;
+  whatsapp: number;
   active: number;
 };
 
@@ -1783,13 +1784,14 @@ export function useNotificationTemplateStats(search?: string) {
         if (search) q = q.or(templateSearchClause(search));
         return q;
       };
-      const [all, email, inApp, active] = await Promise.all([
+      const [all, email, inApp, whatsapp, active] = await Promise.all([
         count(base()),
         count(base().eq('channel', 'email')),
         count(base().eq('channel', 'in_app')),
+        count(base().eq('channel', 'whatsapp')),
         count(base().eq('is_active', true)),
       ]);
-      return { all, email, in_app: inApp, active };
+      return { all, email, in_app: inApp, whatsapp, active };
     },
   });
 }
@@ -2739,13 +2741,7 @@ export function useAdminVendorPackageOffers(vendorId?: string) {
 
 /** The tab an operator is filtering the offers console by. */
 export type OfferStatusFilter =
-  | 'all'
-  | 'live'
-  | 'scheduled'
-  | 'paused'
-  | 'suspended'
-  | 'ended'
-  | 'exhausted';
+  'all' | 'live' | 'scheduled' | 'paused' | 'suspended' | 'ended' | 'exhausted';
 
 export type AdminOfferParams = PageParams & {
   search?: string;

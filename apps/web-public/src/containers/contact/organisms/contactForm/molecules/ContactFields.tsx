@@ -1,5 +1,6 @@
 import { Grid, TextField, MenuItem } from '@sinnapi/ui/atoms';
 import { INQUIRY_TYPES } from '../data/inquiryTypes';
+import ContactPhoneField from './ContactPhoneField';
 
 interface ContactFieldsProps {
   errors: Record<string, string>;
@@ -38,15 +39,7 @@ export default function ContactFields({ errors, disabled }: ContactFieldsProps) 
         />
       </Grid>
       <Grid item xs={12} sm={6}>
-        <TextField
-          name="phone"
-          type="tel"
-          label="Phone (optional)"
-          fullWidth
-          disabled={disabled}
-          error={!!errors.phone}
-          helperText={errors.phone}
-        />
+        <ContactPhoneField error={errors.phone} disabled={disabled} />
       </Grid>
       <Grid item xs={12} sm={6}>
         <TextField

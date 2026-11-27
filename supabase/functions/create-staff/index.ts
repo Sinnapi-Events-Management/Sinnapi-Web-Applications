@@ -13,6 +13,7 @@ import { adminClient, userClient, requireUser, HttpError } from '../_shared/supa
 import { generatePassword } from '../_shared/password.ts';
 import { sendEmail, PUBLIC_SITE_URL } from '../_shared/email.ts';
 import { staffWelcomeEmail } from './emails.ts';
+import { isE164, normalisePhone } from '../_shared/whatsapp.ts';
 
 const PROFILE_STATUSES = ['active', 'suspended', 'pending'];
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -58,13 +59,16 @@ Deno.serve(
     const lastName = clean(b.lastName);
     const middleName = clean(b.middleName);
     const email = clean(b.email)?.toLowerCase() ?? null;
-    const phone = clean(b.phone);
+    const phone = clean(b.phone) ? normalisePhone(b.phone) : null;
     const status = b.status ?? 'active';
     const roleIds = Array.isArray(b.roleIds) ? [...new Set(b.roleIds)] : [];
 
     req(!!firstName, 'firstName');
     req(!!lastName, 'lastName');
     req(!!email && EMAIL_RE.test(email), 'email');
+    // Optional, but when given it must be international: staff get WhatsApp
+    // updates on it, and the profile trigger enforces the same rule.
+    req(phone === null || isE164(phone), 'phone');
     req(PROFILE_STATUSES.includes(status), 'status');
     req(roleIds.length > 0 && roleIds.every((id) => UUID_RE.test(id)), 'roleIds');
 

@@ -1,5 +1,6 @@
 import { FormField, Grid } from '@sinnapi/ui';
-import { ControlledField } from '@sinnapi/ui/forms';
+import type { ReactNode } from 'react';
+import { ControlledField, ControlledPhoneField } from '@sinnapi/ui/forms';
 import type { Control } from 'react-hook-form';
 import type { AccountFormValues } from '../../schema';
 
@@ -8,6 +9,8 @@ type Props = {
   /** The account identity — shown, never written. */
   email: string | null;
   disabled?: boolean;
+  /** The WhatsApp updates switch, under the phone. Saves on its own. */
+  whatsapp?: ReactNode;
 };
 
 /**
@@ -17,7 +20,7 @@ type Props = {
  * can't be submitted by accident, which is a stronger guarantee than a disabled
  * input that is still part of the form's values.
  */
-export default function AccountIdentityFields({ control, email, disabled }: Props) {
+export default function AccountIdentityFields({ control, email, disabled, whatsapp }: Props) {
   return (
     <Grid container spacing={2.5}>
       <Grid item xs={12} sm={6}>
@@ -31,15 +34,19 @@ export default function AccountIdentityFields({ control, email, disabled }: Prop
         />
       </Grid>
       <Grid item xs={12} sm={6}>
-        <ControlledField
+        <ControlledPhoneField
           name="phone"
           control={control}
           label="Phone"
-          placeholder="+256 700 000000"
           disabled={disabled}
-          helperText="For clients and support to reach you."
+          helperText="For WhatsApp updates, and for clients and support to reach you."
         />
       </Grid>
+      {whatsapp && (
+        <Grid item xs={12}>
+          {whatsapp}
+        </Grid>
+      )}
       <Grid item xs={12}>
         <FormField
           label="Email"

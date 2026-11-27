@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema } from '@sinnapi/ui/forms';
 import { PROFILE_STATUSES } from '@/lib/status';
 import { one } from '@/lib/rel';
 import type { RoleKeyRef, UserModel } from '@/lib/types';
@@ -10,10 +11,6 @@ export const STATUS_OPTIONS: SelectOption[] = [
   { value: 'pending', label: 'Pending' },
   { value: 'suspended', label: 'Suspended' },
 ];
-
-// Deliberately permissive: numbers, spaces and the usual grouping punctuation.
-// Real validation of a dialable number belongs to a phone library, not a regex.
-const PHONE_RE = /^[+()\-\s\d]{6,20}$/;
 
 const nameField = (label: string) =>
   z
@@ -34,7 +31,9 @@ export const userFormSchema = z.object({
   middle_name: z.string().trim().max(80, 'Middle name must be 80 characters or fewer.'),
   last_name: nameField('Last name'),
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
-  phone: z.union([z.literal(''), z.string().trim().regex(PHONE_RE, 'Enter a valid phone number.')]),
+  // International (E.164): staff get WhatsApp updates on it. Same shared rule
+  // as every portal, and as the database trigger behind it.
+  phone: phoneSchema(),
   roleIds: z.array(z.string().uuid()).min(1, 'Assign at least one role.'),
   status: z.enum(PROFILE_STATUSES),
 });

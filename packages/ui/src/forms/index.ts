@@ -18,3 +18,4 @@ export * from './useCaptcha';
 export * from './CaptchaField';
 export * from './StickySaveBar';
 export * from './useLeaveGuard';
+export * from './ControlledPhoneField';

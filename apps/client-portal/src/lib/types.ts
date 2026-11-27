@@ -1073,7 +1073,7 @@ export type NotificationModel = {
    * probe — see `recordId()` in `@sinnapi/ui/notifications`.
    */
   data: Record<string, unknown> | null;
-  /** `notification_channel` enum — 'in_app' | 'email'. */
+  /** `notification_channel` enum — 'in_app' | 'email' | 'whatsapp'. */
   channel: string;
   read_at: string | null;
   created_at: string;
@@ -1101,6 +1101,10 @@ export type ProfileModel = {
   full_name: string | null;
   email: string | null;
   phone: string | null;
+  /** `phone` in E.164, or null when missing / no country code. Generated; read-only. */
+  phone_e164: string | null;
+  /** When WhatsApp updates were turned off (profile switch or a STOP reply). Null = on. */
+  whatsapp_opt_out_at: string | null;
   avatar_url: string | null;
   locale: string | null;
   preferred_currency: string | null;

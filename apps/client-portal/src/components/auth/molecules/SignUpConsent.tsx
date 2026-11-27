@@ -53,6 +53,15 @@ export default function SignUpConsent({ control, disabled }: Props) {
           />
         )}
       />
+
+      {/* A notice, not a third consent: these are service updates about the
+          person's own bookings (the same ones email already carries), on by
+          default by product decision, with an off switch on the profile and a
+          STOP reply. */}
+      <Typography variant="caption" color="text.secondary">
+        We send updates about your quotes, bookings and payments by email and, once you add your
+        phone number, on WhatsApp. You can turn WhatsApp updates off at any time.
+      </Typography>
     </Stack>
   );
 }

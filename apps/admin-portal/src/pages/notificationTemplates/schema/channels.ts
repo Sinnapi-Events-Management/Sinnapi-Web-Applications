@@ -6,7 +6,7 @@ import type { NotificationTemplateStats } from '@/hooks/queries';
  * The delivery channels a template can target. Mirrors the `notification_channel`
  * Postgres enum, so filtering on these values is always valid server-side.
  */
-export const NOTIFICATION_CHANNELS = ['email', 'in_app'] as const;
+export const NOTIFICATION_CHANNELS = ['email', 'in_app', 'whatsapp'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /** `all` (the unfiltered tab) plus the concrete channels. */
@@ -16,6 +16,7 @@ export type ChannelTabValue = StatusFilterValue<NotificationChannel>;
 export const CHANNEL_LABELS: Record<NotificationChannel, string> = {
   email: 'Email',
   in_app: 'In-app',
+  whatsapp: 'WhatsApp',
 };
 
 /** Narrowing guard so presentational components can accept the raw `string`. */
@@ -31,6 +32,7 @@ export function buildChannelTabs(
     { value: ALL_STATUSES, label: 'All', count: stats?.all },
     { value: 'email', label: CHANNEL_LABELS.email, count: stats?.email },
     { value: 'in_app', label: CHANNEL_LABELS.in_app, count: stats?.in_app },
+    { value: 'whatsapp', label: CHANNEL_LABELS.whatsapp, count: stats?.whatsapp },
   ];
 }
 
@@ -38,5 +40,5 @@ export function buildChannelTabs(
 export function getEmptyMessage(filtered: boolean): string {
   return filtered
     ? 'No templates match your filters. Try a different channel or search term.'
-    : 'No templates yet. Seed templates per trigger key (email + in-app).';
+    : 'No templates yet. Seed templates per trigger key (email, in-app and WhatsApp).';
 }
